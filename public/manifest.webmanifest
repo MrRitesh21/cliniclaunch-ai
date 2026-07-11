@@ -1,0 +1,15 @@
+{
+  "name": "ClinicX — Doctor Console",
+  "short_name": "ClinicX",
+  "description": "Manage appointments, patients, and your clinic site on the go.",
+  "start_url": "/auth",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
