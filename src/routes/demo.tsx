@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Calendar, Users, Clock, TrendingUp, MessageSquare, Bell,
   Search, Plus, Filter, MoreHorizontal, ArrowUpRight, ArrowDownRight,
@@ -89,6 +91,17 @@ function DemoPage() {
   // Dialog / Modal States
   const [apptModalOpen, setApptModalOpen] = useState(false);
   const [consultModalOpen, setConsultModalOpen] = useState(false);
+  const [meetDemoModalOpen, setMeetDemoModalOpen] = useState(false);
+
+  // Google Meet Demo Booking states
+  const [meetName, setMeetName] = useState("");
+  const [meetEmail, setMeetEmail] = useState("");
+  const [meetPhone, setMeetPhone] = useState("");
+  const [meetClinicName, setMeetClinicName] = useState("");
+  const [meetPreferredTime, setMeetPreferredTime] = useState("");
+  const [meetMessage, setMeetMessage] = useState("");
+  const [isSubmittingMeet, setIsSubmittingMeet] = useState(false);
+  const [meetSubmitSuccess, setMeetSubmitSuccess] = useState(false);
 
   // Appointment Form state
   const [newApptName, setNewApptName] = useState("");
@@ -135,6 +148,57 @@ function DemoPage() {
     { id: "INV-7800", patient: "Priya Sharma", date: "Yesterday", amount: "₹850", status: "Paid", method: "Cash" },
     { id: "INV-7799", patient: "Anaya Kapoor", date: "2 days ago", amount: "₹2,500", status: "Pending", method: "—" },
   ]);
+
+  // Handle Google Meet Demo booking and lead capture
+  const handleBookMeetDemo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!meetName || !meetPhone || !meetEmail) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    setIsSubmittingMeet(true);
+    try {
+      const messageContent = `Clinic Name: ${meetClinicName || "Not specified"}\nPreferred Date/Time: ${meetPreferredTime || "Not specified"}\nMessage: ${meetMessage || "None"}`;
+      
+      const { error } = await supabase.from("leads").insert({
+        name: meetName,
+        phone: meetPhone,
+        email: meetEmail,
+        message: messageContent,
+        source: "demo_booking",
+        status: "new"
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setMeetSubmitSuccess(true);
+      toast.success("Demo requested successfully!");
+      
+      // Add a simulated log entry to the Activity List in the Demo dashboard
+      setActivityList(prev => [
+        { icon: Video, text: `Google Meet Demo requested by ${meetName} (${meetClinicName || "Clinic"})`, time: "Just now", tone: "blue" },
+        ...prev
+      ]);
+    } catch (err: any) {
+      console.error("Error submitting lead:", err);
+      toast.error(err.message || "Failed to submit demo request.");
+    } finally {
+      setIsSubmittingMeet(false);
+    }
+  };
+
+  const handleResetMeetDemoForm = () => {
+    setMeetName("");
+    setMeetEmail("");
+    setMeetPhone("");
+    setMeetClinicName("");
+    setMeetPreferredTime("");
+    setMeetMessage("");
+    setMeetSubmitSuccess(false);
+  };
 
   // Force Light Mode for Demo
   useEffect(() => {
@@ -222,6 +286,24 @@ function DemoPage() {
           }} className="h-9"><Video className="size-3.5 mr-1" /> Start consultation</Button>
         </div>
       </div>
+
+      {/* Google Meet Demo CTA Card */}
+      <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="size-11 rounded-full bg-primary/10 text-primary grid place-items-center shrink-0 mt-0.5">
+            <Video className="size-5 animate-pulse" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm font-display">Book a Personalized Demo on Google Meet</h3>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
+              Get a live 1-on-1 walk-through with our product experts. Learn how to configure automated WhatsApp reminders, custom EHR templates, and billing rules tailored to your clinic.
+            </p>
+          </div>
+        </div>
+        <Button onClick={() => setMeetDemoModalOpen(true)} className="shrink-0 h-9 font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm">
+          Book Live Demo <ArrowUpRight className="size-4 ml-1" />
+        </Button>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -791,14 +873,25 @@ function DemoPage() {
     <MarketingShell>
       {/* Demo banner */}
       <div className="bg-primary text-primary-foreground border-b border-primary-foreground/10">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-4 text-xs sm:text-sm">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-4 text-[11px] sm:text-sm">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="size-4 shrink-0 animate-pulse text-amber-300" />
             <span className="truncate"><b>Demo mode</b> — fully interactive dashboard. Switch sections using the left rail.</span>
           </div>
-          <Link to="/auth" className="shrink-0">
-            <Button size="sm" variant="secondary" className="h-7 text-xs bg-white text-primary hover:bg-white/95">Create free account</Button>
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setMeetDemoModalOpen(true)} 
+              className="h-7 text-[10px] sm:text-xs border-white/20 text-white hover:bg-white/10 bg-transparent shrink-0 px-2 sm:px-3 flex items-center gap-1"
+            >
+              <Video className="size-3 sm:size-3.5" />
+              <span>Book <span className="hidden sm:inline">1-on-1 </span>Demo</span>
+            </Button>
+            <Link to="/auth" className="shrink-0">
+              <Button size="sm" variant="secondary" className="h-7 text-[10px] sm:text-xs bg-white text-primary hover:bg-white/95 px-2 sm:px-3">Create free account</Button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -876,6 +969,19 @@ function DemoPage() {
               );
             })}
           </nav>
+
+          <div className="mt-auto p-4 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-primary animate-pulse" />
+              <span className="font-bold text-xs">Personalized Demo</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Want to see how ClinicX fits your clinic? Book a 1-on-1 walk-through on Google Meet.
+            </p>
+            <Button size="sm" onClick={() => setMeetDemoModalOpen(true)} className="w-full h-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90">
+              Book Meet Demo
+            </Button>
+          </div>
         </aside>
 
         {/* Main Content Area */}
@@ -1005,6 +1111,149 @@ function DemoPage() {
                 <Button onClick={handleSaveConsultation} className="bg-emerald-600 hover:bg-emerald-700">Sign & Complete</Button>
               </div>
             </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Google Meet Demo Booking Modal */}
+      {meetDemoModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center z-50 p-4">
+          <Card className="w-full max-w-lg p-6 border-border/60 shadow-2xl relative overflow-hidden animate-in zoom-in duration-200">
+            {/* Header Accent Line */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500" />
+            
+            <button 
+              onClick={() => { setMeetDemoModalOpen(false); handleResetMeetDemoForm(); }} 
+              className="absolute top-4 right-4 size-8 rounded-full grid place-items-center text-muted-foreground hover:bg-muted transition"
+              aria-label="Close modal"
+            >
+              <XCircle className="size-5" />
+            </button>
+
+            {!meetSubmitSuccess ? (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="size-10 rounded-xl bg-gradient-to-tr from-primary/20 to-primary/10 text-primary grid place-items-center shrink-0">
+                    <Video className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-lg font-bold">Book 1-on-1 Demo on Google Meet</h3>
+                    <p className="text-xs text-muted-foreground">Get a personalized tour of ClinicX software</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleBookMeetDemo} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="meet-name" className="text-xs font-semibold">Your Name <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="meet-name" 
+                      required 
+                      value={meetName} 
+                      onChange={e => setMeetName(e.target.value)} 
+                      placeholder="Dr. Sarah Jenkins" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meet-email" className="text-xs font-semibold">Email Address <span className="text-red-500">*</span></Label>
+                      <Input 
+                        id="meet-email" 
+                        type="email" 
+                        required 
+                        value={meetEmail} 
+                        onChange={e => setMeetEmail(e.target.value)} 
+                        placeholder="doctor@example.com" 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meet-phone" className="text-xs font-semibold">Phone Number <span className="text-red-500">*</span></Label>
+                      <Input 
+                        id="meet-phone" 
+                        type="tel" 
+                        required 
+                        value={meetPhone} 
+                        onChange={e => setMeetPhone(e.target.value)} 
+                        placeholder="+91 98765 43210" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meet-clinic" className="text-xs font-semibold">Clinic Name</Label>
+                      <Input 
+                        id="meet-clinic" 
+                        value={meetClinicName} 
+                        onChange={e => setMeetClinicName(e.target.value)} 
+                        placeholder="Skin & Aesthetics Clinic" 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="meet-time" className="text-xs font-semibold">Preferred Date & Time</Label>
+                      <Input 
+                        id="meet-time" 
+                        type="datetime-local" 
+                        value={meetPreferredTime} 
+                        onChange={e => setMeetPreferredTime(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="meet-msg" className="text-xs font-semibold">Specific requirements (optional)</Label>
+                    <Textarea 
+                      id="meet-msg" 
+                      rows={3} 
+                      value={meetMessage} 
+                      onChange={e => setMeetMessage(e.target.value)} 
+                      placeholder="e.g. Tell us about your specialties or integrations you need." 
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4 border-t mt-6">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={() => { setMeetDemoModalOpen(false); handleResetMeetDemoForm(); }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmittingMeet}
+                      className="bg-primary text-primary-foreground hover:bg-primary/95 flex items-center gap-1.5"
+                    >
+                      {isSubmittingMeet ? "Submitting..." : "Schedule Demo"}
+                      {!isSubmittingMeet && <ArrowUpRight className="size-4" />}
+                    </Button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div className="text-center py-8 space-y-4 animate-in fade-in duration-300">
+                <div className="size-16 rounded-full bg-emerald-500/10 text-emerald-600 grid place-items-center mx-auto">
+                  <CheckCircle2 className="size-10" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-display text-xl font-bold">Demo Request Received!</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    Thank you, <b>{meetName}</b>. We have registered your details for a personalized Google Meet walkthrough.
+                  </p>
+                  <p className="text-xs text-muted-foreground/80 max-w-sm mx-auto">
+                    Our team will reach out to you on <b>{meetPhone}</b> via WhatsApp/Call to share the calendar invite and Google Meet link.
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => { setMeetDemoModalOpen(false); handleResetMeetDemoForm(); }}
+                    className="px-6"
+                  >
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       )}
