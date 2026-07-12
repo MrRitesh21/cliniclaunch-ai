@@ -14,7 +14,7 @@ ON CONFLICT (key) DO NOTHING;
 
 -- Seed default system settings
 INSERT INTO public.system_settings (key, value, description) VALUES
-  ('platform_name', 'ClinicOS', 'Public-facing brand name'),
+  ('platform_name', 'ClinicX', 'Public-facing brand name'),
   ('support_email', 'support@clinicos.app', 'Support contact email'),
   ('signup_enabled', 'true', 'Allow new doctor signups'),
   ('maintenance_mode', 'false', 'Block all non-admin access when true'),
@@ -25,5 +25,5 @@ ON CONFLICT (key) DO NOTHING;
 
 -- Seed welcome announcement
 INSERT INTO public.announcements (title, body, type, is_active)
-SELECT 'Welcome to ClinicOS', 'Your clinic dashboard is ready. Set up your profile and publish your website in minutes.', 'info', true
+SELECT 'Welcome to ClinicX', 'Your clinic dashboard is ready. Set up your profile and publish your website in minutes.', 'info', true
 WHERE NOT EXISTS (SELECT 1 FROM public.announcements);

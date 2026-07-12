@@ -147,7 +147,7 @@ function AdminLayout() {
               <Sparkles className="size-4 text-foreground" strokeWidth={2.5} />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-display font-semibold text-white text-[15px] tracking-tight">DigiClinics</span>
+              <span className="font-display font-semibold text-white text-[15px] tracking-tight">ClinicX</span>
               <span className="text-[10px] uppercase tracking-[0.18em] text-white/50 mt-0.5">Admin Console</span>
             </div>
           </Link>

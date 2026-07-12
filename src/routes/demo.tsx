@@ -512,7 +512,7 @@ function DemoPage() {
           </div>
           <div>
             <h3 className="font-bold text-sm text-emerald-800">Account status: Connected</h3>
-            <p className="text-xs text-emerald-700">DigiClinics official business line (+91 90000 88888) is active.</p>
+            <p className="text-xs text-emerald-700">ClinicX official business line (+91 90000 88888) is active.</p>
           </div>
         </div>
       </Card>
