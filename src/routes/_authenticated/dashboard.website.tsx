@@ -77,6 +77,7 @@ function WebsiteApp() {
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [previewToken, setPreviewToken] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<"editor" | "preview">("editor");
 
   useEffect(() => {
     if (!clinic) return;
@@ -347,10 +348,38 @@ function WebsiteApp() {
 
 
 
+      {/* Mobile/Tablet view switcher */}
+      <div className="lg:hidden shrink-0 h-11 border-b bg-background flex items-center p-1.5 gap-1.5">
+        <button
+          type="button"
+          onClick={() => setActivePanel("editor")}
+          className={`flex-1 h-full rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+            activePanel === "editor"
+              ? "bg-primary text-primary-foreground shadow"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <Settings2 className="size-3.5" /> Editor
+        </button>
+        <button
+          type="button"
+          onClick={() => setActivePanel("preview")}
+          className={`flex-1 h-full rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+            activePanel === "preview"
+              ? "bg-primary text-primary-foreground shadow"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <Eye className="size-3.5" /> Live Preview
+        </button>
+      </div>
+
       {/* Main area */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
         {/* Left panel — tabbed: Template | Design | Sections */}
-        <aside className="w-full lg:w-[400px] xl:w-[440px] border-b lg:border-b-0 lg:border-r bg-background flex flex-col overflow-hidden">
+        <aside className={`w-full lg:w-[400px] xl:w-[440px] border-b lg:border-b-0 lg:border-r bg-background flex flex-col overflow-hidden ${
+          activePanel === "editor" ? "flex" : "hidden lg:flex"
+        }`}>
           <Tabs defaultValue="template" className="flex flex-col h-full">
             <TabsList className="grid grid-cols-4 rounded-none border-b shrink-0 h-11">
               <TabsTrigger value="template" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
@@ -526,7 +555,9 @@ function WebsiteApp() {
         </aside>
 
         {/* Preview */}
-        <PreviewPane previewSrc={previewSrc} setPreviewBust={setPreviewBust} />
+        <div className={`flex-1 min-h-0 ${activePanel === "preview" ? "flex flex-col" : "hidden lg:flex lg:flex-col"}`}>
+          <PreviewPane previewSrc={previewSrc} setPreviewBust={setPreviewBust} />
+        </div>
       </div>
     </div>
   );
