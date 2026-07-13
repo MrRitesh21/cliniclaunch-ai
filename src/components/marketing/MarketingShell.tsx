@@ -41,8 +41,8 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <header className="border-b border-border/40 bg-background/80 backdrop-blur-md fixed top-0 left-0 right-0 z-50 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="size-9 rounded-xl bg-primary text-primary-foreground grid place-items-center shadow-md shadow-primary/20">
-              <Stethoscope className="size-5" />
+            <div className="size-9 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center shadow-sm border border-border/10 overflow-hidden group-hover:scale-105 transition-transform">
+              <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <span className="font-display text-2xl font-bold tracking-tight">ClinicX</span>
           </Link>
@@ -103,8 +103,8 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-border/60 bg-background/90 py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="size-7 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <Stethoscope className="size-4" />
+            <div className="size-7 rounded-lg bg-slate-50 dark:bg-slate-900 p-1 grid place-items-center border border-border/10 overflow-hidden">
+              <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <span className="font-display text-lg font-bold">ClinicX</span>
           </div>

@@ -143,8 +143,8 @@ function AdminLayout() {
       >
         <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
           <Link to="/admin/dashboard" className="flex items-center gap-2.5 group">
-            <div className="size-8 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-              <Sparkles className="size-4 text-foreground" strokeWidth={2.5} />
+            <div className="size-8 rounded-lg bg-slate-50 dark:bg-slate-900 p-1 flex items-center justify-center border border-white/10 overflow-hidden group-hover:scale-105 transition-transform">
+              <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
               <span className="font-display font-semibold text-white text-[15px] tracking-tight">ClinicX</span>

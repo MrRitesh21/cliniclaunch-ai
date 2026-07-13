@@ -244,8 +244,8 @@ function SidebarContent({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b shrink-0">
-        <div className="size-7 rounded-lg bg-primary text-primary-foreground grid place-items-center shadow-sm">
-          <Stethoscope className="size-3.5" />
+        <div className="size-7 rounded-lg bg-slate-50 dark:bg-slate-900 p-1 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+          <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
         </div>
         <div>
           <span className="font-display text-sm font-semibold leading-tight block">{platformName}</span>
@@ -556,8 +556,8 @@ function DashboardLayout() {
           {/* Mobile top bar */}
           <div className="md:hidden h-14 border-b flex items-center justify-between px-4 bg-background/95 backdrop-blur sticky top-0 z-20">
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-primary text-primary-foreground grid place-items-center shadow-sm">
-                <Stethoscope className="size-3.5" />
+              <div className="size-7 rounded-lg bg-slate-50 dark:bg-slate-900 p-1 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+                <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
               </div>
               <span className="font-display text-base">{platformName}</span>
             </Link>

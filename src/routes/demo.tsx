@@ -1034,8 +1034,8 @@ function DemoPage() {
         <aside className="hidden md:flex w-64 border-r bg-card flex-col p-4 shrink-0 space-y-6">
           <div className="px-2 pt-2">
             <div className="flex items-center gap-3">
-              <div className="size-9 rounded-xl bg-primary text-primary-foreground grid place-items-center shadow-md shadow-primary/20">
-                <Stethoscope className="size-5" />
+              <div className="size-9 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center border border-border/10 overflow-hidden">
+                <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
               </div>
               <div>
                 <span className="font-display font-bold text-sm tracking-tight text-foreground">ClinicX Demo</span>
