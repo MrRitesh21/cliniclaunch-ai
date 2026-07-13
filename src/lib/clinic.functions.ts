@@ -197,6 +197,46 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
       ? `https://${clinic.custom_domain}`
       : `/c/${clinic.slug}`;
 
+    // Structure the address fields for PostalAddress schema
+    let addressObject: any = undefined;
+    if (address) {
+      const parts = address.split(",").map((s) => s.trim());
+      const street = parts.slice(0, -2).join(", ") || address;
+      const city = parts[parts.length - 2] || undefined;
+      const region = parts[parts.length - 1] || undefined;
+      addressObject = {
+        "@type": "PostalAddress",
+        streetAddress: street,
+        addressLocality: city,
+        addressRegion: region,
+        addressCountry: "IN",
+      };
+    }
+
+    // Structure the opening hours for OpeningHoursSpecification schema
+    let openingHours: any[] | undefined = undefined;
+    try {
+      const wh = typeof clinic.working_hours === "string" 
+        ? JSON.parse(clinic.working_hours) 
+        : (clinic.working_hours as any);
+      if (wh && typeof wh === "object" && wh.start && wh.end && Array.isArray(wh.days)) {
+        const dayMap: Record<number, string> = {
+          1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 0: "Sunday"
+        };
+        const days = wh.days.map((d: number) => dayMap[d]).filter(Boolean);
+        if (days.length) {
+          openingHours = [{
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: days,
+            opens: wh.start,
+            closes: wh.end
+          }];
+        }
+      }
+    } catch (e) {
+      // Fallback on json read failure
+    }
+
     const localBusinessJsonLd: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": "MedicalBusiness",
@@ -206,9 +246,10 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
       telephone: phone || undefined,
       email: email || undefined,
       image: image || undefined,
-      address: address ? { "@type": "PostalAddress", streetAddress: address } : undefined,
+      address: addressObject || undefined,
       priceRange: clinic.consultation_fee ? `₹${clinic.consultation_fee}` : undefined,
       medicalSpecialty: clinic.specialization || undefined,
+      openingHoursSpecification: openingHours || undefined,
     };
 
     const physicianJsonLd: Record<string, unknown> = {
@@ -222,6 +263,8 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
       worksFor: { "@type": "MedicalBusiness", name: clinic.clinic_name },
       telephone: phone || undefined,
       url,
+      address: addressObject || undefined,
+      knowsAbout: clinic.specialization || undefined,
     };
 
     // Strip undefined keys, then JSON-stringify server-side to keep return types serializable.

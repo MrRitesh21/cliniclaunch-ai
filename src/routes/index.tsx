@@ -125,6 +125,34 @@ export const Route = createFileRoute("/")({
             ],
           }),
         },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "ClinicX",
+            url: siteUrl,
+            logo: `${siteUrl}/logo-transparent.png`,
+            sameAs: [
+              "https://twitter.com/clinicx",
+              "https://linkedin.com/company/clinicx"
+            ]
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "ClinicX",
+            url: siteUrl,
+            potentialAction: {
+              "@type": "SearchAction",
+              target: `${siteUrl}/search?q={search_term_string}`,
+              "query-input": "required name=search_term_string"
+            }
+          }),
+        },
       ],
     };
   },
