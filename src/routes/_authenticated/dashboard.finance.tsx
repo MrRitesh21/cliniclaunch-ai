@@ -39,6 +39,7 @@ function FinancePage() {
   const [editing, setEditing] = useState<Invoice | "new" | null>(null);
   const [paying, setPaying] = useState<Invoice | null>(null);
   const [printing, setPrinting] = useState<Invoice | null>(null);
+  const [clinic, setClinic] = useState<any>(null);
 
   async function load() {
     if (!orgId) return;
@@ -47,7 +48,13 @@ function FinancePage() {
     setRows((data as any[]) ?? []);
     setLoading(false);
   }
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [orgId]);
+  useEffect(() => { 
+    void load(); 
+    if (orgId) {
+      supabase.from("clinics").select("*").eq("organization_id", orgId).maybeSingle().then(({ data }) => setClinic(data));
+    }
+    /* eslint-disable-next-line */ 
+  }, [orgId]);
 
   const stats = useMemo(() => {
     const outstanding = rows.filter((r) => r.status !== "paid" && r.status !== "void" && r.status !== "draft");
@@ -113,15 +120,15 @@ function FinancePage() {
         )}
 
       {editing && orgId && (
-        <InvoiceSheet orgId={orgId} existing={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
+        <InvoiceSheet orgId={orgId} existing={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} clinic={clinic} />
       )}
       {paying && <PaymentDialog invoice={paying} orgId={orgId!} onClose={() => setPaying(null)} onSaved={() => { setPaying(null); load(); }} />}
-      {printing && <PrintDialog invoice={printing} onClose={() => setPrinting(null)} orgName={org?.name ?? ""} />}
+      {printing && <PrintDialog invoice={printing} onClose={() => setPrinting(null)} orgName={org?.name ?? ""} clinic={clinic} />}
     </div>
   );
 }
 
-function InvoiceSheet({ orgId, existing, onClose, onSaved }: { orgId: string; existing: Invoice | null; onClose: () => void; onSaved: () => void }) {
+function InvoiceSheet({ orgId, existing, onClose, onSaved, clinic }: { orgId: string; existing: Invoice | null; onClose: () => void; onSaved: () => void; clinic: any }) {
   const [patientName, setPatientName] = useState(existing?.patient_name ?? "");
   const [patientPhone, setPatientPhone] = useState("");
   const [patientId, setPatientId] = useState<string | null>(existing?.patient_id ?? null);
@@ -318,7 +325,71 @@ function InvoiceSheet({ orgId, existing, onClose, onSaved }: { orgId: string; ex
                   <Button className="col-span-1" size="icon" variant="ghost" onClick={() => setItems((p) => p.filter((_, idx) => idx !== i))}><Trash2 className="size-4" /></Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={() => setItems((p) => [...p, { description: "", quantity: 1, unit_price: 0, amount: 0, position: p.length }])}><Plus className="size-3 mr-1" />Add item</Button>
+              <div className="flex flex-col gap-2 mt-1">
+                <div>
+                  <Button variant="outline" size="sm" type="button" onClick={() => setItems((p) => [...p, { description: "", quantity: 1, unit_price: 0, amount: 0, position: p.length }])}><Plus className="size-3 mr-1" />Add item</Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 items-center bg-muted/30 p-2 rounded-lg border border-dashed border-border/80">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1">Quick Add:</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="h-6 text-[10px] bg-background hover:bg-primary/5"
+                    onClick={() => {
+                      const consultationFee = clinic?.consultation_fee || 500;
+                      setItems((prev) => {
+                        const clean = prev.filter(x => x.description.trim() || x.unit_price > 0);
+                        return [...clean, { description: "Consultation Fee", quantity: 1, unit_price: consultationFee, amount: consultationFee, position: prev.length }];
+                      });
+                    }}
+                  >
+                    + Consultation (₹{clinic?.consultation_fee || 500})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="h-6 text-[10px] bg-background hover:bg-primary/5"
+                    onClick={() => {
+                      setItems((prev) => {
+                        const clean = prev.filter(x => x.description.trim() || x.unit_price > 0);
+                        return [...clean, { description: "Follow-up Consultation", quantity: 1, unit_price: 300, amount: 300, position: prev.length }];
+                      });
+                    }}
+                  >
+                    + Follow-up (₹300)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="h-6 text-[10px] bg-background hover:bg-primary/5"
+                    onClick={() => {
+                      setItems((prev) => {
+                        const clean = prev.filter(x => x.description.trim() || x.unit_price > 0);
+                        return [...clean, { description: "Lab Diagnostics / Blood Test", quantity: 1, unit_price: 800, amount: 800, position: prev.length }];
+                      });
+                    }}
+                  >
+                    + Lab Work (₹800)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="h-6 text-[10px] bg-background hover:bg-primary/5"
+                    onClick={() => {
+                      setItems((prev) => {
+                        const clean = prev.filter(x => x.description.trim() || x.unit_price > 0);
+                        return [...clean, { description: "Minor Procedure / Dressing", quantity: 1, unit_price: 1200, amount: 1200, position: prev.length }];
+                      });
+                    }}
+                  >
+                    + Procedure (₹1200)
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -389,40 +460,147 @@ function PaymentDialog({ invoice, orgId, onClose, onSaved }: { invoice: Invoice;
   );
 }
 
-function PrintDialog({ invoice, onClose, orgName }: { invoice: Invoice; onClose: () => void; orgName: string }) {
+function PrintDialog({ invoice, onClose, orgName, clinic }: { invoice: Invoice; onClose: () => void; orgName: string; clinic: any }) {
   const [items, setItems] = useState<Item[]>([]);
   useEffect(() => {
     supabase.from("patient_invoice_items" as any).select("*").eq("invoice_id", invoice.id).order("position").then(({ data }) => setItems((data as any[]) ?? []));
   }, [invoice.id]);
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
         <DialogHeader><DialogTitle>Invoice preview</DialogTitle></DialogHeader>
-        <div id="invoice-print" className="bg-white text-black p-6 rounded border">
-          <div className="flex justify-between mb-6">
-            <div><h2 className="text-xl font-semibold">{orgName}</h2><p className="text-xs text-muted-foreground">Invoice</p></div>
-            <div className="text-right text-sm">
-              <div className="font-medium">{invoice.invoice_number}</div>
-              <div>{new Date(invoice.issue_date).toLocaleDateString()}</div>
+        <div id="invoice-print" className="bg-white text-black p-8 rounded-lg border shadow-sm font-sans">
+          {/* Print style overrides to hide everything else */}
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              #invoice-print, #invoice-print * {
+                visibility: visible;
+              }
+              #invoice-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+              }
+            }
+          `}</style>
+          
+          {/* Letterhead */}
+          <div className="flex justify-between items-start border-b pb-6 mb-6">
+            <div className="space-y-1">
+              {clinic?.logo_url ? (
+                <img src={clinic.logo_url} alt="Clinic Logo" className="h-12 object-contain mb-2" />
+              ) : (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-8 rounded bg-primary/10 text-primary grid place-items-center font-bold text-sm">CX</div>
+                  <span className="font-bold text-lg">{clinic?.clinic_name || orgName}</span>
+                </div>
+              )}
+              <h2 className="text-lg font-bold text-slate-800">{clinic?.clinic_name || orgName}</h2>
+              {clinic?.doctor_name && (
+                <p className="text-xs font-semibold text-slate-700">
+                  {clinic.doctor_name} <span className="text-[10px] font-normal text-slate-500">({clinic.qualification || clinic.specialization})</span>
+                </p>
+              )}
+              {clinic?.specialization && (
+                <p className="text-[10px] text-slate-500">{clinic.specialization}</p>
+              )}
+            </div>
+            
+            <div className="text-right space-y-1">
+              <div className="inline-block bg-primary/10 text-primary px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider mb-1">
+                Tax Invoice
+              </div>
+              <div className="text-xs font-bold text-slate-800">{invoice.invoice_number}</div>
+              <div className="text-[10px] text-slate-500">Date: {new Date(invoice.issue_date).toLocaleDateString()}</div>
+              {invoice.due_date && (
+                <div className="text-[10px] text-slate-500">Due: {new Date(invoice.due_date).toLocaleDateString()}</div>
+              )}
             </div>
           </div>
-          <div className="mb-4 text-sm"><strong>Billed to:</strong> {invoice.patient_name}</div>
-          <table className="w-full text-sm border-t">
-            <thead><tr className="text-left text-xs text-muted-foreground"><th className="py-1">Description</th><th>Qty</th><th>Rate</th><th className="text-right">Amount</th></tr></thead>
+
+          <div className="grid grid-cols-2 gap-6 mb-6 text-xs">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Billed To</span>
+              <div className="font-semibold text-slate-800 text-sm">{invoice.patient_name}</div>
+            </div>
+            {clinic && (
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Clinic Address</span>
+                <div className="text-[10px] text-slate-600 leading-relaxed max-w-xs ml-auto">
+                  {clinic.public_address || clinic.address || "Address not configured"}
+                  {(clinic.public_phone || clinic.phone) && <div className="mt-1 font-medium">Ph: {clinic.public_phone || clinic.phone}</div>}
+                  {(clinic.public_email || clinic.email) && <div>Email: {clinic.public_email || clinic.email}</div>}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-[10px] uppercase font-bold text-slate-400">
+                <th className="py-2">Description</th>
+                <th className="py-2 text-center w-16">Qty</th>
+                <th className="py-2 text-right w-24">Rate</th>
+                <th className="py-2 text-right w-28">Amount</th>
+              </tr>
+            </thead>
             <tbody>
               {items.map((it, i) => (
-                <tr key={i} className="border-t"><td className="py-1">{it.description}</td><td>{it.quantity}</td><td>₹{Number(it.unit_price).toFixed(2)}</td><td className="text-right">₹{Number(it.amount).toFixed(2)}</td></tr>
+                <tr key={i} className="border-b border-slate-100 text-slate-700">
+                  <td className="py-3 font-medium">{it.description}</td>
+                  <td className="py-3 text-center">{it.quantity}</td>
+                  <td className="py-3 text-right">₹{Number(it.unit_price).toFixed(2)}</td>
+                  <td className="py-3 text-right font-semibold">₹{Number(it.amount).toFixed(2)}</td>
+                </tr>
               ))}
             </tbody>
           </table>
-          <div className="mt-4 text-sm ml-auto w-64">
-            <div className="flex justify-between"><span>Subtotal</span><span>₹{Number(invoice.subtotal).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span>Tax ({invoice.tax_percent}%)</span><span>₹{(Number(invoice.subtotal) * Number(invoice.tax_percent) / 100).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span>Discount</span><span>−₹{Number(invoice.discount).toFixed(2)}</span></div>
-            <div className="flex justify-between font-semibold mt-1 pt-1 border-t"><span>Total</span><span>₹{Number(invoice.total).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span>Paid</span><span>₹{Number(invoice.amount_paid).toFixed(2)}</span></div>
+
+          <div className="mt-6 flex justify-between items-start gap-4">
+            <div className="text-[10px] text-slate-500 max-w-sm">
+              {invoice.notes && (
+                <div className="space-y-1">
+                  <span className="font-bold text-slate-400 uppercase text-[9px]">Notes / Instructions</span>
+                  <p className="leading-relaxed">{invoice.notes}</p>
+                </div>
+              )}
+            </div>
+            <div className="text-xs w-64 space-y-1.5 border-t pt-3 border-slate-100 ml-auto">
+              <div className="flex justify-between text-slate-500">
+                <span>Subtotal</span>
+                <span>₹{Number(invoice.subtotal).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>Tax ({invoice.tax_percent}%)</span>
+                <span>₹{(Number(invoice.subtotal) * Number(invoice.tax_percent) / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>Discount</span>
+                <span className="text-emerald-600">−₹{Number(invoice.discount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-slate-800 text-sm border-t pt-1.5 border-slate-200">
+                <span>Total</span>
+                <span>₹{Number(invoice.total).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-emerald-600 font-semibold text-[10px] pt-1">
+                <span>Paid</span>
+                <span>₹{Number(invoice.amount_paid).toFixed(2)}</span>
+              </div>
+              {Number(invoice.total) - Number(invoice.amount_paid) > 0 && (
+                <div className="flex justify-between text-rose-600 font-bold text-[10px] border-t border-dashed pt-1 mt-1">
+                  <span>Balance Due</span>
+                  <span>₹{(Number(invoice.total) - Number(invoice.amount_paid)).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
           </div>
-          {invoice.notes && <p className="text-xs text-muted-foreground mt-6 pt-3 border-t">{invoice.notes}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Close</Button>
