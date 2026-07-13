@@ -102,7 +102,16 @@ export const getClinicBySlug = createServerFn({ method: "GET" })
         .eq("organization_id", (clinic as any).organization_id);
       installed_modules = (mods ?? []).map((m: any) => m.module_id);
     }
-    return { ...clinic, installed_modules };
+
+    // Fetch approved reviews for the clinic
+    const { data: dbReviews } = await sb
+      .from("reviews")
+      .select("reviewer_name, rating, comment, created_at")
+      .eq("clinic_id", clinic.id)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+
+    return { ...clinic, installed_modules, db_reviews: dbReviews ?? [] };
   });
 
 

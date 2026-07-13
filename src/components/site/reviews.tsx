@@ -12,14 +12,34 @@ const DEFAULT_REVIEWS = [
 ];
 
 function reviewsFrom(clinic: SiteClinic) {
-  const c = clinic as unknown as { reviews?: unknown; google_reviews?: unknown };
+  const c = clinic as unknown as { 
+    reviews?: unknown; 
+    google_reviews?: unknown; 
+    db_reviews?: Array<{ reviewer_name: string; rating: number; comment: string | null }>;
+  };
+
+  // 1. First priority: approved reviews from the database (moderated via dashboard)
+  if (Array.isArray(c.db_reviews) && c.db_reviews.length) {
+    return c.db_reviews.map((r) => ({
+      name: r.reviewer_name || "Verified Patient",
+      text: r.comment || "Excellent care!",
+      rating: r.rating || 5,
+      source: "db" as const
+    }));
+  }
+
+  // 2. Second priority: google reviews if configured
   const g = Array.isArray(c.google_reviews) ? (c.google_reviews as Array<{ author?: string; text?: string; rating?: number; show_on_site?: boolean }>) : [];
   const gShown = g.filter((r) => r.show_on_site !== false && (r.text ?? "").trim().length > 0);
   if (gShown.length) {
     return gShown.map((r) => ({ name: r.author ?? "Google user", text: r.text ?? "", rating: r.rating ?? 5, source: "google" as const }));
   }
+
+  // 3. Third priority: local static/custom list configured in builder
   const raw = c.reviews;
   if (Array.isArray(raw) && raw.length) return raw as typeof DEFAULT_REVIEWS;
+
+  // 4. Default fallback
   return DEFAULT_REVIEWS;
 }
 

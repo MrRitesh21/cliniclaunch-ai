@@ -42,6 +42,7 @@ export type SiteClinic = {
   section_hidden?: SectionKey[] | null;
   section_content?: Record<string, unknown> | null;
   installed_modules?: string[];
+  db_reviews?: Array<{ reviewer_name: string; rating: number; comment: string | null; created_at: string }>;
 };
 
 export function hasModule(clinic: { installed_modules?: string[] } | null | undefined, key: string): boolean {
