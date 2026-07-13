@@ -35,7 +35,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   Eye, EyeOff, GripVertical, Save, RefreshCcw, ExternalLink,
   Monitor, Smartphone, ChevronLeft, Settings2, Loader2,
-  LayoutTemplate, Wand2, Check, Rocket, Copy,
+  LayoutTemplate, Wand2, Check, Rocket, Copy, Trash2, Star
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -54,6 +54,10 @@ type EditorState = {
   hero_subheadline: string;
   about_text: string;
   bio: string;
+  services: any[];
+  faqs: any[];
+  team: any[];
+  testimonials: any[];
 };
 
 // ─── Root app ────────────────────────────────────────────────────────────────
@@ -103,6 +107,10 @@ function WebsiteApp() {
       hero_subheadline: (c.hero_subheadline as string) ?? "",
       about_text: (c.about_text as string) ?? "",
       bio: (c.bio as string) ?? "",
+      services: Array.isArray(c.services) ? c.services : [],
+      faqs: Array.isArray(c.faqs) ? c.faqs : [],
+      team: Array.isArray(c.team) ? c.team : [],
+      testimonials: Array.isArray(c.testimonials) ? c.testimonials : [],
     });
     setDirty(false);
   }, [clinic]);
@@ -127,6 +135,10 @@ function WebsiteApp() {
           hero_subheadline: activeState.hero_subheadline,
           about_text: activeState.about_text,
           bio: activeState.bio,
+          services: activeState.services,
+          faqs: activeState.faqs,
+          team: activeState.team,
+          testimonials: activeState.testimonials,
         })
         .eq("id", activeClinic.id);
       setSaving(false);
@@ -167,6 +179,10 @@ function WebsiteApp() {
         hero_subheadline: state.hero_subheadline,
         about_text: state.about_text,
         bio: state.bio,
+        services: state.services,
+        faqs: state.faqs,
+        team: state.team,
+        testimonials: state.testimonials,
       })
       .eq("id", clinic.id);
     setSaving(false);
@@ -617,15 +633,402 @@ function SectionsPanel({ state, patch, clinic }: {
               </div>
             )}
 
-            <Card className="p-3 bg-muted/40">
-              <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                <Settings2 className="size-3.5 mt-0.5 shrink-0" />
-                <div>
-                  Detailed content (services, gallery photos, working hours, contact info) is edited from the{" "}
-                  <Link to="/dashboard/settings" className="underline">Clinic settings</Link> page.
+            {activeKey === "services" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Services List</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
+                    className="h-7 text-[10px] font-bold"
+                    onClick={() => {
+                      const newList = [...(state.services || []), { name: "New Service", price: 500, description: "Consultation and checkup", duration: "30 mins" }];
+                      patch({ services: newList });
+                    }}
+                  >
+                    + Add Service
+                  </Button>
+                </div>
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                  {(state.services || []).map((s: any, idx: number) => (
+                    <Card key={idx} className="p-3 border-border/60 relative space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-muted-foreground">Service #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-6 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const newList = (state.services || []).filter((_: any, i: number) => i !== idx);
+                            patch({ services: newList });
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Service Name</label>
+                          <Input 
+                            placeholder="Service name"
+                            value={s.name || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.services];
+                              newList[idx] = { ...newList[idx], name: e.target.value };
+                              patch({ services: newList });
+                            }}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Price (₹)</label>
+                            <Input 
+                              type="number"
+                              placeholder="Price (₹)"
+                              value={s.price ?? ""} 
+                              onChange={(e) => {
+                                const newList = [...state.services];
+                                newList[idx] = { ...newList[idx], price: e.target.value === "" ? 0 : Number(e.target.value) };
+                                patch({ services: newList });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Duration</label>
+                            <Input 
+                              placeholder="e.g. 30 mins"
+                              value={s.duration || ""} 
+                              onChange={(e) => {
+                                const newList = [...state.services];
+                                newList[idx] = { ...newList[idx], duration: e.target.value };
+                                patch({ services: newList });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Description</label>
+                          <Textarea 
+                            placeholder="Description"
+                            value={s.description || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.services];
+                              newList[idx] = { ...newList[idx], description: e.target.value };
+                              patch({ services: newList });
+                            }}
+                            rows={2}
+                            className="text-xs p-2 resize-none"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {(state.services || []).length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-6">No services added. Click Add Service to start.</p>
+                  )}
                 </div>
               </div>
-            </Card>
+            )}
+
+            {activeKey === "faq" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Frequently Asked Questions</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
+                    className="h-7 text-[10px] font-bold"
+                    onClick={() => {
+                      const newList = [...(state.faqs || []), { question: "New Question", answer: "FAQ answer details" }];
+                      patch({ faqs: newList });
+                    }}
+                  >
+                    + Add FAQ
+                  </Button>
+                </div>
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                  {(state.faqs || []).map((f: any, idx: number) => (
+                    <Card key={idx} className="p-3 border-border/60 relative space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-muted-foreground">FAQ #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-6 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const newList = (state.faqs || []).filter((_: any, i: number) => i !== idx);
+                            patch({ faqs: newList });
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Question</label>
+                          <Input 
+                            placeholder="Question text"
+                            value={f.question || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.faqs];
+                              newList[idx] = { ...newList[idx], question: e.target.value };
+                              patch({ faqs: newList });
+                            }}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Answer</label>
+                          <Textarea 
+                            placeholder="Answer details"
+                            value={f.answer || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.faqs];
+                              newList[idx] = { ...newList[idx], answer: e.target.value };
+                              patch({ faqs: newList });
+                            }}
+                            rows={3}
+                            className="text-xs p-2 resize-none"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {(state.faqs || []).length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-6">No FAQs added. Click Add FAQ to start.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeKey === "team" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Team Members</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
+                    className="h-7 text-[10px] font-bold"
+                    onClick={() => {
+                      const newList = [...(state.team || []), { name: "Doctor Name", role: "Specialist", specialization: "Dermatology", bio: "Bio details here" }];
+                      patch({ team: newList });
+                    }}
+                  >
+                    + Add Member
+                  </Button>
+                </div>
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                  {(state.team || []).map((m: any, idx: number) => (
+                    <Card key={idx} className="p-3 border-border/60 relative space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-muted-foreground">Member #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-6 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const newList = (state.team || []).filter((_: any, i: number) => i !== idx);
+                            patch({ team: newList });
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Full Name</label>
+                            <Input 
+                              placeholder="Name"
+                              value={m.name || ""} 
+                              onChange={(e) => {
+                                const newList = [...state.team];
+                                newList[idx] = { ...newList[idx], name: e.target.value };
+                                patch({ team: newList });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Role</label>
+                            <Input 
+                              placeholder="e.g. Chief Surgeon"
+                              value={m.role || ""} 
+                              onChange={(e) => {
+                                const newList = [...state.team];
+                                newList[idx] = { ...newList[idx], role: e.target.value };
+                                patch({ team: newList });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Specialization</label>
+                          <Input 
+                            placeholder="e.g. Cosmetic Dermatology"
+                            value={m.specialization || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.team];
+                              newList[idx] = { ...newList[idx], specialization: e.target.value };
+                              patch({ team: newList });
+                            }}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Short Bio</label>
+                          <Textarea 
+                            placeholder="Biography details"
+                            value={m.bio || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.team];
+                              newList[idx] = { ...newList[idx], bio: e.target.value };
+                              patch({ team: newList });
+                            }}
+                            rows={2}
+                            className="text-xs p-2 resize-none"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {(state.team || []).length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-6">No team members added. Click Add Member to start.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeKey === "reviews" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Patient Reviews</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
+                    className="h-7 text-[10px] font-bold"
+                    onClick={() => {
+                      const newList = [...(state.testimonials || []), { author_name: "Patient Name", rating: 5, text: "Excellent clinical care.", subtitle: "Patient" }];
+                      patch({ testimonials: newList });
+                    }}
+                  >
+                    + Add Review
+                  </Button>
+                </div>
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                  {(state.testimonials || []).map((t: any, idx: number) => (
+                    <Card key={idx} className="p-3 border-border/60 relative space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-muted-foreground">Review #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-6 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const newList = (state.testimonials || []).filter((_: any, i: number) => i !== idx);
+                            patch({ testimonials: newList });
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Author Name</label>
+                            <Input 
+                              placeholder="Name"
+                              value={t.author_name || ""} 
+                              onChange={(e) => {
+                                const newList = [...state.testimonials];
+                                newList[idx] = { ...newList[idx], author_name: e.target.value };
+                                patch({ testimonials: newList });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Subtitle / Tag</label>
+                            <Input 
+                              placeholder="e.g. Skin treatment patient"
+                              value={t.subtitle || ""} 
+                              onChange={(e) => {
+                                const newList = [...state.testimonials];
+                                newList[idx] = { ...newList[idx], subtitle: e.target.value };
+                                patch({ testimonials: newList });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                            Rating ({t.rating || 5} Stars)
+                          </label>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((stars) => (
+                              <button 
+                                key={stars}
+                                type="button"
+                                onClick={() => {
+                                  const newList = [...state.testimonials];
+                                  newList[idx] = { ...newList[idx], rating: stars };
+                                  patch({ testimonials: newList });
+                                }}
+                                className="p-0.5"
+                              >
+                                <Star className={`size-4 ${stars <= (t.rating || 5) ? "fill-amber-400 text-amber-400" : "text-border"}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground">Review Text</label>
+                          <Textarea 
+                            placeholder="Patient review text"
+                            value={t.text || ""} 
+                            onChange={(e) => {
+                              const newList = [...state.testimonials];
+                              newList[idx] = { ...newList[idx], text: e.target.value };
+                              patch({ testimonials: newList });
+                            }}
+                            rows={2}
+                            className="text-xs p-2 resize-none"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {(state.testimonials || []).length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-6">No reviews added. Click Add Review to start.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!["hero", "about", "services", "faq", "team", "reviews"].includes(activeKey) && (
+              <Card className="p-3 bg-muted/40">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <Settings2 className="size-3.5 mt-0.5 shrink-0" />
+                  <div>
+                    Detailed content for this section (gallery photos, working hours, contact info) is edited from the{" "}
+                    <Link to="/dashboard/settings" className="underline">Clinic settings</Link> page.
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
           <div className="border-t p-3 flex items-center justify-between gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => toggleHidden(activeKey)}>
