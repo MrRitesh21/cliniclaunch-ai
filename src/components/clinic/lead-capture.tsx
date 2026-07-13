@@ -49,12 +49,11 @@ export function LeadCapture({ clinicId, slug, doctorName, offer }: {
 
   return (
     <>
-      {/* Sticky callback CTA */}
       <button
         type="button"
         onClick={openCallback}
         aria-label="Request a free callback"
-        className="fixed bottom-5 right-5 z-40 group flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-4 pr-5 py-3 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition active:scale-95 md:bottom-6 md:right-6"
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 group flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-4 pr-5 py-3 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition active:scale-95"
       >
         <span className="relative flex size-8 items-center justify-center rounded-full bg-primary-foreground/15">
           <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/30" />

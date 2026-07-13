@@ -35,7 +35,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   Eye, EyeOff, GripVertical, Save, RefreshCcw, ExternalLink,
   Monitor, Smartphone, ChevronLeft, Settings2, Loader2,
-  LayoutTemplate, Wand2, Check, Rocket, Copy, Trash2, Star
+  LayoutTemplate, Wand2, Check, Rocket, Copy, Trash2, Star, Globe
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -58,6 +58,11 @@ type EditorState = {
   faqs: any[];
   team: any[];
   testimonials: any[];
+  seo_title: string;
+  seo_description: string;
+  public_phone: string;
+  public_email: string;
+  public_address: string;
 };
 
 // ─── Root app ────────────────────────────────────────────────────────────────
@@ -111,6 +116,11 @@ function WebsiteApp() {
       faqs: Array.isArray(c.faqs) ? c.faqs : [],
       team: Array.isArray(c.team) ? c.team : [],
       testimonials: Array.isArray(c.testimonials) ? c.testimonials : [],
+      seo_title: (c.seo_title as string) ?? "",
+      seo_description: (c.seo_description as string) ?? "",
+      public_phone: (c.public_phone as string) ?? "",
+      public_email: (c.public_email as string) ?? "",
+      public_address: (c.public_address as string) ?? "",
     });
     setDirty(false);
   }, [clinic]);
@@ -139,6 +149,11 @@ function WebsiteApp() {
           faqs: activeState.faqs,
           team: activeState.team,
           testimonials: activeState.testimonials,
+          seo_title: activeState.seo_title,
+          seo_description: activeState.seo_description,
+          public_phone: activeState.public_phone,
+          public_email: activeState.public_email,
+          public_address: activeState.public_address,
         })
         .eq("id", activeClinic.id);
       setSaving(false);
@@ -183,6 +198,11 @@ function WebsiteApp() {
         faqs: state.faqs,
         team: state.team,
         testimonials: state.testimonials,
+        seo_title: state.seo_title,
+        seo_description: state.seo_description,
+        public_phone: state.public_phone,
+        public_email: state.public_email,
+        public_address: state.public_address,
       })
       .eq("id", clinic.id);
     setSaving(false);
@@ -332,15 +352,18 @@ function WebsiteApp() {
         {/* Left panel — tabbed: Template | Design | Sections */}
         <aside className="w-full lg:w-[400px] xl:w-[440px] border-b lg:border-b-0 lg:border-r bg-background flex flex-col overflow-hidden">
           <Tabs defaultValue="template" className="flex flex-col h-full">
-            <TabsList className="grid grid-cols-3 rounded-none border-b shrink-0 h-11">
-              <TabsTrigger value="template" className="gap-1.5 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+            <TabsList className="grid grid-cols-4 rounded-none border-b shrink-0 h-11">
+              <TabsTrigger value="template" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <LayoutTemplate className="size-3.5" /> Template
               </TabsTrigger>
-              <TabsTrigger value="design" className="gap-1.5 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              <TabsTrigger value="design" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <Wand2 className="size-3.5" /> Design
               </TabsTrigger>
-              <TabsTrigger value="sections" className="gap-1.5 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              <TabsTrigger value="sections" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <Settings2 className="size-3.5" /> Sections
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+                <Globe className="size-3.5" /> SEO/Info
               </TabsTrigger>
             </TabsList>
 
@@ -413,6 +436,91 @@ function WebsiteApp() {
             {/* Sections tab (reorder + show/hide + variant drawer) */}
             <TabsContent value="sections" className="flex-1 overflow-y-auto mt-0">
               <SectionsPanel state={state} patch={patch} clinic={clinic as unknown as SiteClinic} />
+            </TabsContent>
+
+            {/* SEO & Info tab */}
+            <TabsContent value="settings" className="flex-1 overflow-y-auto p-4 space-y-5 mt-0">
+              <div>
+                <p className="font-medium text-sm">Search Engine Optimization (SEO)</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure search engine visibility. These tags help your clinic show up on Google.
+                </p>
+              </div>
+
+              <div className="space-y-4 border-b pb-5">
+                <div className="space-y-2">
+                  <Label htmlFor="seo_title" className="text-xs font-bold text-muted-foreground">SEO Title Tag</Label>
+                  <Input
+                    id="seo_title"
+                    value={state.seo_title || ""}
+                    onChange={(e) => patch({ seo_title: e.target.value })}
+                    placeholder="e.g. Dr. Jane Smith | Premium Cardiology Clinic"
+                    className="text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Recommended length: 50-60 characters. Current: {state.seo_title?.length || 0}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seo_desc" className="text-xs font-bold text-muted-foreground">Meta Description</Label>
+                  <Textarea
+                    id="seo_desc"
+                    value={state.seo_description || ""}
+                    onChange={(e) => patch({ seo_description: e.target.value })}
+                    placeholder="e.g. Visit Dr. Jane Smith's cardiology clinic in Mumbai for expert heart care. Book online appointments easily."
+                    rows={3}
+                    className="text-xs resize-none"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Recommended length: 150-160 characters. Current: {state.seo_description?.length || 0}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-medium text-sm">Public Clinic Information</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  General contact details displayed across header, footer, and contact sections.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pub_phone" className="text-xs font-bold text-muted-foreground">Public Phone Number</Label>
+                  <Input
+                    id="pub_phone"
+                    value={state.public_phone || ""}
+                    onChange={(e) => patch({ public_phone: e.target.value })}
+                    placeholder="e.g. +91 98765 43210"
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pub_email" className="text-xs font-bold text-muted-foreground">Public Email Address</Label>
+                  <Input
+                    id="pub_email"
+                    type="email"
+                    value={state.public_email || ""}
+                    onChange={(e) => patch({ public_email: e.target.value })}
+                    placeholder="e.g. contact@myclinic.com"
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pub_addr" className="text-xs font-bold text-muted-foreground">Public Clinic Address</Label>
+                  <Textarea
+                    id="pub_addr"
+                    value={state.public_address || ""}
+                    onChange={(e) => patch({ public_address: e.target.value })}
+                    placeholder="e.g. Suite 402, Medical Square, MG Road, Mumbai"
+                    rows={2.5}
+                    className="text-xs resize-none"
+                  />
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </aside>
