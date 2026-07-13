@@ -883,7 +883,7 @@ function DemoPage() {
               size="sm" 
               variant="outline" 
               onClick={() => setMeetDemoModalOpen(true)} 
-              className="h-7 text-[10px] sm:text-xs border-white/20 text-white hover:bg-white/10 bg-transparent shrink-0 px-2 sm:px-3 flex items-center gap-1"
+              className="h-7 text-[10px] sm:text-xs border-white/30 text-white hover:bg-white hover:text-primary bg-transparent shrink-0 px-2 sm:px-3 flex items-center gap-1 transition-colors"
             >
               <Video className="size-3 sm:size-3.5" />
               <span>Book <span className="hidden sm:inline">1-on-1 </span>Demo</span>
