@@ -140,8 +140,8 @@ function AuthPage() {
 
         <div className="relative">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="size-10 rounded-xl bg-primary-foreground/15 backdrop-blur grid place-items-center">
-              <Stethoscope className="size-5" />
+            <div className="size-10 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+              <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <span className="font-display text-2xl font-bold">{platformName}</span>
           </Link>
@@ -186,8 +186,8 @@ function AuthPage() {
       <div className="flex flex-col justify-center px-6 py-12 lg:px-16 xl:px-24">
         <div className="w-full max-w-md mx-auto">
           <Link to="/" className="inline-flex lg:hidden items-center gap-2 mb-8">
-            <div className="size-9 rounded-xl bg-primary text-primary-foreground grid place-items-center">
-              <Stethoscope className="size-5" />
+            <div className="size-9 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+              <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <span className="font-display text-2xl font-bold">{platformName}</span>
           </Link>
