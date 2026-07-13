@@ -1,10 +1,35 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, Menu, X } from "lucide-react";
+import { Stethoscope, Menu, X, Sun, Moon, Monitor } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useTheme } from "@/components/ui/theme-provider";
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    if (theme === "system") setTheme("light");
+    else if (theme === "light") setTheme("dark");
+    else setTheme("system");
+  };
+
+  const themeIcon = () => {
+    switch (theme) {
+      case "light": return <Sun className="size-4.5" />;
+      case "dark": return <Moon className="size-4.5" />;
+      default: return <Monitor className="size-4.5" />;
+    }
+  };
+
+  const themeLabel = () => {
+    switch (theme) {
+      case "light": return "Light mode";
+      case "dark": return "Dark mode";
+      default: return "System theme";
+    }
+  };
+
   const nav = [
     { label: "Features", to: "/features" as const },
     { label: "Live Demo", to: "/demo" as const },
@@ -30,10 +55,28 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             <a href="/#pricing" className="hover:text-foreground transition-colors">Pricing</a>
           </nav>
           <div className="hidden md:flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg"
+              title={`Theme: ${themeLabel()}`}
+            >
+              {themeIcon()}
+            </Button>
             <Link to="/auth"><Button variant="ghost">Sign in</Button></Link>
             <Link to="/auth"><Button>Get started</Button></Link>
           </div>
-          <div className="md:hidden">
+          <div className="flex items-center gap-1 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg mr-1"
+              title={`Theme: ${themeLabel()}`}
+            >
+              {themeIcon()}
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setOpen(!open)}>
               {open ? <X className="size-6" /> : <Menu className="size-6" />}
             </Button>

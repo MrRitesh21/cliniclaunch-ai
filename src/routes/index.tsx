@@ -27,7 +27,11 @@ import {
   Star,
   ExternalLink,
   ChevronRight,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { useTheme } from "@/components/ui/theme-provider";
 import { resolveHostToClinic } from "@/lib/domain.functions";
 import { getClinicBySlug } from "@/lib/clinic.functions";
 import { resolveVariants, getVariantComponent } from "@/components/site/registry";
@@ -258,27 +262,29 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
 
 function Landing() {
   const { clinic, clinicSlug } = Route.useLoaderData();
+  const { theme, setTheme } = useTheme();
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const root = window.document.documentElement;
-    
-    // Force light theme on public main pages
-    root.classList.remove("dark");
-    root.classList.add("light");
+  const toggleTheme = () => {
+    if (theme === "system") setTheme("light");
+    else if (theme === "light") setTheme("dark");
+    else setTheme("system");
+  };
 
-    return () => {
-      // Restore dashboard theme on unmount
-      const savedTheme = localStorage.getItem("cliniclaunch-ui-theme") || "system";
-      root.classList.remove("light", "dark");
-      if (savedTheme === "system") {
-        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        root.classList.add(systemTheme);
-      } else {
-        root.classList.add(savedTheme);
-      }
-    };
-  }, []);
+  const themeIcon = () => {
+    switch (theme) {
+      case "light": return <Sun className="size-4.5" />;
+      case "dark": return <Moon className="size-4.5" />;
+      default: return <Monitor className="size-4.5" />;
+    }
+  };
+
+  const themeLabel = () => {
+    switch (theme) {
+      case "light": return "Light mode";
+      case "dark": return "Dark mode";
+      default: return "System theme";
+    }
+  };
 
   if (clinic && clinicSlug) {
     return <ClinicDomainView clinic={clinic} />;
@@ -388,6 +394,15 @@ function Landing() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg animate-fade-in"
+              title={`Theme: ${themeLabel()}`}
+            >
+              {themeIcon()}
+            </Button>
             <Link to="/auth">
               <Button variant="ghost" className="font-medium">Sign in</Button>
             </Link>
@@ -397,7 +412,16 @@ function Landing() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="flex items-center gap-1 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg mr-1"
+              title={`Theme: ${themeLabel()}`}
+            >
+              {themeIcon()}
+            </Button>
             <Button
               variant="ghost"
               size="icon"
