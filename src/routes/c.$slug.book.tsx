@@ -25,12 +25,38 @@ type DoctorOption = {
 };
 
 export const Route = createFileRoute("/c/$slug/book")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Book appointment — ${params.slug}` },
-      { name: "description", content: "Book your appointment online in seconds." },
-    ],
-  }),
+  head: ({ params }) => {
+    const breadcrumbSchema = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Clinic Page",
+          "item": `https://clinics.digiwil.com/c/${params.slug}`
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Book Appointment",
+          "item": `https://clinics.digiwil.com/c/${params.slug}/book`
+        }
+      ]
+    };
+    return {
+      meta: [
+        { title: `Book appointment — ${params.slug}` },
+        { name: "description", content: "Book your appointment online in seconds." },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(breadcrumbSchema)
+        }
+      ]
+    };
+  },
   component: BookPage,
 });
 

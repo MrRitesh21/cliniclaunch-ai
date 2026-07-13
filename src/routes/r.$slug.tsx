@@ -233,7 +233,7 @@ function PublicReviewPage() {
         
         <div className="text-center mb-6 relative">
           {org.logo_url ? (
-            <img src={org.logo_url} alt="" className="size-16 rounded-full mx-auto mb-2 object-cover border-2 border-background shadow-md" />
+            <img src={org.logo_url} alt={`${org.name} Logo`} className="size-16 rounded-full mx-auto mb-2 object-cover border-2 border-background shadow-md" />
           ) : (
             <div className="size-16 rounded-full bg-primary/10 text-primary grid place-items-center mx-auto mb-2 font-display text-xl font-bold">
               {org.name.charAt(0)}

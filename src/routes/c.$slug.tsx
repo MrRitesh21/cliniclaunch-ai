@@ -4,6 +4,7 @@ import { getClinicBySlug, getClinicPublicSchema } from "@/lib/clinic.functions";
 import { Button } from "@/components/ui/button";
 import { resolveVariants, getVariantComponent } from "@/components/site/registry";
 import type { SiteClinic } from "@/components/site/types";
+import { SITE_URL } from "@/lib/marketing-data";
 
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/c/$slug")({
     if (schema?.physicianJsonLd) scripts.push({ type: "application/ld+json", children: schema.physicianJsonLd });
     if (schema?.faqJsonLd) scripts.push({ type: "application/ld+json", children: schema.faqJsonLd });
 
+    const canonicalUrl = `${SITE_URL}/c/${c.slug}`;
     return {
       meta: [
         { title },
@@ -54,6 +56,9 @@ export const Route = createFileRoute("/c/$slug")({
         { property: "og:description", content: desc },
         { property: "og:type", content: "website" },
         ...(image ? [{ property: "og:image", content: image }, { name: "twitter:image", content: image }] : []),
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
       ],
       scripts,
     };

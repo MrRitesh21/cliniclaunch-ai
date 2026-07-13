@@ -31,10 +31,11 @@ function AboutPage() {
         <p className="text-foreground/85 leading-relaxed whitespace-pre-line">{body}</p>
       </Card>
 
-      <div className="grid sm:grid-cols-3 gap-4 mt-6">
+      <div className="grid sm:grid-cols-3 md:grid-cols-4 gap-4 mt-6">
         <Stat label="Specialization" value={clinic.specialization} />
         <Stat label="Qualification" value={clinic.qualification} />
         <Stat label="Experience" value={clinic.experience_years ? `${clinic.experience_years}+ years` : "—"} />
+        {clinic.medical_registration_no && <Stat label="Medical Reg No" value={clinic.medical_registration_no} />}
       </div>
     </div>
   );

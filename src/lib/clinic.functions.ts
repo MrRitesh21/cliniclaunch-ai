@@ -71,7 +71,7 @@ export const getClinicBySlug = createServerFn({ method: "GET" })
     // Project only public-safe columns. NEVER expose personal_phone / personal_email.
     const { data: clinic, error } = await sb
       .from("clinics")
-      .select("id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at")
+      .select("id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no")
       .eq("slug", data.slug)
       .maybeSingle();
     if (error) throw new Error(error.message);

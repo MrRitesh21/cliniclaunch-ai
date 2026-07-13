@@ -395,6 +395,7 @@ export type Database = {
           id: string
           is_published: boolean
           logo_url: string | null
+          medical_registration_no: string | null
           organization_id: string
           owner_id: string | null
           personal_email: string | null
@@ -472,6 +473,7 @@ export type Database = {
           organization_id: string
           owner_id?: string | null
           personal_email?: string | null
+          medical_registration_no?: string | null
           personal_phone?: string | null
           phone?: string | null
           public_address?: string | null
@@ -546,6 +548,7 @@ export type Database = {
           organization_id?: string
           owner_id?: string | null
           personal_email?: string | null
+          medical_registration_no?: string | null
           personal_phone?: string | null
           phone?: string | null
           public_address?: string | null

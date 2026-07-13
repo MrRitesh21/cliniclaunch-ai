@@ -19,7 +19,9 @@ export function HeroSplit({ clinic }: Props) {
       <div className="max-w-6xl mx-auto px-4 py-10 sm:py-14 md:py-24 grid md:grid-cols-2 gap-8 md:gap-10 items-center">
         <div className="order-2 md:order-1">
           <div className="flex flex-wrap gap-2 mb-4 sm:mb-5">
-            <span className="inline-flex items-center gap-1.5 rounded-full border bg-background/80 backdrop-blur px-2.5 py-1 text-[11px] sm:text-xs font-medium"><CheckCircle2 className="size-3.5 text-primary" /> Verified doctor</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border bg-background/80 backdrop-blur px-2.5 py-1 text-[11px] sm:text-xs font-medium">
+              <CheckCircle2 className="size-3.5 text-primary" /> Verified Doctor {clinic.medical_registration_no ? `(Reg No: ${clinic.medical_registration_no})` : ''}
+            </span>
             {clinic.experience_years > 0 && <span className="inline-flex items-center gap-1.5 rounded-full border bg-background/80 backdrop-blur px-2.5 py-1 text-[11px] sm:text-xs font-medium"><Award className="size-3.5 text-primary" /> {clinic.experience_years}+ yrs</span>}
             <span className="inline-flex items-center gap-1.5 rounded-full border bg-background/80 backdrop-blur px-2.5 py-1 text-[11px] sm:text-xs font-medium"><Star className="size-3.5 text-primary fill-primary" /> 4.9 rating</span>
           </div>
@@ -32,7 +34,7 @@ export function HeroSplit({ clinic }: Props) {
         </div>
         <div className="relative order-1 md:order-2">
           <div className="aspect-square max-w-xs sm:max-w-sm md:max-w-none mx-auto rounded-2xl sm:rounded-3xl overflow-hidden bg-accent">
-            {clinic.avatar_url ? <img src={clinic.avatar_url} alt={clinic.doctor_name} className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center"><span className="font-display text-6xl sm:text-7xl text-primary/30">{clinic.doctor_name[0]}</span></div>}
+            {clinic.avatar_url ? <img src={clinic.avatar_url} alt={clinic.doctor_name} fetchPriority="high" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center"><span className="font-display text-6xl sm:text-7xl text-primary/30">{clinic.doctor_name[0]}</span></div>}
           </div>
         </div>
       </div>
@@ -48,7 +50,7 @@ export function HeroCentered({ clinic }: Props) {
       <div className="max-w-4xl mx-auto px-4 py-12 sm:py-16 md:py-24 text-center">
         {clinic.avatar_url && (
           <div className="size-24 sm:size-32 md:size-40 mx-auto rounded-full overflow-hidden border-4 border-background shadow-xl ring-4 ring-primary/10">
-            <img src={clinic.avatar_url} alt={clinic.doctor_name} className="w-full h-full object-cover" />
+            <img src={clinic.avatar_url} alt={clinic.doctor_name} fetchPriority="high" className="w-full h-full object-cover" />
           </div>
         )}
         <p className="mt-5 sm:mt-6 text-xs sm:text-sm font-medium text-primary tracking-wider uppercase">{clinic.specialization}</p>
@@ -70,7 +72,7 @@ export function HeroEditorial({ clinic }: Props) {
     <section className="relative bg-foreground text-background overflow-hidden">
       {clinic.avatar_url && (
         <div className="absolute inset-0">
-          <img src={clinic.avatar_url} alt="" className="w-full h-full object-cover opacity-40" />
+          <img src={clinic.avatar_url} alt={clinic.doctor_name} fetchPriority="high" className="w-full h-full object-cover opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-b sm:bg-gradient-to-r from-foreground via-foreground/85 to-foreground/40 sm:to-transparent" />
         </div>
       )}

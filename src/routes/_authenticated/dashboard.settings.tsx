@@ -40,6 +40,7 @@ type FormState = {
   walkin_end_time: string;
   walkin_weekends_enabled: boolean;
   walkin_slot_minutes: number;
+  medical_registration_no: string;
 };
 
 const DEFAULT_COLORS = ["#2563eb", "#0ea5e9", "#10b981", "#ec4899", "#f59e0b", "#8b5cf6", "#ef4444", "#0f172a"];
@@ -78,6 +79,7 @@ function SettingsPage() {
       hero_headline: form.hero_headline || null,
       hero_subheadline: form.hero_subheadline || null,
       about_text: form.about_text || null,
+      medical_registration_no: form.medical_registration_no || null,
       custom_domain: domain || null,
       template: form.template,
       section_variants: form.section_variants as unknown as Record<string, string>,
@@ -109,17 +111,18 @@ function SettingsPage() {
       consultation_fee: Number(clinic.consultation_fee ?? 0), bio: clinic.bio ?? "",
       avatar_url: clinic.avatar_url, logo_url: clinic.logo_url,
       theme_color: clinic.theme_color ?? "#2563eb",
-      hero_headline: clinic.hero_headline ?? "",
-      hero_subheadline: clinic.hero_subheadline ?? "",
-      about_text: clinic.about_text ?? "",
-      custom_domain: clinic.custom_domain ?? "",
+      hero_headline: clinic.hero_headline || "",
+      hero_subheadline: clinic.hero_subheadline || "",
+      about_text: clinic.about_text || "",
+      custom_domain: clinic.custom_domain || "",
       template: (clinic as { template?: string }).template ?? "classic",
       section_variants: (c.section_variants && typeof c.section_variants === "object" ? c.section_variants : {}) as SectionVariants,
       walkin_max_per_slot: Number(c.walkin_max_per_slot ?? 3),
-      walkin_start_time: (typeof c.walkin_start_time === "string" ? c.walkin_start_time : "09:00:00").slice(0, 5),
-      walkin_end_time: (typeof c.walkin_end_time === "string" ? c.walkin_end_time : "18:00:00").slice(0, 5),
+      walkin_start_time: str(c.walkin_start_time) || "09:00",
+      walkin_end_time: str(c.walkin_end_time) || "17:00",
       walkin_weekends_enabled: Boolean(c.walkin_weekends_enabled),
       walkin_slot_minutes: Number(c.walkin_slot_minutes ?? 15),
+      medical_registration_no: str(c.medical_registration_no),
     });
     setServices((Array.isArray(clinic.services) ? (clinic.services as string[]) : []).join("\n"));
     setGallery(Array.isArray(clinic.gallery) ? (clinic.gallery as string[]) : []);
@@ -180,6 +183,7 @@ function SettingsPage() {
       hero_headline: form.hero_headline || null,
       hero_subheadline: form.hero_subheadline || null,
       about_text: form.about_text || null,
+      medical_registration_no: form.medical_registration_no || null,
       custom_domain: domain || null,
       template: form.template,
       section_variants: form.section_variants as unknown as Record<string, string>,
@@ -235,6 +239,7 @@ function SettingsPage() {
               <SpecializationField value={form.specialization} onChange={(v) => update("specialization", v)} />
               <Field label="Qualification" value={form.qualification} onChange={(v) => update("qualification", v)} />
               <Field label="Years of experience" type="number" value={String(form.experience_years)} onChange={(v) => update("experience_years", Number(v) || 0)} />
+              <Field label="Medical Registration / license No (E-E-A-T)" placeholder="e.g. GMC-12345" value={form.medical_registration_no} onChange={(v) => update("medical_registration_no", v)} />
               <Field label="Clinic name" value={form.clinic_name} onChange={(v) => update("clinic_name", v)} />
               <Field label="Consultation fee (₹)" type="number" value={String(form.consultation_fee)} onChange={(v) => update("consultation_fee", Number(v) || 0)} />
             </div>

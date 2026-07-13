@@ -4,14 +4,34 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/faq")({
-  head: () => ({
-    meta: [
-      { title: "FAQ — ClinicX" },
-      { name: "description", content: "Answers about setup, security, custom domains, and pricing for ClinicX." },
-      { property: "og:title", content: "FAQ — ClinicX" },
-      { property: "og:description", content: "Common questions about setup, security, and getting started." },
-    ],
-  }),
+  head: () => {
+    const faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map((f) => ({
+        "@type": "Question",
+        "name": f.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": f.a
+        }
+      }))
+    };
+    return {
+      meta: [
+        { title: "FAQ — ClinicX" },
+        { name: "description", content: "Answers about setup, security, custom domains, and pricing for ClinicX." },
+        { property: "og:title", content: "FAQ — ClinicX" },
+        { property: "og:description", content: "Common questions about setup, security, and getting started." },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(faqSchema)
+        }
+      ]
+    };
+  },
   component: FaqPage,
 });
 
