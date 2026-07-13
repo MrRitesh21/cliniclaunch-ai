@@ -38,7 +38,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   ];
   return (
     <div className="relative min-h-screen bg-background text-foreground antialiased">
-      <header className="border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-border/40 bg-background/80 backdrop-blur-md fixed top-0 left-0 right-0 z-50 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="size-9 rounded-xl bg-primary text-primary-foreground grid place-items-center shadow-md shadow-primary/20">
@@ -98,7 +98,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main>{children}</main>
+      <main className="pt-16">{children}</main>
 
       <footer className="border-t border-border/60 bg-background/90 py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">

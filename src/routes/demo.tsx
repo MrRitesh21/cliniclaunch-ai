@@ -11,7 +11,8 @@ import {
   Calendar, Users, Clock, TrendingUp, MessageSquare, Bell,
   Search, Plus, Filter, MoreHorizontal, ArrowUpRight, ArrowDownRight,
   Activity, Stethoscope, FileText, IndianRupee, CheckCircle2, XCircle,
-  AlertCircle, Star, Sparkles, Video, Pill, Beaker, Package, Trash2, Printer
+  AlertCircle, Star, Sparkles, Video, Pill, Beaker, Package, Trash2, Printer,
+  Globe, Palette, Layout, ExternalLink, Check
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
@@ -80,7 +81,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 
 function DemoPage() {
-  const [activeSubView, setActiveSubView] = useState<"overview" | "patients" | "whatsapp" | "reviews" | "prescriptions" | "lab" | "inventory" | "loyalty" | "billing">("overview");
+  const [activeSubView, setActiveSubView] = useState<"overview" | "patients" | "whatsapp" | "reviews" | "prescriptions" | "lab" | "inventory" | "website" | "billing">("overview");
 
   // Dynamic States
   const [appointmentsList, setAppointmentsList] = useState(defaultAppointments);
@@ -422,7 +423,7 @@ function DemoPage() {
             { id: "prescriptions", icon: FileText, name: "Prescriptions", stat: "48 this week", tone: "blue" },
             { id: "lab", icon: Beaker, name: "Lab orders", stat: "12 pending", tone: "purple" },
             { id: "inventory", icon: Package, name: "Inventory", stat: "3 low-stock", tone: "rose" },
-            { id: "loyalty", icon: Pill, name: "Loyalty", stat: "246 members", tone: "emerald" },
+            { id: "website", icon: Globe, name: "Website Builder", stat: "Template active", tone: "blue" },
             { id: "billing", icon: IndianRupee, name: "Billing", stat: "₹1.4L this week", tone: "emerald" },
           ].map((m) => (
             <Card 
@@ -767,47 +768,153 @@ function DemoPage() {
     </div>
   );
 
-  const renderLoyalty = () => (
+  const renderWebsiteBuilder = () => (
     <div className="space-y-6 animate-in fade-in duration-200">
-      <div className="border-b pb-4">
-        <h1 className="text-2xl font-bold font-display">Loyalty Programs</h1>
-        <p className="text-sm text-muted-foreground">Configure referral rewards, discount rules, and member cards.</p>
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-2xl font-bold font-display">Website Builder</h1>
+          <p className="text-sm text-muted-foreground">Manage your public-facing clinic website, choose themes, and customize sections.</p>
+        </div>
+        <Button onClick={() => toast.success("Website published successfully! Your online clinic is live.")} className="gap-2">
+          <Globe className="size-4" />
+          <span>Publish changes</span>
+        </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="p-5 border-border/60 space-y-4">
-          <h3 className="font-bold font-display text-base">Referral Incentives</h3>
-          <p className="text-xs text-muted-foreground">Configure rewards for patients referring others.</p>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center text-xs border-b pb-2">
-              <span className="font-bold">Patient Reward Points</span>
-              <span className="font-bold text-emerald-600">100 Pts (~₹100)</span>
-            </div>
-            <div className="flex justify-between items-center text-xs border-b pb-2">
-              <span className="font-bold">Referee Consultation Discount</span>
-              <span className="font-bold text-emerald-600">10% Off</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-5 border-border/60">
-          <h3 className="font-bold font-display text-base mb-4">Loyalty Tiers</h3>
-          <div className="space-y-3">
-            {[
-              { tier: "Gold Tier", points: "500+ Pts", members: 48 },
-              { tier: "Silver Tier", points: "200+ Pts", members: 120 },
-              { tier: "Bronze Tier", points: "50+ Pts", members: 78 },
-            ].map((t, idx) => (
-              <div key={idx} className="flex justify-between items-center text-xs border-b pb-2">
-                <div>
-                  <h4 className="font-bold">{t.tier}</h4>
-                  <p className="text-muted-foreground font-mono text-[10px]">{t.points}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Settings Column */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Choose Template */}
+          <Card className="p-5 border-border/60">
+            <h3 className="font-bold font-display text-base mb-3 flex items-center gap-2">
+              <Palette className="size-5 text-primary" />
+              Select Website Template
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">Choose a layout designed specifically for your medical specialty.</p>
+            
+            <div className="grid sm:grid-cols-3 gap-3">
+              {[
+                { id: "modern", name: "Modern Minimalist", desc: "Clean & airy layout", active: true },
+                { id: "classic", name: "Classic Clinical", desc: "Corporate & trust-focused", active: false },
+                { id: "wellness", name: "Vibrant Wellness", desc: "Warm & holistic feel", active: false },
+              ].map((t) => (
+                <div 
+                  key={t.id} 
+                  onClick={() => toast.success(`${t.name} template selected!`)}
+                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${t.active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 hover:border-border-hover bg-card"}`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-bold text-xs">{t.name}</span>
+                    {t.active && <Badge className="text-[9px] px-1.5 py-0 h-4">Active</Badge>}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-normal">{t.desc}</p>
                 </div>
-                <Badge variant="outline">{t.members} Members</Badge>
+              ))}
+            </div>
+          </Card>
+
+          {/* Custom Domain & SEO */}
+          <Card className="p-5 border-border/60 space-y-4">
+            <h3 className="font-bold font-display text-base flex items-center gap-2 border-b pb-2">
+              <Globe className="size-5 text-primary" />
+              SEO & Domain Settings
+            </h3>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold">Custom Domain</label>
+                <div className="flex rounded-md border border-input bg-background overflow-hidden h-9">
+                  <input 
+                    type="text" 
+                    defaultValue="drjenkins" 
+                    className="flex-1 px-3 text-xs focus-visible:outline-none" 
+                  />
+                  <span className="bg-muted text-muted-foreground px-3 flex items-center text-[10px] font-medium border-l border-input">.clinicx.app</span>
+                </div>
               </div>
-            ))}
-          </div>
-        </Card>
+              <div className="space-y-1">
+                <label className="text-xs font-bold">Google Maps Location URL</label>
+                <input 
+                  type="text" 
+                  placeholder="Paste maps sharing link" 
+                  className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none" 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <div className="space-y-1">
+                <label className="text-xs font-bold">SEO Page Title</label>
+                <input 
+                  type="text" 
+                  defaultValue="Dr. Sarah Jenkins - Skin & Aesthetics Specialist | ClinicX" 
+                  className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none" 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold">Meta Description</label>
+                <textarea 
+                  rows={2}
+                  defaultValue="Book clinical consultations online with Dr. Sarah Jenkins. Specializing in advanced medical and cosmetic dermatology. 5-minute setup, secure booking." 
+                  className="w-full rounded-md border border-input bg-background p-2.5 text-xs focus-visible:outline-none resize-none" 
+                />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Preview & Layout Column */}
+        <div className="lg:col-span-5 space-y-6">
+          <Card className="p-5 border-border/60 space-y-4">
+            <h3 className="font-bold font-display text-base flex items-center gap-2 border-b pb-2">
+              <Layout className="size-5 text-primary" />
+              Customize Layout Sections
+            </h3>
+            
+            <p className="text-xs text-muted-foreground">Toggle sections to display or hide on your public website.</p>
+            
+            <div className="space-y-3">
+              {[
+                { name: "Online Booking Calendar", desc: "Allow instant scheduling", enabled: true },
+                { name: "Offered Services & Pricing", desc: "Show consult fees & packages", enabled: true },
+                { name: "Patient Testimonials (Reviews)", desc: "Fetch google reviews", enabled: true },
+                { name: "Before / After Gallery", desc: "Show treatment result photos", enabled: false },
+                { name: "F.A.Q. Accordion", desc: "Answer common questions", enabled: true },
+              ].map((s, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-muted/40 text-xs">
+                  <div>
+                    <p className="font-bold">{s.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{s.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold ${s.enabled ? "text-emerald-600" : "text-muted-foreground"}`}>
+                      {s.enabled ? "Enabled" : "Disabled"}
+                    </span>
+                    <button 
+                      type="button"
+                      onClick={() => toast.success(`${s.name} visibility updated!`)}
+                      className={`size-5 rounded-md border flex items-center justify-center transition-all ${s.enabled ? "bg-primary border-primary text-primary-foreground" : "border-border/60 bg-transparent text-transparent"}`}
+                    >
+                      {s.enabled && <Check className="size-3" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary text-primary-foreground grid place-items-center shrink-0">
+              <Globe className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-xs text-primary leading-none">Your site is live!</p>
+              <a href="https://clinics.digiwil.com/c/dr--sarah-jenkins" target="_blank" rel="noreferrer" className="text-[10px] text-muted-foreground hover:underline truncate block mt-1 flex items-center gap-1 font-mono">
+                clinics.digiwil.com/c/dr--sarah-jenkins
+                <ExternalLink className="size-2.5" />
+              </a>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -906,7 +1013,7 @@ function DemoPage() {
             { id: "prescriptions", label: "Rx" },
             { id: "lab", label: "Labs" },
             { id: "inventory", label: "Inventory" },
-            { id: "loyalty", label: "Loyalty" },
+            { id: "website", label: "Website" },
             { id: "billing", label: "Billing" },
           ].map((item) => (
             <button
@@ -946,7 +1053,7 @@ function DemoPage() {
               { id: "prescriptions", label: "Prescriptions", icon: FileText },
               { id: "lab", label: "Lab orders", icon: Beaker },
               { id: "inventory", label: "Inventory", icon: Package },
-              { id: "loyalty", label: "Loyalty", icon: Pill },
+              { id: "website", label: "Website Builder", icon: Globe },
               { id: "billing", label: "Billing & Invoices", icon: IndianRupee },
             ].map((item) => {
               const active = activeSubView === item.id;
@@ -993,7 +1100,7 @@ function DemoPage() {
           {activeSubView === "prescriptions" && renderPrescriptions()}
           {activeSubView === "lab" && renderLab()}
           {activeSubView === "inventory" && renderInventory()}
-          {activeSubView === "loyalty" && renderLoyalty()}
+          {activeSubView === "website" && renderWebsiteBuilder()}
           {activeSubView === "billing" && renderBilling()}
         </div>
       </div>

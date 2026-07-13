@@ -364,7 +364,7 @@ function Landing() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/20 antialiased overflow-x-hidden">
+    <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/20 antialiased overflow-x-hidden pt-16">
       {/* Decorative Background Grids & Blobs */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35 dark:opacity-10 pointer-events-none" />
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
@@ -372,7 +372,7 @@ function Landing() {
       <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-300/10 dark:bg-emerald-950/10 blur-[120px] pointer-events-none" />
 
       {/* Header / Navbar */}
-      <header className="border-b border-border/40 bg-background/70 backdrop-blur-md sticky top-0 z-50 transition-colors">
+      <header className="border-b border-border/40 bg-background/70 backdrop-blur-md fixed top-0 left-0 right-0 z-50 w-full transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="size-9 rounded-xl bg-primary text-primary-foreground grid place-items-center transition-transform group-hover:scale-105 shadow-md shadow-primary/20">
