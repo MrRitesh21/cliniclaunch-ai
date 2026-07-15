@@ -94,6 +94,8 @@ jobs:
     timeout-minutes: 20
     needs: validate
     if: github.event_name == 'pull_request'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -105,25 +107,33 @@ jobs:
           cache: npm
 
       - name: Install Vercel CLI
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: vercel pull --yes --environment=preview --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build preview deployment
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: vercel build --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy preview to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: vercel deploy --prebuilt --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Warn when Vercel deploy is skipped
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: echo 'Vercel preview deploy skipped because VERCEL_TOKEN secret is missing.'
 
   deploy_production:
     name: Deploy Vercel production
@@ -135,6 +145,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -146,22 +158,30 @@ jobs:
           cache: npm
 
       - name: Install Vercel CLI
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build production deployment
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy production to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
         run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Warn when Vercel deploy is skipped
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: echo 'Vercel production deploy skipped because VERCEL_TOKEN secret is missing.'
