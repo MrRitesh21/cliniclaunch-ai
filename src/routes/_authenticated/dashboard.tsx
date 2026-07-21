@@ -519,8 +519,27 @@ function DashboardLayout() {
 
   const isActive = (to: string, exact?: boolean) => exact ? pathname === to : pathname.startsWith(to);
 
+  const isDemoUser = user?.email?.toLowerCase() === "demo@digiwil.com";
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-surface">
+      {isDemoUser && (
+        <div className="bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-2 shadow-sm z-50">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="size-4 shrink-0 text-amber-300 animate-pulse" />
+            <span className="truncate"><strong>Live Demo Workspace</strong> — Logged in as Dr. Sarah Jenkins (demo@digiwil.com). Real Supabase database & features active.</span>
+          </div>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={signOut}
+            className="h-6 text-[10px] sm:text-xs border-white/30 text-white hover:bg-white hover:text-primary bg-transparent shrink-0"
+          >
+            Exit Demo
+          </Button>
+        </div>
+      )}
+
       {impersonatedDoctorId && clinic && (
         <div className="bg-rose-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-center sm:text-left z-50">
           <span>⚠️ Admin Impersonation Mode: Viewing dashboard as Dr. <strong>{clinic.doctor_name}</strong> ({clinic.clinic_name})</span>

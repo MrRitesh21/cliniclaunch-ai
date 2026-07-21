@@ -288,6 +288,206 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
   );
 }
 
+function ROICalculator() {
+  const [dailyPatients, setDailyPatients] = useState(25);
+  const [consultFee, setConsultFee] = useState(800);
+
+  const monthlyPatients = dailyPatients * 24;
+  const hoursSavedMonth = Math.round(monthlyPatients * 0.35);
+  const noShowRescuedRevenue = Math.round(monthlyPatients * 0.18 * consultFee * 0.65);
+  const monthlyRevenue = monthlyPatients * consultFee;
+
+  return (
+    <section className="py-20 bg-gradient-to-br from-primary/5 via-card to-primary/5 border-y border-border/60 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-primary/10 text-primary uppercase">
+            ROI & Time Savings Calculator
+          </span>
+          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight">
+            Calculate your <em className="text-primary font-normal">monthly return.</em>
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            See how much admin time and lost no-show revenue ClinicX recovers for your practice every month.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8 items-center bg-card border border-border/80 rounded-3xl p-6 sm:p-10 shadow-xl">
+          <div className="lg:col-span-6 space-y-6">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-bold text-foreground">Daily Appointments</span>
+                <span className="font-mono text-primary font-bold text-base bg-primary/10 px-3 py-1 rounded-lg">{dailyPatients} patients/day</span>
+              </div>
+              <input
+                type="range"
+                min={5}
+                max={75}
+                step={1}
+                value={dailyPatients}
+                onChange={(e) => setDailyPatients(Number(e.target.value))}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                <span>5 patients</span>
+                <span>75 patients</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-bold text-foreground">Average Consultation Fee</span>
+                <span className="font-mono text-emerald-600 font-bold text-base bg-emerald-500/10 px-3 py-1 rounded-lg">₹{consultFee} / visit</span>
+              </div>
+              <input
+                type="range"
+                min={200}
+                max={3000}
+                step={50}
+                value={consultFee}
+                onChange={(e) => setConsultFee(Number(e.target.value))}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                <span>₹200</span>
+                <span>₹3,000</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted/30 rounded-2xl border border-border/50 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-foreground font-bold">
+                <Sparkles className="size-4 text-amber-500" />
+                <span>Estimated Monthly Practice Volume</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                ~{monthlyPatients.toLocaleString()} consultations/month generating ₹{monthlyRevenue.toLocaleString()} gross income.
+              </p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-6 bg-gradient-to-br from-primary via-indigo-600 to-primary text-primary-foreground rounded-2xl p-6 sm:p-8 space-y-6 shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <IndianRupee className="size-40" />
+            </div>
+
+            <div>
+              <span className="text-xs uppercase font-bold tracking-widest text-primary-foreground/80">Estimated Monthly Value Created</span>
+              <div className="text-4xl sm:text-5xl font-extrabold font-display mt-1 text-white">
+                ₹{noShowRescuedRevenue.toLocaleString()} <span className="text-sm font-normal text-primary-foreground/80">/ month</span>
+              </div>
+              <p className="text-xs text-primary-foreground/80 mt-1">
+                Recovered revenue from reduced no-shows via automated WhatsApp reminders.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-primary-foreground/20 pt-6">
+              <div>
+                <span className="text-xs text-primary-foreground/80 font-medium">Admin Time Saved</span>
+                <div className="text-2xl font-bold font-display text-white mt-0.5">{hoursSavedMonth} Hours</div>
+                <span className="text-[10px] text-primary-foreground/70">~{(hoursSavedMonth / 24).toFixed(1)} full days/mo</span>
+              </div>
+              <div>
+                <span className="text-xs text-primary-foreground/80 font-medium">Net Software ROI</span>
+                <div className="text-2xl font-bold font-display text-amber-300 mt-0.5">&gt; 350%</div>
+                <span className="text-[10px] text-primary-foreground/70">Pays for itself in 3 days</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Link to="/auth">
+                <Button size="lg" variant="secondary" className="w-full font-bold bg-white text-primary hover:bg-white/95 h-11 text-sm shadow-md">
+                  Claim Your Savings — Try Free for 14 Days &rarr;
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CompetitorComparisonTable() {
+  const comparisons = [
+    { feature: "Custom Clinic Website & Domain", clinicx: true, practo: false, paper: false },
+    { feature: "0% Commission per Patient", clinicx: true, practo: false, paper: true },
+    { feature: "100% Patient Data Ownership", clinicx: true, practo: false, paper: true },
+    { feature: "Automated WhatsApp Confirmations", clinicx: true, practo: "Paid Add-on", paper: false },
+    { feature: "Instant QR Walk-in Registrations", clinicx: true, practo: false, paper: false },
+    { feature: "Digital EHR & E-Prescriptions", clinicx: true, practo: true, paper: false },
+    { feature: "Razorpay Integrated Invoicing", clinicx: true, practo: "Complex", paper: false },
+    { feature: "Setup Time", clinicx: "Under 5 mins", practo: "Days / Call required", paper: "Immediate" },
+    { feature: "Starting Price", clinicx: "₹499 / mo", practo: "₹1,500+ / mo", paper: "Free (Manual)" },
+  ];
+
+  return (
+    <section className="py-20 md:py-24 relative bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-primary/10 text-primary uppercase">
+            Why Doctors Switch
+          </span>
+          <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight">
+            How ClinicX compares to <em className="text-primary font-normal font-display">alternatives.</em>
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            No listing directory stealing your patients. No hidden fees. Just clean software for your clinic.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto border border-border/80 rounded-3xl shadow-lg bg-card">
+          <table className="w-full text-left border-collapse min-w-[650px]">
+            <thead>
+              <tr className="border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="p-5 font-bold text-foreground">Feature / Capability</th>
+                <th className="p-5 bg-primary/10 text-primary font-extrabold text-sm text-center">ClinicX</th>
+                <th className="p-5 text-center">Practo / Listing Platforms</th>
+                <th className="p-5 text-center">Paper / Manual WhatsApp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y text-sm">
+              {comparisons.map((c, i) => (
+                <tr key={i} className="hover:bg-muted/20 transition-colors">
+                  <td className="p-5 font-medium text-foreground">{c.feature}</td>
+                  <td className="p-5 bg-primary/5 text-center font-bold text-primary">
+                    {typeof c.clinicx === "boolean" ? (
+                      c.clinicx ? <CheckCircle className="size-5 mx-auto text-emerald-500" /> : <X className="size-5 mx-auto text-rose-500" />
+                    ) : (
+                      c.clinicx
+                    )}
+                  </td>
+                  <td className="p-5 text-center text-muted-foreground">
+                    {typeof c.practo === "boolean" ? (
+                      c.practo ? <Check className="size-4 mx-auto text-emerald-500" /> : <X className="size-4 mx-auto text-muted-foreground/40" />
+                    ) : (
+                      c.practo
+                    )}
+                  </td>
+                  <td className="p-5 text-center text-muted-foreground">
+                    {typeof c.paper === "boolean" ? (
+                      c.paper ? <Check className="size-4 mx-auto text-emerald-500" /> : <X className="size-4 mx-auto text-muted-foreground/40" />
+                    ) : (
+                      c.paper
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link to="/compare/$competitor" params={{ competitor: "practo" }}>
+            <Button variant="outline" className="font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2">
+              View Detailed Practo vs ClinicX Analysis &rarr;
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Landing() {
   const { clinic, clinicSlug } = Route.useLoaderData();
   const { theme, setTheme } = useTheme();
@@ -901,6 +1101,12 @@ function Landing() {
 
         </div>
       </section>
+
+      {/* ROI Calculator Section */}
+      <ROICalculator />
+
+      {/* Competitor Comparison Section */}
+      <CompetitorComparisonTable />
 
       {/* Testimonials */}
       <section className="py-20 md:py-24 border-y border-border/40 relative">

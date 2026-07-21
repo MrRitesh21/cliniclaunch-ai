@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, X, ArrowRight, Stethoscope, Star } from "lucide-react";
+import { Check, X, ArrowRight, Stethoscope, Star, Sparkles, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { COMPETITORS, findCompetitor, SITE_URL } from "@/lib/marketing-data";
 
 export const Route = createFileRoute("/compare/$competitor")({
@@ -50,20 +51,24 @@ export const Route = createFileRoute("/compare/$competitor")({
   },
   component: ComparePage,
   errorComponent: ({ error }) => (
-    <div className="min-h-screen grid place-items-center px-4 text-center">
-      <div>
-        <h1 className="font-display text-2xl">Comparison unavailable</h1>
-        <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+    <MarketingShell>
+      <div className="min-h-[60vh] grid place-items-center px-4 text-center">
+        <div>
+          <h1 className="font-display text-2xl">Comparison unavailable</h1>
+          <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   ),
   notFoundComponent: () => (
-    <div className="min-h-screen grid place-items-center px-4 text-center">
-      <div>
-        <h1 className="font-display text-2xl">We don't have that comparison yet</h1>
-        <Link to="/" className="mt-4 inline-block text-primary underline">Back home</Link>
+    <MarketingShell>
+      <div className="min-h-[60vh] grid place-items-center px-4 text-center">
+        <div>
+          <h1 className="font-display text-2xl">We don't have that comparison yet</h1>
+          <Link to="/" className="mt-4 inline-block text-primary font-bold underline">Back home</Link>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   ),
 });
 
@@ -71,102 +76,100 @@ function ComparePage() {
   const { comp } = Route.useLoaderData();
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <Stethoscope className="size-4" />
-            </div>
-            <span className="font-display text-xl font-bold">ClinicX</span>
-          </Link>
-          <Link to="/auth">
-            <Button size="sm">Start free</Button>
-          </Link>
+    <MarketingShell>
+      {/* Hero Section */}
+      <section className="max-w-4xl mx-auto px-4 pt-16 pb-8 text-center space-y-6">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs text-primary font-bold tracking-wide uppercase">
+          <Sparkles className="size-3.5 text-amber-500" /> {comp.name} Alternative
         </div>
-      </header>
-
-      {/* Hero */}
-      <section className="max-w-4xl mx-auto px-4 pt-16 pb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary font-medium mb-6">
-          {comp.name} Alternative
-        </div>
-        <h1 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.05]">
-          Looking for a <em className="text-primary font-normal">{comp.name} alternative</em>?
+        <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
+          Looking for a better <em className="text-primary font-normal">{comp.name} alternative</em>?
         </h1>
-        <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">{comp.tagline}</p>
-        <p className="mt-3 text-base text-foreground max-w-2xl mx-auto font-medium">{comp.price_note}</p>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">{comp.tagline}</p>
+        <p className="text-base text-foreground max-w-2xl mx-auto font-bold bg-muted/40 p-3 rounded-xl border">{comp.price_note}</p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <Link to="/auth">
-            <Button size="lg" className="gap-2">
-              Try ClinicX free <ArrowRight className="size-4" />
+            <Button size="lg" className="h-12 px-8 font-bold gap-2">
+              Start Free 14-Day Trial <ArrowRight className="size-4" />
             </Button>
           </Link>
           <Link to="/demo">
-            <Button size="lg" variant="outline">See live demo</Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Comparison table */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6 border-destructive/20">
-            <div className="flex items-center gap-2 mb-4">
-              <X className="size-5 text-destructive" />
-              <h2 className="font-display text-xl">Where {comp.name} falls short</h2>
-            </div>
-            <ul className="space-y-3">
-              {comp.weaknesses.map((w: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <X className="size-4 text-destructive shrink-0 mt-0.5" />
-                  <span>{w}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="p-6 border-primary/30 bg-primary/[0.02]">
-            <div className="flex items-center gap-2 mb-4">
-              <Check className="size-5 text-emerald-600" />
-              <h2 className="font-display text-xl">Why doctors switch to ClinicX</h2>
-            </div>
-            <ul className="space-y-3">
-              {comp.our_wins.map((w: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{w}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-
-        <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            <Star className="inline size-4 text-amber-500 mr-1 -mt-0.5 fill-amber-500" />
-            Rated 4.8/5 by Indian doctors switching from legacy tools.
-          </p>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-3xl mx-auto px-4 pb-24 text-center">
-        <Card className="p-10 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-          <h2 className="font-display text-2xl md:text-3xl">Ready in 5 minutes. No credit card.</h2>
-          <p className="mt-3 text-muted-foreground">
-            Join 500+ Indian doctors running their practice on ClinicX.
-          </p>
-          <Link to="/auth" className="inline-block mt-6">
-            <Button size="lg" className="gap-2">
-              Start your free trial <ArrowRight className="size-4" />
+            <Button size="lg" variant="outline" className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2">
+              ⚡ Open Live Demo
             </Button>
           </Link>
+        </div>
+      </section>
+
+      {/* Comparison Grid */}
+      <section className="max-w-5xl mx-auto px-4 py-12">
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="p-6 border-rose-500/30 bg-rose-500/[0.02]">
+            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-rose-200 dark:border-rose-900/40">
+              <div className="size-8 rounded-lg bg-rose-500/10 text-rose-600 grid place-items-center shrink-0">
+                <X className="size-5" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-rose-900 dark:text-rose-200">Where {comp.name} falls short</h2>
+            </div>
+            <ul className="space-y-3.5">
+              {comp.weaknesses.map((w: string, i: number) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <X className="size-4 text-rose-500 shrink-0 mt-0.5" />
+                  <span>{w}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card className="p-6 border-emerald-500/30 bg-emerald-500/[0.02]">
+            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-emerald-200 dark:border-emerald-900/40">
+              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
+                <Check className="size-5" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-emerald-900 dark:text-emerald-200">Why doctors switch to ClinicX</h2>
+            </div>
+            <ul className="space-y-3.5">
+              {comp.our_wins.map((w: string, i: number) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-foreground font-medium">
+                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>{w}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+
+        <div className="mt-10 text-center">
+          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1 font-medium">
+            <Star className="size-4 text-amber-500 fill-amber-500" />
+            Rated 4.9/5 by 240+ Indian doctors switching from legacy systems.
+          </p>
+        </div>
+      </section>
+
+      {/* High-Conversion Bottom CTA */}
+      <section className="max-w-4xl mx-auto px-4 pb-16 text-center">
+        <Card className="p-8 sm:p-12 bg-gradient-to-br from-primary via-indigo-600 to-primary text-primary-foreground border-primary/20 shadow-2xl rounded-3xl space-y-4">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white">Ready in 5 minutes. No credit card required.</h2>
+          <p className="text-primary-foreground/90 text-sm max-w-lg mx-auto">
+            Join hundreds of independent doctors across India running their practice on ClinicX.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+            <Link to="/auth">
+              <Button size="lg" variant="secondary" className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95">
+                Start Free Trial &rarr;
+              </Button>
+            </Link>
+            <Link to="/demo">
+              <Button size="lg" className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900">
+                ⚡ Open Live Demo
+              </Button>
+            </Link>
+          </div>
         </Card>
 
-        <div className="mt-10 text-sm text-muted-foreground">
+        <div className="mt-10 text-xs text-muted-foreground font-medium">
           <span>More comparisons: </span>
           {COMPETITORS.filter((c) => c.slug !== comp.slug).slice(0, 4).map((c, i) => (
             <span key={c.slug}>
@@ -174,7 +177,7 @@ function ComparePage() {
               <Link
                 to="/compare/$competitor"
                 params={{ competitor: c.slug }}
-                className="text-primary hover:underline"
+                className="text-primary font-bold hover:underline"
               >
                 vs {c.name}
               </Link>
@@ -182,6 +185,6 @@ function ComparePage() {
           ))}
         </div>
       </section>
-    </div>
+    </MarketingShell>
   );
 }

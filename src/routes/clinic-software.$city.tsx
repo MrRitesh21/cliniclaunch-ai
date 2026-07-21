@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Check, ArrowRight, Stethoscope, Zap, Shield } from "lucide-react";
+import { MapPin, Check, ArrowRight, Stethoscope, Zap, Shield, Sparkles, CheckCircle2 } from "lucide-react";
 import { CITIES, findCity, SITE_URL } from "@/lib/marketing-data";
 
 export const Route = createFileRoute("/clinic-software/$city")({
@@ -50,20 +51,24 @@ export const Route = createFileRoute("/clinic-software/$city")({
   },
   component: CityPage,
   errorComponent: ({ error }) => (
-    <div className="min-h-screen grid place-items-center px-4 text-center">
-      <div>
-        <h1 className="font-display text-2xl">Page unavailable</h1>
-        <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+    <MarketingShell>
+      <div className="min-h-[60vh] grid place-items-center px-4 text-center">
+        <div>
+          <h1 className="font-display text-2xl">Page unavailable</h1>
+          <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   ),
   notFoundComponent: () => (
-    <div className="min-h-screen grid place-items-center px-4 text-center">
-      <div>
-        <h1 className="font-display text-2xl">City not covered yet</h1>
-        <Link to="/" className="mt-4 inline-block text-primary underline">Back home</Link>
+    <MarketingShell>
+      <div className="min-h-[60vh] grid place-items-center px-4 text-center">
+        <div>
+          <h1 className="font-display text-2xl">City not covered yet</h1>
+          <Link to="/" className="mt-4 inline-block text-primary font-bold underline">Back home</Link>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   ),
 });
 
@@ -71,81 +76,78 @@ function CityPage() {
   const { city } = Route.useLoaderData();
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <Stethoscope className="size-4" />
-            </div>
-            <span className="font-display text-xl font-bold">ClinicX</span>
-          </Link>
-          <Link to="/auth">
-            <Button size="sm">Start free</Button>
-          </Link>
+    <MarketingShell>
+      <section className="max-w-4xl mx-auto px-4 pt-16 pb-10 text-center space-y-6">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs text-primary font-bold tracking-wide uppercase">
+          <MapPin className="size-3.5 text-rose-500" /> {city.name}, {city.state}
         </div>
-      </header>
-
-      <section className="max-w-4xl mx-auto px-4 pt-16 pb-10 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary font-medium mb-5">
-          <MapPin className="size-3" /> {city.name}, {city.state}
-        </div>
-        <h1 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.05]">
+        <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
           Clinic Management Software for doctors in <em className="text-primary font-normal">{city.name}</em>
         </h1>
-        <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Join {city.doctor_hint} across {city.name} using ClinicX to run appointments, EHR, billing, WhatsApp reminders, and a professional public website — from ₹499/month.
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Join {city.doctor_hint} across {city.name} using ClinicX to power appointments, EHR, billing, WhatsApp reminders, and a professional public website — from ₹499/month.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <Link to="/auth">
-            <Button size="lg" className="gap-2">
-              Start free trial <ArrowRight className="size-4" />
+            <Button size="lg" className="h-12 px-8 font-bold gap-2">
+              Start Free 14-Day Trial <ArrowRight className="size-4" />
             </Button>
           </Link>
           <Link to="/demo">
-            <Button size="lg" variant="outline">Watch demo</Button>
+            <Button size="lg" variant="outline" className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2">
+              ⚡ Open Live Demo
+            </Button>
           </Link>
         </div>
       </section>
 
       <section className="max-w-5xl mx-auto px-4 py-14">
-        <h2 className="font-display text-2xl md:text-3xl text-center mb-10">
-          Everything a {city.name} clinic needs — in one place
-        </h2>
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Local Practice OS</span>
+          <h2 className="font-display text-3xl font-bold">
+            Everything a {city.name} clinic needs — in one place
+          </h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
           {[
-            { icon: Zap, title: "Local Google SEO", body: `Rank for "doctor near me" searches across ${city.name} on autopilot.` },
-            { icon: Shield, title: "WhatsApp reminders", body: "80% fewer no-shows with automated WhatsApp confirmations, reminders and review requests." },
-            { icon: Check, title: "Full clinic OS", body: "Website, booking, EHR, billing, prescriptions, inventory — all in one login." },
+            { icon: Zap, title: "Local Google SEO", body: `Rank for "best doctor near me" searches across ${city.name} on autopilot.` },
+            { icon: Shield, title: "Automated WhatsApp", body: "80% fewer no-shows with automated WhatsApp confirmations, 24h reminders and review collection." },
+            { icon: CheckCircle2, title: "Complete Clinic OS", body: "Website, scheduler, EHR, billing, prescriptions, and lab orders — all in one unified subscription." },
           ].map((f, i) => (
-            <Card key={i} className="p-6">
-              <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center mb-4">
+            <Card key={i} className="p-6 border-border/80 shadow-sm hover:shadow-md transition-all">
+              <div className="size-11 rounded-2xl bg-primary/10 text-primary grid place-items-center mb-5">
                 <f.icon className="size-5" />
               </div>
-              <h3 className="font-medium mb-2">{f.title}</h3>
-              <p className="text-sm text-muted-foreground">{f.body}</p>
+              <h3 className="font-display font-bold text-lg text-foreground mb-2">{f.title}</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{f.body}</p>
             </Card>
           ))}
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-4 pb-24 text-center">
-        <Card className="p-10 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-          <h2 className="font-display text-2xl md:text-3xl">
-            Trusted by clinics across {city.state}
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            Set up in under 5 minutes. Cancel anytime. Free 14-day trial, no credit card.
+      <section className="max-w-4xl mx-auto px-4 pb-20 text-center">
+        <Card className="p-8 sm:p-12 bg-gradient-to-br from-primary via-indigo-600 to-primary text-primary-foreground border-primary/20 shadow-2xl rounded-3xl space-y-4">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white">Trusted by clinics across {city.state}</h2>
+          <p className="text-primary-foreground/90 text-sm max-w-lg mx-auto">
+            Set up in under 5 minutes. Cancel anytime. Free 14-day trial, no credit card required.
           </p>
-          <Link to="/auth" className="inline-block mt-6">
-            <Button size="lg" className="gap-2">
-              Get started <ArrowRight className="size-4" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+            <Link to="/auth">
+              <Button size="lg" variant="secondary" className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95">
+                Get Started Free &rarr;
+              </Button>
+            </Link>
+            <Link to="/demo">
+              <Button size="lg" className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900">
+                ⚡ Open Live Demo
+              </Button>
+            </Link>
+          </div>
         </Card>
 
-        <div className="mt-10 text-sm text-muted-foreground">
+        <div className="mt-10 text-xs text-muted-foreground font-medium">
           <span>Also serving: </span>
           {CITIES.filter((c) => c.slug !== city.slug).slice(0, 6).map((c, i) => (
             <span key={c.slug}>
@@ -153,7 +155,7 @@ function CityPage() {
               <Link
                 to="/clinic-software/$city"
                 params={{ city: c.slug }}
-                className="text-primary hover:underline"
+                className="text-primary font-bold hover:underline"
               >
                 {c.name}
               </Link>
@@ -161,6 +163,6 @@ function CityPage() {
           ))}
         </div>
       </section>
-    </div>
+    </MarketingShell>
   );
 }

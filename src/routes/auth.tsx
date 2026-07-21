@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureDemoAccountAndWorkspace, DEMO_CREDENTIALS } from "@/lib/demo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,20 @@ function AuthPage() {
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
     navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+  }
+
+  async function handleDemoLogin() {
+    setLoading(true);
+    setEmail(DEMO_CREDENTIALS.email);
+    setPassword(DEMO_CREDENTIALS.password);
+    const res = await ensureDemoAccountAndWorkspace();
+    setLoading(false);
+    if (res.success) {
+      toast.success("Logged into live demo account!");
+      navigate({ to: "/dashboard" });
+    } else {
+      toast.error(res.message || "Failed to log into demo account");
+    }
   }
 
   async function signUp(e: React.FormEvent) {
@@ -210,6 +225,24 @@ function AuthPage() {
 
               <TabsContent value="signin">
                 <form onSubmit={signIn} className="space-y-4">
+                  <div className="p-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl space-y-2 mb-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold flex items-center gap-1.5 text-primary">
+                        <Sparkles className="size-3.5" /> Instant Live Demo
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">demo@digiwil.com</span>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleDemoLogin} 
+                      disabled={loading}
+                      className="w-full h-9 text-xs font-bold border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
+                    >
+                      {loading ? "Logging into Demo…" : "⚡ Sign in with Demo Account"}
+                    </Button>
+                  </div>
+
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@clinic.com" className="h-11" />

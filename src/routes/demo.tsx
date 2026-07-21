@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureDemoAccountAndWorkspace, DEMO_CREDENTIALS } from "@/lib/demo";
 import {
   Calendar, Users, Clock, TrendingUp, MessageSquare, Bell,
   Search, Plus, Filter, MoreHorizontal, ArrowUpRight, ArrowDownRight,
   Activity, Stethoscope, FileText, IndianRupee, CheckCircle2, XCircle,
   AlertCircle, Star, Sparkles, Video, Pill, Beaker, Package, Trash2, Printer,
-  Globe, Palette, Layout, ExternalLink, Check
+  Globe, Palette, Layout, ExternalLink, Check, Loader2, Lock
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
@@ -81,7 +82,50 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 
 function DemoPage() {
+  const navigate = useNavigate();
   const [activeSubView, setActiveSubView] = useState<"overview" | "patients" | "whatsapp" | "reviews" | "prescriptions" | "lab" | "inventory" | "website" | "billing">("overview");
+
+  // Demo auto-launch state
+  const [isLaunchingDemo, setIsLaunchingDemo] = useState(true);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [showSandbox, setShowSandbox] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await ensureDemoAccountAndWorkspace();
+        if (active) {
+          if (res.success) {
+            toast.success("Welcome to the live demo! Logged in as Dr. Sarah Jenkins.");
+            navigate({ to: "/dashboard" });
+          } else {
+            setLaunchError(res.message || "Failed to log into demo account.");
+            setIsLaunchingDemo(false);
+          }
+        }
+      } catch (err: any) {
+        if (active) {
+          setLaunchError(err.message || "Demo launch failed.");
+          setIsLaunchingDemo(false);
+        }
+      }
+    })();
+    return () => { active = false; };
+  }, [navigate]);
+
+  const handleManualDemoLogin = async () => {
+    setIsLaunchingDemo(true);
+    setLaunchError(null);
+    const res = await ensureDemoAccountAndWorkspace();
+    if (res.success) {
+      toast.success("Welcome to the live demo! Logged in as Dr. Sarah Jenkins.");
+      navigate({ to: "/dashboard" });
+    } else {
+      setLaunchError(res.message || "Failed to sign into live demo.");
+      setIsLaunchingDemo(false);
+    }
+  };
 
   // Dynamic States
   const [appointmentsList, setAppointmentsList] = useState(defaultAppointments);
@@ -975,6 +1019,69 @@ function DemoPage() {
       </Card>
     </div>
   );
+
+  if (isLaunchingDemo && !showSandbox) {
+    return (
+      <MarketingShell>
+        <div className="min-h-[75vh] flex flex-col items-center justify-center p-6 text-center">
+          <div className="size-16 rounded-2xl bg-primary/10 text-primary grid place-items-center mb-6 animate-pulse">
+            <Stethoscope className="size-8" />
+          </div>
+          <h2 className="font-display text-2xl font-bold mb-2">Connecting to Live Demo Workspace...</h2>
+          <p className="text-muted-foreground text-sm max-w-md mb-6 leading-relaxed">
+            Logging into the live practice workspace as <strong>{DEMO_CREDENTIALS.doctorName}</strong> ({DEMO_CREDENTIALS.email}).
+          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-muted/60 px-4 py-2 rounded-full border border-border/40 mb-6">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            <span>Authenticating demo user ({DEMO_CREDENTIALS.email})...</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowSandbox(true)} className="text-xs text-muted-foreground">
+            Switch to Mock Sandbox Mode
+          </Button>
+        </div>
+      </MarketingShell>
+    );
+  }
+
+  if (launchError && !showSandbox) {
+    return (
+      <MarketingShell>
+        <div className="min-h-[75vh] flex flex-col items-center justify-center p-6 text-center">
+          <Card className="max-w-md w-full p-6 text-left border-border/60 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 border-b pb-4">
+              <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg font-bold">ClinicX Live Demo</h2>
+                <p className="text-xs text-muted-foreground">Pre-filled credentials for full live access</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs bg-muted/50 p-3.5 rounded-xl border border-border/40 font-mono">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground font-sans">Email:</span>
+                <span className="font-bold text-foreground">{DEMO_CREDENTIALS.email}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground font-sans">Password:</span>
+                <span className="font-bold text-foreground">{DEMO_CREDENTIALS.password}</span>
+              </div>
+            </div>
+
+            <Button onClick={handleManualDemoLogin} className="w-full font-bold h-11 text-sm gap-2">
+              <span>Sign In to Live Demo</span>
+              <ArrowUpRight className="size-4" />
+            </Button>
+
+            <Button variant="outline" onClick={() => setShowSandbox(true)} className="w-full text-xs h-9">
+              Explore Mock Sandbox View
+            </Button>
+          </Card>
+        </div>
+      </MarketingShell>
+    );
+  }
 
   return (
     <MarketingShell>
