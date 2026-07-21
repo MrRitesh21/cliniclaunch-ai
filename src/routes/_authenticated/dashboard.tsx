@@ -15,7 +15,7 @@ import {
   Stethoscope, LayoutDashboard, Calendar, Users, Settings, LogOut, ExternalLink,
   MessageSquare, Blocks, CreditCard, Palette, MessageCircle, Star, Megaphone, Box,
   QrCode, Video, BarChart3, Receipt, FileText, FlaskConical, Menu,
-  ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle,
+  ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
