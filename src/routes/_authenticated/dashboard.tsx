@@ -22,6 +22,7 @@ import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { useTheme } from "@/components/ui/theme-provider";
 import { usePWAInstall } from "@/lib/pwa";
 import { clearDemoSessionFlags, setDemoSessionFlags } from "@/lib/demo";
+import { DemoConversionWidget } from "@/components/demo/DemoConversionWidget";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
 
@@ -543,19 +544,28 @@ function DashboardLayout() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-surface">
       {isDemoUser && (
-        <div className="bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-2 shadow-sm z-50">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md z-50">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="size-4 shrink-0 text-amber-300 animate-pulse" />
-            <span className="truncate"><strong>Live Demo Workspace</strong> — Logged in as Dr. Sarah Jenkins (demo@digiwil.com). Real Supabase database & features active.</span>
+            <span className="truncate">
+              <strong>⚡ Live Demo Mode</strong> — Exploring Dr. Sarah Jenkins' workspace. Real database active!
+            </span>
           </div>
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={signOut}
-            className="h-6 text-[10px] sm:text-xs border-white/30 text-white hover:bg-white hover:text-primary bg-transparent shrink-0"
-          >
-            Exit Demo
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to="/login">
+              <Button size="xs" className="h-7 px-3 text-xs font-bold bg-white text-blue-600 hover:bg-slate-100 shadow-sm border-none">
+                🚀 Claim 14-Day Free Trial &rarr;
+              </Button>
+            </Link>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={signOut}
+              className="h-7 text-[11px] text-white/80 hover:text-white hover:bg-white/10"
+            >
+              Exit Demo
+            </Button>
+          </div>
         </div>
       )}
 
@@ -713,6 +723,8 @@ function DashboardLayout() {
           </DialogContent>
         </Dialog>
       )}
+
+      {isDemoUser && <DemoConversionWidget onExitDemo={signOut} />}
     </div>
   );
 }
