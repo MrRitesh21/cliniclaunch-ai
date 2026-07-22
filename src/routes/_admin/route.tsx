@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { getAdminMe } from "@/lib/admin-auth.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/components/ui/theme-provider";
+import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 
 
 export const Route = createFileRoute("/_admin")({
@@ -108,6 +109,7 @@ function AdminLayout() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -241,11 +243,22 @@ function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/60 border border-border/60 rounded-lg text-xs text-muted-foreground w-64">
+            <button
+              onClick={() => setCmdOpen(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/60 hover:bg-muted/90 border border-border/60 rounded-lg text-xs text-muted-foreground w-64 text-left transition-colors"
+            >
               <Search className="size-3.5" />
               <span>Search doctors, plans...</span>
               <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-background border border-border/60 font-mono">⌘K</kbd>
-            </div>
+            </button>
+
+            <button
+              onClick={() => setCmdOpen(true)}
+              className="md:hidden text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted transition-colors"
+              aria-label="Search"
+            >
+              <Search className="size-[17px]" />
+            </button>
 
             <button
               className="text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted transition-colors relative"
@@ -296,6 +309,8 @@ function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      <AdminCommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
     </div>
   );
 }

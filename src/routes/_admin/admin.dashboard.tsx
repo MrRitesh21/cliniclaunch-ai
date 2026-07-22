@@ -61,13 +61,53 @@ function AdminDashboard() {
                 <Users className="size-3.5 mr-1.5" /> View doctors
               </Link>
             </Button>
-            <Button asChild size="sm" className="bg-white text-primary hover:bg-white/90">
+            <Button asChild size="sm" className="bg-white text-primary hover:bg-white/90 font-bold">
               <Link to="/admin/announcements">
-                <Bell className="size-3.5 mr-1.5" /> New announcement
+                <Bell className="size-3.5 mr-1.5" /> Broadcast Announcement
               </Link>
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* SaaS Admin Master Control Quick Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link to="/admin/doctors/new" className="p-3.5 bg-card hover:bg-muted/80 border border-border/70 rounded-xl transition-all flex items-center gap-3 group shadow-sm">
+          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+            <UserPlus className="size-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-foreground">Add Doctor Signup</div>
+            <div className="text-[10px] text-muted-foreground">Provision new doctor account</div>
+          </div>
+        </Link>
+        <Link to="/admin/plans" className="p-3.5 bg-card hover:bg-muted/80 border border-border/70 rounded-xl transition-all flex items-center gap-3 group shadow-sm">
+          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
+            <Tag className="size-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-foreground">Coupons & Pricing</div>
+            <div className="text-[10px] text-muted-foreground">Create discount promo codes</div>
+          </div>
+        </Link>
+        <Link to="/admin/features" className="p-3.5 bg-card hover:bg-muted/80 border border-border/70 rounded-xl transition-all flex items-center gap-3 group shadow-sm">
+          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+            <Activity className="size-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-foreground">Feature Flags</div>
+            <div className="text-[10px] text-muted-foreground">Control module access</div>
+          </div>
+        </Link>
+        <Link to="/admin/settings/system" className="p-3.5 bg-card hover:bg-muted/80 border border-border/70 rounded-xl transition-all flex items-center gap-3 group shadow-sm">
+          <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform">
+            <ScrollText className="size-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-foreground">System Configs</div>
+            <div className="text-[10px] text-muted-foreground">Razorpay, WATI, AI keys</div>
+          </div>
+        </Link>
       </div>
 
       {/* KPI row */}
