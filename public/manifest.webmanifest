@@ -1,15 +1,47 @@
 {
-  "name": "ClinicX — Doctor Console",
+  "name": "ClinicX — Doctor Console & Practice OS",
   "short_name": "ClinicX",
-  "description": "Manage appointments, patients, and your clinic site on the go.",
+  "description": "Native-style medical practice console. Manage appointments, patient EHR, billing, and WhatsApp automation on mobile, tablet, and desktop.",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0c2340",
+  "theme_color": "#0c2340",
+  "categories": ["medical", "business", "productivity"],
   "icons": [
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Appointments",
+      "short_name": "Bookings",
+      "description": "View & manage daily patient appointments",
+      "url": "/dashboard/appointments",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Patients & CRM",
+      "short_name": "Patients",
+      "description": "Search patient records & medical history",
+      "url": "/dashboard/patients",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "WhatsApp Bot",
+      "short_name": "WhatsApp",
+      "description": "Automated reminders & review collection",
+      "url": "/dashboard/whatsapp",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Clinical Notes",
+      "short_name": "Consult",
+      "description": "EHR visit journals & e-prescriptions",
+      "url": "/dashboard/consult",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }]
+    }
   ]
 }

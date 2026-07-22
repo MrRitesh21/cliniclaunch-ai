@@ -15,11 +15,12 @@ import {
   Stethoscope, LayoutDashboard, Calendar, Users, Settings, LogOut, ExternalLink,
   MessageSquare, Blocks, CreditCard, Palette, MessageCircle, Star, Megaphone, Box,
   QrCode, Video, BarChart3, Receipt, FileText, FlaskConical, Menu,
-  ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles,
+  ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { useTheme } from "@/components/ui/theme-provider";
+import { usePWAInstall } from "@/lib/pwa";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
 
@@ -240,6 +241,7 @@ function SidebarContent({
   platformName: string;
 }) {
   const { theme, setTheme } = useTheme();
+  const { isInstallable, installApp } = usePWAInstall();
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
@@ -344,6 +346,15 @@ function SidebarContent({
             </button>
           </div>
         </div>
+
+        {isInstallable && (
+          <button
+            onClick={installApp}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-colors mb-1"
+          >
+            <Download className="size-4 shrink-0" /> Install ClinicX App
+          </button>
+        )}
 
         <button
           onClick={signOut}

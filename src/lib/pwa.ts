@@ -1,15 +1,16 @@
-// ClinicX PWA registration — strict guards prevent SW registration in
-// dev, Lovable preview, and iframe contexts. The registered worker is
-// kept out of the bundle on purpose: only manifest-only installability
-// is needed for the MVP. If the user later asks for offline mode, swap
-// this to vite-plugin-pwa per the PWA skill.
+import { useState, useEffect } from "react";
+
 export function registerPWA() {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator)) return;
-  // Only run in production builds
-  if (!import.meta.env.PROD) return cleanup();
+
   // Refuse inside iframe/preview hosts
-  try { if (window.self !== window.top) return cleanup(); } catch { return cleanup(); }
+  try {
+    if (window.self !== window.top) return cleanup();
+  } catch {
+    return cleanup();
+  }
+
   const host = window.location.hostname;
   const isPreview =
     host.startsWith("id-preview--") ||
@@ -17,13 +18,75 @@ export function registerPWA() {
     host === "lovableproject.com" || host.endsWith(".lovableproject.com") ||
     host === "lovableproject-dev.com" || host.endsWith(".lovableproject-dev.com") ||
     host === "beta.lovable.dev" || host.endsWith(".beta.lovable.dev");
+
   if (isPreview) return cleanup();
   if (new URL(window.location.href).searchParams.get("sw") === "off") return cleanup();
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        console.log("[ClinicX PWA] Service worker registered successfully:", reg.scope);
+      })
+      .catch((err) => {
+        console.warn("[ClinicX PWA] Service worker registration failed:", err);
+      });
+  });
 }
 
 async function cleanup() {
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
     for (const r of regs) await r.unregister();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
+}
+
+// React Hook for 1-Click PWA App Installation
+export function usePWAInstall() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Check if already running in standalone mode (installed)
+    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+      return;
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    window.addEventListener("appinstalled", () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const installApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsInstalled(true);
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
+
+  return { isInstallable, isInstalled, installApp };
 }
