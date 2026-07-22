@@ -1,9 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicPlans } from "@/lib/plans.functions";
 import {
   Calendar, Globe, Stethoscope, Users, ShieldCheck, ArrowRight, Sparkles,
   MessageSquare, IndianRupee, Shield, Activity, Check, Menu, X, Plus, Search,
@@ -358,17 +360,19 @@ function Landing() {
   const [activeTab, setActiveTab] = useState<"analytics" | "appointments" | "whatsapp" | "notes" | "billing">("analytics");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
   const [cmdOpen, setCmdOpen] = useState(false);
+  const getPlansFn = useServerFn(getPublicPlans);
 
-  // Fetch subscription plans dynamically from Supabase database table `plans`
+  // Fetch subscription plans dynamically from Supabase database table `plans` via server function (service role)
   const { data: dbPlans = [], isLoading: loadingPlans } = useQuery({
     queryKey: ["public-plans-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("plans")
-        .select("*")
-        .order("sort_order", { ascending: true });
-      if (error || !data || data.length === 0) return null;
-      return data;
+      const plans = await getPlansFn();
+      if (!plans || plans.length === 0) {
+        // Fallback to client-side supabase query if server function returns empty
+        const { data } = await supabase.from("plans").select("*").order("sort_order", { ascending: true });
+        return data ?? [];
+      }
+      return plans;
     },
   });
 
