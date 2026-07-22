@@ -790,9 +790,27 @@ function Landing() {
 
           <div className="grid md:grid-cols-3 gap-8 items-stretch">
             {displayPlans.map((p, idx) => {
-              const priceDisplay = billingCycle === "annual"
-                ? `₹${p.discounted_yearly_price}`
-                : `₹${p.monthly_price}`;
+              const isAnnual = billingCycle === "annual";
+
+              // Calculate prices
+              const monthlyPrice = p.monthly_price;
+              const discountedMonthly = p.discounted_monthly_price;
+              
+              // Total annual bill amount from DB or calculation
+              const annualTotal = p.discounted_yearly_price || p.yearly_price || Math.round(monthlyPrice * 12 * 0.8);
+              
+              // Effective price per month when billed annually
+              const effectiveMonthlyRate = isAnnual
+                ? Math.round(annualTotal / 12)
+                : (discountedMonthly || monthlyPrice);
+
+              // Original rate per month for strikethrough comparison
+              const originalMonthlyRate = isAnnual
+                ? monthlyPrice
+                : (discountedMonthly && discountedMonthly < monthlyPrice ? monthlyPrice : null);
+
+              // Annual savings vs paying 12x monthly price
+              const annualSavings = Math.max(0, (monthlyPrice * 12) - annualTotal);
 
               return (
                 <Card
@@ -815,8 +833,34 @@ function Landing() {
                     </div>
 
                     <div className="font-mono">
-                      <div className="text-4xl font-extrabold font-display text-foreground">{priceDisplay}</div>
-                      <div className="text-xs text-muted-foreground">/ month</div>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        {originalMonthlyRate && originalMonthlyRate > effectiveMonthlyRate && (
+                          <span className="line-through text-muted-foreground/60 text-lg font-normal">
+                            ₹{originalMonthlyRate.toLocaleString()}
+                          </span>
+                        )}
+                        <span className="text-4xl font-extrabold font-display text-foreground">
+                          ₹{effectiveMonthlyRate.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-medium">/ month</span>
+                      </div>
+
+                      {isAnnual ? (
+                        <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span>Billed annually at ₹{annualTotal.toLocaleString()}/yr</span>
+                          {annualSavings > 0 && (
+                            <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">
+                              Save ₹{annualSavings.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        originalMonthlyRate && originalMonthlyRate > effectiveMonthlyRate && (
+                          <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-1.5">
+                            Special offer applied
+                          </div>
+                        )
+                      )}
                     </div>
 
                     <ul className="space-y-3 pt-4 border-t border-border/50 text-xs">
