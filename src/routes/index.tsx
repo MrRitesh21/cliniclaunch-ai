@@ -418,10 +418,11 @@ function Landing() {
   const displayPlans = dbPlans && dbPlans.length > 0 ? dbPlans.map((p) => ({
     id: p.id,
     name: p.name,
-    tagline: p.tagline || (p.name === 'Starter' ? 'Ideal for solo practitioners...' : p.name === 'Growth' ? 'Best for growing clinics...' : 'Complete enterprise OS...'),
-    monthly_price: p.monthly_price,
-    yearly_price: p.yearly_price,
-    discounted_yearly_price: p.discounted_yearly_price || (p.yearly_price ? Math.round(p.yearly_price / 12) : Math.round(p.monthly_price * 0.8)),
+    tagline: p.tagline || (p.name === 'Starter' ? 'For solo doctors getting started' : p.name === 'Growth' ? 'For growing clinics ready to scale' : p.name === 'Professional' ? 'For multi-doctor practices' : 'For enterprise & diagnostic centers'),
+    monthly_price: Number(p.monthly_price),
+    discounted_monthly_price: p.discounted_monthly_price ? Number(p.discounted_monthly_price) : null,
+    yearly_price: Number(p.yearly_price),
+    discounted_yearly_price: p.discounted_yearly_price ? Number(p.discounted_yearly_price) : null,
     is_popular: Boolean(p.is_popular),
     features: Array.isArray(p.features) ? (p.features as string[]) : (typeof p.features === 'string' ? JSON.parse(p.features) : []),
   })) : fallbackPlans;
@@ -792,29 +793,39 @@ function Landing() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 items-stretch">
+          <div className={`grid gap-8 items-stretch ${displayPlans.length >= 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
             {displayPlans.map((p, idx) => {
               const isAnnual = billingCycle === "annual";
 
-              // Calculate prices
-              const monthlyPrice = p.monthly_price;
-              const discountedMonthly = p.discounted_monthly_price;
-              
-              // Total annual bill amount from DB or calculation
-              const annualTotal = p.discounted_yearly_price || p.yearly_price || Math.round(monthlyPrice * 12 * 0.8);
-              
-              // Effective price per month when billed annually
-              const effectiveMonthlyRate = isAnnual
-                ? Math.round(annualTotal / 12)
-                : (discountedMonthly || monthlyPrice);
+              // Raw DB Prices
+              const origMonthly = p.monthly_price;
+              const discMonthly = p.discounted_monthly_price;
+              const origYearly = p.yearly_price;
+              const discYearly = p.discounted_yearly_price;
 
-              // Original rate per month for strikethrough comparison
-              const originalMonthlyRate = isAnnual
-                ? monthlyPrice
-                : (discountedMonthly && discountedMonthly < monthlyPrice ? monthlyPrice : null);
+              let effectiveMonthly: number;
+              let strikethroughMonthly: number | null = null;
+              let annualBillAmount: number = 0;
+              let savingsAmount: number = 0;
 
-              // Annual savings vs paying 12x monthly price
-              const annualSavings = Math.max(0, (monthlyPrice * 12) - annualTotal);
+              if (isAnnual) {
+                // Annual Billing View: Effective Monthly Rate = (Discounted Yearly || Yearly) / 12
+                annualBillAmount = discYearly && discYearly > 0 ? discYearly : (origYearly && origYearly > 0 ? origYearly : Math.round(origMonthly * 12 * 0.8));
+                effectiveMonthly = Math.round(annualBillAmount / 12);
+
+                const origMonthlyEquivalent = origMonthly || (origYearly ? Math.round(origYearly / 12) : null);
+                if (origMonthlyEquivalent && origMonthlyEquivalent > effectiveMonthly) {
+                  strikethroughMonthly = origMonthlyEquivalent;
+                }
+
+                savingsAmount = Math.max(0, (origMonthly * 12) - annualBillAmount);
+              } else {
+                // Monthly Billing View: Effective Monthly Rate = Discounted Monthly || Monthly
+                effectiveMonthly = discMonthly && discMonthly > 0 ? discMonthly : origMonthly;
+                if (discMonthly && discMonthly < origMonthly) {
+                  strikethroughMonthly = origMonthly;
+                }
+              }
 
               return (
                 <Card
@@ -838,30 +849,30 @@ function Landing() {
 
                     <div className="font-mono">
                       <div className="flex items-baseline gap-2 flex-wrap">
-                        {originalMonthlyRate && originalMonthlyRate > effectiveMonthlyRate && (
+                        {strikethroughMonthly && (
                           <span className="line-through text-muted-foreground/60 text-lg font-normal">
-                            ₹{originalMonthlyRate.toLocaleString()}
+                            ₹{strikethroughMonthly.toLocaleString()}
                           </span>
                         )}
                         <span className="text-4xl font-extrabold font-display text-foreground">
-                          ₹{effectiveMonthlyRate.toLocaleString()}
+                          ₹{effectiveMonthly.toLocaleString()}
                         </span>
                         <span className="text-xs text-muted-foreground font-medium">/ month</span>
                       </div>
 
                       {isAnnual ? (
                         <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-1.5 flex flex-wrap items-center gap-1.5">
-                          <span>Billed annually at ₹{annualTotal.toLocaleString()}/yr</span>
-                          {annualSavings > 0 && (
+                          <span>Billed annually at ₹{annualBillAmount.toLocaleString()}/yr</span>
+                          {savingsAmount > 0 && (
                             <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">
-                              Save ₹{annualSavings.toLocaleString()}
+                              Save ₹{savingsAmount.toLocaleString()}
                             </span>
                           )}
                         </div>
                       ) : (
-                        originalMonthlyRate && originalMonthlyRate > effectiveMonthlyRate && (
+                        strikethroughMonthly && (
                           <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-1.5">
-                            Special offer applied
+                            Special monthly offer applied
                           </div>
                         )
                       )}
