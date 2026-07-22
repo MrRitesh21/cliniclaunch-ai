@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { submitClinicToGoogleServerFn } from "@/lib/gsc-pipeline.functions";
 import { useClinic } from "./dashboard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -217,6 +219,22 @@ function WebsiteApp() {
   const previewSrc = `/c/${clinic.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}`;
   const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/c/${clinic.slug}`;
 
+  const submitGscFn = useServerFn(submitClinicToGoogleServerFn);
+
+  async function triggerGscSubmission() {
+    if (!clinic) return;
+    try {
+      const res = await submitGscFn({ data: { clinicId: clinic.id } });
+      if (res?.success) {
+        toast.success("Submitted to Google Search Console & IndexNow", {
+          description: "Google & IndexNow bots notified for instant indexing of your website.",
+        });
+      }
+    } catch (e) {
+      console.warn("GSC auto submission trigger failed silently:", e);
+    }
+  }
+
   async function togglePublish(next: boolean) {
     if (!clinic) return;
     setPublishing(true);
@@ -232,6 +250,8 @@ function WebsiteApp() {
     if (next) {
       try { await navigator.clipboard.writeText(publicUrl); } catch { /* ignore */ }
       toast.success("Your website is now live", { description: publicUrl });
+      // Trigger automated Google Search Console indexing pipeline
+      triggerGscSubmission();
     } else {
       toast.success("Website unpublished — no longer public");
     }
