@@ -2,7 +2,7 @@
   "name": "ClinicX — Doctor Console",
   "short_name": "ClinicX",
   "description": "Manage appointments, patients, and your clinic site on the go.",
-  "start_url": "/auth",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
