@@ -788,7 +788,7 @@ function Landing() {
                 onClick={() => setBillingCycle("annual")}
                 className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "annual" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Annual <span className="text-[10px] text-amber-300 font-extrabold ml-1">SAVE 20%</span>
+                Annual <span className="text-[10px] text-amber-300 font-extrabold ml-1 uppercase">GET 2 MONTHS FREE</span>
               </button>
             </div>
           </div>
@@ -863,11 +863,9 @@ function Landing() {
                       {isAnnual ? (
                         <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-1.5 flex flex-wrap items-center gap-1.5">
                           <span>Billed annually at ₹{annualBillAmount.toLocaleString()}/yr</span>
-                          {savingsAmount > 0 && (
-                            <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">
-                              Save ₹{savingsAmount.toLocaleString()}
-                            </span>
-                          )}
+                          <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">
+                            2 Months Free
+                          </span>
                         </div>
                       ) : (
                         strikethroughMonthly && (
