@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { useTheme } from "@/components/ui/theme-provider";
 import { usePWAInstall } from "@/lib/pwa";
+import { clearDemoSessionFlags, setDemoSessionFlags } from "@/lib/demo";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
 
@@ -523,6 +524,7 @@ function DashboardLayout() {
   }, [clinic, navigate]);
 
   async function signOut() {
+    clearDemoSessionFlags();
     await supabase.auth.signOut();
     toast.success("Signed out");
     navigate({ to: "/login" });
@@ -531,6 +533,12 @@ function DashboardLayout() {
   const isActive = (to: string, exact?: boolean) => exact ? pathname === to : pathname.startsWith(to);
 
   const isDemoUser = user?.email?.toLowerCase() === "demo@digiwil.com";
+
+  useEffect(() => {
+    if (isDemoUser) {
+      setDemoSessionFlags();
+    }
+  }, [isDemoUser]);
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-surface">

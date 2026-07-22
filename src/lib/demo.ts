@@ -8,22 +8,45 @@ export const DEMO_CREDENTIALS = {
   slug: "demo-clinic",
 };
 
+export function setDemoSessionFlags() {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("is_demo_session", "true");
+    document.cookie = "is_demo_session=true; path=/; max-age=86400; SameSite=Lax";
+  }
+}
+
+export function clearDemoSessionFlags() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("is_demo_session");
+    document.cookie = "is_demo_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+  }
+}
+
+export function isDemoSession(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    localStorage.getItem("is_demo_session") === "true" ||
+    document.cookie.includes("is_demo_session=true")
+  );
+}
+
 export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolean; message?: string }> {
   try {
+    // Set demo session flags immediately
+    setDemoSessionFlags();
+
     // 1. Check current session
     const { data: sessionData } = await supabase.auth.getSession();
     let currentUser = sessionData?.session?.user;
 
     // If current user is not the demo user, sign out first if needed or check if we can sign in
     if (!currentUser || currentUser.email?.toLowerCase() !== DEMO_CREDENTIALS.email.toLowerCase()) {
-      // Attempt sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: DEMO_CREDENTIALS.email,
         password: DEMO_CREDENTIALS.password,
       });
 
       if (signInError) {
-        // If user doesn't exist, sign up
         if (signInError.message.includes("Invalid login credentials") || signInError.message.includes("User not found")) {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: DEMO_CREDENTIALS.email,
@@ -41,7 +64,6 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
 
           currentUser = signUpData.user ?? undefined;
 
-          // If session was not automatically established, sign in again
           if (!signUpData.session) {
             const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
               email: DEMO_CREDENTIALS.email,
@@ -78,7 +100,6 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
       .limit(1);
 
     if (!mems || mems.length === 0) {
-      // Create organization
       const orgId = crypto.randomUUID();
       const { error: orgErr } = await supabase.from("organizations").insert({
         id: orgId,
@@ -88,14 +109,12 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
       });
 
       if (!orgErr) {
-        // Create organization member
         await supabase.from("organization_members").insert({
           organization_id: orgId,
           user_id: currentUser.id,
           role: "owner",
         });
 
-        // Create clinic
         const { data: clinicRow } = await supabase
           .from("clinics")
           .insert({
@@ -116,7 +135,6 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
           .select("id")
           .single();
 
-        // Add doctor entry
         if (clinicRow) {
           await supabase.from("doctors").insert({
             organization_id: orgId,
@@ -129,7 +147,6 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
           });
         }
 
-        // Install default modules
         const allModules = [
           "website_builder",
           "appointments",
@@ -157,7 +174,6 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
 
         await supabase.from("organization_modules").insert(moduleRows);
 
-        // Mark onboarding complete
         await supabase.from("organization_onboarding").insert({
           organization_id: orgId,
           current_step: 7,
