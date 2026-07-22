@@ -1,12 +1,31 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, Menu, X, Sun, Moon, Monitor, Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Stethoscope, Menu, X, Sun, Moon, Monitor, Sparkles, ArrowRight, ShieldCheck, CheckCircle2, Search } from "lucide-react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
+import { CommandPalette } from "./CommandPalette";
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || e.key === "/") {
+        if (
+          (e.target as HTMLElement).tagName === "INPUT" ||
+          (e.target as HTMLElement).tagName === "TEXTAREA"
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", down);
+    return () => window.removeEventListener("keydown", down);
+  }, []);
 
   const toggleTheme = () => {
     if (theme === "system") setTheme("light");
@@ -83,6 +102,15 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={() => setCmdOpen(true)}
+              className="hidden lg:flex items-center gap-2 h-9 px-3 text-xs text-muted-foreground bg-muted/50 hover:bg-muted border border-border/60 rounded-xl transition-all font-medium"
+            >
+              <Search className="size-3.5" />
+              <span>Search...</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-background border rounded text-muted-foreground">⌘K</kbd>
+            </button>
+
             <Button
               variant="ghost"
               size="icon"
@@ -216,6 +244,8 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </footer>
+
+      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
     </div>
   );
 }
