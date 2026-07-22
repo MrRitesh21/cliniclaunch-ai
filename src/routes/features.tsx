@@ -128,7 +128,7 @@ function FeaturesPage() {
                   <Sparkles className="size-4 text-amber-500" /> ⚡ Open Live Demo
                 </Button>
               </Link>
-              <Link to="/auth" className="w-full sm:w-auto">
+              <Link to="/login" className="w-full sm:w-auto">
                 <Button size="lg" className="w-full font-bold bg-slate-950 text-white hover:bg-slate-900 border border-white/20 h-12 px-6">
                   Start 14-Day Free Trial &rarr;
                 </Button>

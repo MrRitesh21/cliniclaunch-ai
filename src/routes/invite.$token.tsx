@@ -144,7 +144,7 @@ function InvitePage() {
             <p className="text-sm text-amber-600 font-medium">Signed in as <strong>{user?.email}</strong>. This invite is for <strong>{invite.email}</strong>.</p>
             <Button asChild className="w-full">
               <Link
-                to="/auth"
+                to="/login"
                 search={{
                   redirect: `/invite/${token}`,
                   email: invite.email,
@@ -160,7 +160,7 @@ function InvitePage() {
             <p className="text-sm">Sign in or create an account to accept.</p>
             <Button asChild className="w-full">
               <Link
-                to="/auth"
+                to="/login"
                 search={{
                   redirect: `/invite/${token}`,
                   email: invite.email,

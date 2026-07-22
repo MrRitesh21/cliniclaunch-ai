@@ -394,7 +394,7 @@ function ROICalculator() {
             </div>
 
             <div className="pt-2">
-              <Link to="/auth">
+              <Link to="/login">
                 <Button size="lg" variant="secondary" className="w-full font-bold bg-white text-primary hover:bg-white/95 h-11 text-sm shadow-md">
                   Claim Your Savings — Try Free for 14 Days &rarr;
                 </Button>
@@ -631,10 +631,10 @@ function Landing() {
             >
               {themeIcon()}
             </Button>
-            <Link to="/auth">
+            <Link to="/login">
               <Button variant="ghost" className="font-medium">Sign in</Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/login">
               <Button className="font-medium shadow-sm shadow-primary/10">Get started</Button>
             </Link>
           </div>
@@ -671,10 +671,10 @@ function Landing() {
             <Link to="/faq" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-base font-medium hover:bg-muted text-muted-foreground hover:text-foreground">FAQ</Link>
             <hr className="border-border/60 my-2" />
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full">Sign in</Button>
               </Link>
-              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full">Get started</Button>
               </Link>
             </div>
@@ -703,7 +703,7 @@ function Landing() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto pt-2">
-                <Link to="/auth" className="w-full sm:w-auto">
+                <Link to="/login" className="w-full sm:w-auto">
                   <Button size="lg" className="w-full sm:w-auto gap-2 text-base font-semibold py-6 px-8 rounded-xl shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px]">
                     Start your practice <ArrowRight className="size-5" />
                   </Button>
@@ -1650,7 +1650,7 @@ function Landing() {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/auth">
+                  <Link to="/login">
                     <Button className={`w-full text-xs font-semibold ${p.is_popular ? "bg-background text-foreground hover:bg-background/90" : ""}`} variant={p.is_popular ? "default" : "outline"}>
                       Start 14-day trial
                     </Button>
@@ -1725,12 +1725,12 @@ function Landing() {
             Create your account today, customize your clinic website in seconds, and start accepting online bookings for free.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <Link to="/auth">
+            <Link to="/login">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto text-base font-bold py-6 px-8 rounded-xl shadow-lg transition-transform hover:scale-102">
                 Launch My Clinic Now
               </Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/login">
               <Button size="lg" variant="ghost" className="w-full sm:w-auto border border-white/30 text-white hover:bg-white/10 hover:text-white text-base font-semibold py-6 px-8 rounded-xl">
                 Sign in to Account
               </Button>
@@ -1760,7 +1760,7 @@ function Landing() {
           <div className="flex items-center gap-6 text-xs text-muted-foreground font-medium">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
-            <Link to="/auth" className="hover:text-foreground transition-colors">Developer Portal</Link>
+            <Link to="/login" className="hover:text-foreground transition-colors">Developer Portal</Link>
           </div>
           </div>
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2 text-xs text-muted-foreground border-t border-border/40 pt-6">

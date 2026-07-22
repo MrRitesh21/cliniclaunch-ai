@@ -89,7 +89,7 @@ function CityPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-          <Link to="/auth">
+          <Link to="/login">
             <Button size="lg" className="h-12 px-8 font-bold gap-2">
               Start Free 14-Day Trial <ArrowRight className="size-4" />
             </Button>
@@ -134,7 +134,7 @@ function CityPage() {
             Set up in under 5 minutes. Cancel anytime. Free 14-day trial, no credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <Link to="/auth">
+            <Link to="/login">
               <Button size="lg" variant="secondary" className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95">
                 Get Started Free &rarr;
               </Button>

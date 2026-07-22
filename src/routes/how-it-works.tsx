@@ -198,7 +198,7 @@ function HowPage() {
                 <Sparkles className="size-4 text-amber-500" /> ⚡ Open Live Demo
               </Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/login">
               <Button size="lg" className="h-12 px-8 font-bold gap-2">
                 Start 14-Day Free Trial <ArrowRight className="size-4" />
               </Button>

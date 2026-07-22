@@ -67,7 +67,7 @@ function FaqPage() {
           </Accordion>
 
           <div className="mt-12 text-center">
-            <Link to="/auth"><Button size="lg">Get started free</Button></Link>
+            <Link to="/login"><Button size="lg">Get started free</Button></Link>
           </div>
         </div>
       </section>

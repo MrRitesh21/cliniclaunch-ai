@@ -1102,7 +1102,7 @@ function DemoPage() {
               <Video className="size-3 sm:size-3.5" />
               <span>Book <span className="hidden sm:inline">1-on-1 </span>Demo</span>
             </Button>
-            <Link to="/auth" className="shrink-0">
+            <Link to="/login" className="shrink-0">
               <Button size="sm" variant="secondary" className="h-7 text-[10px] sm:text-xs bg-white text-primary hover:bg-white/95 px-2 sm:px-3">Create free account</Button>
             </Link>
           </div>

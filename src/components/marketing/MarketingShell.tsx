@@ -93,7 +93,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               {themeIcon()}
             </Button>
             
-            <Link to="/auth">
+            <Link to="/login">
               <Button variant="ghost" className="font-semibold text-sm">Sign in</Button>
             </Link>
 
@@ -103,7 +103,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               </Button>
             </Link>
 
-            <Link to="/auth">
+            <Link to="/login">
               <Button className="font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 h-9">
                 Get Started Free &rarr;
               </Button>
@@ -145,7 +145,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               <Link to="/demo" onClick={() => setOpen(false)}>
                 <Button variant="outline" className="w-full font-bold text-primary border-primary/30">⚡ Live Demo</Button>
               </Link>
-              <Link to="/auth" onClick={() => setOpen(false)}>
+              <Link to="/login" onClick={() => setOpen(false)}>
                 <Button className="w-full font-bold">Get Started</Button>
               </Link>
             </div>

@@ -89,7 +89,7 @@ function ComparePage() {
         <p className="text-base text-foreground max-w-2xl mx-auto font-bold bg-muted/40 p-3 rounded-xl border">{comp.price_note}</p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-          <Link to="/auth">
+          <Link to="/login">
             <Button size="lg" className="h-12 px-8 font-bold gap-2">
               Start Free 14-Day Trial <ArrowRight className="size-4" />
             </Button>
@@ -156,7 +156,7 @@ function ComparePage() {
             Join hundreds of independent doctors across India running their practice on ClinicX.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <Link to="/auth">
+            <Link to="/login">
               <Button size="lg" variant="secondary" className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95">
                 Start Free Trial &rarr;
               </Button>
