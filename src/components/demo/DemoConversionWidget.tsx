@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight, X, ShieldCheck, CheckCircle2, Star, Zap } from "lucide-react";
+import { Sparkles, ArrowRight, X, CheckCircle2, Zap } from "lucide-react";
 
-export function DemoConversionWidget({ onExitDemo }: { onExitDemo: () => void }) {
+export function DemoConversionWidget({
+  onExitDemo,
+  onStartTrial,
+}: {
+  onExitDemo: () => void;
+  onStartTrial: () => void;
+}) {
   const [minimized, setMinimized] = useState(false);
 
   if (minimized) {
     return (
       <div className="fixed bottom-6 right-6 z-50 animate-in fade-in zoom-in duration-200">
         <button
-          onClick={() => setMinimized(false)}
+          onClick={onStartTrial}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-xs border border-blue-400/30 hover:scale-105 transition-all group"
         >
           <Sparkles className="size-4 text-amber-300 animate-pulse" />
@@ -60,11 +65,13 @@ export function DemoConversionWidget({ onExitDemo }: { onExitDemo: () => void })
 
       {/* Action Buttons */}
       <div className="space-y-2 pt-1">
-        <Link to="/login" className="block w-full">
-          <Button size="lg" className="w-full font-bold bg-blue-600 hover:bg-blue-500 text-white h-11 text-xs shadow-lg shadow-blue-600/30 gap-1.5 border border-blue-400/30">
-            Start 14-Day Free Trial (₹1 setup) <ArrowRight className="size-4" />
-          </Button>
-        </Link>
+        <Button
+          size="lg"
+          onClick={onStartTrial}
+          className="w-full font-bold bg-blue-600 hover:bg-blue-500 text-white h-11 text-xs shadow-lg shadow-blue-600/30 gap-1.5 border border-blue-400/30 cursor-pointer"
+        >
+          Start 14-Day Free Trial (₹1 setup) <ArrowRight className="size-4" />
+        </Button>
 
         <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono px-1">
           <span className="flex items-center gap-1">

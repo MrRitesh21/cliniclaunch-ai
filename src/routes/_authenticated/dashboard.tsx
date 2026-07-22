@@ -531,6 +531,13 @@ function DashboardLayout() {
     navigate({ to: "/login" });
   }
 
+  async function startFreeTrial() {
+    clearDemoSessionFlags();
+    await supabase.auth.signOut();
+    toast.success("Starting your 14-day free trial setup");
+    window.location.href = "/login";
+  }
+
   const isActive = (to: string, exact?: boolean) => exact ? pathname === to : pathname.startsWith(to);
 
   const isDemoUser = user?.email?.toLowerCase() === "demo@digiwil.com";
@@ -552,11 +559,13 @@ function DashboardLayout() {
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Link to="/login">
-              <Button size="xs" className="h-7 px-3 text-xs font-bold bg-white text-blue-600 hover:bg-slate-100 shadow-sm border-none">
-                🚀 Claim 14-Day Free Trial &rarr;
-              </Button>
-            </Link>
+            <Button
+              size="xs"
+              onClick={startFreeTrial}
+              className="h-7 px-3 text-xs font-bold bg-white text-blue-600 hover:bg-slate-100 shadow-sm border-none cursor-pointer"
+            >
+              🚀 Claim 14-Day Free Trial &rarr;
+            </Button>
             <Button
               size="xs"
               variant="ghost"
@@ -724,7 +733,7 @@ function DashboardLayout() {
         </Dialog>
       )}
 
-      {isDemoUser && <DemoConversionWidget onExitDemo={signOut} />}
+      {isDemoUser && <DemoConversionWidget onExitDemo={signOut} onStartTrial={startFreeTrial} />}
     </div>
   );
 }
