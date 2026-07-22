@@ -92,10 +92,10 @@ export const Route = createFileRoute("/")({
   },
   component: Landing,
   errorComponent: ({ error }) => (
-    <div className="min-h-screen grid place-items-center text-center px-4">
+    <div className="min-h-screen grid place-items-center text-center px-4 bg-slate-950 text-slate-100">
       <div>
         <h1 className="font-display text-2xl font-bold">Something went wrong</h1>
-        <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+        <p className="text-slate-400 mt-2 text-sm">{error.message}</p>
       </div>
     </div>
   ),
@@ -146,7 +146,7 @@ function ROICalculator() {
   const monthlyRevenue = monthlyPatients * consultFee;
 
   return (
-    <section id="roi-calculator" className="py-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 border-y border-slate-800/80 relative overflow-hidden">
+    <section id="roi-calculator" className="py-24 bg-gradient-to-b from-slate-950 via-slate-900/60 to-slate-950 text-slate-100 border-y border-slate-800/80 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-12">
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
@@ -160,7 +160,7 @@ function ROICalculator() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-8 items-center bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
+        <div className="grid lg:grid-cols-12 gap-8 items-center bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
           {/* Controls */}
           <div className="lg:col-span-6 space-y-8">
             <div className="space-y-3">
@@ -282,51 +282,51 @@ function CompetitorComparisonTable() {
   ];
 
   return (
-    <section className="py-24 relative bg-background">
+    <section className="py-24 relative bg-slate-950 text-slate-100 border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
             Why Independent Doctors Switch
           </span>
-          <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            How ClinicX compares to <em className="text-primary font-normal not-italic">alternatives.</em>
+          <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+            How ClinicX compares to <em className="text-blue-400 font-normal not-italic">alternatives.</em>
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+          <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
             No listing directory stealing your patients. No hidden fees. Just clean software for your clinic.
           </p>
         </div>
 
-        <div className="overflow-x-auto border border-border/80 rounded-3xl shadow-xl bg-card">
+        <div className="overflow-x-auto border border-slate-800 rounded-3xl shadow-2xl bg-slate-900/60 backdrop-blur-xl">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="p-5 font-bold text-foreground">Feature / Capability</th>
-                <th className="p-5 bg-primary/10 text-primary font-extrabold text-sm text-center">ClinicX OS</th>
+              <tr className="border-b border-slate-800 bg-slate-950/80 text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
+                <th className="p-5 font-bold text-white">Feature / Capability</th>
+                <th className="p-5 bg-blue-600/20 text-blue-300 font-extrabold text-sm text-center border-x border-blue-500/30">ClinicX OS</th>
                 <th className="p-5 text-center">Practo / Directory Platforms</th>
                 <th className="p-5 text-center">Paper / Manual WhatsApp</th>
               </tr>
             </thead>
-            <tbody className="divide-y text-sm">
+            <tbody className="divide-y divide-slate-800 text-sm">
               {comparisons.map((c, i) => (
-                <tr key={i} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-5 font-semibold text-foreground">{c.feature}</td>
-                  <td className="p-5 bg-primary/5 text-center font-bold text-primary">
+                <tr key={i} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="p-5 font-semibold text-slate-200">{c.feature}</td>
+                  <td className="p-5 bg-blue-600/10 text-center font-bold text-blue-300 border-x border-blue-500/20">
                     {typeof c.clinicx === "boolean" ? (
-                      c.clinicx ? <CheckCircle2 className="size-5 mx-auto text-emerald-500" /> : <X className="size-5 mx-auto text-rose-500" />
+                      c.clinicx ? <CheckCircle2 className="size-5 mx-auto text-emerald-400" /> : <X className="size-5 mx-auto text-rose-500" />
                     ) : (
                       c.clinicx
                     )}
                   </td>
-                  <td className="p-5 text-center text-muted-foreground">
+                  <td className="p-5 text-center text-slate-400 font-mono text-xs">
                     {typeof c.practo === "boolean" ? (
-                      c.practo ? <Check className="size-4 mx-auto text-emerald-500" /> : <X className="size-4 mx-auto text-muted-foreground/40" />
+                      c.practo ? <Check className="size-4 mx-auto text-emerald-400" /> : <X className="size-4 mx-auto text-slate-600" />
                     ) : (
                       c.practo
                     )}
                   </td>
-                  <td className="p-5 text-center text-muted-foreground">
+                  <td className="p-5 text-center text-slate-400 font-mono text-xs">
                     {typeof c.paper === "boolean" ? (
-                      c.paper ? <Check className="size-4 mx-auto text-emerald-500" /> : <X className="size-4 mx-auto text-muted-foreground/40" />
+                      c.paper ? <Check className="size-4 mx-auto text-emerald-400" /> : <X className="size-4 mx-auto text-slate-600" />
                     ) : (
                       c.paper
                     )}
@@ -339,7 +339,7 @@ function CompetitorComparisonTable() {
 
         <div className="text-center pt-2">
           <Link to="/compare/$competitor" params={{ competitor: "practo" }}>
-            <Button variant="outline" className="font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2 h-11 px-6">
+            <Button variant="outline" className="font-bold border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 gap-2 h-11 px-6 bg-slate-900/60">
               View Detailed Practo vs ClinicX Analysis &rarr;
             </Button>
           </Link>
@@ -366,12 +366,12 @@ function Landing() {
     <MarketingShell>
       {/* Hero Section */}
       <section className="relative pt-16 pb-24 md:pt-24 md:pb-32 overflow-hidden bg-slate-950 text-slate-100">
-        {/* Ambient Radial Lights */}
+        {/* Ambient Lights */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.18),transparent_70%)] pointer-events-none" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-12 text-center">
-          {/* Top Pill Badge */}
+          {/* Top Badge */}
           <div className="inline-flex items-center gap-2.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs text-blue-300 font-mono font-bold tracking-wide uppercase shadow-lg shadow-blue-500/10 backdrop-blur-md">
             <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
             <Sparkles className="size-3.5 text-amber-400" />
@@ -426,7 +426,7 @@ function Landing() {
           {/* Glassmorphic Interactive Simulator */}
           <div className="max-w-5xl mx-auto pt-8">
             <div className="bg-slate-950/80 border border-slate-800/90 rounded-3xl shadow-[0_0_80px_-20px_rgba(37,99,235,0.25)] backdrop-blur-2xl overflow-hidden text-left">
-              {/* Browser Window Bar */}
+              {/* Window Bar */}
               <div className="bg-slate-900/90 px-4 py-3 border-b border-slate-800/80 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5">
@@ -443,7 +443,7 @@ function Landing() {
                 </div>
               </div>
 
-              {/* Tab Selector Bar */}
+              {/* Tab Bar */}
               <div className="flex items-center gap-1 border-b border-slate-800/80 bg-slate-900/40 p-2 overflow-x-auto">
                 {[
                   { id: "analytics", label: "Analytics", icon: Activity },
@@ -466,7 +466,7 @@ function Landing() {
                 ))}
               </div>
 
-              {/* Tab Simulator View */}
+              {/* Tab Content */}
               <div className="p-6 sm:p-8 min-h-[340px] bg-slate-950 text-slate-100">
                 {activeTab === "analytics" && (
                   <div className="space-y-6 animate-in fade-in duration-300">
@@ -583,80 +583,80 @@ function Landing() {
       <CompetitorComparisonTable />
 
       {/* Bento Grid Section */}
-      <section className="py-24 bg-muted/20 border-y border-border/50">
+      <section className="py-24 bg-slate-950 text-slate-100 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
               The Complete Practice OS
             </span>
-            <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Everything your practice needs, <em className="text-primary font-normal not-italic">in one login.</em>
+            <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+              Everything your practice needs, <em className="text-blue-400 font-normal not-italic">in one login.</em>
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+            <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
               Stop juggling six logins. ClinicX unifies your website, scheduler, EHR, billing, and comms — one subscription, one source of truth.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 p-8 border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between group shadow-sm hover:shadow-md">
+            <Card className="md:col-span-2 p-8 border-slate-800 bg-slate-900/60 hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between group shadow-xl backdrop-blur-xl">
               <div className="space-y-4">
-                <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="size-12 rounded-2xl bg-blue-500/20 text-blue-400 grid place-items-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <Globe className="size-6" />
                 </div>
-                <h3 className="font-display text-2xl font-bold">Custom Branded Website & SEO Autopilot</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                <h3 className="font-display text-2xl font-bold text-white">Custom Branded Website & SEO Autopilot</h3>
+                <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
                   Generate a mobile-first clinic website in 5 minutes. Connect your custom domain (e.g. drjenkins.com) and rank for local Google searches ("dermatologist near me") on autopilot.
                 </p>
               </div>
-              <div className="pt-6 mt-6 border-t border-border/50 flex items-center justify-between text-xs font-bold text-primary">
+              <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-blue-400 font-mono">
                 <span>0% Commission · Your Own Branding</span>
                 <Link to="/features" className="hover:underline flex items-center gap-1">Explore website features &rarr;</Link>
               </div>
             </Card>
 
-            <Card className="p-8 border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between group shadow-sm hover:shadow-md">
+            <Card className="p-8 border-slate-800 bg-slate-900/60 hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between group shadow-xl backdrop-blur-xl">
               <div className="space-y-4">
-                <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="size-12 rounded-2xl bg-blue-500/20 text-blue-400 grid place-items-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <MessageSquare className="size-6" />
                 </div>
-                <h3 className="font-display text-xl font-bold">WhatsApp Automation</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                <h3 className="font-display text-xl font-bold text-white">WhatsApp Automation</h3>
+                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                   Automate booking confirmations, 24h reminders, post-visit feedback, and 5-star Google review requests over WhatsApp.
                 </p>
               </div>
-              <div className="pt-6 mt-6 border-t border-border/50 text-xs font-bold text-emerald-600">
+              <div className="pt-6 mt-6 border-t border-slate-800 text-xs font-bold text-emerald-400 font-mono">
                 80% Fewer No-Shows
               </div>
             </Card>
 
-            <Card className="p-8 border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between group shadow-sm hover:shadow-md">
+            <Card className="p-8 border-slate-800 bg-slate-900/60 hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between group shadow-xl backdrop-blur-xl">
               <div className="space-y-4">
-                <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="size-12 rounded-2xl bg-blue-500/20 text-blue-400 grid place-items-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <FileText className="size-6" />
                 </div>
-                <h3 className="font-display text-xl font-bold">Digital EHR & E-Prescriptions</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                <h3 className="font-display text-xl font-bold text-white">Digital EHR & E-Prescriptions</h3>
+                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                   Structured SOAP visit journals, medical history tagging, drug directory lookup, and instant WhatsApp PDF prescriptions.
                 </p>
               </div>
-              <div className="pt-6 mt-6 border-t border-border/50 text-xs font-bold text-primary">
+              <div className="pt-6 mt-6 border-t border-slate-800 text-xs font-bold text-blue-400 font-mono">
                 HIPAA-Ready Security
               </div>
             </Card>
 
-            <Card className="md:col-span-2 p-8 border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between group shadow-sm hover:shadow-md">
+            <Card className="md:col-span-2 p-8 border-slate-800 bg-slate-900/60 hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between group shadow-xl backdrop-blur-xl">
               <div className="space-y-4">
-                <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="size-12 rounded-2xl bg-blue-500/20 text-blue-400 grid place-items-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <IndianRupee className="size-6" />
                 </div>
-                <h3 className="font-display text-2xl font-bold">Razorpay Invoicing & Advance Co-pays</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                <h3 className="font-display text-2xl font-bold text-white">Razorpay Invoicing & Advance Co-pays</h3>
+                <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
                   Generate professional GST PDF invoices, accept UPI/Cards online, collect advance booking co-pays, and track daily revenue analytics seamlessly.
                 </p>
               </div>
-              <div className="pt-6 mt-6 border-t border-border/50 flex items-center justify-between text-xs font-bold text-emerald-600">
+              <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-emerald-400 font-mono">
                 <span>Instant Razorpay UPI Integration</span>
-                <Link to="/features" className="hover:underline text-primary flex items-center gap-1">View billing features &rarr;</Link>
+                <Link to="/features" className="hover:underline text-blue-400 flex items-center gap-1">View billing features &rarr;</Link>
               </div>
             </Card>
           </div>
@@ -664,14 +664,14 @@ function Landing() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 border-b border-border/40 relative bg-background">
+      <section className="py-24 bg-slate-950 text-slate-100 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
               Trusted by Practitioners
             </span>
-            <h2 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">
-              Doctors don't have time for <em className="text-primary font-normal not-italic">clunky software.</em>
+            <h2 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight text-white mt-3">
+              Doctors don't have time for <em className="text-blue-400 font-normal not-italic">clunky software.</em>
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -680,18 +680,18 @@ function Landing() {
               { q: "WhatsApp confirmations cut my no-shows nearly in half. The ROI was obvious in the first month.", n: "Dr. Marco Silva", r: "Cardiologist · Lisbon" },
               { q: "Finally a clinical tool that doesn't look like it was built in 2008. My patients actually comment on how easy the website is.", n: "Dr. Rachel Kim", r: "Pediatrician · Toronto" },
             ].map((t) => (
-              <Card key={t.n} className="p-8 flex flex-col justify-between border-border/80 shadow-sm hover:shadow-md transition-all space-y-6">
+              <Card key={t.n} className="p-8 flex flex-col justify-between border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-xl space-y-6">
                 <div className="space-y-4">
                   <div className="flex gap-1">
                     {[0,1,2,3,4].map(i => <Star key={i} className="size-4 fill-amber-400 text-amber-400" />)}
                   </div>
-                  <blockquote className="font-display text-lg leading-relaxed text-foreground">
+                  <blockquote className="font-display text-lg leading-relaxed text-slate-200">
                     &ldquo;{t.q}&rdquo;
                   </blockquote>
                 </div>
-                <div className="pt-4 border-t border-border/50">
-                  <div className="font-bold text-sm text-foreground">{t.n}</div>
-                  <div className="text-xs text-muted-foreground font-medium">{t.r}</div>
+                <div className="pt-4 border-t border-slate-800">
+                  <div className="font-bold text-sm text-white">{t.n}</div>
+                  <div className="text-xs text-slate-400 font-mono mt-0.5">{t.r}</div>
                 </div>
               </Card>
             ))}
@@ -700,29 +700,29 @@ function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-muted/20 relative">
+      <section id="pricing" className="py-24 bg-slate-950 text-slate-100 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
               Transparent Pricing
             </span>
-            <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Simple plans for <em className="text-primary font-normal not-italic">every stage of growth.</em>
+            <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+              Simple plans for <em className="text-blue-400 font-normal not-italic">every stage of growth.</em>
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base">
+            <p className="text-slate-400 text-sm sm:text-base">
               No hidden setup fees. 14-day free trial on all plans. Cancel anytime.
             </p>
 
-            <div className="pt-4 inline-flex items-center gap-2 p-1.5 bg-card border rounded-full text-xs font-bold">
+            <div className="pt-4 inline-flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-full text-xs font-bold font-mono">
               <button
                 onClick={() => setBillingCycle("monthly")}
-                className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "monthly" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "monthly" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"}`}
               >
                 Monthly
               </button>
               <button
                 onClick={() => setBillingCycle("annual")}
-                className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "annual" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
+                className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "annual" ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-white"}`}
               >
                 Annual <span className="text-[10px] text-amber-300 font-extrabold ml-1">SAVE 20%</span>
               </button>
@@ -760,39 +760,39 @@ function Landing() {
                 key={idx}
                 className={`p-8 flex flex-col justify-between relative transition-all duration-300 ${
                   p.popular
-                    ? "border-2 border-primary shadow-2xl scale-[1.02] bg-card"
-                    : "border-border/80 bg-card shadow-sm hover:shadow-md"
+                    ? "border-2 border-blue-500 shadow-2xl scale-[1.02] bg-slate-900/90 text-white"
+                    : "border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-xl text-slate-100"
                 }`}
               >
                 {p.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] uppercase tracking-widest font-extrabold px-3 py-1 rounded-full shadow-md">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-mono font-extrabold px-3 py-1 rounded-full shadow-md">
                     Most Popular Choice
                   </div>
                 )}
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-display text-xl font-bold">{p.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 min-h-[36px]">{p.desc}</p>
+                    <h3 className="font-display text-xl font-bold text-white">{p.name}</h3>
+                    <p className="text-xs text-slate-400 mt-1 min-h-[36px]">{p.desc}</p>
                   </div>
 
-                  <div>
-                    <div className="text-4xl font-extrabold font-display text-foreground">{p.price}</div>
-                    <div className="text-xs text-muted-foreground">{p.period}</div>
+                  <div className="font-mono">
+                    <div className="text-4xl font-extrabold font-display text-white">{p.price}</div>
+                    <div className="text-xs text-slate-400">{p.period}</div>
                   </div>
 
-                  <ul className="space-y-3 pt-4 border-t border-border/50 text-xs">
+                  <ul className="space-y-3 pt-4 border-t border-slate-800 text-xs">
                     {p.features.map((f, fi) => (
-                      <li key={fi} className="flex items-center gap-2 text-foreground font-medium">
-                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                      <li key={fi} className="flex items-center gap-2 text-slate-200 font-medium">
+                        <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
                         <span>{f}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="pt-8 mt-6 border-t border-border/50">
+                <div className="pt-8 mt-6 border-t border-slate-800">
                   <Link to="/login">
-                    <Button className={`w-full font-bold h-11 ${p.popular ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : ""}`} variant={p.popular ? "default" : "outline"}>
+                    <Button className={`w-full font-bold h-11 ${p.popular ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30" : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"}`}>
                       Start 14-Day Free Trial
                     </Button>
                   </Link>
@@ -803,10 +803,10 @@ function Landing() {
         </div>
       </section>
 
-      {/* Bottom Conversion Section */}
-      <section className="py-20 relative bg-background">
+      {/* Bottom CTA */}
+      <section className="py-20 relative bg-slate-950 text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white rounded-3xl p-8 sm:p-12 shadow-2xl text-center space-y-6 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white rounded-3xl p-8 sm:p-12 shadow-2xl text-center space-y-6 relative overflow-hidden border border-blue-400/20">
             <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white leading-tight">
               Ready to transform your clinical practice?
             </h2>

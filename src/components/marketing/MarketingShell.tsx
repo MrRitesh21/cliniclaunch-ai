@@ -51,22 +51,21 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 
   const nav = [
     { label: "Features", to: "/features" as const },
-    { label: "⚡ Live Demo", to: "/demo" as const, highlight: true },
     { label: "How it works", to: "/how-it-works" as const },
     { label: "FAQ", to: "/faq" as const },
   ];
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-blue-500/20 selection:text-blue-400">
       {/* Top Conversion Bar */}
-      <div className="bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground text-xs py-2 px-4 border-b border-primary/20 relative z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 text-white text-xs py-2 px-4 border-b border-blue-500/30 relative z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 font-sans">
           <div className="flex items-center gap-2 min-w-0">
             <span className="bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider shrink-0">Offer</span>
             <span className="truncate font-medium">14-Day Free Trial (₹1 setup) — Launch your clinic website & WhatsApp automation in 5 minutes!</span>
           </div>
-          <div className="hidden sm:flex items-center gap-3 shrink-0">
-            <Link to="/demo" className="font-bold underline hover:text-amber-200 flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-3 shrink-0 font-mono">
+            <Link to="/demo" className="font-bold underline hover:text-amber-200 flex items-center gap-1 text-xs">
               ⚡ Explore Live Demo &rarr;
             </Link>
           </div>
@@ -74,65 +73,61 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Header */}
-      <header className="border-b border-border/40 bg-background/85 backdrop-blur-md sticky top-0 left-0 right-0 z-40 w-full transition-all">
+      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 left-0 right-0 z-40 w-full transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="size-9 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center shadow-sm border border-border/10 overflow-hidden group-hover:scale-105 transition-transform">
+            <div className="size-9 rounded-xl bg-slate-900 p-1.5 grid place-items-center shadow-sm border border-slate-800 overflow-hidden group-hover:scale-105 transition-transform">
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
-            <span className="font-display text-2xl font-bold tracking-tight">ClinicX</span>
+            <span className="font-display text-2xl font-bold tracking-tight text-white">ClinicX</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-muted-foreground">
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-400">
             {nav.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
-                className={`transition-colors flex items-center gap-1.5 ${
-                  n.highlight 
-                    ? "text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-full hover:bg-primary/15" 
-                    : "hover:text-foreground"
-                }`}
-                activeProps={{ className: n.highlight ? "text-primary font-bold" : "text-foreground font-semibold" }}
+                className="transition-colors hover:text-white"
+                activeProps={{ className: "text-white font-semibold" }}
               >
                 {n.label}
               </Link>
             ))}
-            <a href="/#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <a href="/#pricing" className="hover:text-white transition-colors">Pricing</a>
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => setCmdOpen(true)}
-              className="hidden lg:flex items-center gap-2 h-9 px-3 text-xs text-muted-foreground bg-muted/50 hover:bg-muted border border-border/60 rounded-xl transition-all font-medium"
+              className="hidden lg:flex items-center gap-2 h-9 px-3 text-xs text-slate-400 bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 rounded-xl transition-all font-medium"
             >
               <Search className="size-3.5" />
               <span>Search...</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-background border rounded text-muted-foreground">⌘K</kbd>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-950 border border-slate-800 rounded text-slate-400">⌘K</kbd>
             </button>
 
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg"
+              className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-900 rounded-lg"
               title={`Theme: ${themeLabel()}`}
             >
               {themeIcon()}
             </Button>
             
             <Link to="/login">
-              <Button variant="ghost" className="font-semibold text-sm">Sign in</Button>
+              <Button variant="ghost" className="font-semibold text-sm text-slate-300 hover:text-white hover:bg-slate-900">Sign in</Button>
             </Link>
 
             <Link to="/demo">
-              <Button variant="outline" className="font-bold border-primary/40 text-primary hover:bg-primary/10 gap-1.5 h-9">
-                <Sparkles className="size-3.5 text-amber-500" /> Live Demo
+              <Button variant="outline" className="font-bold border-blue-500/40 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 gap-1.5 h-9 bg-slate-900/60">
+                <Sparkles className="size-3.5 text-amber-400" /> Live Demo
               </Button>
             </Link>
 
             <Link to="/login">
-              <Button className="font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 h-9">
+              <Button className="font-bold bg-blue-600 hover:bg-blue-500 text-white gap-1.5 h-9 shadow-md shadow-blue-600/20 text-xs">
                 Get Started Free &rarr;
               </Button>
             </Link>
