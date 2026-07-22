@@ -123,7 +123,7 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
             clinic_id: clinicRow.id,
             user_id: currentUser.id,
             name: DEMO_CREDENTIALS.doctorName,
-            specialty: "Dermatology",
+            specialization: "Dermatology",
             consultation_fee: 800,
             is_active: true,
           });

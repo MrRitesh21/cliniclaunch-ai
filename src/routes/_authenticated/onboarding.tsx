@@ -130,7 +130,7 @@ function Onboarding() {
   // Skip wizard if user already has an org, or has a pending invite
   useEffect(() => {
     if (!isReady) return;
-    if (!user) { navigate({ to: "/auth" }); return; }
+    if (!user) { navigate({ to: "/login" }); return; }
     (async () => {
       const { data } = await supabase
         .from("organization_members")

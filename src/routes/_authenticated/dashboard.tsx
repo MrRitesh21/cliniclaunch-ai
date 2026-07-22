@@ -514,7 +514,7 @@ function DashboardLayout() {
   async function signOut() {
     await supabase.auth.signOut();
     toast.success("Signed out");
-    navigate({ to: "/auth" });
+    navigate({ to: "/login" });
   }
 
   const isActive = (to: string, exact?: boolean) => exact ? pathname === to : pathname.startsWith(to);
