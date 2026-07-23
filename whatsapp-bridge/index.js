@@ -91,14 +91,28 @@ async function connect() {
         || m.message.videoMessage?.caption
         || "";
       if (!text) continue;
+
+      const remoteJid = m.key.remoteJid;
+
+      // Indicate typing status on WhatsApp while processing AI reply
+      try {
+        if (sock && remoteJid) await sock.sendPresenceUpdate("composing", remoteJid);
+      } catch {}
+
       await postWebhook({
         event: "message",
-        from: normalizeJid(m.key.remoteJid),
+        clinic_id: CLINIC_ID,
+        from: normalizeJid(remoteJid),
         name: m.pushName || null,
         text,
         wa_message_id: m.key.id,
         timestamp: Number(m.messageTimestamp) || Math.floor(Date.now() / 1000),
       });
+
+      // Reset typing status
+      try {
+        if (sock && remoteJid) await sock.sendPresenceUpdate("paused", remoteJid);
+      } catch {}
     }
   });
 }
