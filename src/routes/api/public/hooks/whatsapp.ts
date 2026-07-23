@@ -89,7 +89,7 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
       POST: async ({ request }) => {
         try {
           const body = await request.json().catch(() => ({}));
-          const { event, from, text, name, clinic_id } = body || {};
+          const { event, from, text, name, clinic_id, session_id, to_phone } = body || {};
 
           if (event !== "message" || !from || !text) {
             return Response.json({ ok: true, ignored: true });
@@ -97,40 +97,51 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
 
           const sb = supabaseAdmin;
 
-          // 1. Resolve clinic details
+          // ─── STRICT CLINIC & SESSION RESOLUTION ───
           let clinic: any = null;
-          if (clinic_id) {
-            const { data } = await sb.from("clinics").select("*").eq("id", clinic_id).maybeSingle();
-            clinic = data;
-          }
 
-          if (!clinic) {
-            // Find clinic by wa_phone or default active clinic
-            const cleanFrom = from.replace(/[^\d]/g, "");
-            const { data: matched } = await sb
+          // 1. Resolve by session_id if present
+          if (session_id) {
+            const rawClinicId = String(session_id).replace(/^user-/, "");
+            const { data } = await sb
               .from("clinics")
               .select("*")
-              .or(`wa_phone.eq.${cleanFrom},phone.eq.${cleanFrom},personal_phone.eq.${cleanFrom}`)
-              .limit(1)
+              .or(`id.eq.${rawClinicId},wa_session_id.eq.${session_id}`)
               .maybeSingle();
-
-            clinic = matched;
+            if (data) clinic = data;
           }
 
+          // 2. Resolve by explicit clinic_id if not found yet
+          if (!clinic && clinic_id) {
+            const { data } = await sb.from("clinics").select("*").eq("id", clinic_id).maybeSingle();
+            if (data) clinic = data;
+          }
+
+          // 3. Resolve by receiving WhatsApp number (to_phone) if not found yet
+          if (!clinic && to_phone) {
+            const cleanTo = String(to_phone).replace(/[^\d]/g, "");
+            if (cleanTo.length >= 7) {
+              const { data } = await sb
+                .from("clinics")
+                .select("*")
+                .or(`wa_phone.ilike.%${cleanTo}%,phone.ilike.%${cleanTo}%,personal_phone.ilike.%${cleanTo}%`)
+                .limit(1)
+                .maybeSingle();
+              if (data) clinic = data;
+            }
+          }
+
+          // 4. Strict Failure: If no clinic matches the receiving number or session, DO NOT guess or fallback to a random clinic!
           if (!clinic) {
-            // Fallback to first active published clinic
-            const { data: firstClinic } = await sb.from("clinics").select("*").eq("is_published", true).limit(1).maybeSingle();
-            clinic = firstClinic;
+            console.warn(`[WhatsApp Webhook] Unmapped message received from ${from} to session ${session_id || "unknown"}`);
+            return Response.json({ ok: false, error: "unmapped_session_clinic" }, { status: 404 });
           }
 
-          if (!clinic) {
-            return Response.json({ ok: false, error: "no clinic found for incoming wa message" });
-          }
-
-          // 2. Log incoming message
+          // ─── PROCESS MESSAGE FOR THE VERIFIED TARGET CLINIC ───
           const cleanPhone = from.replace(/[^\d]/g, "");
           const formattedPhone = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
 
+          // Log incoming patient message
           await sb.from("whatsapp_logs").insert({
             organization_id: clinic.organization_id,
             patient_name: name || null,
@@ -142,8 +153,8 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
             sent_at: new Date().toISOString(),
           }).catch(() => {});
 
-          // 3. Generate AI response
-          const origin = typeof window !== "undefined" ? window.location.origin : process.env.VITE_APP_URL || "https://clinicx.app";
+          // Generate AI reply using the verified target clinic's details
+          const origin = process.env.VITE_APP_URL || "https://clinicx.app";
           const bookingLink = `${origin}/c/${clinic.slug}/book`;
           const servicesList = Array.isArray(clinic.services) ? clinic.services.map((s: any) => s.title || s.name || s).join(", ") : "";
 
@@ -156,11 +167,11 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
             userMessage: text,
           });
 
-          // 4. Send AI reply back to WhatsApp
-          const sessionId = clinicSessionId(clinic.id);
+          // Send reply strictly back using the target clinic's specific Baileys session ID
+          const sessionId = clinic.wa_session_id || clinicSessionId(clinic.id);
           const sendResult = await baileysSend(sessionId, formattedPhone, aiReply);
 
-          // 5. Log outgoing AI response
+          // Log outgoing AI reply
           await sb.from("whatsapp_logs").insert({
             organization_id: clinic.organization_id,
             patient_name: name || null,
@@ -175,6 +186,8 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
 
           return Response.json({
             ok: true,
+            clinic_id: clinic.id,
+            session_id: sessionId,
             reply: aiReply,
             sent: sendResult.ok,
             error: sendResult.error,
