@@ -11,15 +11,16 @@ import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; pw?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; pw?: string; tab?: string } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     email: typeof search.email === "string" ? search.email : undefined,
     pw: typeof search.pw === "string" ? search.pw : undefined,
+    tab: typeof search.tab === "string" ? search.tab : undefined,
   }),
   head: () => ({
     meta: [
       { title: "Sign in — ClinicX" },
-      { name: "description", content: "Sign in to your ClinicX doctor account." },
+      { name: "description", content: "Sign in or create a free doctor account on ClinicX." },
     ],
   }),
   component: LoginPage,
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { redirect, email: searchEmail, pw: searchPw } = Route.useSearch();
+  const { redirect, email: searchEmail, pw: searchPw, tab: searchTab } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   
   const { data: mStatus } = useQuery({
@@ -42,7 +43,11 @@ function LoginPage() {
   const [view, setView] = useState<"login" | "forgot" | "reset">("login");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [activeTab, setActiveTab] = useState("signin");
+  const [activeTab, setActiveTab] = useState(searchTab === "signup" ? "signup" : "signin");
+
+  useEffect(() => {
+    if (searchTab === "signup") setActiveTab("signup");
+  }, [searchTab]);
 
   useEffect(() => {
     if (searchEmail) setEmail(searchEmail);
