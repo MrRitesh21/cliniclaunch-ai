@@ -2,7 +2,7 @@
 -- Accelerates multi-tenant queries for Clinics, Appointments, Patients, Subscriptions & Analytics.
 
 -- 1. Appointments Indexing for fast queue management & date filtering
-CREATE INDEX IF NOT EXISTS idx_appointments_clinic_date ON public.appointments (clinic_id, date, status);
+CREATE INDEX IF NOT EXISTS idx_appointments_clinic_date ON public.appointments (clinic_id, appointment_date, status);
 CREATE INDEX IF NOT EXISTS idx_appointments_organization_created ON public.appointments (organization_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_appointments_patient_phone ON public.appointments (clinic_id, patient_phone);
 
