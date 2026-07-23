@@ -138,7 +138,7 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
 }
 
 // ----------------------------------------------------
-// ROI & Time Savings Calculator
+// ROI & Financial Impact Calculator
 // ----------------------------------------------------
 function ROICalculator() {
   const [dailyPatients, setDailyPatients] = useState(28);
@@ -153,11 +153,11 @@ function ROICalculator() {
     <section id="roi-calculator" className="py-24 bg-muted/30 border-y border-border/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-12">
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
             <Sparkles className="size-3.5 text-amber-500" /> Financial Impact Engine
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Quantify your <em className="text-primary font-normal not-italic">practice growth.</em>
+            Quantify your <em className="text-primary font-normal not-italic underline decoration-primary/30">practice growth.</em>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
             See how much administrative overhead and lost no-show revenue ClinicX recovers for your practice every month.
@@ -227,7 +227,7 @@ function ROICalculator() {
           </div>
 
           {/* Results Column */}
-          <div className="lg:col-span-6 bg-gradient-to-br from-primary via-indigo-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden border border-primary/30">
+          <div className="lg:col-span-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden border border-primary/30">
             <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
               <IndianRupee className="size-48 text-white" />
             </div>
@@ -256,9 +256,9 @@ function ROICalculator() {
             </div>
 
             <div className="pt-2">
-              <Link to="/login">
+              <Link to="/signup">
                 <Button type="button" size="lg" className="w-full font-bold bg-white text-slate-950 hover:bg-slate-100 h-12 text-sm shadow-lg">
-                  Claim Your Savings — Start 14-Day Trial &rarr;
+                  Claim Your Savings — Start 14-Day Free Trial &rarr;
                 </Button>
               </Link>
             </div>
@@ -289,11 +289,11 @@ function CompetitorComparisonTable() {
     <section className="py-24 relative bg-background border-b border-border/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
             Why Independent Doctors Switch
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            How ClinicX compares to <em className="text-primary font-normal not-italic">alternatives.</em>
+            How ClinicX compares to <em className="text-primary font-normal not-italic underline decoration-primary/30">alternatives.</em>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
             No listing directory stealing your patients. No hidden fees. Just clean software for your clinic.
@@ -386,11 +386,11 @@ function FAQSection() {
     <section id="faq" className="py-24 bg-background border-b border-border/60">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-3">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
             <HelpCircle className="size-3.5 text-primary" /> Frequently Asked Questions
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Everything you need to <em className="text-primary font-normal not-italic">know.</em>
+            Everything you need to <em className="text-primary font-normal not-italic underline decoration-primary/30">know.</em>
           </h2>
         </div>
 
@@ -566,7 +566,7 @@ function Landing() {
                 <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold flex items-center gap-1">
                   <CheckCircle2 className="size-3.5" /> Your Live URL: https://{generatedSlug}.clinicx.app
                 </span>
-                <Link to="/login">
+                <Link to="/signup">
                   <span className="text-primary font-bold hover:underline cursor-pointer text-[11px]">Claim This Domain &rarr;</span>
                 </Link>
               </div>
@@ -575,7 +575,7 @@ function Landing() {
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <Link to="/login" className="w-full sm:w-auto">
+            <Link to="/signup" className="w-full sm:w-auto">
               <Button type="button" size="lg" className="w-full sm:w-auto h-13 px-8 text-base font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-xl shadow-primary/25 gap-2">
                 Start 14-Day Free Trial <ArrowRight className="size-5" />
               </Button>
@@ -766,11 +766,11 @@ function Landing() {
       <section className="py-24 bg-muted/20 border-b border-border/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
               The Complete Practice OS
             </span>
             <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Everything your practice needs, <em className="text-primary font-normal not-italic">in one login.</em>
+              Everything your practice needs, <em className="text-primary font-normal not-italic underline decoration-primary/30">in one login.</em>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
               Stop juggling six logins. ClinicX unifies your website, scheduler, EHR, billing, and comms — one subscription, one source of truth.
@@ -847,11 +847,11 @@ function Landing() {
       <section className="py-24 bg-background border-b border-border/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
               Trusted by Practitioners
             </span>
             <h2 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">
-              Doctors don't have time for <em className="text-primary font-normal not-italic">clunky software.</em>
+              Doctors don't have time for <em className="text-primary font-normal not-italic underline decoration-primary/30">clunky software.</em>
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -883,11 +883,11 @@ function Landing() {
       <section id="pricing" className="py-24 bg-muted/20 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
               Transparent Pricing
             </span>
             <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Simple plans for <em className="text-primary font-normal not-italic">every stage of growth.</em>
+              Simple plans for <em className="text-primary font-normal not-italic underline decoration-primary/30">every stage of growth.</em>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base">
               No hidden setup fees. 14-day free trial on all plans. Cancel anytime.
@@ -1004,7 +1004,7 @@ function Landing() {
                   </div>
 
                   <div className="pt-8 mt-6 border-t border-border/50">
-                    <Link to="/login">
+                    <Link to="/signup">
                       <Button type="button" className={`w-full font-bold h-11 ${p.is_popular ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`} variant={p.is_popular ? "default" : "outline"}>
                         Start 14-Day Free Trial
                       </Button>
@@ -1031,7 +1031,7 @@ function Landing() {
               Join hundreds of independent doctors across India running their practice on ClinicX. Setup in under 5 minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <Link to="/login" className="w-full sm:w-auto">
+              <Link to="/signup" className="w-full sm:w-auto">
                 <Button type="button" size="lg" variant="secondary" className="w-full sm:w-auto h-12 px-8 font-bold bg-white text-slate-950 hover:bg-slate-100">
                   Start 14-Day Free Trial &rarr;
                 </Button>
