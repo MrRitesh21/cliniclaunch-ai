@@ -12,7 +12,7 @@ import {
   MessageSquare, IndianRupee, Shield, Activity, Check, Menu, X, Plus, Search,
   Clock, CheckCircle, FileText, Palette, Layout, Star, ExternalLink, ChevronRight,
   Sun, Moon, Monitor, QrCode, Pill, Beaker, Zap, CheckCircle2, ArrowUpRight, Lock,
-  Building2, Phone, Command, Layers, Flame, ChevronDown, HelpCircle, CheckCircle2 as VerifiedIcon
+  Building2, Phone, Command, Layers, Flame, ChevronDown, HelpCircle, AlertTriangle, RefreshCw
 } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { resolveHostToClinic } from "@/lib/domain.functions";
@@ -134,6 +134,106 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
       </main>
       <Footer clinic={c} />
     </div>
+  );
+}
+
+// ----------------------------------------------------
+// Before vs After Interactive Practice Transformation Component
+// ----------------------------------------------------
+function BeforeAfterShowcase() {
+  const [viewMode, setViewMode] = useState<"after" | "before">("after");
+
+  return (
+    <section className="py-24 bg-background border-b border-border/60 relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div className="text-center max-w-3xl mx-auto space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
+            Practice Modernization
+          </span>
+          <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
+            See the difference <em className="text-primary font-normal not-italic underline decoration-primary/30">software makes.</em>
+          </h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Toggle below to compare traditional clinic operations vs running on ClinicX OS.
+          </p>
+
+          <div className="pt-4 inline-flex items-center gap-2 p-1.5 bg-card border border-border/80 rounded-full text-xs font-bold font-mono shadow-sm">
+            <button
+              type="button"
+              onClick={() => setViewMode("before")}
+              className={`px-5 py-2 rounded-full transition-all flex items-center gap-2 ${
+                viewMode === "before"
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <AlertTriangle className="size-3.5" /> Traditional Practice
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("after")}
+              className={`px-5 py-2 rounded-full transition-all flex items-center gap-2 ${
+                viewMode === "after"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sparkles className="size-3.5 text-amber-500" /> ClinicX Practice OS
+            </button>
+          </div>
+        </div>
+
+        {viewMode === "before" ? (
+          <div className="grid md:grid-cols-3 gap-6 animate-in fade-in duration-300">
+            <Card className="p-6 border-rose-500/20 bg-rose-500/5 space-y-4">
+              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">❌</div>
+              <h3 className="font-display text-lg font-bold text-foreground">35% Patient No-Shows</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Patients forget appointments. Receptionists manually call numbers one by one, wasting 3 hours daily.
+              </p>
+            </Card>
+            <Card className="p-6 border-rose-500/20 bg-rose-500/5 space-y-4">
+              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">❌</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Paper Registers & Chaos</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Walk-in patients crowd the waiting room, handwriting names on paper sheets with zero queue visibility.
+              </p>
+            </Card>
+            <Card className="p-6 border-rose-500/20 bg-rose-500/5 space-y-4">
+              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">❌</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Listing Portals Steal Data</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Directory platforms charge heavy commissions per booking and divert your loyal patients to competitors.
+              </p>
+            </Card>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6 animate-in fade-in duration-300">
+            <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 space-y-4">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">⚡</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Automated WhatsApp Bot</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Instant 24-hour WhatsApp reminders & 1-click patient confirmations reduce no-shows to under 4%.
+              </p>
+            </Card>
+            <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 space-y-4">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">⚡</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Instant Walk-in QR Registration</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Patients scan a QR code at reception, choose an open slot, and get a digital queue token on their phone.
+              </p>
+            </Card>
+            <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 space-y-4">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">⚡</div>
+              <h3 className="font-display text-lg font-bold text-foreground">0% Booking Commission & Custom Site</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                100% data ownership with your custom domain (drsmith.com). Accept direct Razorpay UPI co-pays.
+              </p>
+            </Card>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -429,6 +529,7 @@ function FAQSection() {
 function Landing() {
   const { clinic } = Route.useLoaderData();
   const [activeTab, setActiveTab] = useState<"analytics" | "appointments" | "whatsapp" | "notes" | "billing">("analytics");
+  const [selectedSpecialty, setSelectedSpecialty] = useState<"dermatology" | "cardiology" | "pediatrics" | "general">("dermatology");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
   const [cmdOpen, setCmdOpen] = useState(false);
   const [previewDoctorName, setPreviewDoctorName] = useState("");
@@ -510,6 +611,15 @@ function Landing() {
     setGeneratedSlug(`${cleanName}${cleanSpec ? `-${cleanSpec}` : ""}`);
   };
 
+  const specialtyData = {
+    dermatology: { doc: "Dr. Sarah Jenkins", fee: "₹800", rx: "Tretinoin 0.025% Cream, SPF 50+ Gel", complaint: "Facial erythema & acne scar treatment" },
+    cardiology: { doc: "Dr. Rajesh Varma", fee: "₹1,200", rx: "Telmisartan 40mg, Atorvastatin 10mg", complaint: "Routine ECG screening & BP checkup" },
+    pediatrics: { doc: "Dr. Ananya Sharma", fee: "₹600", rx: "Paracetamol Drops, ORS Solution", complaint: "Pediatric growth assessment & vaccination" },
+    general: { doc: "Dr. Vikram Sethi", fee: "₹500", rx: "Amoxicillin 500mg, Pantoprazole 40mg", complaint: "Seasonal viral fever & throat infection" },
+  };
+
+  const activeSpecData = specialtyData[selectedSpecialty];
+
   return (
     <MarketingShell>
       {/* Hero Section */}
@@ -542,6 +652,30 @@ function Landing() {
             </p>
           </div>
 
+          {/* Specialty Switcher Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <span className="text-xs text-muted-foreground font-mono font-bold uppercase mr-2">Specialty View:</span>
+            {[
+              { id: "dermatology", label: "🩺 Dermatology" },
+              { id: "cardiology", label: "❤️ Cardiology" },
+              { id: "pediatrics", label: "👶 Pediatrics" },
+              { id: "general", label: "🩺 General Physician" },
+            ].map((sp) => (
+              <button
+                type="button"
+                key={sp.id}
+                onClick={() => setSelectedSpecialty(sp.id as any)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                  selectedSpecialty === sp.id
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card border-border/80 text-muted-foreground hover:text-foreground hover:border-primary/50"
+                }`}
+              >
+                {sp.label}
+              </button>
+            ))}
+          </div>
+
           {/* Interactive Instant Website Builder Input */}
           <div className="max-w-xl mx-auto bg-card border border-border/80 rounded-2xl p-2 sm:p-3 shadow-xl backdrop-blur-xl">
             <form onSubmit={handleGeneratePreview} className="flex flex-col sm:flex-row gap-2">
@@ -552,7 +686,7 @@ function Landing() {
                   <Input
                     value={previewDoctorName}
                     onChange={(e) => setPreviewDoctorName(e.target.value)}
-                    placeholder="Enter Dr. Name (e.g. Dr. Rajesh Varma)"
+                    placeholder={`Enter Dr. Name (e.g. ${activeSpecData.doc})`}
                     className="h-9 border-none shadow-none focus-visible:ring-0 text-xs px-0 bg-transparent font-medium"
                   />
                 </div>
@@ -614,7 +748,7 @@ function Landing() {
                     <span className="size-3 rounded-full bg-emerald-500/80 inline-block" />
                   </div>
                   <div className="hidden sm:flex items-center gap-1 text-xs font-mono bg-background border border-border/60 px-3 py-1 rounded-md text-muted-foreground">
-                    <Lock className="size-3 text-emerald-500" /> https://{generatedSlug || "drjenkins"}.clinicx.app
+                    <Lock className="size-3 text-emerald-500" /> https://{generatedSlug || activeSpecData.doc.toLowerCase().replace(/[^a-z0-9]/g, "-")}.clinicx.app
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono font-bold text-primary">
@@ -678,9 +812,9 @@ function Landing() {
                 {activeTab === "appointments" && (
                   <div className="space-y-3 animate-in fade-in duration-300">
                     {[
-                      { name: "Anaya Kapoor", time: "10:30 AM", type: "Dermatology Follow-up", status: "Confirmed", phone: "+91 98201 12345" },
-                      { name: "Rahul Verma", time: "11:15 AM", type: "Acne Scar Therapy", status: "Confirmed", phone: "+91 98765 43210" },
-                      { name: "Priya Sharma", time: "12:00 PM", type: "Laser Consultation", status: "In Progress", phone: "+91 98111 22334" },
+                      { name: "Anaya Kapoor", time: "10:30 AM", type: `${selectedSpecialty.toUpperCase()} Consultation`, status: "Confirmed", phone: "+91 98201 12345" },
+                      { name: "Rahul Verma", time: "11:15 AM", type: "Follow-up Assessment", status: "Confirmed", phone: "+91 98765 43210" },
+                      { name: "Priya Sharma", time: "12:00 PM", type: "Specialized Therapy", status: "In Progress", phone: "+91 98111 22334" },
                     ].map((app, i) => (
                       <div key={i} className="p-4 bg-muted/30 rounded-2xl border border-border/60 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
@@ -711,7 +845,7 @@ function Landing() {
                     </div>
                     <div className="bg-emerald-950/40 border border-emerald-900/40 text-emerald-100 p-3 rounded-2xl rounded-tl-none text-xs leading-relaxed">
                       <p className="font-bold text-[10px] text-emerald-400 mb-1">ClinicX Bot</p>
-                      Hi Anaya! Your consultation with <strong>{previewDoctorName || "Dr. Sarah Jenkins"}</strong> is confirmed for tomorrow 10:30 AM.
+                      Hi Anaya! Your consultation with <strong>{previewDoctorName || activeSpecData.doc}</strong> is confirmed for tomorrow 10:30 AM.
                     </div>
                     <div className="bg-slate-800 text-slate-100 p-2.5 rounded-2xl rounded-tr-none text-xs ml-auto max-w-[70%] text-right">
                       Confirmed! Thank you doc 🙏
@@ -721,15 +855,15 @@ function Landing() {
 
                 {activeTab === "notes" && (
                   <div className="p-4 bg-muted/30 rounded-2xl border border-border/60 space-y-2 text-xs animate-in fade-in duration-300">
-                    <div className="font-bold text-sm text-foreground">SOAP Visit Journal — Patient: Anaya Kapoor</div>
+                    <div className="font-bold text-sm text-foreground">SOAP Visit Journal — Doctor: {activeSpecData.doc}</div>
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div>
                         <span className="font-bold text-primary">Chief Complaint:</span>
-                        <p className="text-muted-foreground mt-0.5">Mild facial erythema and post-acne pigmentation.</p>
+                        <p className="text-muted-foreground mt-0.5">{activeSpecData.complaint}</p>
                       </div>
                       <div>
                         <span className="font-bold text-primary">Rx Prescribed:</span>
-                        <p className="text-muted-foreground mt-0.5">Tretinoin 0.025% Cream, Sunscreen SPF 50+.</p>
+                        <p className="text-muted-foreground mt-0.5">{activeSpecData.rx}</p>
                       </div>
                     </div>
                   </div>
@@ -740,13 +874,13 @@ function Landing() {
                     <div className="flex justify-between items-center border-b border-border pb-3">
                       <div>
                         <div className="font-bold text-sm text-foreground">Invoice #INV-2026-084</div>
-                        <div className="text-muted-foreground text-[11px]">Skin & Aesthetics Clinic · GSTIN: 27AAAAA0000A1Z5</div>
+                        <div className="text-muted-foreground text-[11px]">{activeSpecData.doc} · GSTIN: 27AAAAA0000A1Z5</div>
                       </div>
                       <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 font-bold rounded-full text-xs">Paid via UPI</span>
                     </div>
                     <div className="flex justify-between font-bold text-sm text-foreground pt-1">
-                      <span>Dermatology Consultation + Laser Treatment</span>
-                      <span className="text-emerald-600 font-bold">₹2,300</span>
+                      <span>Clinical Consultation + Treatment Plan</span>
+                      <span className="text-emerald-600 font-bold">{activeSpecData.fee}</span>
                     </div>
                   </div>
                 )}
@@ -755,6 +889,9 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Before vs After Transformation Showcase */}
+      <BeforeAfterShowcase />
 
       {/* ROI Calculator */}
       <ROICalculator />
