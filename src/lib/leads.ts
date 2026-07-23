@@ -17,6 +17,12 @@ export type LeadInput = z.infer<typeof leadSchema>;
 export const submitLeadServer = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => leadSchema.parse(i))
   .handler(async ({ data }) => {
+    const { checkRateLimit } = await import("./rate-limit");
+    const rateCheck = checkRateLimit(`lead:${data.clinic_id}:${data.phone}`, { maxRequests: 5, windowMs: 60000 });
+    if (!rateCheck.allowed) {
+      throw new Error("Too many request attempts. Please try again in 1 minute.");
+    }
+
     const { adminClient } = await import("./clinic.functions");
     const sb = await adminClient();
     const { error } = await sb.from("leads").insert({
