@@ -865,21 +865,25 @@ function DemoPage() {
             </h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold">Custom Domain</label>
+                <label className="text-xs font-bold" htmlFor="demo-custom-domain">Custom Domain</label>
                 <div className="flex rounded-md border border-input bg-background overflow-hidden h-9">
                   <input 
+                    id="demo-custom-domain"
                     type="text" 
                     defaultValue="drjenkins" 
+                    aria-label="Custom Domain"
                     className="flex-1 px-3 text-xs focus-visible:outline-none" 
                   />
                   <span className="bg-muted text-muted-foreground px-3 flex items-center text-[10px] font-medium border-l border-input">.clinicx.app</span>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold">Google Maps Location URL</label>
+                <label className="text-xs font-bold" htmlFor="demo-maps-url">Google Maps Location URL</label>
                 <input 
+                  id="demo-maps-url"
                   type="text" 
                   placeholder="Paste maps sharing link" 
+                  aria-label="Google Maps Location URL"
                   className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none" 
                 />
               </div>

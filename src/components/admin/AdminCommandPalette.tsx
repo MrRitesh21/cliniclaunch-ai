@@ -92,8 +92,8 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search doctors, clinic names, pages, settings... (⌘K)"
+            aria-label="Search doctors, clinic names, pages, and system settings"
             className="w-full h-14 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
-            autoFocus
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-800/60 rounded border border-slate-700">
             ESC
