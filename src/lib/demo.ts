@@ -32,14 +32,55 @@ export function isDemoSession(): boolean {
   );
 }
 
-export function prohibitInDemo(actionName: string = "Deletion"): boolean {
-  if (isDemoSession()) {
-    toast.error(`${actionName} is prohibited in Live Demo Mode. Please start your 14-day free trial to manage your own clinic!`, {
-      duration: 4000,
-    });
-    return true;
+export const CLEAN_DEMO_CLINIC_DATA = {
+  doctor_name: "Dr. Sarah Jenkins",
+  specialization: "Dermatology Specialist",
+  qualification: "MD, DNB (Dermatology)",
+  experience_years: 12,
+  clinic_name: "Skin & Aesthetics Clinic",
+  personal_phone: "+91 98201 12345",
+  personal_email: "demo@digiwil.com",
+  public_phone: "+91 98201 12345",
+  public_email: "contact@skinandaesthetics.com",
+  public_address: "Suite 402, Medical Enclave, Bandra West, Mumbai",
+  phone: "+91 98201 12345",
+  email: "contact@skinandaesthetics.com",
+  address: "Suite 402, Medical Enclave, Bandra West, Mumbai",
+  consultation_fee: 800,
+  bio: "Leading specialist in clinical dermatology, laser therapy, and aesthetic treatments.",
+  about_text: "Dr. Sarah Jenkins has over 12 years of clinical experience in dermatology and non-invasive cosmetic skin procedures.",
+  services: ["Dermatology Consultation", "Acne Scar Therapy", "Laser Skin Resurfacing", "Chemical Peels"],
+  hero_headline: "Advanced Dermatology & Aesthetic Care",
+  hero_subheadline: "Personalized clinical treatments with modern technology. Book your visit online in seconds.",
+  medical_registration_no: "GMC-2012-08412",
+  avatar_url: null,
+  logo_url: null,
+  gallery: [],
+  custom_domain: null,
+  walkin_max_per_slot: 3,
+  walkin_start_time: "09:00",
+  walkin_end_time: "17:00",
+  walkin_weekends_enabled: true,
+  walkin_slot_minutes: 15,
+};
+
+export async function resetDemoClinicData(clinicId?: string) {
+  try {
+    let targetId = clinicId;
+    if (!targetId) {
+      const { data: demoClinics } = await supabase
+        .from("clinics")
+        .select("id")
+        .eq("slug", DEMO_CREDENTIALS.slug)
+        .limit(1);
+      targetId = demoClinics?.[0]?.id;
+    }
+    if (targetId) {
+      await supabase.from("clinics").update(CLEAN_DEMO_CLINIC_DATA as never).eq("id", targetId);
+    }
+  } catch (e) {
+    console.error("Failed to reset demo clinic data:", e);
   }
-  return false;
 }
 
 export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolean; message?: string }> {
@@ -197,6 +238,9 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
         });
       }
     }
+
+    // Always reset the demo clinic database row to clean defaults
+    await resetDemoClinicData();
 
     return { success: true };
   } catch (err: any) {

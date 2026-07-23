@@ -20,7 +20,7 @@ import { uploadClinicMedia } from "@/lib/upload";
 import { verifyClinicDomain } from "@/lib/domain.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
-import { prohibitInDemo } from "@/lib/demo";
+import { prohibitInDemo, isDemoSession, resetDemoClinicData, CLEAN_DEMO_CLINIC_DATA } from "@/lib/demo";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   component: SettingsPage,
@@ -59,6 +59,10 @@ function SettingsPage() {
   function handleTabChange(newVal: string) {
     setActiveTab(newVal);
     if (!form || !clinic) return;
+    if (isDemoSession()) {
+      // In demo mode, tab changes do not mutate DB so edits reset on page refresh
+      return;
+    }
     const svc = services.split("\n").map((s) => s.trim()).filter(Boolean);
     const domain = form.custom_domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
     supabase.from("clinics").update({
@@ -156,10 +160,28 @@ function SettingsPage() {
     finally { setUploading(null); if (galleryInputRef.current) galleryInputRef.current.value = ""; }
   }
 
+  async function handleResetDemo() {
+    if (!clinic) return;
+    setSaving(true);
+    await resetDemoClinicData(clinic.id);
+    setForm({
+      ...CLEAN_DEMO_CLINIC_DATA,
+      template: (clinic as { template?: string }).template ?? "classic",
+      section_variants: ((clinic as Record<string, unknown>).section_variants ?? {}) as SectionVariants,
+    });
+    setServices(CLEAN_DEMO_CLINIC_DATA.services.join("\n"));
+    setGallery([]);
+    setSaving(false);
+    toast.success("Reset demo clinic settings to clean defaults!");
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
-    if (prohibitInDemo("Saving settings")) return;
+    if (isDemoSession()) {
+      toast.success("Demo edits previewed! Refreshing the page will reset all changes to clean defaults.", { duration: 4000 });
+      return;
+    }
     setSaving(true);
     const svc = services.split("\n").map((s) => s.trim()).filter(Boolean);
     const domain = form.custom_domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -208,7 +230,14 @@ function SettingsPage() {
           <h1 className="font-display text-2xl sm:text-3xl">Customize your clinic</h1>
           <p className="text-muted-foreground text-sm">All edits go live on your public site after you save.</p>
         </div>
-        <Button type="submit" disabled={saving} className="hidden md:inline-flex">{saving ? "Saving…" : "Save changes"}</Button>
+        <div className="flex items-center gap-2">
+          {isDemoSession() && (
+            <Button type="button" variant="outline" size="sm" onClick={handleResetDemo} className="hidden md:inline-flex border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold">
+              <RefreshCw className="size-3.5 mr-1.5" /> Reset Demo Defaults
+            </Button>
+          )}
+          <Button type="submit" disabled={saving} className="hidden md:inline-flex">{saving ? "Saving…" : "Save changes"}</Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
