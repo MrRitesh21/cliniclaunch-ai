@@ -28,16 +28,6 @@ function WalkinPage() {
   const { clinic } = ClinicRoute.useLoaderData();
   const mods = Array.isArray((clinic as any).installed_modules) ? (clinic as any).installed_modules as string[] : null;
   const walkinOn = !mods || mods.includes("qr_appointment");
-  if (!walkinOn) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="font-display text-3xl">Walk-in check-in is unavailable</h1>
-        <p className="text-muted-foreground mt-3">
-          Please visit the reception at {clinic.clinic_name} to be added to the queue.
-        </p>
-      </div>
-    );
-  }
 
   const c = clinic as typeof clinic & {
     walkin_max_per_slot?: number;
@@ -63,7 +53,7 @@ function WalkinPage() {
   const [form, setForm] = useState({ name: "", phone: "", problem: "" });
 
   useEffect(() => {
-    if (!isOpenToday) return;
+    if (!walkinOn || !isOpenToday) return;
     const from = new Date(today);
     const to = new Date(today); to.setHours(23, 59, 59, 999);
     getBookedSlots({ data: { clinic_id: clinic.id, from: from.toISOString(), to: to.toISOString() } })
@@ -75,7 +65,7 @@ function WalkinPage() {
         setBookedAt(counts);
       })
       .catch(() => { /* ignore */ });
-  }, [clinic.id, today, isOpenToday]);
+  }, [clinic.id, isOpenToday, today, walkinOn]);
 
   const slots = useMemo(() => {
     if (!isOpenToday) return [];
@@ -98,6 +88,17 @@ function WalkinPage() {
   useEffect(() => {
     setSelectedSlot((prev) => prev || (slots.length > 0 ? slots[0] : null));
   }, [slots]);
+
+  if (!walkinOn) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <h1 className="font-display text-3xl">Walk-in check-in is unavailable</h1>
+        <p className="text-muted-foreground mt-3">
+          Please visit the reception at {clinic.clinic_name} to be added to the queue.
+        </p>
+      </div>
+    );
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

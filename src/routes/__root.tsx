@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { checkMaintenanceStatus } from "@/lib/admin.functions";
 
 function NotFoundComponent() {
   return (
@@ -177,10 +178,7 @@ function RootContent() {
 
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
-    queryFn: async () => {
-      const { checkMaintenanceStatus } = await import("@/lib/admin.functions");
-      return checkMaintenanceStatus();
-    },
+    queryFn: () => checkMaintenanceStatus(),
     refetchInterval: 15000, // Check status every 15 seconds
   });
 

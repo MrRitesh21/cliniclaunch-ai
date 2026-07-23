@@ -70,6 +70,7 @@ type EditorState = {
 // ─── Root app ────────────────────────────────────────────────────────────────
 function WebsiteApp() {
   const clinic = useClinic();
+  const submitGscFn = useServerFn(submitClinicToGoogleServerFn);
   const [state, setState] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -218,8 +219,6 @@ function WebsiteApp() {
 
   const previewSrc = `/c/${clinic.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}`;
   const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/c/${clinic.slug}`;
-
-  const submitGscFn = useServerFn(submitClinicToGoogleServerFn);
 
   async function triggerGscSubmission() {
     if (!clinic) return;

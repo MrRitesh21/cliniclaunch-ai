@@ -141,14 +141,16 @@ function AppointmentsPage() {
 
   // Real-time subscription: auto-refresh list when any appointment changes
   useEffect(() => {
-    if (!clinic?.id) return;
+    if (!clinic?.id) return () => {};
     const channel = supabase
       .channel(`appointments-${clinic.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `clinic_id=eq.${clinic.id}` },
         () => load()
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [clinic?.id, load]);
 
   const filtered = rows.filter((r) => {

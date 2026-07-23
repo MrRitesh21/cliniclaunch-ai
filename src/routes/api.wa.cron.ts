@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
+import { adminClient } from "@/lib/clinic.functions";
+import { notifyClinicEvent } from "@/lib/notify.server";
 
 // Cron endpoint — call hourly from an external scheduler.
 // Auth: pass header `x-cron-key: <CRON_KEY>` or `?key=<CRON_KEY>`.
@@ -27,8 +29,6 @@ export const Route = createFileRoute("/api/wa/cron")({
           });
         }
 
-        const { adminClient } = await import("@/lib/clinic.functions");
-        const { notifyClinicEvent } = await import("@/lib/notify.server");
         const sb = await adminClient();
         const now = Date.now();
         const pendingSummary = { sent: 0, skipped: 0, failed: 0 };
