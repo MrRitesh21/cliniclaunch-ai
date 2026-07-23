@@ -120,12 +120,14 @@ function BillingPage() {
 
   useEffect(() => {
     if (!org) return;
+    let active = true;
     (async () => {
       const [{ data: p }, { data: s }, { data: inv }] = await Promise.all([
         supabase.from("plans").select("*").order("sort_order"),
         supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle(),
         supabase.from("invoices").select("*").eq("organization_id", org.id).order("created_at", { ascending: false }),
       ]);
+      if (!active) return;
       setPlans((p ?? []) as Plan[]);
       setSub((s ?? null) as Subscription | null);
       setInvoices((inv ?? []) as Invoice[]);
@@ -133,16 +135,20 @@ function BillingPage() {
 
       // Query staff count usage statistics
       supabase.from("organization_members").select("id", { count: "exact", head: true }).eq("organization_id", org.id).then(({ count }) => {
-        if (count !== null) setStaffCount(count);
+        if (active && count !== null) setStaffCount(count);
       });
 
       if (!cycleInitialized.current) {
         if (s?.billing_cycle) {
-          setCycle(s.billing_cycle);
+          setCycle(s.billing_cycle as "monthly" | "yearly");
         }
         cycleInitialized.current = true;
       }
+      if (active) setLoading(false);
     })();
+    return () => {
+      active = false;
+    };
   }, [org]);
 
   useEffect(() => {

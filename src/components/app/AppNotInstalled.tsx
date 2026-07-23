@@ -21,34 +21,44 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
 
   useEffect(() => {
     if (!org) return;
+    let active = true;
     (async () => {
       const [{ data: m }, { data: s }] = await Promise.all([
         supabase.from("modules").select("*").eq("id", appKey).maybeSingle(),
         supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle(),
       ]);
+      if (!active) return;
       setMod((m ?? null) as Module | null);
       if (s) {
         const { data: p } = await supabase.from("plans").select("*").eq("id", (s as Subscription).plan_id).maybeSingle();
-        setPlan((p ?? null) as Plan | null);
+        if (active) setPlan((p ?? null) as Plan | null);
       }
     })();
+    return () => {
+      active = false;
+    };
   }, [org, appKey]);
 
   async function install() {
     if (!org || !mod) return;
     setBusy(true);
-    const { error } = await supabase
-      .from("organization_modules")
-      .upsert(
-        { organization_id: org.id, module_id: mod.id },
-        { onConflict: "organization_id,module_id", ignoreDuplicates: true },
-      );
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`${mod.name} installed`);
-      await refresh();
+    try {
+      const { error } = await supabase
+        .from("organization_modules")
+        .upsert(
+          { organization_id: org.id, module_id: mod.id },
+          { onConflict: "organization_id,module_id", ignoreDuplicates: true },
+        );
+      if (error) toast.error(error.message);
+      else {
+        toast.success(`${mod.name} installed`);
+        await refresh();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to install module");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,28 +68,33 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
   return (
     <div className="max-w-xl mx-auto py-12">
       <Card className="p-8 text-center">
-        <div className="mx-auto size-16 rounded-2xl bg-primary/10 grid place-items-center mb-4">
-          <Icon className="size-8 text-primary" />
+        <div className="size-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+          <Icon className="size-8" />
         </div>
-        <h1 className="font-display text-2xl mb-2">{mod?.name ?? "App not installed"}</h1>
-        <p className="text-muted-foreground mb-6">
-          {mod?.description ?? "Install this app from the App Store to start using it."}
+        <h2 className="font-display text-2xl font-bold mb-2">
+          {mod?.name ?? "Module Not Active"}
+        </h2>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+          {mod?.description ?? "This feature is not currently enabled for your clinic workspace."}
         </p>
-        {mod && allowed ? (
-          <Button onClick={install} disabled={busy} size="lg" className="gap-2">
-            {busy ? "Installing…" : <>Install {mod.name} <ArrowRight className="size-4" /></>}
+
+        {allowed ? (
+          <Button type="button" onClick={install} disabled={busy} size="lg" className="gap-2">
+            {busy ? "Activating..." : `Activate ${mod?.name ?? "Module"}`}
+            <ArrowRight className="size-4" />
           </Button>
-        ) : mod ? (
-          <div className="space-y-3">
-            <p className="text-sm text-amber-600">Requires {mod.min_plan} plan or higher.</p>
-            <Button asChild size="lg"><Link to="/dashboard/billing">Upgrade plan</Link></Button>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-3 rounded-lg text-xs font-medium">
+              This module requires a higher plan tier.
+            </div>
+            <Button type="button" asChild size="lg" className="gap-2">
+              <Link to="/_authenticated/dashboard/billing">
+                Upgrade Plan to Unlock <ArrowRight className="size-4" />
+              </Link>
+            </Button>
           </div>
-        ) : null}
-        <div className="mt-4">
-          <Link to="/dashboard/modules" className="text-sm text-muted-foreground hover:text-foreground underline">
-            Back to App Store
-          </Link>
-        </div>
+        )}
       </Card>
     </div>
   );

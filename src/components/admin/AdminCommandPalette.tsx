@@ -114,6 +114,7 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
                 <div className="space-y-1">
                   {doctors.map((d) => (
                     <button
+                      type="button"
                       key={d.id}
                       onClick={() => handleSelect(`/admin/doctors/${d.id}`)}
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-xs hover:bg-indigo-600/20 hover:text-indigo-200 transition-colors group"
@@ -148,6 +149,7 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
                   const Icon = p.icon;
                   return (
                     <button
+                      type="button"
                       key={p.path}
                       onClick={() => handleSelect(p.path)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-xs hover:bg-slate-800 text-slate-300 hover:text-white transition-colors group"

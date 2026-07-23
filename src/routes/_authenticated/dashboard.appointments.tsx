@@ -129,12 +129,17 @@ function AppointmentsPage() {
   const load = useCallback(async () => {
     if (!clinic?.id) return;
     setLoading(true);
-    type ApptStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
-    let q = supabase.from("appointments").select("*").eq("clinic_id", clinic.id).order("scheduled_at", { ascending: false });
-    if (filter !== "all") q = q.eq("status", filter as ApptStatus);
-    const { data } = await q;
-    setRows(((data ?? []) as unknown) as Appt[]);
-    setLoading(false);
+    try {
+      type ApptStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+      let q = supabase.from("appointments").select("*").eq("clinic_id", clinic.id).order("scheduled_at", { ascending: false });
+      if (filter !== "all") q = q.eq("status", filter as ApptStatus);
+      const { data } = await q;
+      setRows(((data ?? []) as unknown) as Appt[]);
+    } catch (e) {
+      console.error("Failed to load appointments:", e);
+    } finally {
+      setLoading(false);
+    }
   }, [clinic?.id, filter]);
 
   useEffect(() => { load(); }, [load]);
