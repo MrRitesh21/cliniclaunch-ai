@@ -49,16 +49,20 @@ async function assertAdmin(supabase: SB, userId: string) {
 export const startMyWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { baileysCreateSession, baileysStatus, clinicSessionId } = await import("./baileys.server");
+    const { baileysDelete, baileysCreateSession, baileysStatus, clinicSessionId } = await import("./baileys.server");
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
     const sid = clinicSessionId(clinic.id);
+    // Purge any stale previous session credentials before initializing a new pairing session
+    try { await baileysDelete(sid); } catch { /* ignore if already gone */ }
     await baileysCreateSession(sid);
     await context.supabase
       .from("clinics")
       .update({
         wa_status: "pending",
+        wa_phone: null,
         wa_session_id: sid,
         wa_linked_by: context.userId,
+        wa_connected_at: null,
       })
       .eq("id", clinic.id);
     const status = await baileysStatus(sid);
@@ -94,7 +98,7 @@ export const getMyWhatsappStatus = createServerFn({ method: "GET" })
     } else if (!status && clinic.wa_status !== "disconnected") {
       await context.supabase
         .from("clinics")
-        .update({ wa_status: "disconnected", wa_phone: null })
+        .update({ wa_status: "disconnected", wa_phone: null, wa_session_id: null, wa_linked_by: null, wa_connected_at: null })
         .eq("id", clinic.id);
     }
     return { sessionId: sid, status, dbStatus: clinic.wa_status };
@@ -106,7 +110,9 @@ export const disconnectMyWhatsapp = createServerFn({ method: "POST" })
     const { baileysDelete, clinicSessionId } = await import("./baileys.server");
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
     const sid = clinicSessionId(clinic.id);
+    // 1. Delete session auth files & logout from gateway server
     try { await baileysDelete(sid); } catch { /* already gone */ }
+    // 2. Completely erase session details & phone number from database
     await context.supabase
       .from("clinics")
       .update({
