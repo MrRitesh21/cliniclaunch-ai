@@ -6,7 +6,7 @@
  */
 
 type RateLimitOptions = {
-  windowMs?: number; // Time window in milliseconds (default: 60,000ms = 1 min)
+  windowMs?: number; // Time window in milliseconds (default: 60000ms = 1 min)
   maxRequests?: number; // Max requests allowed per window (default: 60)
 };
 
@@ -22,18 +22,18 @@ if (typeof setInterval !== "undefined") {
   setInterval(() => {
     const now = Date.now();
     for (const [key, record] of storage.entries()) {
-      if (now - record.lastReset > 300,000) {
+      if (now - record.lastReset > 300000) {
         storage.delete(key);
       }
     }
-  }, 300,000);
+  }, 300000);
 }
 
 export function checkRateLimit(
   identifier: string,
   options: RateLimitOptions = {}
 ): { allowed: boolean; remaining: number; resetMs: number } {
-  const windowMs = options.windowMs || 60,000;
+  const windowMs = options.windowMs || 60000;
   const maxRequests = options.maxRequests || 60;
   const now = Date.now();
 
@@ -66,7 +66,7 @@ export function checkRateLimit(
 export function rateLimitMiddleware(
   reqIdentifier: string,
   maxRequests = 60,
-  windowMs = 60,000
+  windowMs = 60000
 ) {
   const result = checkRateLimit(reqIdentifier, { maxRequests, windowMs });
   if (!result.allowed) {
