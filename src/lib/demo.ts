@@ -22,12 +22,24 @@ export function clearDemoSessionFlags() {
   }
 }
 
+import { toast } from "sonner";
+
 export function isDemoSession(): boolean {
   if (typeof window === "undefined") return false;
   return (
     localStorage.getItem("is_demo_session") === "true" ||
     document.cookie.includes("is_demo_session=true")
   );
+}
+
+export function prohibitInDemo(actionName: string = "Deletion"): boolean {
+  if (isDemoSession()) {
+    toast.error(`${actionName} is prohibited in Live Demo Mode. Please start your 14-day free trial to manage your own clinic!`, {
+      duration: 4000,
+    });
+    return true;
+  }
+  return false;
 }
 
 export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolean; message?: string }> {

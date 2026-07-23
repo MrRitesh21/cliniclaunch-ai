@@ -20,6 +20,7 @@ import { uploadClinicMedia } from "@/lib/upload";
 import { verifyClinicDomain } from "@/lib/domain.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
+import { prohibitInDemo } from "@/lib/demo";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   component: SettingsPage,
@@ -158,6 +159,7 @@ function SettingsPage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
+    if (prohibitInDemo("Saving settings")) return;
     setSaving(true);
     const svc = services.split("\n").map((s) => s.trim()).filter(Boolean);
     const domain = form.custom_domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -226,9 +228,15 @@ function SettingsPage() {
             <div className="flex flex-wrap items-center gap-4">
               <Avatar url={form.avatar_url} fallback={form.doctor_name} />
               <div className="flex gap-2 flex-wrap">
-                <UploadButton label="Profile photo" busy={uploading === "avatar_url"} onFile={(f) => handleUpload("avatar_url", f)} />
+                <UploadButton label="Profile photo" busy={uploading === "avatar_url"} onFile={(f) => {
+                  if (prohibitInDemo("Photo upload")) return;
+                  handleUpload("avatar_url", f);
+                }} />
                 {form.avatar_url && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => update("avatar_url", null)} className="text-destructive hover:text-destructive">
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    if (prohibitInDemo("Photo removal")) return;
+                    update("avatar_url", null);
+                  }} className="text-destructive hover:text-destructive">
                     <X className="size-4 mr-1" /> Remove photo
                   </Button>
                 )}
@@ -339,9 +347,15 @@ function SettingsPage() {
                 ) : (
                   <div className="h-14 w-14 rounded-lg border-2 border-dashed grid place-items-center text-muted-foreground"><ImageIcon className="size-5" /></div>
                 )}
-                <UploadButton label="Upload logo" busy={uploading === "logo_url"} onFile={(f) => handleUpload("logo_url", f)} />
+                <UploadButton label="Upload logo" busy={uploading === "logo_url"} onFile={(f) => {
+                  if (prohibitInDemo("Logo upload")) return;
+                  handleUpload("logo_url", f);
+                }} />
                 {form.logo_url && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => update("logo_url", null)} className="text-destructive hover:text-destructive">
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    if (prohibitInDemo("Logo removal")) return;
+                    update("logo_url", null);
+                  }} className="text-destructive hover:text-destructive">
                     <X className="size-4 mr-1" /> Remove logo
                   </Button>
                 )}
@@ -387,7 +401,10 @@ function SettingsPage() {
                 <p className="text-xs text-muted-foreground">Up to 12 photos of your clinic, team, or facilities.</p>
               </div>
               <Button type="button" variant="outline" disabled={uploading === "gallery" || gallery.length >= 12}
-                onClick={() => galleryInputRef.current?.click()}>
+                onClick={() => {
+                  if (prohibitInDemo("Gallery photo addition")) return;
+                  galleryInputRef.current?.click();
+                }}>
                 {uploading === "gallery" ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 {uploading === "gallery" ? "Uploading…" : "Add photos"}
               </Button>
@@ -403,7 +420,10 @@ function SettingsPage() {
                   <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                     <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
                     <button type="button" aria-label="Remove photo"
-                      onClick={() => setGallery((g) => g.filter((_, j) => j !== i))}
+                      onClick={() => {
+                        if (prohibitInDemo("Gallery photo removal")) return;
+                        setGallery((g) => g.filter((_, j) => j !== i));
+                      }}
                       className="absolute top-1.5 right-1.5 size-8 rounded-full bg-black/70 hover:bg-black text-white grid place-items-center shadow-md transition">
                       <X className="size-4" />
                     </button>
