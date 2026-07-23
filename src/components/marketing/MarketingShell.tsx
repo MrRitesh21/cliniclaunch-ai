@@ -49,12 +49,6 @@ export function MarketingShell({ children }: { children: ReactNode }) {
     }
   };
 
-  const nav = [
-    { label: "Features", to: "/features" as const },
-    { label: "How it works", to: "/how-it-works" as const },
-    { label: "FAQ", to: "/faq" as const },
-  ];
-
   return (
     <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
       {/* Top Conversion Bar */}
@@ -83,7 +77,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-muted-foreground">
-            {nav.map((n) => (
+            {MARKETING_NAV.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}

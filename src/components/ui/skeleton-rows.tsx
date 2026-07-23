@@ -55,6 +55,17 @@ export function SkeletonStatCards({ count = 4 }: { count?: number }) {
   );
 }
 
+const AVATAR_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-purple-100 text-purple-700",
+  "bg-rose-100 text-rose-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-orange-100 text-orange-700",
+];
+
 /** Avatar initials circle */
 export function AvatarInitials({ name, className }: { name: string; className?: string }) {
   const initials = name
@@ -62,17 +73,7 @@ export function AvatarInitials({ name, className }: { name: string; className?: 
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
-  const colors = [
-    "bg-blue-100 text-blue-700",
-    "bg-emerald-100 text-emerald-700",
-    "bg-amber-100 text-amber-700",
-    "bg-purple-100 text-purple-700",
-    "bg-rose-100 text-rose-700",
-    "bg-cyan-100 text-cyan-700",
-    "bg-indigo-100 text-indigo-700",
-    "bg-orange-100 text-orange-700",
-  ];
-  const color = colors[name.charCodeAt(0) % colors.length];
+  const color = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
   return (
     <div className={cn("size-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0", color, className)}>
       {initials || "?"}
