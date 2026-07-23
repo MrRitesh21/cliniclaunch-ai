@@ -32,6 +32,16 @@ export function isDemoSession(): boolean {
   );
 }
 
+export function prohibitInDemo(actionName: string = "Deletion"): boolean {
+  if (isDemoSession()) {
+    toast.error(`${actionName} is prohibited in Live Demo Mode. Please start your 14-day free trial to manage your own clinic!`, {
+      duration: 4000,
+    });
+    return true;
+  }
+  return false;
+}
+
 export const CLEAN_DEMO_CLINIC_DATA = {
   doctor_name: "Dr. Sarah Jenkins",
   specialization: "Dermatology Specialist",
