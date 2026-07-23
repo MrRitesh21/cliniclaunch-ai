@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/lib/plans.functions";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { baileysSend, clinicSessionId } from "@/lib/baileys.server";
 
 async function generateAIReply(opts: {
