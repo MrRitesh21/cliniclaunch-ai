@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/lib/plans.functions";
 import {
@@ -11,7 +12,7 @@ import {
   MessageSquare, IndianRupee, Shield, Activity, Check, Menu, X, Plus, Search,
   Clock, CheckCircle, FileText, Palette, Layout, Star, ExternalLink, ChevronRight,
   Sun, Moon, Monitor, QrCode, Pill, Beaker, Zap, CheckCircle2, ArrowUpRight, Lock,
-  Building2, Phone, Command, Layers, Flame
+  Building2, Phone, Command, Layers, Flame, ChevronDown, HelpCircle, CheckCircle2 as VerifiedIcon
 } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { resolveHostToClinic } from "@/lib/domain.functions";
@@ -217,7 +218,7 @@ function ROICalculator() {
             <div className="p-4 bg-muted/40 rounded-2xl border border-border/80 space-y-2 text-xs">
               <div className="flex items-center gap-2 text-foreground font-bold">
                 <Activity className="size-4 text-indigo-500" />
-                <span>Monthly Volume projection</span>
+                <span>Monthly Volume Projection</span>
               </div>
               <p className="text-muted-foreground leading-relaxed font-mono">
                 ~{monthlyPatients.toLocaleString()} consultations/month generating ₹{monthlyRevenue.toLocaleString()} gross income.
@@ -256,7 +257,7 @@ function ROICalculator() {
 
             <div className="pt-2">
               <Link to="/login">
-                <Button size="lg" className="w-full font-bold bg-white text-slate-950 hover:bg-slate-100 h-12 text-sm shadow-lg">
+                <Button type="button" size="lg" className="w-full font-bold bg-white text-slate-950 hover:bg-slate-100 h-12 text-sm shadow-lg">
                   Claim Your Savings — Start 14-Day Trial &rarr;
                 </Button>
               </Link>
@@ -342,10 +343,80 @@ function CompetitorComparisonTable() {
 
         <div className="text-center pt-2">
           <Link to="/compare/$competitor" params={{ competitor: "practo" }}>
-            <Button variant="outline" className="font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2 h-11 px-6">
+            <Button type="button" variant="outline" className="font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2 h-11 px-6">
               View Detailed Practo vs ClinicX Analysis &rarr;
             </Button>
           </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------------------------------------------------
+// FAQ Accordion Component
+// ----------------------------------------------------
+function FAQSection() {
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  const faqs = [
+    {
+      q: "How fast can I launch my clinic website and WhatsApp automation?",
+      a: "Under 5 minutes! Simply enter your clinic name, doctor details, and consultation fees. Your custom website and booking link will be live instantly with zero coding needed."
+    },
+    {
+      q: "Can I use my own custom domain (e.g. drsmithdermatology.com)?",
+      a: "Yes! All plans include custom domain mapping. You can link your existing domain or use a free sub-domain provided by ClinicX."
+    },
+    {
+      q: "How does the WhatsApp Bot automation work?",
+      a: "Connect your WhatsApp number with a 1-click QR code scan. ClinicX automatically sends instant booking confirmations, 24-hour appointment reminders, e-prescriptions, and 5-star Google review requests."
+    },
+    {
+      q: "Are there any hidden booking fees or patient commissions?",
+      a: "Zero! Unlike directory listing portals like Practo, ClinicX never charges commissions per booking or steals your patient database. You own 100% of your patient data."
+    },
+    {
+      q: "Can patients pay online via UPI, Razorpay, or credit cards?",
+      a: "Yes! Integrated Razorpay support allows you to accept advance co-pays, consultation fees, and GST invoices directly into your bank account."
+    }
+  ];
+
+  return (
+    <section id="faq" className="py-24 bg-background border-b border-border/60">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div className="text-center space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase">
+            <HelpCircle className="size-3.5 text-primary" /> Frequently Asked Questions
+          </span>
+          <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
+            Everything you need to <em className="text-primary font-normal not-italic">know.</em>
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          {faqs.map((faq, idx) => {
+            const isOpen = openIdx === idx;
+            return (
+              <Card
+                key={idx}
+                className={`transition-all border-border/80 overflow-hidden cursor-pointer ${
+                  isOpen ? "border-primary shadow-md bg-card" : "bg-card hover:border-primary/50"
+                }`}
+                onClick={() => setOpenIdx(isOpen ? null : idx)}
+              >
+                <div className="p-6 flex items-center justify-between gap-4 font-semibold text-base sm:text-lg">
+                  <span className="text-foreground">{faq.q}</span>
+                  <ChevronDown className={`size-5 text-primary shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+                </div>
+                {isOpen && (
+                  <div className="px-6 pb-6 text-sm text-muted-foreground leading-relaxed pt-1 border-t border-border/40 animate-in fade-in duration-200">
+                    {faq.a}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -360,6 +431,10 @@ function Landing() {
   const [activeTab, setActiveTab] = useState<"analytics" | "appointments" | "whatsapp" | "notes" | "billing">("analytics");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [previewDoctorName, setPreviewDoctorName] = useState("");
+  const [previewSpecialty, setPreviewSpecialty] = useState("");
+  const [generatedSlug, setGeneratedSlug] = useState<string | null>(null);
+
   const getPlansFn = useServerFn(getPublicPlans);
 
   // Fetch subscription plans dynamically from Supabase database table `plans` via server function (service role)
@@ -427,6 +502,14 @@ function Landing() {
     features: Array.isArray(p.features) ? (p.features as string[]) : (typeof p.features === 'string' ? JSON.parse(p.features) : []),
   })) : fallbackPlans;
 
+  const handleGeneratePreview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!previewDoctorName.trim()) return;
+    const cleanName = previewDoctorName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+    const cleanSpec = previewSpecialty.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    setGeneratedSlug(`${cleanName}${cleanSpec ? `-${cleanSpec}` : ""}`);
+  };
+
   return (
     <MarketingShell>
       {/* Hero Section */}
@@ -441,6 +524,7 @@ function Landing() {
             <Sparkles className="size-3.5 text-amber-500" />
             <span>Practice OS for Independent Doctors</span>
             <button
+              type="button"
               onClick={() => setCmdOpen(true)}
               className="ml-2 pl-2 border-l border-primary/30 text-muted-foreground hover:text-foreground flex items-center gap-1 font-mono text-[10px]"
             >
@@ -458,15 +542,46 @@ function Landing() {
             </p>
           </div>
 
+          {/* Interactive Instant Website Builder Input */}
+          <div className="max-w-xl mx-auto bg-card border border-border/80 rounded-2xl p-2 sm:p-3 shadow-xl backdrop-blur-xl">
+            <form onSubmit={handleGeneratePreview} className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1 space-y-1 text-left px-2">
+                <span className="text-[10px] uppercase font-mono font-bold text-muted-foreground">Test Your Website Link</span>
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="size-4 text-primary shrink-0" />
+                  <Input
+                    value={previewDoctorName}
+                    onChange={(e) => setPreviewDoctorName(e.target.value)}
+                    placeholder="Enter Dr. Name (e.g. Dr. Rajesh Varma)"
+                    className="h-9 border-none shadow-none focus-visible:ring-0 text-xs px-0 bg-transparent font-medium"
+                  />
+                </div>
+              </div>
+              <Button type="submit" size="default" className="h-10 px-5 font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/95 shrink-0 gap-1.5">
+                <Sparkles className="size-3.5 text-amber-300" /> Preview Site &rarr;
+              </Button>
+            </form>
+            {generatedSlug && (
+              <div className="mt-2 pt-2 border-t border-border/40 text-xs text-left px-2 flex items-center justify-between animate-in fade-in">
+                <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold flex items-center gap-1">
+                  <CheckCircle2 className="size-3.5" /> Your Live URL: https://{generatedSlug}.clinicx.app
+                </span>
+                <Link to="/login">
+                  <span className="text-primary font-bold hover:underline cursor-pointer text-[11px]">Claim This Domain &rarr;</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link to="/login" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto h-13 px-8 text-base font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-xl shadow-primary/25 gap-2">
+              <Button type="button" size="lg" className="w-full sm:w-auto h-13 px-8 text-base font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-xl shadow-primary/25 gap-2">
                 Start 14-Day Free Trial <ArrowRight className="size-5" />
               </Button>
             </Link>
             <Link to="/demo" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-13 px-8 text-base font-bold border-primary/40 text-primary hover:bg-primary/10 gap-2">
+              <Button type="button" size="lg" variant="outline" className="w-full sm:w-auto h-13 px-8 text-base font-bold border-primary/40 text-primary hover:bg-primary/10 gap-2">
                 <Sparkles className="size-4 text-amber-500" /> ⚡ Open Live Demo
               </Button>
             </Link>
@@ -499,7 +614,7 @@ function Landing() {
                     <span className="size-3 rounded-full bg-emerald-500/80 inline-block" />
                   </div>
                   <div className="hidden sm:flex items-center gap-1 text-xs font-mono bg-background border border-border/60 px-3 py-1 rounded-md text-muted-foreground">
-                    <Lock className="size-3 text-emerald-500" /> https://drjenkins.digiwil.com
+                    <Lock className="size-3 text-emerald-500" /> https://{generatedSlug || "drjenkins"}.clinicx.app
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono font-bold text-primary">
@@ -517,6 +632,7 @@ function Landing() {
                   { id: "billing", label: "Razorpay Billing", icon: IndianRupee },
                 ].map((t) => (
                   <button
+                    type="button"
                     key={t.id}
                     onClick={() => setActiveTab(t.id as any)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
@@ -595,7 +711,7 @@ function Landing() {
                     </div>
                     <div className="bg-emerald-950/40 border border-emerald-900/40 text-emerald-100 p-3 rounded-2xl rounded-tl-none text-xs leading-relaxed">
                       <p className="font-bold text-[10px] text-emerald-400 mb-1">ClinicX Bot</p>
-                      Hi Anaya! Your consultation with <strong>Dr. Sarah Jenkins</strong> is confirmed for tomorrow 10:30 AM.
+                      Hi Anaya! Your consultation with <strong>{previewDoctorName || "Dr. Sarah Jenkins"}</strong> is confirmed for tomorrow 10:30 AM.
                     </div>
                     <div className="bg-slate-800 text-slate-100 p-2.5 rounded-2xl rounded-tr-none text-xs ml-auto max-w-[70%] text-right">
                       Confirmed! Thank you doc 🙏
@@ -779,12 +895,14 @@ function Landing() {
 
             <div className="pt-4 inline-flex items-center gap-2 p-1.5 bg-card border border-border/80 rounded-full text-xs font-bold font-mono">
               <button
+                type="button"
                 onClick={() => setBillingCycle("monthly")}
                 className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "monthly" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Monthly
               </button>
               <button
+                type="button"
                 onClick={() => setBillingCycle("annual")}
                 className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "annual" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
@@ -797,7 +915,6 @@ function Landing() {
             {displayPlans.map((p, idx) => {
               const isAnnual = billingCycle === "annual";
 
-              // Raw DB Prices
               const origMonthly = p.monthly_price;
               const discMonthly = p.discounted_monthly_price;
               const origYearly = p.yearly_price;
@@ -888,7 +1005,7 @@ function Landing() {
 
                   <div className="pt-8 mt-6 border-t border-border/50">
                     <Link to="/login">
-                      <Button className={`w-full font-bold h-11 ${p.is_popular ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`} variant={p.is_popular ? "default" : "outline"}>
+                      <Button type="button" className={`w-full font-bold h-11 ${p.is_popular ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`} variant={p.is_popular ? "default" : "outline"}>
                         Start 14-Day Free Trial
                       </Button>
                     </Link>
@@ -899,6 +1016,9 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Accordion Section */}
+      <FAQSection />
 
       {/* Bottom CTA */}
       <section className="py-20 relative bg-background">
@@ -912,12 +1032,12 @@ function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <Link to="/login" className="w-full sm:w-auto">
-                <Button size="lg" variant="secondary" className="w-full sm:w-auto h-12 px-8 font-bold bg-white text-slate-950 hover:bg-slate-100">
+                <Button type="button" size="lg" variant="secondary" className="w-full sm:w-auto h-12 px-8 font-bold bg-white text-slate-950 hover:bg-slate-100">
                   Start 14-Day Free Trial &rarr;
                 </Button>
               </Link>
               <Link to="/demo" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900">
+                <Button type="button" size="lg" className="w-full sm:w-auto h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900">
                   ⚡ Open Live Demo
                 </Button>
               </Link>
