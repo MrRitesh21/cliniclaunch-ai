@@ -5,6 +5,12 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { CommandPalette } from "./CommandPalette";
 
+const MARKETING_NAV = [
+  { label: "Features", to: "/features" as const },
+  { label: "How it works", to: "/how-it-works" as const },
+  { label: "FAQ", to: "/faq" as const },
+];
+
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
