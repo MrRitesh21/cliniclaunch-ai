@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalkinRouteImport } from './routes/walkin'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -24,7 +27,6 @@ import { Route as DemoRouteImport } from './routes/demo'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteRouteImport } from './routes/_admin/route'
@@ -89,6 +91,7 @@ import { Route as AdminAdminAuditRouteImport } from './routes/_admin/admin.audit
 import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin/admin.announcements'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AdminAdminDoctorsIndexRouteImport } from './routes/_admin/admin.doctors.index'
+import { Route as ApiPublicHooksWhatsappRouteImport } from './routes/api/public/hooks/whatsapp'
 import { Route as ApiPublicHooksSeoAutopilotRouteImport } from './routes/api/public/hooks/seo-autopilot'
 import { Route as ApiPublicHooksRazorpayRouteImport } from './routes/api/public/hooks/razorpay'
 import { Route as AdminAdminSettingsUsersRouteImport } from './routes/_admin/admin.settings.users'
@@ -112,6 +115,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShippingPolicyRoute = ShippingPolicyRouteImport.update({
   id: '/shipping-policy',
   path: '/shipping-policy',
@@ -120,6 +128,11 @@ const ShippingPolicyRoute = ShippingPolicyRouteImport.update({
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RefundPolicyRoute = RefundPolicyRouteImport.update({
@@ -135,6 +148,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HowItWorksRoute = HowItWorksRouteImport.update({
@@ -170,11 +188,6 @@ const BookRoute = BookRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -521,6 +534,11 @@ const AdminAdminDoctorsIndexRoute = AdminAdminDoctorsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminAdminDoctorsRoute,
 } as any)
+const ApiPublicHooksWhatsappRoute = ApiPublicHooksWhatsappRouteImport.update({
+  id: '/api/public/hooks/whatsapp',
+  path: '/api/public/hooks/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksSeoAutopilotRoute =
   ApiPublicHooksSeoAutopilotRouteImport.update({
     id: '/api/public/hooks/seo-autopilot',
@@ -564,18 +582,20 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/login': typeof LoginRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/shipping-policy': typeof ShippingPolicyRoute
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/walkin': typeof WalkinRoute
@@ -645,24 +665,27 @@ export interface FileRoutesByFullPath {
   '/admin/settings/users': typeof AdminAdminSettingsUsersRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
+  '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
   '/admin/doctors/': typeof AdminAdminDoctorsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/login': typeof LoginRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/shipping-policy': typeof ShippingPolicyRoute
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/walkin': typeof WalkinRoute
@@ -729,6 +752,7 @@ export interface FileRoutesByTo {
   '/admin/settings/users': typeof AdminAdminSettingsUsersRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
+  '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
   '/admin/doctors': typeof AdminAdminDoctorsIndexRoute
 }
 export interface FileRoutesById {
@@ -738,18 +762,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/login': typeof LoginRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/shipping-policy': typeof ShippingPolicyRoute
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/walkin': typeof WalkinRoute
@@ -819,6 +845,7 @@ export interface FileRoutesById {
   '/_admin/admin/settings/users': typeof AdminAdminSettingsUsersRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
+  '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
   '/_admin/admin/doctors/': typeof AdminAdminDoctorsIndexRoute
 }
 export interface FileRouteTypes {
@@ -833,11 +860,14 @@ export interface FileRouteTypes {
     | '/faq'
     | '/features'
     | '/how-it-works'
+    | '/login'
     | '/mcp'
     | '/privacy'
     | '/refund-policy'
+    | '/register'
     | '/services'
     | '/shipping-policy'
+    | '/signup'
     | '/sitemap.xml'
     | '/terms'
     | '/walkin'
@@ -907,6 +937,7 @@ export interface FileRouteTypes {
     | '/admin/settings/users'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
+    | '/api/public/hooks/whatsapp'
     | '/admin/doctors/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -919,11 +950,14 @@ export interface FileRouteTypes {
     | '/faq'
     | '/features'
     | '/how-it-works'
+    | '/login'
     | '/mcp'
     | '/privacy'
     | '/refund-policy'
+    | '/register'
     | '/services'
     | '/shipping-policy'
+    | '/signup'
     | '/sitemap.xml'
     | '/terms'
     | '/walkin'
@@ -990,6 +1024,7 @@ export interface FileRouteTypes {
     | '/admin/settings/users'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
+    | '/api/public/hooks/whatsapp'
     | '/admin/doctors'
   id:
     | '__root__'
@@ -1004,11 +1039,14 @@ export interface FileRouteTypes {
     | '/faq'
     | '/features'
     | '/how-it-works'
+    | '/login'
     | '/mcp'
     | '/privacy'
     | '/refund-policy'
+    | '/register'
     | '/services'
     | '/shipping-policy'
+    | '/signup'
     | '/sitemap.xml'
     | '/terms'
     | '/walkin'
@@ -1078,6 +1116,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/settings/users'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
+    | '/api/public/hooks/whatsapp'
     | '/_admin/admin/doctors/'
   fileRoutesById: FileRoutesById
 }
@@ -1087,18 +1126,20 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
-  LoginRoute: typeof LoginRoute
   BookRoute: typeof BookRoute
   ContactRoute: typeof ContactRoute
   DemoRoute: typeof DemoRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
+  RegisterRoute: typeof RegisterRoute
   ServicesRoute: typeof ServicesRoute
   ShippingPolicyRoute: typeof ShippingPolicyRoute
+  SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   WalkinRoute: typeof WalkinRoute
@@ -1117,6 +1158,7 @@ export interface RootRouteChildren {
   ApiWaCronRoute: typeof ApiWaCronRoute
   ApiPublicHooksRazorpayRoute: typeof ApiPublicHooksRazorpayRoute
   ApiPublicHooksSeoAutopilotRoute: typeof ApiPublicHooksSeoAutopilotRoute
+  ApiPublicHooksWhatsappRoute: typeof ApiPublicHooksWhatsappRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1142,6 +1184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shipping-policy': {
       id: '/shipping-policy'
       path: '/shipping-policy'
@@ -1154,6 +1203,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/refund-policy': {
@@ -1175,6 +1231,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/how-it-works': {
@@ -1224,13 +1287,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -1681,6 +1737,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminDoctorsIndexRouteImport
       parentRoute: typeof AdminAdminDoctorsRoute
     }
+    '/api/public/hooks/whatsapp': {
+      id: '/api/public/hooks/whatsapp'
+      path: '/api/public/hooks/whatsapp'
+      fullPath: '/api/public/hooks/whatsapp'
+      preLoaderRoute: typeof ApiPublicHooksWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/seo-autopilot': {
       id: '/api/public/hooks/seo-autopilot'
       path: '/api/public/hooks/seo-autopilot'
@@ -1893,18 +1956,20 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
-  LoginRoute: LoginRoute,
   BookRoute: BookRoute,
   ContactRoute: ContactRoute,
   DemoRoute: DemoRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   HowItWorksRoute: HowItWorksRoute,
+  LoginRoute: LoginRoute,
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
   RefundPolicyRoute: RefundPolicyRoute,
+  RegisterRoute: RegisterRoute,
   ServicesRoute: ServicesRoute,
   ShippingPolicyRoute: ShippingPolicyRoute,
+  SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   WalkinRoute: WalkinRoute,
@@ -1924,6 +1989,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWaCronRoute: ApiWaCronRoute,
   ApiPublicHooksRazorpayRoute: ApiPublicHooksRazorpayRoute,
   ApiPublicHooksSeoAutopilotRoute: ApiPublicHooksSeoAutopilotRoute,
+  ApiPublicHooksWhatsappRoute: ApiPublicHooksWhatsappRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
