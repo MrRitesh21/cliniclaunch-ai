@@ -404,7 +404,19 @@ export const createBooking = createServerFn({ method: "POST" })
       } as never)
       .select("id, scheduled_at")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      // 23505 = the DB uniqueness guard (appointments_slot_uq / walk-in cap
+      // trigger) rejected a racing insert — surface the same copy as the
+      // pre-insert availability check instead of raw Postgres text.
+      if (error.code === "23505") {
+        throw new Error(
+          data.source === "walkin"
+            ? "That slot just filled up. Please pick the next one."
+            : "This time slot was just taken. Please pick another.",
+        );
+      }
+      throw new Error(error.message);
+    }
 
     await sb.from("patients").upsert(
       {
@@ -515,7 +527,14 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select("*, clinics(id, organization_id, doctor_name, slug)")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Un-cancelling into a slot that was rebooked in the meantime trips
+      // appointments_slot_uq — the slot genuinely is taken.
+      if (error.code === "23505") {
+        throw new Error("That slot has already been rebooked. Reschedule this appointment instead.");
+      }
+      throw new Error(error.message);
+    }
 
     const clinic = (appt as any).clinics;
     if (clinic) {
