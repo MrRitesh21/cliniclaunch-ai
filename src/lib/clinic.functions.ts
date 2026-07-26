@@ -406,7 +406,8 @@ export const createBooking = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await sb.from("patients").upsert(
+    // Patient directory upsert (best-effort — must not fail the booking)
+    const { error: patientErr } = await sb.from("patients").upsert(
       {
         clinic_id: data.clinic_id,
         name: data.patient_name,
@@ -417,6 +418,9 @@ export const createBooking = createServerFn({ method: "POST" })
       },
       { onConflict: "clinic_id,phone" },
     );
+    if (patientErr) {
+      console.error("createBooking: patients upsert failed", patientErr);
+    }
 
     // WhatsApp side-effects (best-effort)
     try {
