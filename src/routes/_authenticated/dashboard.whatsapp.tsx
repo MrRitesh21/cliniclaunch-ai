@@ -11,13 +11,38 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  MessageCircle, Send, ExternalLink, Loader2, Save,
-  CheckCircle2, Clock, XCircle, TrendingUp, Search,
-  Download, Users, Zap, FlaskConical, Syringe, Cake,
+  MessageCircle,
+  Send,
+  ExternalLink,
+  Loader2,
+  Save,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  TrendingUp,
+  Search,
+  Download,
+  Users,
+  Zap,
+  FlaskConical,
+  Syringe,
+  Cake,
 } from "lucide-react";
 import {
   DEFAULT_TEMPLATES,
@@ -36,7 +61,11 @@ import {
 import { AppGuard } from "@/components/app/AppGuard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/whatsapp")({
-  component: () => (<AppGuard appKey="whatsapp"><WhatsAppPage /></AppGuard>),
+  component: () => (
+    <AppGuard appKey="whatsapp">
+      <WhatsAppPage />
+    </AppGuard>
+  ),
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -69,12 +98,25 @@ const TEMPLATE_GROUPS: { label: string; icon: React.ReactNode; keys: WaTemplateK
   {
     label: "Appointment Flow",
     icon: <Clock className="size-4" />,
-    keys: ["appointment_alert", "appointment_received", "appointment_confirmed", "appointment_reminder", "walkin_doctor_alert", "walkin_confirmation"],
+    keys: [
+      "appointment_alert",
+      "appointment_received",
+      "appointment_confirmed",
+      "appointment_reminder",
+      "walkin_doctor_alert",
+      "walkin_confirmation",
+    ],
   },
   {
     label: "Clinical Events",
     icon: <FlaskConical className="size-4" />,
-    keys: ["lab_report_ready", "prescription_ready", "discharge_summary", "opd_token", "abnormal_report_alert"],
+    keys: [
+      "lab_report_ready",
+      "prescription_ready",
+      "discharge_summary",
+      "opd_token",
+      "abnormal_report_alert",
+    ],
   },
   {
     label: "Preventive Care",
@@ -90,10 +132,22 @@ const TEMPLATE_GROUPS: { label: string; icon: React.ReactNode; keys: WaTemplateK
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string | number; sub?: string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
   return (
     <Card className="p-4 flex gap-3 items-start">
-      <div className="size-9 rounded-lg bg-green-500/10 text-green-600 grid place-items-center shrink-0">{icon}</div>
+      <div className="size-9 rounded-lg bg-green-500/10 text-green-600 grid place-items-center shrink-0">
+        {icon}
+      </div>
       <div>
         <div className="text-2xl font-semibold leading-tight">{value}</div>
         <div className="text-xs text-muted-foreground">{label}</div>
@@ -119,7 +173,11 @@ function WhatsAppPage() {
     setLoading(true);
     await ensureDefaultTemplates(org.id);
     const [{ data: t }, { data: l }] = await Promise.all([
-      supabase.from("whatsapp_templates").select("*").eq("organization_id", org.id).order("template_key"),
+      supabase
+        .from("whatsapp_templates")
+        .select("*")
+        .eq("organization_id", org.id)
+        .order("template_key"),
       supabase
         .from("whatsapp_logs")
         .select("*")
@@ -132,7 +190,9 @@ function WhatsAppPage() {
     setLoading(false);
   }, [org?.id]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function saveTemplate(t: TemplateRow) {
     setSavingId(t.id);
@@ -164,14 +224,21 @@ function WhatsAppPage() {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const weekAgo = new Date(Date.now() - 7 * 86400000);
-    const sentToday = logs.filter((l) => l.status === "sent" && new Date(l.created_at) >= today).length;
-    const sentWeek = logs.filter((l) => l.status === "sent" && new Date(l.created_at) >= weekAgo).length;
+    const sentToday = logs.filter(
+      (l) => l.status === "sent" && new Date(l.created_at) >= today,
+    ).length;
+    const sentWeek = logs.filter(
+      (l) => l.status === "sent" && new Date(l.created_at) >= weekAgo,
+    ).length;
     const total = logs.length;
     const sent = logs.filter((l) => l.status === "sent").length;
     const rate = total > 0 ? Math.round((sent / total) * 100) : 0;
-    const pending = logs.filter((l) => ["queued", "pending", "scheduled"].includes(l.status)).length;
+    const pending = logs.filter((l) =>
+      ["queued", "pending", "scheduled"].includes(l.status),
+    ).length;
     return { sentToday, sentWeek, rate, pending };
   }, [logs]);
 
@@ -185,7 +252,9 @@ function WhatsAppPage() {
           </div>
           <div>
             <h1 className="font-display text-3xl">WhatsApp Automation</h1>
-            <p className="text-muted-foreground">Clinical-grade messaging — appointments, lab reports, vaccines, billing & more.</p>
+            <p className="text-muted-foreground">
+              Clinical-grade messaging — appointments, lab reports, vaccines, billing & more.
+            </p>
           </div>
         </div>
       </header>
@@ -193,9 +262,22 @@ function WhatsAppPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={<Send className="size-4" />} label="Sent today" value={stats.sentToday} />
-        <StatCard icon={<TrendingUp className="size-4" />} label="Sent this week" value={stats.sentWeek} />
-        <StatCard icon={<CheckCircle2 className="size-4" />} label="Success rate" value={`${stats.rate}%`} sub="of all messages" />
-        <StatCard icon={<Clock className="size-4" />} label="Pending / queued" value={stats.pending} />
+        <StatCard
+          icon={<TrendingUp className="size-4" />}
+          label="Sent this week"
+          value={stats.sentWeek}
+        />
+        <StatCard
+          icon={<CheckCircle2 className="size-4" />}
+          label="Success rate"
+          value={`${stats.rate}%`}
+          sub="of all messages"
+        />
+        <StatCard
+          icon={<Clock className="size-4" />}
+          label="Pending / queued"
+          value={stats.pending}
+        />
       </div>
 
       <Tabs defaultValue="connect">
@@ -219,7 +301,9 @@ function WhatsAppPage() {
             <Card className="p-10 text-center text-muted-foreground">Loading templates…</Card>
           ) : (
             TEMPLATE_GROUPS.map((group) => {
-              const groupTemplates = templates.filter((t) => (group.keys as string[]).includes(t.template_key));
+              const groupTemplates = templates.filter((t) =>
+                (group.keys as string[]).includes(t.template_key),
+              );
               if (groupTemplates.length === 0) return null;
               return (
                 <div key={group.label} className="space-y-3">
@@ -240,11 +324,20 @@ function WhatsAppPage() {
                                 </Badge>
                               )}
                             </div>
-                            {meta && <p className="text-xs text-muted-foreground mt-0.5">{meta.description}</p>}
+                            {meta && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {meta.description}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{t.is_active ? "Active" : "Paused"}</span>
-                            <Switch checked={t.is_active} onCheckedChange={(v) => updateLocal(t.id, { is_active: v })} />
+                            <span className="text-xs text-muted-foreground">
+                              {t.is_active ? "Active" : "Paused"}
+                            </span>
+                            <Switch
+                              checked={t.is_active}
+                              onCheckedChange={(v) => updateLocal(t.id, { is_active: v })}
+                            />
                           </div>
                         </div>
 
@@ -263,7 +356,10 @@ function WhatsAppPage() {
                                 variant="secondary"
                                 className="text-[10px] font-mono cursor-pointer"
                                 title="Click to copy"
-                                onClick={() => { void navigator.clipboard.writeText(`{${v}}`); toast.success(`Copied {${v}}`); }}
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(`{${v}}`);
+                                  toast.success(`Copied {${v}}`);
+                                }}
                               >
                                 {"{" + v + "}"}
                               </Badge>
@@ -275,8 +371,17 @@ function WhatsAppPage() {
                           <Button size="sm" variant="ghost" onClick={() => setTestFor(t)}>
                             <Send className="size-3.5" /> Send test
                           </Button>
-                          <Button size="sm" onClick={() => saveTemplate(t)} disabled={savingId === t.id}>
-                            {savingId === t.id ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+                          <Button
+                            size="sm"
+                            onClick={() => saveTemplate(t)}
+                            disabled={savingId === t.id}
+                          >
+                            {savingId === t.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Save className="size-3.5" />
+                            )}{" "}
+                            Save
                           </Button>
                         </div>
                       </Card>
@@ -320,19 +425,80 @@ function WhatsAppPage() {
           <Card className="p-5">
             <h3 className="font-medium mb-4">Automation map</h3>
             <ul className="divide-y">
-              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} onToggle={toggleTemplateActive} />
+              <AutomationRow
+                label="Booking alert → doctor"
+                trigger="Immediately after booking"
+                templateKey="appointment_alert"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Booking received → patient"
+                trigger="Immediately after booking"
+                templateKey="appointment_received"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Appointment confirmed → patient"
+                trigger="When doctor confirms"
+                templateKey="appointment_confirmed"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="24-hour reminder → patient"
+                trigger="Hourly cron — 24 h before visit"
+                templateKey="appointment_reminder"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Walk-in alert → doctor"
+                trigger="Walk-in registration"
+                templateKey="walkin_doctor_alert"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Walk-in confirmation → patient"
+                trigger="Walk-in registration"
+                templateKey="walkin_confirmation"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Post-visit follow-up → patient"
+                trigger="3 days after completion"
+                templateKey="followup"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Review request → patient"
+                trigger="7 days after completion"
+                templateKey="review_request"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Birthday wishes → patient"
+                trigger="Daily cron on birth date"
+                templateKey="birthday_wishes"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
+              <AutomationRow
+                label="Vaccination reminder → patient"
+                trigger="Daily cron — 7 days before due date"
+                templateKey="vaccination_reminder"
+                templates={templates}
+                onToggle={toggleTemplateActive}
+              />
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
-              Lab report, prescription, discharge, OPD token, bill & camp templates are triggered manually via <strong>Quick Send</strong> or your EHR/LIS integration.
+              Lab report, prescription, discharge, OPD token, bill & camp templates are triggered
+              manually via <strong>Quick Send</strong> or your EHR/LIS integration.
             </p>
           </Card>
         </TabsContent>
@@ -343,7 +509,10 @@ function WhatsAppPage() {
           template={testFor}
           key={testFor.id}
           onClose={() => setTestFor(null)}
-          onSent={() => { setTestFor(null); void load(); }}
+          onSent={() => {
+            setTestFor(null);
+            void load();
+          }}
           organizationId={org?.id ?? ""}
           clinicSlug={clinic?.slug ?? ""}
           doctorName={clinic?.doctor_name ?? "your doctor"}
@@ -358,7 +527,11 @@ function WhatsAppPage() {
 const AUTO_VARS = new Set(["patient_name", "doctor_name", "clinic_link", "clinic_name"]);
 
 function QuickSendTab({
-  templates, organizationId, clinicSlug, doctorName, onSent,
+  templates,
+  organizationId,
+  clinicSlug,
+  doctorName,
+  onSent,
 }: {
   templates: TemplateRow[];
   organizationId: string;
@@ -418,16 +591,30 @@ function QuickSendTab({
 
         <div className="space-y-1.5">
           <Label>Template</Label>
-          <Select value={selectedKey} onValueChange={(v) => { setSelectedKey(v); setExtraVars({}); }}>
-            <SelectTrigger><SelectValue placeholder="Choose template…" /></SelectTrigger>
+          <Select
+            value={selectedKey}
+            onValueChange={(v) => {
+              setSelectedKey(v);
+              setExtraVars({});
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Choose template…" />
+            </SelectTrigger>
             <SelectContent>
               {TEMPLATE_GROUPS.map((g) => (
                 <div key={g.label}>
-                  <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{g.label}</div>
+                  <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    {g.label}
+                  </div>
                   {g.keys.map((k) => {
                     const t = templates.find((x) => x.template_key === k);
                     if (!t) return null;
-                    return <SelectItem key={k} value={k}>{t.name}</SelectItem>;
+                    return (
+                      <SelectItem key={k} value={k}>
+                        {t.name}
+                      </SelectItem>
+                    );
                   })}
                 </div>
               ))}
@@ -437,12 +624,22 @@ function QuickSendTab({
 
         <div className="space-y-1.5">
           <Label>Patient phone (with country code)</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919876543210" />
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+919876543210"
+          />
         </div>
 
         <div className="space-y-1.5">
-          <Label>Patient name <span className="text-muted-foreground">(optional)</span></Label>
-          <Input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="e.g. Priya Sharma" />
+          <Label>
+            Patient name <span className="text-muted-foreground">(optional)</span>
+          </Label>
+          <Input
+            value={patientName}
+            onChange={(e) => setPatientName(e.target.value)}
+            placeholder="e.g. Priya Sharma"
+          />
         </div>
 
         {extraVarNames.map((v) => (
@@ -475,7 +672,9 @@ function QuickSendTab({
           </div>
         )}
         {tpl && !tpl.is_active && (
-          <p className="text-xs text-destructive">⚠ This template is currently paused. Enable it in the Templates tab first.</p>
+          <p className="text-xs text-destructive">
+            ⚠ This template is currently paused. Enable it in the Templates tab first.
+          </p>
         )}
       </div>
     </div>
@@ -487,7 +686,11 @@ function QuickSendTab({
 type BulkRow = { phone: string; name: string; status: "idle" | "sending" | "done" | "error" };
 
 function BulkSendTab({
-  templates, organizationId, clinicSlug, doctorName, onSent,
+  templates,
+  organizationId,
+  clinicSlug,
+  doctorName,
+  onSent,
 }: {
   templates: TemplateRow[];
   organizationId: string;
@@ -528,7 +731,7 @@ function BulkSendTab({
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      setRows((cur) => cur.map((r, idx) => idx === i ? { ...r, status: "sending" } : r));
+      setRows((cur) => cur.map((r, idx) => (idx === i ? { ...r, status: "sending" } : r)));
       const vars: Record<string, string> = {
         patient_name: row.name || "Patient",
         doctor_name: doctorName,
@@ -548,13 +751,13 @@ function BulkSendTab({
           wa_link: link,
           status: "sent",
         });
-        setRows((cur) => cur.map((r, idx) => idx === i ? { ...r, status: "done" } : r));
+        setRows((cur) => cur.map((r, idx) => (idx === i ? { ...r, status: "done" } : r)));
         count++;
         setSent(count);
         window.open(link, "_blank", "noopener,noreferrer");
         await new Promise((res) => setTimeout(res, 700));
       } catch {
-        setRows((cur) => cur.map((r, idx) => idx === i ? { ...r, status: "error" } : r));
+        setRows((cur) => cur.map((r, idx) => (idx === i ? { ...r, status: "error" } : r)));
       }
     }
     setSending(false);
@@ -573,16 +776,30 @@ function BulkSendTab({
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label>Template</Label>
-            <Select value={selectedKey} onValueChange={(v) => { setSelectedKey(v); setExtraVars({}); }}>
-              <SelectTrigger><SelectValue placeholder="Choose template…" /></SelectTrigger>
+            <Select
+              value={selectedKey}
+              onValueChange={(v) => {
+                setSelectedKey(v);
+                setExtraVars({});
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose template…" />
+              </SelectTrigger>
               <SelectContent>
                 {TEMPLATE_GROUPS.map((g) => (
                   <div key={g.label}>
-                    <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{g.label}</div>
+                    <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      {g.label}
+                    </div>
                     {g.keys.map((k) => {
                       const t = templates.find((x) => x.template_key === k);
                       if (!t) return null;
-                      return <SelectItem key={k} value={k}>{t.name}</SelectItem>;
+                      return (
+                        <SelectItem key={k} value={k}>
+                          {t.name}
+                        </SelectItem>
+                      );
                     })}
                   </div>
                 ))}
@@ -592,7 +809,9 @@ function BulkSendTab({
 
           {extraVarNames.map((v) => (
             <div key={v} className="space-y-1.5">
-              <Label className="capitalize">{v.replace(/_/g, " ")} <span className="text-muted-foreground">(same for all)</span></Label>
+              <Label className="capitalize">
+                {v.replace(/_/g, " ")} <span className="text-muted-foreground">(same for all)</span>
+              </Label>
               <Input
                 value={extraVars[v] ?? ""}
                 onChange={(e) => setExtraVars((cur) => ({ ...cur, [v]: e.target.value }))}
@@ -604,7 +823,8 @@ function BulkSendTab({
 
         <div className="space-y-1.5">
           <Label>
-            Recipients — one per line: <code className="text-xs bg-muted px-1 rounded">Name, +91XXXXXXXXXX</code> or just phone
+            Recipients — one per line:{" "}
+            <code className="text-xs bg-muted px-1 rounded">Name, +91XXXXXXXXXX</code> or just phone
           </Label>
           <Textarea
             rows={6}
@@ -620,9 +840,15 @@ function BulkSendTab({
             Parse list ({rawInput.split("\n").filter(Boolean).length} entries)
           </Button>
           <Button onClick={handleBulkSend} disabled={sending || rows.length === 0 || !tpl}>
-            {sending
-              ? <><Loader2 className="size-4 animate-spin" /> Sending {sent}/{rows.length}…</>
-              : <><Send className="size-4" /> Send to {rows.length} recipients</>}
+            {sending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" /> Sending {sent}/{rows.length}…
+              </>
+            ) : (
+              <>
+                <Send className="size-4" /> Send to {rows.length} recipients
+              </>
+            )}
           </Button>
         </div>
       </Card>
@@ -647,7 +873,12 @@ function BulkSendTab({
                     <td className="p-3 font-mono text-xs">{r.phone}</td>
                     <td className="p-3">
                       {r.status === "idle" && <Badge variant="secondary">Pending</Badge>}
-                      {r.status === "sending" && <Badge variant="outline"><Loader2 className="size-3 animate-spin mr-1" />Sending</Badge>}
+                      {r.status === "sending" && (
+                        <Badge variant="outline">
+                          <Loader2 className="size-3 animate-spin mr-1" />
+                          Sending
+                        </Badge>
+                      )}
                       {r.status === "done" && <Badge className="bg-green-600">Sent</Badge>}
                       {r.status === "error" && <Badge variant="destructive">Error</Badge>}
                     </td>
@@ -671,13 +902,25 @@ function LogsTab({ logs }: { logs: LogRow[] }) {
 
   const templateKeys = useMemo(() => [...new Set(logs.map((l) => l.template_key))].sort(), [logs]);
 
-  const filtered = useMemo(() => logs.filter((l) => {
-    const q = search.toLowerCase();
-    if (q && !(l.patient_name?.toLowerCase().includes(q) || l.patient_phone.includes(q) || l.message.toLowerCase().includes(q))) return false;
-    if (statusFilter !== "all" && l.status !== statusFilter) return false;
-    if (templateFilter !== "all" && l.template_key !== templateFilter) return false;
-    return true;
-  }), [logs, search, statusFilter, templateFilter]);
+  const filtered = useMemo(
+    () =>
+      logs.filter((l) => {
+        const q = search.toLowerCase();
+        if (
+          q &&
+          !(
+            l.patient_name?.toLowerCase().includes(q) ||
+            l.patient_phone.includes(q) ||
+            l.message.toLowerCase().includes(q)
+          )
+        )
+          return false;
+        if (statusFilter !== "all" && l.status !== statusFilter) return false;
+        if (templateFilter !== "all" && l.template_key !== templateFilter) return false;
+        return true;
+      }),
+    [logs, search, statusFilter, templateFilter],
+  );
 
   function exportCsv() {
     const headers = ["Date", "Patient", "Phone", "Template", "Status", "Message"];
@@ -711,7 +954,9 @@ function LogsTab({ logs }: { logs: LogRow[] }) {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32 h-8 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="sent">Sent</SelectItem>
@@ -721,16 +966,24 @@ function LogsTab({ logs }: { logs: LogRow[] }) {
           </SelectContent>
         </Select>
         <Select value={templateFilter} onValueChange={setTemplateFilter}>
-          <SelectTrigger className="w-44 h-8 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-44 h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All templates</SelectItem>
-            {templateKeys.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+            {templateKeys.map((k) => (
+              <SelectItem key={k} value={k}>
+                {k}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={exportCsv}>
           <Download className="size-3.5" /> CSV
         </Button>
-        <span className="text-xs text-muted-foreground">{filtered.length} of {logs.length}</span>
+        <span className="text-xs text-muted-foreground">
+          {filtered.length} of {logs.length}
+        </span>
       </div>
 
       <Card className="p-0 overflow-hidden">
@@ -763,23 +1016,46 @@ function LogsTab({ logs }: { logs: LogRow[] }) {
                       <div className="font-medium">{l.patient_name ?? "—"}</div>
                       <div className="text-xs text-muted-foreground">{l.patient_phone}</div>
                     </td>
-                    <td className="p-3 text-xs"><Badge variant="outline">{l.template_key}</Badge></td>
-                    <td className="p-3 max-w-sm truncate text-muted-foreground text-xs" title={l.error || l.message}>
+                    <td className="p-3 text-xs">
+                      <Badge variant="outline">{l.template_key}</Badge>
+                    </td>
+                    <td
+                      className="p-3 max-w-sm truncate text-muted-foreground text-xs"
+                      title={l.error || l.message}
+                    >
                       {l.error || l.message}
                     </td>
                     <td className="p-3">
-                      <Badge variant={l.status === "sent" ? "default" : l.status === "failed" ? "destructive" : "secondary"}>
-                        {l.status === "sent"
-                          ? <><CheckCircle2 className="size-3 mr-1" />Sent</>
-                          : l.status === "failed"
-                            ? <><XCircle className="size-3 mr-1" />Failed</>
-                            : l.status}
+                      <Badge
+                        variant={
+                          l.status === "sent"
+                            ? "default"
+                            : l.status === "failed"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {l.status === "sent" ? (
+                          <>
+                            <CheckCircle2 className="size-3 mr-1" />
+                            Sent
+                          </>
+                        ) : l.status === "failed" ? (
+                          <>
+                            <XCircle className="size-3 mr-1" />
+                            Failed
+                          </>
+                        ) : (
+                          l.status
+                        )}
                       </Badge>
                     </td>
                     <td className="p-3 text-right">
                       {l.wa_link && (
                         <a href={l.wa_link} target="_blank" rel="noreferrer">
-                          <Button size="sm" variant="ghost"><ExternalLink className="size-3.5" /></Button>
+                          <Button size="sm" variant="ghost">
+                            <ExternalLink className="size-3.5" />
+                          </Button>
                         </a>
                       )}
                     </td>
@@ -797,7 +1073,11 @@ function LogsTab({ logs }: { logs: LogRow[] }) {
 // ─── Automation row ────────────────────────────────────────────────────────────
 
 function AutomationRow({
-  label, trigger, templateKey, templates, onToggle,
+  label,
+  trigger,
+  templateKey,
+  templates,
+  onToggle,
 }: {
   label: string;
   trigger: string;
@@ -824,7 +1104,12 @@ function AutomationRow({
 // ─── Test dialog ───────────────────────────────────────────────────────────────
 
 function TestDialog({
-  template, onClose, onSent, organizationId, clinicSlug, doctorName,
+  template,
+  onClose,
+  onSent,
+  organizationId,
+  clinicSlug,
+  doctorName,
 }: {
   template: TemplateRow;
   onClose: () => void;
@@ -898,7 +1183,9 @@ function TestDialog({
   return (
     <Dialog open={!!template} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Send test — {template.name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Send test — {template.name}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label>Patient name</Label>
@@ -906,7 +1193,11 @@ function TestDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Phone (with country code)</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919876543210" />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+919876543210"
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Preview</Label>
@@ -916,8 +1207,12 @@ function TestDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={send}><Send className="size-3.5" /> Open WhatsApp</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={send}>
+            <Send className="size-3.5" /> Open WhatsApp
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

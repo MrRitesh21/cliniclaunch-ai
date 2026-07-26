@@ -49,18 +49,27 @@ export function DemoConversionWidget({
           Like what you see in the Live Demo?
         </h4>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Launch <strong>your own clinic website</strong>, WhatsApp bot & digital EHR in 5 minutes with <strong>0% patient commission</strong>.
+          Launch <strong>your own clinic website</strong>, WhatsApp bot & digital EHR in 5 minutes
+          with <strong>0% patient commission</strong>.
         </p>
       </div>
 
       {/* Social Proof Line */}
       <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-800/80">
         <div className="flex -space-x-1">
-          <span className="size-5 rounded-full bg-blue-600 grid place-items-center text-[9px] text-white font-bold">DR</span>
-          <span className="size-5 rounded-full bg-emerald-600 grid place-items-center text-[9px] text-white font-bold">AP</span>
-          <span className="size-5 rounded-full bg-indigo-600 grid place-items-center text-[9px] text-white font-bold">MK</span>
+          <span className="size-5 rounded-full bg-blue-600 grid place-items-center text-[9px] text-white font-bold">
+            DR
+          </span>
+          <span className="size-5 rounded-full bg-emerald-600 grid place-items-center text-[9px] text-white font-bold">
+            AP
+          </span>
+          <span className="size-5 rounded-full bg-indigo-600 grid place-items-center text-[9px] text-white font-bold">
+            MK
+          </span>
         </div>
-        <span>Joined by <strong>240+ doctors</strong> across India</span>
+        <span>
+          Joined by <strong>240+ doctors</strong> across India
+        </span>
       </div>
 
       {/* Action Buttons */}

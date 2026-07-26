@@ -10,11 +10,13 @@ async function adminClient() {
 /** Server: checks search ranking for a single keyword */
 export const checkKeywordRank = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => 
-    z.object({
-      keyword_id: z.string().uuid(),
-      clinic_id: z.string().uuid()
-    }).parse(input)
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        keyword_id: z.string().uuid(),
+        clinic_id: z.string().uuid(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -61,13 +63,14 @@ export const checkKeywordRank = createServerFn({ method: "POST" })
       const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(queryTerm)}`;
       const res = await fetch(searchUrl, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        },
       });
 
       if (res.ok) {
         const html = await res.text();
-        
+
         // Parse search result links
         // DDG HTML search results have class="result__snippet" or links inside result__url
         // Let's find all hrefs in the search results
@@ -81,10 +84,11 @@ export const checkKeywordRank = createServerFn({ method: "POST" })
         }
 
         // Find the index of the clinic domain/slug
-        const foundIndex = hrefs.findIndex(h => 
-          (domain && h.includes(domain)) || 
-          h.includes(`/c/${slug}`) || 
-          h.includes(`slug=${slug}`)
+        const foundIndex = hrefs.findIndex(
+          (h) =>
+            (domain && h.includes(domain)) ||
+            h.includes(`/c/${slug}`) ||
+            h.includes(`slug=${slug}`),
         );
 
         if (foundIndex !== -1) {
@@ -101,9 +105,12 @@ export const checkKeywordRank = createServerFn({ method: "POST" })
       const lowerKeyword = kw.keyword.toLowerCase();
       let matchScore = 0;
 
-      if (clinic.specialization && lowerKeyword.includes(clinic.specialization.toLowerCase())) matchScore += 40;
-      if (clinic.doctor_name && lowerKeyword.includes(clinic.doctor_name.toLowerCase())) matchScore += 40;
-      if (clinic.clinic_name && lowerKeyword.includes(clinic.clinic_name.toLowerCase())) matchScore += 30;
+      if (clinic.specialization && lowerKeyword.includes(clinic.specialization.toLowerCase()))
+        matchScore += 40;
+      if (clinic.doctor_name && lowerKeyword.includes(clinic.doctor_name.toLowerCase()))
+        matchScore += 40;
+      if (clinic.clinic_name && lowerKeyword.includes(clinic.clinic_name.toLowerCase()))
+        matchScore += 30;
       if (clinic.bio && lowerKeyword.includes(clinic.bio.toLowerCase())) matchScore += 10;
 
       // Calculate difficulty based on keyword length/competitiveness
@@ -140,7 +147,7 @@ export const checkKeywordRank = createServerFn({ method: "POST" })
         difficulty,
         search_volume: searchVolume,
         status,
-        last_checked_at: now
+        last_checked_at: now,
       })
       .eq("id", data.keyword_id);
 
@@ -152,22 +159,24 @@ export const checkKeywordRank = createServerFn({ method: "POST" })
       difficulty,
       search_volume: searchVolume,
       status,
-      last_checked_at: now
+      last_checked_at: now,
     };
   });
 
 /** Server: updates clinic SEO meta config */
 export const updateClinicSeoConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => 
-    z.object({
-      clinic_id: z.string().uuid(),
-      seo_config: z.object({
-        meta_title: z.string().max(100).optional(),
-        meta_description: z.string().max(250).optional(),
-        keywords: z.string().max(200).optional()
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        seo_config: z.object({
+          meta_title: z.string().max(100).optional(),
+          meta_description: z.string().max(250).optional(),
+          keywords: z.string().max(200).optional(),
+        }),
       })
-    }).parse(input)
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -186,7 +195,7 @@ export const updateClinicSeoConfig = createServerFn({ method: "POST" })
     const { error: uErr } = await sb
       .from("clinics")
       .update({
-        seo_config: data.seo_config
+        seo_config: data.seo_config,
       })
       .eq("id", data.clinic_id);
 

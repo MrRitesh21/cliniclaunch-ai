@@ -9,7 +9,12 @@ async function adminClient() {
 }
 
 function normalizeDomain(input: string): string {
-  return input.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "").replace(/^www\./, "");
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "")
+    .replace(/^www\./, "");
 }
 
 function isPlatformHost(host: string): boolean {
@@ -25,15 +30,20 @@ function isPlatformHost(host: string): boolean {
 }
 
 async function dnsLookup(domain: string, type: "A" | "CNAME" | "TXT"): Promise<string[]> {
-  const res = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`, {
-    headers: { accept: "application/dns-json" },
-  });
+  const res = await fetch(
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`,
+    {
+      headers: { accept: "application/dns-json" },
+    },
+  );
   if (!res.ok) throw new Error(`DNS lookup failed (${res.status})`);
   const json = (await res.json()) as { Answer?: { type: number; data: string }[] };
   const wanted = type === "A" ? 1 : type === "CNAME" ? 5 : 16;
   return (json.Answer ?? [])
     .filter((a) => a.type === wanted)
-    .map((a) => (type === "TXT" ? a.data.replace(/^"|"$/g, "").replace(/""/g, "") : a.data.replace(/\.$/, "")));
+    .map((a) =>
+      type === "TXT" ? a.data.replace(/^"|"$/g, "").replace(/""/g, "") : a.data.replace(/\.$/, ""),
+    );
 }
 
 async function getDomainReachabilityError(domain: string): Promise<string | null> {
@@ -46,13 +56,17 @@ async function getDomainReachabilityError(domain: string): Promise<string | null
         signal: AbortSignal.timeout(8000),
         headers: { "user-agent": "ClinicX domain verifier" },
       });
-      const text = await res.clone().text().catch(() => "");
+      const text = await res
+        .clone()
+        .text()
+        .catch(() => "");
 
       if (text.includes("Error 1034") || text.includes("Edge IP Restricted")) {
         return "DNS ownership is verified, but this domain is not connected to the Lovable project yet (Cloudflare Error 1034). Add it in Lovable Project Settings → Domains, then verify again.";
       }
 
-      if (res.status < 500 || res.status === 521 || res.status === 525 || res.status === 526) return null;
+      if (res.status < 500 || res.status === 521 || res.status === 525 || res.status === 526)
+        return null;
     } catch {
       // Try the next protocol before reporting a problem.
     }
@@ -60,7 +74,6 @@ async function getDomainReachabilityError(domain: string): Promise<string | null
 
   return "DNS ownership is verified, but the domain is not reachable yet. Add it in Lovable Project Settings → Domains and wait for DNS/SSL provisioning, then verify again.";
 }
-
 
 /** Public: given the request's Host header, resolve to a clinic slug if any. */
 export const resolveHostToClinic = createServerFn({ method: "GET" }).handler(async () => {
@@ -76,7 +89,9 @@ export const resolveHostToClinic = createServerFn({ method: "GET" }).handler(asy
   if (isPlatformHost(host)) return null;
 
   const sb = await adminClient();
-  const candidates = Array.from(new Set([host.toLowerCase(), host.toLowerCase().replace(/^www\./, "")]));
+  const candidates = Array.from(
+    new Set([host.toLowerCase(), host.toLowerCase().replace(/^www\./, "")]),
+  );
   const { data, error } = await sb
     .from("clinics")
     .select("slug, custom_domain, domain_status")
@@ -91,7 +106,9 @@ export const resolveHostToClinic = createServerFn({ method: "GET" }).handler(asy
 /** Authenticated: verify the signed-in user's clinic custom domain via DNS. */
 export const verifyClinicDomain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ clinic_id: z.string().uuid(), force: z.boolean().optional() }).parse(input))
+  .inputValidator((input: unknown) =>
+    z.object({ clinic_id: z.string().uuid(), force: z.boolean().optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: clinic, error: cErr } = await supabase
@@ -141,7 +158,16 @@ export const verifyClinicDomain = createServerFn({ method: "POST" })
         const parts = domain.split(".");
         const apexDomain = parts.length > 2 ? parts.slice(-2).join(".") : domain;
 
-        const [rootA, wwwA, rootCname, wwwCname, txtLovable, txtVercel, txtApexLovable, txtApexVercel] = await Promise.all([
+        const [
+          rootA,
+          wwwA,
+          rootCname,
+          wwwCname,
+          txtLovable,
+          txtVercel,
+          txtApexLovable,
+          txtApexVercel,
+        ] = await Promise.all([
           dnsLookup(domain, "A").catch(() => [] as string[]),
           dnsLookup(`www.${domain}`, "A").catch(() => [] as string[]),
           dnsLookup(domain, "CNAME").catch(() => [] as string[]),
@@ -153,23 +179,28 @@ export const verifyClinicDomain = createServerFn({ method: "POST" })
         ]);
         ips = Array.from(new Set([...rootA, ...wwwA]));
         cnames = Array.from(new Set([...rootCname, ...wwwCname])).map((c) => c.toLowerCase());
-        
-        txtFound = 
-          txtVercel.some((t) => t.includes(expectedTxtVercel)) || 
+
+        txtFound =
+          txtVercel.some((t) => t.includes(expectedTxtVercel)) ||
           txtLovable.some((t) => t.includes(expectedTxtLovable)) ||
           txtApexVercel.some((t) => t.includes(expectedTxtVercel)) ||
           txtApexLovable.some((t) => t.includes(expectedTxtLovable));
 
         const VERCEL_IP = "76.76.21.21";
-        const dnsPointsHere = ips.includes(VERCEL_IP) || cnames.some((c) => c === "cname.vercel-dns.com");
+        const dnsPointsHere =
+          ips.includes(VERCEL_IP) || cnames.some((c) => c === "cname.vercel-dns.com");
 
         const errors: string[] = [];
         if (!dnsPointsHere) {
           if (ips.length === 0 && cnames.length === 0) {
-            errors.push(`No DNS records found. Add A records pointing to ${VERCEL_IP}, or a CNAME to cname.vercel-dns.com.`);
+            errors.push(
+              `No DNS records found. Add A records pointing to ${VERCEL_IP}, or a CNAME to cname.vercel-dns.com.`,
+            );
           } else {
             const seen = [...ips, ...cnames].join(", ");
-            errors.push(`Domain points to ${seen} — expected A ${VERCEL_IP} or CNAME cname.vercel-dns.com.`);
+            errors.push(
+              `Domain points to ${seen} — expected A ${VERCEL_IP} or CNAME cname.vercel-dns.com.`,
+            );
           }
         }
 
@@ -198,10 +229,10 @@ export const verifyClinicDomain = createServerFn({ method: "POST" })
         let resolvedTeamId = vercelTeamId;
         if (!resolvedTeamId) {
           const pRes = await fetch(`https://api.vercel.com/v9/projects/${vercelProjectId}`, {
-            headers: { Authorization: `Bearer ${vercelToken}` }
+            headers: { Authorization: `Bearer ${vercelToken}` },
           });
           if (pRes.ok) {
-            const pJson = await pRes.json() as any;
+            const pJson = (await pRes.json()) as any;
             if (pJson.link?.type === "team" && pJson.link.teamId) {
               resolvedTeamId = pJson.link.teamId;
             }
@@ -239,6 +270,14 @@ export const verifyClinicDomain = createServerFn({ method: "POST" })
       .eq("id", clinic.id);
     if (uErr) throw new Error(uErr.message);
 
-    return { status, lastError, checkedAt: now, ips, cnames, txtFound, token, vercelConfigured: hasVercelConfig };
+    return {
+      status,
+      lastError,
+      checkedAt: now,
+      ips,
+      cnames,
+      txtFound,
+      token,
+      vercelConfigured: hasVercelConfig,
+    };
   });
-

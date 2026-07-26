@@ -57,14 +57,15 @@ function ModulesPage() {
         modulesList.push({
           id: "seo",
           name: "SEO & AI Ranking",
-          description: "Local SEO, Answer Engine & Generative Engine optimization to rank #1 on Google and AI search",
+          description:
+            "Local SEO, Answer Engine & Generative Engine optimization to rank #1 on Google and AI search",
           category: "Marketing",
           icon: "Search",
           is_core: false,
           is_available: true,
           min_plan: "starter",
           sort_order: 17,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         } as any);
       }
       setModules(modulesList);
@@ -78,12 +79,12 @@ function ModulesPage() {
   const targetEnd = sub?.current_period_end ?? sub?.trial_ends_at;
   const periodEndMs = targetEnd ? new Date(targetEnd).getTime() : null;
   const periodElapsed = periodEndMs !== null && periodEndMs < Date.now();
-  const statusActive = sub && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due");
-  const statusCancelledNotElapsed = sub && 
-    (sub.status === "cancelled" || sub.status === "canceled") && 
-    periodEndMs !== null && 
-    !periodElapsed;
-  const activePlanId = (statusActive && !periodElapsed) || statusCancelledNotElapsed ? sub!.plan_id : null;
+  const statusActive =
+    sub && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due");
+  const statusCancelledNotElapsed =
+    sub && sub.status === "cancelled" && periodEndMs !== null && !periodElapsed;
+  const activePlanId =
+    (statusActive && !periodElapsed) || statusCancelledNotElapsed ? sub!.plan_id : null;
   const currentPlan = activePlanId ? plans.find((p) => p.id === activePlanId) : undefined;
   const allowedModuleIds = new Set(currentPlan?.module_ids ?? []);
   const noActivePlan = !currentPlan;
@@ -101,16 +102,21 @@ function ModulesPage() {
     setBusy(m.id);
     if (installed) {
       const { error } = await supabase
-        .from("organization_modules").delete()
-        .eq("organization_id", org.id).eq("module_id", m.id);
-      if (error) toast.error(error.message); else toast.success(`${m.name} uninstalled`);
+        .from("organization_modules")
+        .delete()
+        .eq("organization_id", org.id)
+        .eq("module_id", m.id);
+      if (error) toast.error(error.message);
+      else toast.success(`${m.name} uninstalled`);
     } else {
-      const { error } = await supabase.from("organization_modules")
+      const { error } = await supabase
+        .from("organization_modules")
         .upsert(
           { organization_id: org.id, module_id: m.id },
           { onConflict: "organization_id,module_id", ignoreDuplicates: true },
         );
-      if (error) toast.error(error.message); else toast.success(`${m.name} installed`);
+      if (error) toast.error(error.message);
+      else toast.success(`${m.name} installed`);
     }
     await refresh();
     setBusy(null);
@@ -119,7 +125,10 @@ function ModulesPage() {
   const categories = ["All", ...Array.from(new Set(modules.map((m) => m.category)))];
 
   const filtered = modules.filter((m) => {
-    const matchesSearch = !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.description.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      !search ||
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.description.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = activeCategory === "All" || m.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
@@ -159,7 +168,8 @@ function ModulesPage() {
             </div>
             <div className="hidden sm:block h-8 w-px bg-border mx-2" />
             <div className="hidden sm:block text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{installedCount}</span> app{installedCount !== 1 ? "s" : ""} installed
+              <span className="font-medium text-foreground">{installedCount}</span> app
+              {installedCount !== 1 ? "s" : ""} installed
             </div>
           </div>
           <Button variant="outline" size="sm" asChild>
@@ -178,7 +188,10 @@ function ModulesPage() {
             <div>
               <div className="font-medium text-sm">No active subscription</div>
               <div className="text-xs text-muted-foreground">
-                {sub ? "Your plan has expired or was cancelled." : "You don't have an active plan yet."} Choose a plan to unlock apps.
+                {sub
+                  ? "Your plan has expired or was cancelled."
+                  : "You don't have an active plan yet."}{" "}
+                Choose a plan to unlock apps.
               </div>
             </div>
           </div>
@@ -209,7 +222,9 @@ function ModulesPage() {
       {loading ? (
         <SkeletonCards count={6} />
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center text-muted-foreground text-sm">No modules match your search.</div>
+        <div className="py-16 text-center text-muted-foreground text-sm">
+          No modules match your search.
+        </div>
       ) : (
         groupedByCategory.map((cat) => {
           const items = filtered.filter((m) => m.category === cat);
@@ -230,7 +245,9 @@ function ModulesPage() {
                   const allowed = allowedModuleIds.has(m.id);
                   const locked = !installed && !allowed;
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const Icon = ((Icons as any)[m.icon] as React.ComponentType<{ className?: string }>) ?? Icons.Package;
+                  const Icon =
+                    ((Icons as any)[m.icon] as React.ComponentType<{ className?: string }>) ??
+                    Icons.Package;
                   const iconColor = catColor;
                   return (
                     <Card
@@ -242,7 +259,9 @@ function ModulesPage() {
                         <div className="absolute top-0 left-0 right-0 h-0.5 bg-emerald-400" />
                       )}
                       <div className="flex items-start gap-3 mb-3">
-                        <div className={`size-10 rounded-xl grid place-items-center shrink-0 relative ${iconColor}`}>
+                        <div
+                          className={`size-10 rounded-xl grid place-items-center shrink-0 relative ${iconColor}`}
+                        >
                           <Icon className="size-5" />
                           {installed && (
                             <div className="absolute -top-1 -right-1 size-4 rounded-full bg-emerald-500 grid place-items-center">
@@ -254,10 +273,14 @@ function ModulesPage() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <h3 className="font-medium text-sm truncate">{m.name}</h3>
                             {m.is_core && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">Core</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">
+                                Core
+                              </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{m.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                            {m.description}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-auto pt-3 border-t">
@@ -281,7 +304,9 @@ function ModulesPage() {
                           ) : installed ? (
                             "Uninstall"
                           ) : locked ? (
-                            <><Lock className="size-3" /> Locked</>
+                            <>
+                              <Lock className="size-3" /> Locked
+                            </>
                           ) : (
                             "Install"
                           )}

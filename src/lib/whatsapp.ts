@@ -33,7 +33,8 @@ export const DEFAULT_TEMPLATES: Array<{
   {
     key: "lead_alert",
     name: "New Lead Alert (to doctor)",
-    description: "Notifies the doctor on their WhatsApp when a new lead (callback / enquiry) comes in.",
+    description:
+      "Notifies the doctor on their WhatsApp when a new lead (callback / enquiry) comes in.",
     body: "🔔 New lead for {clinic_name}\n\nName: {name}\nPhone: {phone}\nSource: {source}\nMessage: {message}",
     variables: ["clinic_name", "name", "phone", "source", "message"],
     audience: "doctor",
@@ -49,7 +50,8 @@ export const DEFAULT_TEMPLATES: Array<{
   {
     key: "appointment_confirmed",
     name: "Appointment Confirmed",
-    description: "Sent to the patient when you confirm a booking. For online appointments, the video link is appended automatically.",
+    description:
+      "Sent to the patient when you confirm a booking. For online appointments, the video link is appended automatically.",
     body: "Hi {patient_name} 👋, your appointment with {doctor_name} is confirmed for {date} at {time}. {consult_info}See you soon! 🏥",
     variables: ["patient_name", "doctor_name", "date", "time", "consult_info"],
     audience: "patient",
@@ -124,7 +126,14 @@ export const DEFAULT_TEMPLATES: Array<{
     name: "Discharge Summary",
     description: "Sent to the patient on hospital discharge with follow-up instructions.",
     body: "🏥 Dear {patient_name}, you have been discharged from {clinic_name} on {date}.\n\nNext follow-up: {followup_date} with Dr. {doctor_name}.\nImportant notes: {instructions}\n\nGet well soon! 🙏",
-    variables: ["patient_name", "clinic_name", "date", "followup_date", "doctor_name", "instructions"],
+    variables: [
+      "patient_name",
+      "clinic_name",
+      "date",
+      "followup_date",
+      "doctor_name",
+      "instructions",
+    ],
     audience: "patient",
   },
   {
@@ -180,12 +189,23 @@ export const DEFAULT_TEMPLATES: Array<{
     name: "Abnormal Report Alert (Doctor)",
     description: "Alerts the doctor when a critical / abnormal lab value is flagged.",
     body: "🚨 *Critical Report Alert* — {clinic_name}\n\nPatient: {patient_name} ({patient_phone})\nTest: {test_name}\n*Result:* {result} (Normal: {normal_range})\nFlagged: {flag_reason}\n\nPlease review immediately. ⚠️",
-    variables: ["clinic_name", "patient_name", "patient_phone", "test_name", "result", "normal_range", "flag_reason"],
+    variables: [
+      "clinic_name",
+      "patient_name",
+      "patient_phone",
+      "test_name",
+      "result",
+      "normal_range",
+      "flag_reason",
+    ],
     audience: "doctor",
   },
 ];
 
-export function renderTemplate(body: string, vars: Record<string, string | number | undefined>): string {
+export function renderTemplate(
+  body: string,
+  vars: Record<string, string | number | undefined>,
+): string {
   return body.replace(/\{(\w+)\}/g, (_, k) => {
     const v = vars[k];
     return v === undefined || v === null ? `{${k}}` : String(v);
@@ -230,7 +250,9 @@ export type SendWaOptions = {
  * "Send" a WhatsApp message — MVP uses click-to-chat (wa.me) and logs the attempt.
  * Returns the wa.me link so the caller can open it.
  */
-export async function sendWhatsApp(opts: SendWaOptions): Promise<{ link: string | null; logged: boolean }> {
+export async function sendWhatsApp(
+  opts: SendWaOptions,
+): Promise<{ link: string | null; logged: boolean }> {
   // Fetch active template
   const { data: tpl } = await supabase
     .from("whatsapp_templates")

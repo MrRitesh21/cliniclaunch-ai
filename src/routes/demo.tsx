@@ -9,11 +9,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureDemoAccountAndWorkspace, DEMO_CREDENTIALS } from "@/lib/demo";
 import {
-  Calendar, Users, Clock, TrendingUp, MessageSquare, Bell,
-  Search, Plus, Filter, MoreHorizontal, ArrowUpRight, ArrowDownRight,
-  Activity, Stethoscope, FileText, IndianRupee, CheckCircle2, XCircle,
-  AlertCircle, Star, Sparkles, Video, Pill, Beaker, Package, Trash2, Printer,
-  Globe, Palette, Layout, ExternalLink, Check, Loader2, Lock
+  Calendar,
+  Users,
+  Clock,
+  TrendingUp,
+  MessageSquare,
+  Bell,
+  Search,
+  Plus,
+  Filter,
+  MoreHorizontal,
+  ArrowUpRight,
+  ArrowDownRight,
+  Activity,
+  Stethoscope,
+  FileText,
+  IndianRupee,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Star,
+  Sparkles,
+  Video,
+  Pill,
+  Beaker,
+  Package,
+  Trash2,
+  Printer,
+  Globe,
+  Palette,
+  Layout,
+  ExternalLink,
+  Check,
+  Loader2,
+  Lock,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
@@ -22,44 +51,158 @@ export const Route = createFileRoute("/demo")({
   head: () => ({
     meta: [
       { title: "Live Demo — ClinicX Dashboard" },
-      { name: "description", content: "Explore a fully populated ClinicX doctor dashboard — no sign-up required." },
+      {
+        name: "description",
+        content: "Explore a fully populated ClinicX doctor dashboard — no sign-up required.",
+      },
       { property: "og:title", content: "Live Demo — ClinicX Dashboard" },
-      { property: "og:description", content: "Explore a fully populated ClinicX doctor dashboard — no sign-up required." },
+      {
+        property: "og:description",
+        content: "Explore a fully populated ClinicX doctor dashboard — no sign-up required.",
+      },
     ],
   }),
   component: DemoPage,
 });
 
 const defaultPatients = [
-  { name: "Priya Sharma", phone: "+91 98765 43210", last: "12 Jun · Dermatology", tags: ["Chronic"], color: "bg-rose-500", email: "priya@gmail.com" },
-  { name: "Rahul Verma", phone: "+91 87654 32109", last: "14 Jun · Consultation", tags: ["New"], color: "bg-blue-500", email: "rahul@outlook.com" },
-  { name: "Anaya Kapoor", phone: "+91 76543 21098", last: "15 Jun · Biopsy", tags: ["High priority"], color: "bg-emerald-500", email: "anaya.k@yahoo.com" },
-  { name: "Neha Iyer", phone: "+91 95432 10987", last: "17 Jun · Consultation", tags: [], color: "bg-purple-500", email: "neha.iyer@gmail.com" },
-  { name: "Aditya Mehta", phone: "+91 84321 09876", last: "18 Jun · Cosmetic", tags: ["VIP"], color: "bg-indigo-500", email: "aditya.m@gmail.com" },
-  { name: "Vikram Singh", phone: "+91 73210 98765", last: "20 Jun · Acne Therapy", tags: ["Follow-up"], color: "bg-amber-500", email: "vikram.s@outlook.com" },
+  {
+    name: "Priya Sharma",
+    phone: "+91 98765 43210",
+    last: "12 Jun · Dermatology",
+    tags: ["Chronic"],
+    color: "bg-rose-500",
+    email: "priya@gmail.com",
+  },
+  {
+    name: "Rahul Verma",
+    phone: "+91 87654 32109",
+    last: "14 Jun · Consultation",
+    tags: ["New"],
+    color: "bg-blue-500",
+    email: "rahul@outlook.com",
+  },
+  {
+    name: "Anaya Kapoor",
+    phone: "+91 76543 21098",
+    last: "15 Jun · Biopsy",
+    tags: ["High priority"],
+    color: "bg-emerald-500",
+    email: "anaya.k@yahoo.com",
+  },
+  {
+    name: "Neha Iyer",
+    phone: "+91 95432 10987",
+    last: "17 Jun · Consultation",
+    tags: [],
+    color: "bg-purple-500",
+    email: "neha.iyer@gmail.com",
+  },
+  {
+    name: "Aditya Mehta",
+    phone: "+91 84321 09876",
+    last: "18 Jun · Cosmetic",
+    tags: ["VIP"],
+    color: "bg-indigo-500",
+    email: "aditya.m@gmail.com",
+  },
+  {
+    name: "Vikram Singh",
+    phone: "+91 73210 98765",
+    last: "20 Jun · Acne Therapy",
+    tags: ["Follow-up"],
+    color: "bg-amber-500",
+    email: "vikram.s@outlook.com",
+  },
 ];
 
 const defaultAppointments = [
-  { time: "09:00", name: "Priya Sharma", type: "Follow-up · Dermatology", status: "confirmed", avatar: "PS", color: "bg-rose-500" },
-  { time: "09:30", name: "Rahul Verma", type: "New patient · Consultation", status: "confirmed", avatar: "RV", color: "bg-blue-500" },
-  { time: "10:00", name: "Anaya Kapoor", type: "Skin biopsy review", status: "in-progress", avatar: "AK", color: "bg-emerald-500" },
-  { time: "10:30", name: "Vikram Singh", type: "Acne therapy · Follow-up", status: "pending", avatar: "VS", color: "bg-amber-500" },
-  { time: "11:00", name: "Neha Iyer", type: "Consultation", status: "confirmed", avatar: "NI", color: "bg-purple-500" },
-  { time: "11:30", name: "Aditya Mehta", type: "Cosmetic consult", status: "confirmed", avatar: "AM", color: "bg-indigo-500" },
+  {
+    time: "09:00",
+    name: "Priya Sharma",
+    type: "Follow-up · Dermatology",
+    status: "confirmed",
+    avatar: "PS",
+    color: "bg-rose-500",
+  },
+  {
+    time: "09:30",
+    name: "Rahul Verma",
+    type: "New patient · Consultation",
+    status: "confirmed",
+    avatar: "RV",
+    color: "bg-blue-500",
+  },
+  {
+    time: "10:00",
+    name: "Anaya Kapoor",
+    type: "Skin biopsy review",
+    status: "in-progress",
+    avatar: "AK",
+    color: "bg-emerald-500",
+  },
+  {
+    time: "10:30",
+    name: "Vikram Singh",
+    type: "Acne therapy · Follow-up",
+    status: "pending",
+    avatar: "VS",
+    color: "bg-amber-500",
+  },
+  {
+    time: "11:00",
+    name: "Neha Iyer",
+    type: "Consultation",
+    status: "confirmed",
+    avatar: "NI",
+    color: "bg-purple-500",
+  },
+  {
+    time: "11:30",
+    name: "Aditya Mehta",
+    type: "Cosmetic consult",
+    status: "confirmed",
+    avatar: "AM",
+    color: "bg-indigo-500",
+  },
 ];
 
 const defaultActivity = [
-  { icon: MessageSquare, text: "WhatsApp reminder sent to Priya Sharma", time: "2 min ago", tone: "emerald" },
-  { icon: CheckCircle2, text: "Payment received: ₹1,200 from Rahul Verma", time: "8 min ago", tone: "emerald" },
+  {
+    icon: MessageSquare,
+    text: "WhatsApp reminder sent to Priya Sharma",
+    time: "2 min ago",
+    tone: "emerald",
+  },
+  {
+    icon: CheckCircle2,
+    text: "Payment received: ₹1,200 from Rahul Verma",
+    time: "8 min ago",
+    tone: "emerald",
+  },
   { icon: Star, text: "New 5★ review from Anaya Kapoor", time: "22 min ago", tone: "amber" },
   { icon: Calendar, text: "Vikram Singh rescheduled to 3:00 PM", time: "1 hr ago", tone: "blue" },
   { icon: Bell, text: "Low stock alert: Tretinoin 0.025%", time: "2 hr ago", tone: "rose" },
 ];
 
 const stats = [
-  { label: "Today's appointments", value: 24, delta: "+12%", up: true, icon: Calendar, tone: "blue" },
+  {
+    label: "Today's appointments",
+    value: 24,
+    delta: "+12%",
+    up: true,
+    icon: Calendar,
+    tone: "blue",
+  },
   { label: "Pending confirmations", value: 7, delta: "-3", up: false, icon: Clock, tone: "amber" },
-  { label: "Revenue this week", value: "₹1,42,850", delta: "+18%", up: true, icon: IndianRupee, tone: "emerald" },
+  {
+    label: "Revenue this week",
+    value: "₹1,42,850",
+    delta: "+18%",
+    up: true,
+    icon: IndianRupee,
+    tone: "emerald",
+  },
   { label: "Active patients", value: 1284, delta: "+42", up: true, icon: Users, tone: "purple" },
 ];
 
@@ -75,15 +218,37 @@ const TONE: Record<string, string> = {
 };
 
 const STATUS: Record<string, { label: string; className: string }> = {
-  confirmed: { label: "Confirmed", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
-  pending: { label: "Pending", className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" },
-  "in-progress": { label: "In progress", className: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20" },
-  cancelled: { label: "Cancelled", className: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20" },
+  confirmed: {
+    label: "Confirmed",
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+  },
+  pending: {
+    label: "Pending",
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  },
+  "in-progress": {
+    label: "In progress",
+    className: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  },
 };
 
 function DemoPage() {
   const navigate = useNavigate();
-  const [activeSubView, setActiveSubView] = useState<"overview" | "patients" | "whatsapp" | "reviews" | "prescriptions" | "lab" | "inventory" | "website" | "billing">("overview");
+  const [activeSubView, setActiveSubView] = useState<
+    | "overview"
+    | "patients"
+    | "whatsapp"
+    | "reviews"
+    | "prescriptions"
+    | "lab"
+    | "inventory"
+    | "website"
+    | "billing"
+  >("overview");
 
   // Demo auto-launch state
   const [isLaunchingDemo, setIsLaunchingDemo] = useState(true);
@@ -111,7 +276,9 @@ function DemoPage() {
         }
       }
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   const handleManualDemoLogin = async () => {
@@ -155,10 +322,16 @@ function DemoPage() {
 
   // Telehealth Consultation state
   const [activeConsultation, setActiveConsultation] = useState<any>(defaultAppointments[2]);
-  const [soapSubjective, setSoapSubjective] = useState("Patient reports itching and redness on the left forearm for 3 days.");
-  const [soapObjective, setSoapObjective] = useState("Vitals: Temp 98.6 F, BP 120/80 mmHg. Mild erythematous plaque observed.");
+  const [soapSubjective, setSoapSubjective] = useState(
+    "Patient reports itching and redness on the left forearm for 3 days.",
+  );
+  const [soapObjective, setSoapObjective] = useState(
+    "Vitals: Temp 98.6 F, BP 120/80 mmHg. Mild erythematous plaque observed.",
+  );
   const [soapAssessment, setSoapAssessment] = useState("Contact Dermatitis");
-  const [soapPrescription, setSoapPrescription] = useState("Mometasone Furoate 0.1% Cream - Apply once daily for 7 days.");
+  const [soapPrescription, setSoapPrescription] = useState(
+    "Mometasone Furoate 0.1% Cream - Apply once daily for 7 days.",
+  );
 
   // WhatsApp configuration simulation
   const [waConfirmation, setWaConfirmation] = useState(true);
@@ -167,31 +340,94 @@ function DemoPage() {
 
   // Reviews list simulation
   const [reviewsList, setReviewsList] = useState([
-    { author: "Anaya Kapoor", rating: 5, text: "Dr. Jenkins was extremely thorough and helpful with my treatment path.", date: "Today", published: true },
-    { author: "Rahul Verma", rating: 5, text: "Brilliant booking flow, got confirmation on WhatsApp instantly. Professional staff.", date: "Yesterday", published: true },
-    { author: "Priya Sharma", rating: 4, text: "Satisfied with the consultation. Highly recommended doctor.", date: "2 days ago", published: true },
+    {
+      author: "Anaya Kapoor",
+      rating: 5,
+      text: "Dr. Jenkins was extremely thorough and helpful with my treatment path.",
+      date: "Today",
+      published: true,
+    },
+    {
+      author: "Rahul Verma",
+      rating: 5,
+      text: "Brilliant booking flow, got confirmation on WhatsApp instantly. Professional staff.",
+      date: "Yesterday",
+      published: true,
+    },
+    {
+      author: "Priya Sharma",
+      rating: 4,
+      text: "Satisfied with the consultation. Highly recommended doctor.",
+      date: "2 days ago",
+      published: true,
+    },
   ]);
 
   // Inventory list simulation
   const [inventoryList, setInventoryList] = useState([
     { name: "Paracetamol 650mg", stock: 120, unit: "Tablets", reorder: 50, category: "Medicine" },
     { name: "Mometasone 0.1% Cream", stock: 18, unit: "Tubes", reorder: 20, category: "Topical" },
-    { name: "Salicylic Acid Face Wash", stock: 8, unit: "Bottles", reorder: 15, category: "Cosmetic" },
+    {
+      name: "Salicylic Acid Face Wash",
+      stock: 8,
+      unit: "Bottles",
+      reorder: 15,
+      category: "Cosmetic",
+    },
     { name: "Vitamin D3 60k IU", stock: 75, unit: "Capsules", reorder: 30, category: "Supplement" },
   ]);
 
   // Lab orders list simulation
   const [labOrdersList, setLabOrdersList] = useState([
-    { id: "LAB-239", patient: "Anaya Kapoor", test: "Skin Biopsy Histopathology", status: "In progress", date: "Today" },
-    { id: "LAB-238", patient: "Rahul Verma", test: "Complete Blood Count (CBC)", status: "Completed", date: "Yesterday" },
-    { id: "LAB-237", patient: "Priya Sharma", test: "Allergy IgE Panel", status: "Completed", date: "3 days ago" },
+    {
+      id: "LAB-239",
+      patient: "Anaya Kapoor",
+      test: "Skin Biopsy Histopathology",
+      status: "In progress",
+      date: "Today",
+    },
+    {
+      id: "LAB-238",
+      patient: "Rahul Verma",
+      test: "Complete Blood Count (CBC)",
+      status: "Completed",
+      date: "Yesterday",
+    },
+    {
+      id: "LAB-237",
+      patient: "Priya Sharma",
+      test: "Allergy IgE Panel",
+      status: "Completed",
+      date: "3 days ago",
+    },
   ]);
 
   // Billing invoices list simulation
   const [invoicesList, setInvoicesList] = useState([
-    { id: "INV-7801", patient: "Rahul Verma", date: "Today", amount: "₹1,200", status: "Paid", method: "Razorpay" },
-    { id: "INV-7800", patient: "Priya Sharma", date: "Yesterday", amount: "₹850", status: "Paid", method: "Cash" },
-    { id: "INV-7799", patient: "Anaya Kapoor", date: "2 days ago", amount: "₹2,500", status: "Pending", method: "—" },
+    {
+      id: "INV-7801",
+      patient: "Rahul Verma",
+      date: "Today",
+      amount: "₹1,200",
+      status: "Paid",
+      method: "Razorpay",
+    },
+    {
+      id: "INV-7800",
+      patient: "Priya Sharma",
+      date: "Yesterday",
+      amount: "₹850",
+      status: "Paid",
+      method: "Cash",
+    },
+    {
+      id: "INV-7799",
+      patient: "Anaya Kapoor",
+      date: "2 days ago",
+      amount: "₹2,500",
+      status: "Pending",
+      method: "—",
+    },
   ]);
 
   // Handle Google Meet Demo booking and lead capture
@@ -205,14 +441,14 @@ function DemoPage() {
     setIsSubmittingMeet(true);
     try {
       const messageContent = `Clinic Name: ${meetClinicName || "Not specified"}\nPreferred Date/Time: ${meetPreferredTime || "Not specified"}\nMessage: ${meetMessage || "None"}`;
-      
+
       const { error } = await supabase.from("leads").insert({
         name: meetName,
         phone: meetPhone,
         email: meetEmail,
         message: messageContent,
         source: "demo_booking",
-        status: "new"
+        status: "new",
       });
 
       if (error) {
@@ -221,11 +457,16 @@ function DemoPage() {
 
       setMeetSubmitSuccess(true);
       toast.success("Demo requested successfully!");
-      
+
       // Add a simulated log entry to the Activity List in the Demo dashboard
-      setActivityList(prev => [
-        { icon: Video, text: `Google Meet Demo requested by ${meetName} (${meetClinicName || "Clinic"})`, time: "Just now", tone: "blue" },
-        ...prev
+      setActivityList((prev) => [
+        {
+          icon: Video,
+          text: `Google Meet Demo requested by ${meetName} (${meetClinicName || "Clinic"})`,
+          time: "Just now",
+          tone: "blue",
+        },
+        ...prev,
       ]);
     } catch (err: any) {
       console.error("Error submitting lead:", err);
@@ -266,21 +507,38 @@ function DemoPage() {
       name: newApptName,
       type: `Walk-in · ${newApptType}`,
       status: "confirmed",
-      avatar: newApptName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
-      color: "bg-indigo-500"
+      avatar: newApptName
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2),
+      color: "bg-indigo-500",
     };
 
-    setAppointmentsList(prev => [...prev, newAppt].sort((a, b) => a.time.localeCompare(b.time)));
-    setActivityList(prev => [
-      { icon: Calendar, text: `New appointment booked for ${newApptName} at ${newApptTime}`, time: "Just now", tone: "blue" },
-      ...prev
+    setAppointmentsList((prev) => [...prev, newAppt].sort((a, b) => a.time.localeCompare(b.time)));
+    setActivityList((prev) => [
+      {
+        icon: Calendar,
+        text: `New appointment booked for ${newApptName} at ${newApptTime}`,
+        time: "Just now",
+        tone: "blue",
+      },
+      ...prev,
     ]);
 
     // Add to patient directory if not exists
-    if (!patientsList.some(p => p.name.toLowerCase() === newApptName.toLowerCase())) {
-      setPatientsList(prev => [
-        { name: newApptName, phone: "+91 99999 11111", last: `Today · ${newApptType}`, tags: ["New"], color: "bg-indigo-500", email: `${newApptName.toLowerCase().replace(/\s+/g, '')}@demo.com` },
-        ...prev
+    if (!patientsList.some((p) => p.name.toLowerCase() === newApptName.toLowerCase())) {
+      setPatientsList((prev) => [
+        {
+          name: newApptName,
+          phone: "+91 99999 11111",
+          last: `Today · ${newApptType}`,
+          tags: ["New"],
+          color: "bg-indigo-500",
+          email: `${newApptName.toLowerCase().replace(/\s+/g, "")}@demo.com`,
+        },
+        ...prev,
       ]);
     }
 
@@ -296,20 +554,34 @@ function DemoPage() {
 
     // Update appointment status to confirmed/completed
     if (activeConsultation) {
-      setAppointmentsList(prev => prev.map(a => a.name === activeConsultation.name ? { ...a, status: "confirmed" } : a));
+      setAppointmentsList((prev) =>
+        prev.map((a) => (a.name === activeConsultation.name ? { ...a, status: "confirmed" } : a)),
+      );
     }
 
     // Add to activity list
-    setActivityList(prev => [
-      { icon: CheckCircle2, text: `Consultation notes finalized for ${activeConsultation?.name}`, time: "Just now", tone: "emerald" },
-      ...prev
+    setActivityList((prev) => [
+      {
+        icon: CheckCircle2,
+        text: `Consultation notes finalized for ${activeConsultation?.name}`,
+        time: "Just now",
+        tone: "emerald",
+      },
+      ...prev,
     ]);
 
     // Add to dynamic invoice list
     const randomInvId = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
-    setInvoicesList(prev => [
-      { id: randomInvId, patient: activeConsultation?.name || "Patient", date: "Today", amount: "₹1,500", status: "Paid", method: "Razorpay" },
-      ...prev
+    setInvoicesList((prev) => [
+      {
+        id: randomInvId,
+        patient: activeConsultation?.name || "Patient",
+        date: "Today",
+        amount: "₹1,500",
+        status: "Paid",
+        method: "Razorpay",
+      },
+      ...prev,
     ]);
   };
 
@@ -319,16 +591,37 @@ function DemoPage() {
       {/* Greeting banner */}
       <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Workspace Console</p>
-          <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Dr. Sarah Jenkins</h1>
-          <p className="text-muted-foreground text-sm mt-1">Skin & Aesthetics Clinic — {appointmentsList.length} scheduled visits today.</p>
+          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">
+            Workspace Console
+          </p>
+          <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
+            Dr. Sarah Jenkins
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Skin & Aesthetics Clinic — {appointmentsList.length} scheduled visits today.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setApptModalOpen(true)} className="h-9"><Plus className="size-3.5 mr-1" /> New appointment</Button>
-          <Button size="sm" onClick={() => {
-            setActiveConsultation(appointmentsList.find(a => a.status === "in-progress") || appointmentsList[0]);
-            setConsultModalOpen(true);
-          }} className="h-9"><Video className="size-3.5 mr-1" /> Start consultation</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setApptModalOpen(true)}
+            className="h-9"
+          >
+            <Plus className="size-3.5 mr-1" /> New appointment
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setActiveConsultation(
+                appointmentsList.find((a) => a.status === "in-progress") || appointmentsList[0],
+              );
+              setConsultModalOpen(true);
+            }}
+            className="h-9"
+          >
+            <Video className="size-3.5 mr-1" /> Start consultation
+          </Button>
         </div>
       </div>
 
@@ -339,13 +632,20 @@ function DemoPage() {
             <Video className="size-5 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-bold text-sm font-display">Book a Personalized Demo on Google Meet</h3>
+            <h3 className="font-bold text-sm font-display">
+              Book a Personalized Demo on Google Meet
+            </h3>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
-              Get a live 1-on-1 walk-through with our product experts. Learn how to configure automated WhatsApp reminders, custom EHR templates, and billing rules tailored to your clinic.
+              Get a live 1-on-1 walk-through with our product experts. Learn how to configure
+              automated WhatsApp reminders, custom EHR templates, and billing rules tailored to your
+              clinic.
             </p>
           </div>
         </div>
-        <Button onClick={() => setMeetDemoModalOpen(true)} className="shrink-0 h-9 font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm">
+        <Button
+          onClick={() => setMeetDemoModalOpen(true)}
+          className="shrink-0 h-9 font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm"
+        >
           Book Live Demo <ArrowUpRight className="size-4 ml-1" />
         </Button>
       </Card>
@@ -358,12 +658,16 @@ function DemoPage() {
               <div className={`size-9 rounded-lg grid place-items-center ${TONE[s.tone]}`}>
                 <s.icon className="size-4.5" />
               </div>
-              <span className={`text-xs font-semibold flex items-center gap-0.5 ${s.up ? "text-emerald-600" : "text-rose-600"}`}>
+              <span
+                className={`text-xs font-semibold flex items-center gap-0.5 ${s.up ? "text-emerald-600" : "text-rose-600"}`}
+              >
                 {s.up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
                 {s.delta}
               </span>
             </div>
-            <p className="mt-3 text-2xl font-bold font-display">{s.label === "Today's appointments" ? appointmentsList.length : s.value}</p>
+            <p className="mt-3 text-2xl font-bold font-display">
+              {s.label === "Today's appointments" ? appointmentsList.length : s.value}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
           </Card>
         ))}
@@ -376,26 +680,53 @@ function DemoPage() {
           <div className="flex items-center justify-between p-4 border-b">
             <div>
               <h2 className="font-display text-base font-bold">Today's schedule</h2>
-              <p className="text-xs text-muted-foreground">Wednesday, July 1 · {appointmentsList.length} visits</p>
+              <p className="text-xs text-muted-foreground">
+                Wednesday, July 1 · {appointmentsList.length} visits
+              </p>
             </div>
             <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="sm" className="h-8 text-xs"><Filter className="size-3.5 mr-1" /> Filter</Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                <Filter className="size-3.5 mr-1" /> Filter
+              </Button>
             </div>
           </div>
           <ul className="divide-y">
             {appointmentsList.map((a, i) => (
-              <li key={i} className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
-                <div className="text-xs font-mono text-muted-foreground w-12 shrink-0">{a.time}</div>
-                <div className={`size-8 rounded-full ${a.color} text-white grid place-items-center text-xs font-semibold shrink-0`}>{a.avatar}</div>
+              <li
+                key={i}
+                className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors"
+              >
+                <div className="text-xs font-mono text-muted-foreground w-12 shrink-0">
+                  {a.time}
+                </div>
+                <div
+                  className={`size-8 rounded-full ${a.color} text-white grid place-items-center text-xs font-semibold shrink-0`}
+                >
+                  {a.avatar}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{a.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{a.type}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {a.status === "in-progress" && (
-                    <Button size="xs" onClick={() => { setActiveConsultation(a); setConsultModalOpen(true); }} className="h-7 text-xs bg-blue-600 hover:bg-blue-700">Consult</Button>
+                    <Button
+                      size="xs"
+                      onClick={() => {
+                        setActiveConsultation(a);
+                        setConsultModalOpen(true);
+                      }}
+                      className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                    >
+                      Consult
+                    </Button>
                   )}
-                  <Badge variant="outline" className={`text-[10px] h-5 ${STATUS[a.status].className}`}>{STATUS[a.status].label}</Badge>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] h-5 ${STATUS[a.status].className}`}
+                  >
+                    {STATUS[a.status].label}
+                  </Badge>
                 </div>
               </li>
             ))}
@@ -411,7 +742,9 @@ function DemoPage() {
           <ul className="divide-y">
             {activityList.slice(0, 5).map((a, i) => (
               <li key={i} className="flex items-start gap-3 px-4 py-3.5">
-                <div className={`size-7.5 rounded-lg grid place-items-center shrink-0 ${TONE[a.tone]}`}>
+                <div
+                  className={`size-7.5 rounded-lg grid place-items-center shrink-0 ${TONE[a.tone]}`}
+                >
                   <a.icon className="size-3.5" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -429,29 +762,37 @@ function DemoPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="font-display text-base font-bold">Revenue · Last 12 weeks</h2>
-            <p className="text-xs text-muted-foreground">₹9,84,200 total · up 22% vs previous period</p>
+            <p className="text-xs text-muted-foreground">
+              ₹9,84,200 total · up 22% vs previous period
+            </p>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="flex items-center gap-1.5 font-semibold text-muted-foreground"><span className="size-2.5 rounded-full bg-primary" /> Revenue (Weekly)</span>
+            <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
+              <span className="size-2.5 rounded-full bg-primary" /> Revenue (Weekly)
+            </span>
           </div>
         </div>
         <div className="h-56 flex items-end gap-2 px-2 relative border-b border-border/60 pb-1">
           {revenueData.map((v, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="flex-1 flex flex-col items-center gap-2 group relative cursor-pointer"
               onMouseEnter={() => setHoveredBar(i)}
               onMouseLeave={() => setHoveredBar(null)}
             >
               {/* Tooltip */}
-              <div className={`absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 border border-slate-800 text-white text-[10px] font-bold rounded shadow-md pointer-events-none transition-all z-10 ${hoveredBar === i ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
+              <div
+                className={`absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 border border-slate-800 text-white text-[10px] font-bold rounded shadow-md pointer-events-none transition-all z-10 ${hoveredBar === i ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+              >
                 ₹{(v * 1000).toLocaleString()}
               </div>
               <div
                 className="w-full rounded-t bg-gradient-to-t from-primary/80 to-primary transition-all group-hover:from-primary group-hover:to-primary/95"
                 style={{ height: `${(v / revenueMax) * 100}%` }}
               />
-              <span className="text-[9px] text-muted-foreground font-mono font-bold mt-1">W{i + 1}</span>
+              <span className="text-[9px] text-muted-foreground font-mono font-bold mt-1">
+                W{i + 1}
+              </span>
             </div>
           ))}
         </div>
@@ -462,19 +803,55 @@ function DemoPage() {
         <h2 className="font-display text-lg font-bold mb-4">Installed apps</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { id: "whatsapp", icon: MessageSquare, name: "WhatsApp", stat: "1,284 sent", tone: "emerald" },
-            { id: "reviews", icon: Star, name: "Reviews", stat: "4.9 · 312 reviews", tone: "amber" },
-            { id: "prescriptions", icon: FileText, name: "Prescriptions", stat: "48 this week", tone: "blue" },
+            {
+              id: "whatsapp",
+              icon: MessageSquare,
+              name: "WhatsApp",
+              stat: "1,284 sent",
+              tone: "emerald",
+            },
+            {
+              id: "reviews",
+              icon: Star,
+              name: "Reviews",
+              stat: "4.9 · 312 reviews",
+              tone: "amber",
+            },
+            {
+              id: "prescriptions",
+              icon: FileText,
+              name: "Prescriptions",
+              stat: "48 this week",
+              tone: "blue",
+            },
             { id: "lab", icon: Beaker, name: "Lab orders", stat: "12 pending", tone: "purple" },
-            { id: "inventory", icon: Package, name: "Inventory", stat: "3 low-stock", tone: "rose" },
-            { id: "website", icon: Globe, name: "Website Builder", stat: "Template active", tone: "blue" },
-            { id: "billing", icon: IndianRupee, name: "Billing", stat: "₹1.4L this week", tone: "emerald" },
+            {
+              id: "inventory",
+              icon: Package,
+              name: "Inventory",
+              stat: "3 low-stock",
+              tone: "rose",
+            },
+            {
+              id: "website",
+              icon: Globe,
+              name: "Website Builder",
+              stat: "Template active",
+              tone: "blue",
+            },
+            {
+              id: "billing",
+              icon: IndianRupee,
+              name: "Billing",
+              stat: "₹1.4L this week",
+              tone: "emerald",
+            },
           ].map((m) => (
-            <Card 
-              key={m.name} 
+            <Card
+              key={m.name}
               onClick={() => {
                 setActiveSubView(m.id as any);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="p-4 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer border-border/60"
             >
@@ -495,15 +872,22 @@ function DemoPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold font-display">Patient Directory</h1>
-          <p className="text-sm text-muted-foreground">Manage files, histories, and basic contact sheets.</p>
+          <p className="text-sm text-muted-foreground">
+            Manage files, histories, and basic contact sheets.
+          </p>
         </div>
-        <Button onClick={() => setApptModalOpen(true)} className="h-9"><Plus className="size-3.5 mr-1" /> Add Patient</Button>
+        <Button onClick={() => setApptModalOpen(true)} className="h-9">
+          <Plus className="size-3.5 mr-1" /> Add Patient
+        </Button>
       </div>
 
       <Card className="p-4 flex gap-2 border-border/60">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="Search patients by name, email, or phone number..." className="pl-9" />
+          <Input
+            placeholder="Search patients by name, email, or phone number..."
+            className="pl-9"
+          />
         </div>
       </Card>
 
@@ -522,8 +906,13 @@ function DemoPage() {
             {patientsList.map((p, i) => (
               <tr key={i} className="hover:bg-muted/20">
                 <td className="p-4 font-bold flex items-center gap-3">
-                  <div className={`size-8 rounded-full ${p.color} text-white grid place-items-center text-xs font-semibold`}>
-                    {p.name.split(" ").map(w => w[0]).join("")}
+                  <div
+                    className={`size-8 rounded-full ${p.color} text-white grid place-items-center text-xs font-semibold`}
+                  >
+                    {p.name
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")}
                   </div>
                   {p.name}
                 </td>
@@ -531,8 +920,10 @@ function DemoPage() {
                 <td className="p-4 text-muted-foreground text-xs">{p.email}</td>
                 <td className="p-4 text-muted-foreground text-xs">{p.last}</td>
                 <td className="p-4">
-                  {p.tags.map(t => (
-                    <Badge key={t} variant="outline" className="text-[10px] font-bold">{t}</Badge>
+                  {p.tags.map((t) => (
+                    <Badge key={t} variant="outline" className="text-[10px] font-bold">
+                      {t}
+                    </Badge>
                   ))}
                 </td>
               </tr>
@@ -547,7 +938,9 @@ function DemoPage() {
     <div className="space-y-6 animate-in fade-in duration-200">
       <div className="border-b pb-4">
         <h1 className="text-2xl font-bold font-display">WhatsApp Automation</h1>
-        <p className="text-sm text-muted-foreground">Configure automated reminders and follow-up templates.</p>
+        <p className="text-sm text-muted-foreground">
+          Configure automated reminders and follow-up templates.
+        </p>
       </div>
 
       <Card className="p-5 border-l-4 border-l-emerald-500 bg-emerald-500/5">
@@ -557,7 +950,9 @@ function DemoPage() {
           </div>
           <div>
             <h3 className="font-bold text-sm text-emerald-800">Account status: Connected</h3>
-            <p className="text-xs text-emerald-700">ClinicX official business line (+91 90000 88888) is active.</p>
+            <p className="text-xs text-emerald-700">
+              ClinicX official business line (+91 90000 88888) is active.
+            </p>
           </div>
         </div>
       </Card>
@@ -573,7 +968,10 @@ function DemoPage() {
                   Hi {"{patient}"}, your appointment with {"{doctor}"} is confirmed for {"{time}"}.
                 </p>
               </div>
-              <button onClick={() => setWaConfirmation(!waConfirmation)} className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${waConfirmation ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}`}>
+              <button
+                onClick={() => setWaConfirmation(!waConfirmation)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${waConfirmation ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}`}
+              >
                 <span className="size-5 bg-white rounded-full shadow" />
               </button>
             </div>
@@ -584,7 +982,10 @@ function DemoPage() {
                   Hi {"{patient}"}, reminder for your upcoming appointment tomorrow at {"{time}"}.
                 </p>
               </div>
-              <button onClick={() => setWaReminder(!waReminder)} className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${waReminder ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}`}>
+              <button
+                onClick={() => setWaReminder(!waReminder)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${waReminder ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}`}
+              >
                 <span className="size-5 bg-white rounded-full shadow" />
               </button>
             </div>
@@ -595,7 +996,10 @@ function DemoPage() {
                   Hi {"{patient}"}, thank you for visiting. Please share your rating: {"{link}"}
                 </p>
               </div>
-              <button onClick={() => setWaFeedback(!waFeedback)} className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${waFeedback ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}`}>
+              <button
+                onClick={() => setWaFeedback(!waFeedback)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${waFeedback ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}`}
+              >
                 <span className="size-5 bg-white rounded-full shadow" />
               </button>
             </div>
@@ -606,7 +1010,12 @@ function DemoPage() {
           <h3 className="font-bold font-display text-base mb-4">Live Message Logs</h3>
           <div className="space-y-3">
             {[
-              { name: "Priya Sharma", type: "Confirmation", time: "2 min ago", status: "Delivered" },
+              {
+                name: "Priya Sharma",
+                type: "Confirmation",
+                time: "2 min ago",
+                status: "Delivered",
+              },
               { name: "Rahul Verma", type: "Reminder", time: "8 min ago", status: "Read" },
               { name: "Anaya Kapoor", type: "Feedback", time: "22 min ago", status: "Sent" },
             ].map((log, idx) => (
@@ -616,7 +1025,14 @@ function DemoPage() {
                   <span className="text-muted-foreground ml-1">({log.type})</span>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{log.time}</p>
                 </div>
-                <Badge variant="outline" className={log.status === "Read" ? "bg-emerald-500/10 text-emerald-700" : "bg-blue-500/10 text-blue-700"}>
+                <Badge
+                  variant="outline"
+                  className={
+                    log.status === "Read"
+                      ? "bg-emerald-500/10 text-emerald-700"
+                      : "bg-blue-500/10 text-blue-700"
+                  }
+                >
                   {log.status}
                 </Badge>
               </div>
@@ -631,22 +1047,30 @@ function DemoPage() {
     <div className="space-y-6 animate-in fade-in duration-200">
       <div className="border-b pb-4">
         <h1 className="text-2xl font-bold font-display">Review Management</h1>
-        <p className="text-sm text-muted-foreground">Monitor patient reviews and sync with Google Business Profile.</p>
+        <p className="text-sm text-muted-foreground">
+          Monitor patient reviews and sync with Google Business Profile.
+        </p>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4">
         <Card className="p-4 text-center border-border/60">
-          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Average Rating</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+            Average Rating
+          </span>
           <div className="text-3xl font-extrabold text-amber-500 mt-1 flex items-center justify-center gap-1">
             4.9 <Star className="size-6 fill-amber-500 text-amber-500" />
           </div>
         </Card>
         <Card className="p-4 text-center border-border/60">
-          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total Reviews</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+            Total Reviews
+          </span>
           <div className="text-3xl font-extrabold text-foreground mt-1">312</div>
         </Card>
         <Card className="p-4 text-center border-border/60 bg-primary/5">
-          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Google Sync</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+            Google Sync
+          </span>
           <div className="text-sm font-bold text-primary mt-2">CONNECTED</div>
         </Card>
       </div>
@@ -669,8 +1093,12 @@ function DemoPage() {
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">{r.text}</p>
               <div className="flex justify-end gap-2 pt-2">
-                <Button size="xs" variant="outline">Reply</Button>
-                <Button size="xs" variant="outline" className="text-rose-600 hover:text-rose-700">Flag</Button>
+                <Button size="xs" variant="outline">
+                  Reply
+                </Button>
+                <Button size="xs" variant="outline" className="text-rose-600 hover:text-rose-700">
+                  Flag
+                </Button>
               </div>
             </div>
           ))}
@@ -684,12 +1112,19 @@ function DemoPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold font-display">Prescriptions (Rx)</h1>
-          <p className="text-sm text-muted-foreground">Digital prescriptions, refills, and medication catalogs.</p>
+          <p className="text-sm text-muted-foreground">
+            Digital prescriptions, refills, and medication catalogs.
+          </p>
         </div>
-        <Button onClick={() => {
-          setActiveConsultation(appointmentsList[2]);
-          setConsultModalOpen(true);
-        }} className="h-9"><Plus className="size-3.5 mr-1" /> New Prescription</Button>
+        <Button
+          onClick={() => {
+            setActiveConsultation(appointmentsList[2]);
+            setConsultModalOpen(true);
+          }}
+          className="h-9"
+        >
+          <Plus className="size-3.5 mr-1" /> New Prescription
+        </Button>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -697,10 +1132,26 @@ function DemoPage() {
           <h3 className="font-bold font-display text-base mb-4">Medication Catalog</h3>
           <div className="space-y-3">
             {[
-              { name: "Mometasone 0.1% Cream", type: "Topical", instructions: "Apply thin film daily" },
-              { name: "Tab. Paracetamol 650mg", type: "Oral Tablet", instructions: "1 tablet post meals, SOS" },
-              { name: "Cap. Vitamin D3 60K", type: "Oral Capsule", instructions: "1 capsule weekly with milk" },
-              { name: "Levocetirizine 5mg", type: "Oral Tablet", instructions: "1 tablet at bedtime" },
+              {
+                name: "Mometasone 0.1% Cream",
+                type: "Topical",
+                instructions: "Apply thin film daily",
+              },
+              {
+                name: "Tab. Paracetamol 650mg",
+                type: "Oral Tablet",
+                instructions: "1 tablet post meals, SOS",
+              },
+              {
+                name: "Cap. Vitamin D3 60K",
+                type: "Oral Capsule",
+                instructions: "1 capsule weekly with milk",
+              },
+              {
+                name: "Levocetirizine 5mg",
+                type: "Oral Tablet",
+                instructions: "1 tablet at bedtime",
+              },
             ].map((med, i) => (
               <div key={i} className="flex justify-between items-center text-xs border-b pb-3">
                 <div>
@@ -734,7 +1185,9 @@ function DemoPage() {
     <div className="space-y-6 animate-in fade-in duration-200">
       <div className="border-b pb-4">
         <h1 className="text-2xl font-bold font-display">Lab Orders</h1>
-        <p className="text-sm text-muted-foreground">Track test orders, collection logs, and results.</p>
+        <p className="text-sm text-muted-foreground">
+          Track test orders, collection logs, and results.
+        </p>
       </div>
 
       <Card className="overflow-hidden border-border/60">
@@ -756,7 +1209,14 @@ function DemoPage() {
                 <td className="p-4 text-xs">{order.test}</td>
                 <td className="p-4 text-xs text-muted-foreground">{order.date}</td>
                 <td className="p-4">
-                  <Badge variant="outline" className={order.status === "Completed" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" : "bg-amber-500/10 text-amber-700 border-amber-500/20"}>
+                  <Badge
+                    variant="outline"
+                    className={
+                      order.status === "Completed"
+                        ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                    }
+                  >
                     {order.status}
                   </Badge>
                 </td>
@@ -773,9 +1233,13 @@ function DemoPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold font-display">Inventory Tracking</h1>
-          <p className="text-sm text-muted-foreground">Manage medicine stocks, consumable levels, and alerts.</p>
+          <p className="text-sm text-muted-foreground">
+            Manage medicine stocks, consumable levels, and alerts.
+          </p>
         </div>
-        <Button className="h-9"><Plus className="size-3.5 mr-1" /> Add Stock</Button>
+        <Button className="h-9">
+          <Plus className="size-3.5 mr-1" /> Add Stock
+        </Button>
       </div>
 
       <Card className="overflow-hidden border-border/60">
@@ -795,11 +1259,22 @@ function DemoPage() {
               return (
                 <tr key={i} className="hover:bg-muted/20">
                   <td className="p-4 font-bold">{item.name}</td>
-                  <td className="p-4 font-mono text-xs">{item.stock} {item.unit}</td>
+                  <td className="p-4 font-mono text-xs">
+                    {item.stock} {item.unit}
+                  </td>
                   <td className="p-4 text-xs text-muted-foreground">{item.category}</td>
-                  <td className="p-4 font-mono text-xs">{item.reorder} {item.unit}</td>
+                  <td className="p-4 font-mono text-xs">
+                    {item.reorder} {item.unit}
+                  </td>
                   <td className="p-4">
-                    <Badge variant="outline" className={isLow ? "bg-rose-500/10 text-rose-700 border-rose-500/20" : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"}>
+                    <Badge
+                      variant="outline"
+                      className={
+                        isLow
+                          ? "bg-rose-500/10 text-rose-700 border-rose-500/20"
+                          : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                      }
+                    >
                       {isLow ? "Low Stock" : "In Stock"}
                     </Badge>
                   </td>
@@ -817,9 +1292,16 @@ function DemoPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold font-display">Website Builder</h1>
-          <p className="text-sm text-muted-foreground">Manage your public-facing clinic website, choose themes, and customize sections.</p>
+          <p className="text-sm text-muted-foreground">
+            Manage your public-facing clinic website, choose themes, and customize sections.
+          </p>
         </div>
-        <Button onClick={() => toast.success("Website published successfully! Your online clinic is live.")} className="gap-2">
+        <Button
+          onClick={() =>
+            toast.success("Website published successfully! Your online clinic is live.")
+          }
+          className="gap-2"
+        >
           <Globe className="size-4" />
           <span>Publish changes</span>
         </Button>
@@ -834,16 +1316,33 @@ function DemoPage() {
               <Palette className="size-5 text-primary" />
               Select Website Template
             </h3>
-            <p className="text-xs text-muted-foreground mb-4">Choose a layout designed specifically for your medical specialty.</p>
-            
+            <p className="text-xs text-muted-foreground mb-4">
+              Choose a layout designed specifically for your medical specialty.
+            </p>
+
             <div className="grid sm:grid-cols-3 gap-3">
               {[
-                { id: "modern", name: "Modern Minimalist", desc: "Clean & airy layout", active: true },
-                { id: "classic", name: "Classic Clinical", desc: "Corporate & trust-focused", active: false },
-                { id: "wellness", name: "Vibrant Wellness", desc: "Warm & holistic feel", active: false },
+                {
+                  id: "modern",
+                  name: "Modern Minimalist",
+                  desc: "Clean & airy layout",
+                  active: true,
+                },
+                {
+                  id: "classic",
+                  name: "Classic Clinical",
+                  desc: "Corporate & trust-focused",
+                  active: false,
+                },
+                {
+                  id: "wellness",
+                  name: "Vibrant Wellness",
+                  desc: "Warm & holistic feel",
+                  active: false,
+                },
               ].map((t) => (
-                <div 
-                  key={t.id} 
+                <div
+                  key={t.id}
                   onClick={() => toast.success(`${t.name} template selected!`)}
                   className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${t.active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 hover:border-border-hover bg-card"}`}
                 >
@@ -865,26 +1364,32 @@ function DemoPage() {
             </h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold" htmlFor="demo-custom-domain">Custom Domain</label>
+                <label className="text-xs font-bold" htmlFor="demo-custom-domain">
+                  Custom Domain
+                </label>
                 <div className="flex rounded-md border border-input bg-background overflow-hidden h-9">
-                  <input 
+                  <input
                     id="demo-custom-domain"
-                    type="text" 
-                    defaultValue="drjenkins" 
+                    type="text"
+                    defaultValue="drjenkins"
                     aria-label="Custom Domain"
-                    className="flex-1 px-3 text-xs focus-visible:outline-none" 
+                    className="flex-1 px-3 text-xs focus-visible:outline-none"
                   />
-                  <span className="bg-muted text-muted-foreground px-3 flex items-center text-[10px] font-medium border-l border-input">.clinicx.app</span>
+                  <span className="bg-muted text-muted-foreground px-3 flex items-center text-[10px] font-medium border-l border-input">
+                    .clinicx.app
+                  </span>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold" htmlFor="demo-maps-url">Google Maps Location URL</label>
-                <input 
+                <label className="text-xs font-bold" htmlFor="demo-maps-url">
+                  Google Maps Location URL
+                </label>
+                <input
                   id="demo-maps-url"
-                  type="text" 
-                  placeholder="Paste maps sharing link" 
+                  type="text"
+                  placeholder="Paste maps sharing link"
                   aria-label="Google Maps Location URL"
-                  className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none" 
+                  className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none"
                 />
               </div>
             </div>
@@ -892,18 +1397,18 @@ function DemoPage() {
             <div className="space-y-2 pt-2">
               <div className="space-y-1">
                 <label className="text-xs font-bold">SEO Page Title</label>
-                <input 
-                  type="text" 
-                  defaultValue="Dr. Sarah Jenkins - Skin & Aesthetics Specialist | ClinicX" 
-                  className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none" 
+                <input
+                  type="text"
+                  defaultValue="Dr. Sarah Jenkins - Skin & Aesthetics Specialist | ClinicX"
+                  className="w-full rounded-md border border-input bg-background h-9 px-3 text-xs focus-visible:outline-none"
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold">Meta Description</label>
-                <textarea 
+                <textarea
                   rows={2}
-                  defaultValue="Book clinical consultations online with Dr. Sarah Jenkins. Specializing in advanced medical and cosmetic dermatology. 5-minute setup, secure booking." 
-                  className="w-full rounded-md border border-input bg-background p-2.5 text-xs focus-visible:outline-none resize-none" 
+                  defaultValue="Book clinical consultations online with Dr. Sarah Jenkins. Specializing in advanced medical and cosmetic dermatology. 5-minute setup, secure booking."
+                  className="w-full rounded-md border border-input bg-background p-2.5 text-xs focus-visible:outline-none resize-none"
                 />
               </div>
             </div>
@@ -917,27 +1422,50 @@ function DemoPage() {
               <Layout className="size-5 text-primary" />
               Customize Layout Sections
             </h3>
-            
-            <p className="text-xs text-muted-foreground">Toggle sections to display or hide on your public website.</p>
-            
+
+            <p className="text-xs text-muted-foreground">
+              Toggle sections to display or hide on your public website.
+            </p>
+
             <div className="space-y-3">
               {[
-                { name: "Online Booking Calendar", desc: "Allow instant scheduling", enabled: true },
-                { name: "Offered Services & Pricing", desc: "Show consult fees & packages", enabled: true },
-                { name: "Patient Testimonials (Reviews)", desc: "Fetch google reviews", enabled: true },
-                { name: "Before / After Gallery", desc: "Show treatment result photos", enabled: false },
+                {
+                  name: "Online Booking Calendar",
+                  desc: "Allow instant scheduling",
+                  enabled: true,
+                },
+                {
+                  name: "Offered Services & Pricing",
+                  desc: "Show consult fees & packages",
+                  enabled: true,
+                },
+                {
+                  name: "Patient Testimonials (Reviews)",
+                  desc: "Fetch google reviews",
+                  enabled: true,
+                },
+                {
+                  name: "Before / After Gallery",
+                  desc: "Show treatment result photos",
+                  enabled: false,
+                },
                 { name: "F.A.Q. Accordion", desc: "Answer common questions", enabled: true },
               ].map((s, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-muted/40 text-xs">
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-2 rounded-xl bg-muted/40 text-xs"
+                >
                   <div>
                     <p className="font-bold">{s.name}</p>
                     <p className="text-[10px] text-muted-foreground">{s.desc}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold ${s.enabled ? "text-emerald-600" : "text-muted-foreground"}`}>
+                    <span
+                      className={`text-[10px] font-bold ${s.enabled ? "text-emerald-600" : "text-muted-foreground"}`}
+                    >
                       {s.enabled ? "Enabled" : "Disabled"}
                     </span>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => toast.success(`${s.name} visibility updated!`)}
                       className={`size-5 rounded-md border flex items-center justify-center transition-all ${s.enabled ? "bg-primary border-primary text-primary-foreground" : "border-border/60 bg-transparent text-transparent"}`}
@@ -956,7 +1484,12 @@ function DemoPage() {
             </div>
             <div className="min-w-0">
               <p className="font-bold text-xs text-primary leading-none">Your site is live!</p>
-              <a href="https://clinics.digiwil.com/c/dr--sarah-jenkins" target="_blank" rel="noreferrer" className="text-[10px] text-muted-foreground hover:underline truncate block mt-1 flex items-center gap-1 font-mono">
+              <a
+                href="https://clinics.digiwil.com/c/dr--sarah-jenkins"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-muted-foreground hover:underline truncate block mt-1 flex items-center gap-1 font-mono"
+              >
                 clinics.digiwil.com/c/dr--sarah-jenkins
                 <ExternalLink className="size-2.5" />
               </a>
@@ -972,22 +1505,32 @@ function DemoPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold font-display">Invoicing & Incomes</h1>
-          <p className="text-sm text-muted-foreground">Review receipts, print invoices, and review payments.</p>
+          <p className="text-sm text-muted-foreground">
+            Review receipts, print invoices, and review payments.
+          </p>
         </div>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4">
         <Card className="p-4 text-center border-border/60 border-l-4 border-l-emerald-500">
-          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Gross Revenue</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+            Gross Revenue
+          </span>
           <div className="text-2xl font-extrabold text-emerald-600 mt-1">₹4,550</div>
         </Card>
         <Card className="p-4 text-center border-border/60 border-l-4 border-l-amber-500">
-          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Pending co-pays</span>
+          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+            Pending co-pays
+          </span>
           <div className="text-2xl font-extrabold text-amber-600 mt-1">₹2,500</div>
         </Card>
         <Card className="p-4 text-center border-border/60 border-l-4 border-l-blue-500">
-          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total Invoices</span>
-          <div className="text-2xl font-extrabold text-blue-600 mt-1">{invoicesList.length} items</div>
+          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+            Total Invoices
+          </span>
+          <div className="text-2xl font-extrabold text-blue-600 mt-1">
+            {invoicesList.length} items
+          </div>
         </Card>
       </div>
 
@@ -1012,7 +1555,14 @@ function DemoPage() {
                 <td className="p-4 text-xs text-muted-foreground">{inv.date}</td>
                 <td className="p-4 text-xs text-muted-foreground">{inv.method}</td>
                 <td className="p-4">
-                  <Badge variant="outline" className={inv.status === "Paid" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" : "bg-amber-500/10 text-amber-700 border-amber-500/20"}>
+                  <Badge
+                    variant="outline"
+                    className={
+                      inv.status === "Paid"
+                        ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                    }
+                  >
                     {inv.status}
                   </Badge>
                 </td>
@@ -1031,15 +1581,23 @@ function DemoPage() {
           <div className="size-16 rounded-2xl bg-primary/10 text-primary grid place-items-center mb-6 animate-pulse">
             <Stethoscope className="size-8" />
           </div>
-          <h2 className="font-display text-2xl font-bold mb-2">Connecting to Live Demo Workspace...</h2>
+          <h2 className="font-display text-2xl font-bold mb-2">
+            Connecting to Live Demo Workspace...
+          </h2>
           <p className="text-muted-foreground text-sm max-w-md mb-6 leading-relaxed">
-            Logging into the live practice workspace as <strong>{DEMO_CREDENTIALS.doctorName}</strong> ({DEMO_CREDENTIALS.email}).
+            Logging into the live practice workspace as{" "}
+            <strong>{DEMO_CREDENTIALS.doctorName}</strong> ({DEMO_CREDENTIALS.email}).
           </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-muted/60 px-4 py-2 rounded-full border border-border/40 mb-6">
             <Loader2 className="size-4 animate-spin text-primary" />
             <span>Authenticating demo user ({DEMO_CREDENTIALS.email})...</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setShowSandbox(true)} className="text-xs text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSandbox(true)}
+            className="text-xs text-muted-foreground"
+          >
             Switch to Mock Sandbox Mode
           </Button>
         </div>
@@ -1058,7 +1616,9 @@ function DemoPage() {
               </div>
               <div>
                 <h2 className="font-display text-lg font-bold">ClinicX Live Demo</h2>
-                <p className="text-xs text-muted-foreground">Pre-filled credentials for full live access</p>
+                <p className="text-xs text-muted-foreground">
+                  Pre-filled credentials for full live access
+                </p>
               </div>
             </div>
 
@@ -1078,7 +1638,11 @@ function DemoPage() {
               <ArrowUpRight className="size-4" />
             </Button>
 
-            <Button variant="outline" onClick={() => setShowSandbox(true)} className="w-full text-xs h-9">
+            <Button
+              variant="outline"
+              onClick={() => setShowSandbox(true)}
+              className="w-full text-xs h-9"
+            >
               Explore Mock Sandbox View
             </Button>
           </Card>
@@ -1094,20 +1658,30 @@ function DemoPage() {
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-4 text-[11px] sm:text-sm">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="size-4 shrink-0 animate-pulse text-amber-300" />
-            <span className="truncate"><b>Demo mode</b> — fully interactive dashboard. Switch sections using the left rail.</span>
+            <span className="truncate">
+              <b>Demo mode</b> — fully interactive dashboard. Switch sections using the left rail.
+            </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setMeetDemoModalOpen(true)} 
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setMeetDemoModalOpen(true)}
               className="h-7 text-[10px] sm:text-xs border-white/30 text-white hover:bg-white hover:text-primary bg-transparent shrink-0 px-2 sm:px-3 flex items-center gap-1 transition-colors"
             >
               <Video className="size-3 sm:size-3.5" />
-              <span>Book <span className="hidden sm:inline">1-on-1 </span>Demo</span>
+              <span>
+                Book <span className="hidden sm:inline">1-on-1 </span>Demo
+              </span>
             </Button>
             <Link to="/login" className="shrink-0">
-              <Button size="sm" variant="secondary" className="h-7 text-[10px] sm:text-xs bg-white text-primary hover:bg-white/95 px-2 sm:px-3">Create free account</Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 text-[10px] sm:text-xs bg-white text-primary hover:bg-white/95 px-2 sm:px-3"
+              >
+                Create free account
+              </Button>
             </Link>
           </div>
         </div>
@@ -1149,8 +1723,12 @@ function DemoPage() {
                 <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
               </div>
               <div>
-                <span className="font-display font-bold text-sm tracking-tight text-foreground">ClinicX Demo</span>
-                <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Mock Sandbox environment</p>
+                <span className="font-display font-bold text-sm tracking-tight text-foreground">
+                  ClinicX Demo
+                </span>
+                <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
+                  Mock Sandbox environment
+                </p>
               </div>
             </div>
           </div>
@@ -1173,11 +1751,11 @@ function DemoPage() {
                   key={item.id}
                   onClick={() => {
                     setActiveSubView(item.id as any);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    active 
-                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20" 
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
@@ -1196,7 +1774,11 @@ function DemoPage() {
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               Want to see how ClinicX fits your clinic? Book a 1-on-1 walk-through on Google Meet.
             </p>
-            <Button size="sm" onClick={() => setMeetDemoModalOpen(true)} className="w-full h-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button
+              size="sm"
+              onClick={() => setMeetDemoModalOpen(true)}
+              className="w-full h-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               Book Meet Demo
             </Button>
           </div>
@@ -1224,19 +1806,31 @@ function DemoPage() {
             <form onSubmit={handleBookAppointment} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="appt-name">Patient Full Name</Label>
-                <Input id="appt-name" required value={newApptName} onChange={e => setNewApptName(e.target.value)} placeholder="Vikram Aditya" />
+                <Input
+                  id="appt-name"
+                  required
+                  value={newApptName}
+                  onChange={(e) => setNewApptName(e.target.value)}
+                  placeholder="Vikram Aditya"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="appt-time">Time Slot</Label>
-                  <Input id="appt-time" type="time" required value={newApptTime} onChange={e => setNewApptTime(e.target.value)} />
+                  <Input
+                    id="appt-time"
+                    type="time"
+                    required
+                    value={newApptTime}
+                    onChange={(e) => setNewApptTime(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="appt-type">Consultation Type</Label>
-                  <select 
+                  <select
                     id="appt-type"
-                    value={newApptType} 
-                    onChange={e => setNewApptType(e.target.value)}
+                    value={newApptType}
+                    onChange={(e) => setNewApptType(e.target.value)}
                     className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
                   >
                     <option value="Consultation">Consultation</option>
@@ -1247,7 +1841,9 @@ function DemoPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="ghost" onClick={() => setApptModalOpen(false)}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => setApptModalOpen(false)}>
+                  Cancel
+                </Button>
                 <Button type="submit">Confirm Appointment</Button>
               </div>
             </form>
@@ -1269,64 +1865,95 @@ function DemoPage() {
                     <Video className="size-8" />
                   </div>
                   <h4 className="font-bold text-sm">Active Session: {activeConsultation?.name}</h4>
-                  <p className="text-xs text-slate-400">Secure Peer-to-Peer Telehealth Link Established</p>
+                  <p className="text-xs text-slate-400">
+                    Secure Peer-to-Peer Telehealth Link Established
+                  </p>
                 </div>
                 <div className="absolute bottom-3 right-3 size-24 bg-slate-900 border rounded-lg overflow-hidden flex items-center justify-center">
                   {/* Doctor Thumbnail */}
-                  <span className="text-[10px] text-slate-400 font-bold font-display">Dr. Sarah</span>
+                  <span className="text-[10px] text-slate-400 font-bold font-display">
+                    Dr. Sarah
+                  </span>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">Mic Active</Badge>
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">Video HD</Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                >
+                  Mic Active
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                >
+                  Video HD
+                </Badge>
               </div>
             </div>
 
             {/* Right Side: SOAP Prescription Panel */}
             <div className="space-y-4 flex flex-col justify-between">
               <div>
-                <h3 className="font-display text-lg font-bold mb-4">SOAP Notes & Prescription (EHR)</h3>
+                <h3 className="font-display text-lg font-bold mb-4">
+                  SOAP Notes & Prescription (EHR)
+                </h3>
                 <div className="space-y-3 text-xs">
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Subjective (Patient Notes)</Label>
-                    <textarea 
-                      value={soapSubjective} 
-                      onChange={e => setSoapSubjective(e.target.value)} 
-                      rows={2} 
+                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                      Subjective (Patient Notes)
+                    </Label>
+                    <textarea
+                      value={soapSubjective}
+                      onChange={(e) => setSoapSubjective(e.target.value)}
+                      rows={2}
                       className="w-full border rounded p-2 bg-background focus:outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Objective (Vitals & Observations)</Label>
-                    <textarea 
-                      value={soapObjective} 
-                      onChange={e => setSoapObjective(e.target.value)} 
-                      rows={2} 
+                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                      Objective (Vitals & Observations)
+                    </Label>
+                    <textarea
+                      value={soapObjective}
+                      onChange={(e) => setSoapObjective(e.target.value)}
+                      rows={2}
                       className="w-full border rounded p-2 bg-background focus:outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Assessment (Diagnosis)</Label>
-                    <Input 
-                      value={soapAssessment} 
-                      onChange={e => setSoapAssessment(e.target.value)} 
+                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                      Assessment (Diagnosis)
+                    </Label>
+                    <Input
+                      value={soapAssessment}
+                      onChange={(e) => setSoapAssessment(e.target.value)}
                       className="h-8"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Plan (Prescription Catalog)</Label>
-                    <textarea 
-                      value={soapPrescription} 
-                      onChange={e => setSoapPrescription(e.target.value)} 
-                      rows={2} 
+                    <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                      Plan (Prescription Catalog)
+                    </Label>
+                    <textarea
+                      value={soapPrescription}
+                      onChange={(e) => setSoapPrescription(e.target.value)}
+                      rows={2}
                       className="w-full border rounded p-2 bg-background focus:outline-none font-mono"
                     />
                   </div>
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-                <Button variant="ghost" onClick={() => setConsultModalOpen(false)}>Close Session</Button>
-                <Button onClick={handleSaveConsultation} className="bg-emerald-600 hover:bg-emerald-700">Sign & Complete</Button>
+                <Button variant="ghost" onClick={() => setConsultModalOpen(false)}>
+                  Close Session
+                </Button>
+                <Button
+                  onClick={handleSaveConsultation}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Sign & Complete
+                </Button>
               </div>
             </div>
           </Card>
@@ -1339,9 +1966,12 @@ function DemoPage() {
           <Card className="w-full max-w-lg p-6 border-border/60 shadow-2xl relative overflow-hidden animate-in zoom-in duration-200">
             {/* Header Accent Line */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500" />
-            
-            <button 
-              onClick={() => { setMeetDemoModalOpen(false); handleResetMeetDemoForm(); }} 
+
+            <button
+              onClick={() => {
+                setMeetDemoModalOpen(false);
+                handleResetMeetDemoForm();
+              }}
               className="absolute top-4 right-4 size-8 rounded-full grid place-items-center text-muted-foreground hover:bg-muted transition"
               aria-label="Close modal"
             >
@@ -1355,90 +1985,109 @@ function DemoPage() {
                     <Video className="size-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-display text-lg font-bold">Book 1-on-1 Demo on Google Meet</h3>
-                    <p className="text-xs text-muted-foreground">Get a personalized tour of ClinicX software</p>
+                    <h3 className="font-display text-lg font-bold">
+                      Book 1-on-1 Demo on Google Meet
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Get a personalized tour of ClinicX software
+                    </p>
                   </div>
                 </div>
 
                 <form onSubmit={handleBookMeetDemo} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="meet-name" className="text-xs font-semibold">Your Name <span className="text-red-500">*</span></Label>
-                    <Input 
-                      id="meet-name" 
-                      required 
-                      value={meetName} 
-                      onChange={e => setMeetName(e.target.value)} 
-                      placeholder="Dr. Sarah Jenkins" 
+                    <Label htmlFor="meet-name" className="text-xs font-semibold">
+                      Your Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="meet-name"
+                      required
+                      value={meetName}
+                      onChange={(e) => setMeetName(e.target.value)}
+                      placeholder="Dr. Sarah Jenkins"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="meet-email" className="text-xs font-semibold">Email Address <span className="text-red-500">*</span></Label>
-                      <Input 
-                        id="meet-email" 
-                        type="email" 
-                        required 
-                        value={meetEmail} 
-                        onChange={e => setMeetEmail(e.target.value)} 
-                        placeholder="doctor@example.com" 
+                      <Label htmlFor="meet-email" className="text-xs font-semibold">
+                        Email Address <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="meet-email"
+                        type="email"
+                        required
+                        value={meetEmail}
+                        onChange={(e) => setMeetEmail(e.target.value)}
+                        placeholder="doctor@example.com"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="meet-phone" className="text-xs font-semibold">Phone Number <span className="text-red-500">*</span></Label>
-                      <Input 
-                        id="meet-phone" 
-                        type="tel" 
-                        required 
-                        value={meetPhone} 
-                        onChange={e => setMeetPhone(e.target.value)} 
-                        placeholder="+91 98765 43210" 
+                      <Label htmlFor="meet-phone" className="text-xs font-semibold">
+                        Phone Number <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="meet-phone"
+                        type="tel"
+                        required
+                        value={meetPhone}
+                        onChange={(e) => setMeetPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="meet-clinic" className="text-xs font-semibold">Clinic Name</Label>
-                      <Input 
-                        id="meet-clinic" 
-                        value={meetClinicName} 
-                        onChange={e => setMeetClinicName(e.target.value)} 
-                        placeholder="Skin & Aesthetics Clinic" 
+                      <Label htmlFor="meet-clinic" className="text-xs font-semibold">
+                        Clinic Name
+                      </Label>
+                      <Input
+                        id="meet-clinic"
+                        value={meetClinicName}
+                        onChange={(e) => setMeetClinicName(e.target.value)}
+                        placeholder="Skin & Aesthetics Clinic"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="meet-time" className="text-xs font-semibold">Preferred Date & Time</Label>
-                      <Input 
-                        id="meet-time" 
-                        type="datetime-local" 
-                        value={meetPreferredTime} 
-                        onChange={e => setMeetPreferredTime(e.target.value)} 
+                      <Label htmlFor="meet-time" className="text-xs font-semibold">
+                        Preferred Date & Time
+                      </Label>
+                      <Input
+                        id="meet-time"
+                        type="datetime-local"
+                        value={meetPreferredTime}
+                        onChange={(e) => setMeetPreferredTime(e.target.value)}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="meet-msg" className="text-xs font-semibold">Specific requirements (optional)</Label>
-                    <Textarea 
-                      id="meet-msg" 
-                      rows={3} 
-                      value={meetMessage} 
-                      onChange={e => setMeetMessage(e.target.value)} 
-                      placeholder="e.g. Tell us about your specialties or integrations you need." 
+                    <Label htmlFor="meet-msg" className="text-xs font-semibold">
+                      Specific requirements (optional)
+                    </Label>
+                    <Textarea
+                      id="meet-msg"
+                      rows={3}
+                      value={meetMessage}
+                      onChange={(e) => setMeetMessage(e.target.value)}
+                      placeholder="e.g. Tell us about your specialties or integrations you need."
                     />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4 border-t mt-6">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      onClick={() => { setMeetDemoModalOpen(false); handleResetMeetDemoForm(); }}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setMeetDemoModalOpen(false);
+                        handleResetMeetDemoForm();
+                      }}
                     >
                       Cancel
                     </Button>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={isSubmittingMeet}
                       className="bg-primary text-primary-foreground hover:bg-primary/95 flex items-center gap-1.5"
                     >
@@ -1456,15 +2105,20 @@ function DemoPage() {
                 <div className="space-y-2">
                   <h3 className="font-display text-xl font-bold">Demo Request Received!</h3>
                   <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    Thank you, <b>{meetName}</b>. We have registered your details for a personalized Google Meet walkthrough.
+                    Thank you, <b>{meetName}</b>. We have registered your details for a personalized
+                    Google Meet walkthrough.
                   </p>
                   <p className="text-xs text-muted-foreground/80 max-w-sm mx-auto">
-                    Our team will reach out to you on <b>{meetPhone}</b> via WhatsApp/Call to share the calendar invite and Google Meet link.
+                    Our team will reach out to you on <b>{meetPhone}</b> via WhatsApp/Call to share
+                    the calendar invite and Google Meet link.
                   </p>
                 </div>
                 <div className="pt-4">
-                  <Button 
-                    onClick={() => { setMeetDemoModalOpen(false); handleResetMeetDemoForm(); }}
+                  <Button
+                    onClick={() => {
+                      setMeetDemoModalOpen(false);
+                      handleResetMeetDemoForm();
+                    }}
                     className="px-6"
                   >
                     Back to Dashboard

@@ -22,7 +22,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const text = await res.text();
   let body: unknown;
-  try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    body = { raw: text };
+  }
   if (!res.ok) {
     const msg = (body as { error?: string })?.error || `Baileys ${path} failed (${res.status})`;
     throw new Error(msg);
@@ -31,10 +35,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function baileysCreateSession(sessionId: string) {
-  return call<{ success: boolean; sessionId: string; ready: boolean }>(
-    "/api/sessions",
-    { method: "POST", body: JSON.stringify({ sessionId }) },
-  );
+  return call<{ success: boolean; sessionId: string; ready: boolean }>("/api/sessions", {
+    method: "POST",
+    body: JSON.stringify({ sessionId }),
+  });
 }
 
 export async function baileysStatus(sessionId: string): Promise<BaileysStatus | null> {
@@ -67,14 +71,11 @@ export async function baileysSend(
   const to = normalizePhone(phone);
   if (!to || !message) return { ok: false, error: "phone and message required" };
   try {
-    const res = await fetch(
-      `${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: to, message }),
-      },
-    );
+    const res = await fetch(`${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: to, message }),
+    });
     const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string };
     if (!res.ok || !data.success) return { ok: false, error: data.error || `HTTP ${res.status}` };
     return { ok: true };

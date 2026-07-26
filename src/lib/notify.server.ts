@@ -22,7 +22,8 @@ export async function notifyClinicEvent(opts: {
   appointmentId?: string | null;
   variables: Record<string, string | number | null | undefined>;
 }): Promise<{ ok: boolean; status: string; error?: string | null }> {
-  const { sb, clinicId, templateKey, recipientPhone, recipientName, appointmentId, variables } = opts;
+  const { sb, clinicId, templateKey, recipientPhone, recipientName, appointmentId, variables } =
+    opts;
   try {
     const { data: clinic } = await sb
       .from("clinics")
@@ -51,15 +52,21 @@ export async function notifyClinicEvent(opts: {
     if (canAutoSend) {
       const r = await baileysSend(sessionId, recipientPhone, message);
       if (r.ok) status = "sent";
-      else { status = "failed"; error = r.error ?? "send failed"; }
+      else {
+        status = "failed";
+        error = r.error ?? "send failed";
+      }
 
       if (live?.ready && clinic.wa_status !== "ready") {
-        await sb.from("clinics").update({
-          wa_status: "ready",
-          wa_phone: live.clientInfo?.phone ?? null,
-          wa_session_id: sessionId,
-          wa_connected_at: new Date().toISOString(),
-        }).eq("id", clinic.id);
+        await sb
+          .from("clinics")
+          .update({
+            wa_status: "ready",
+            wa_phone: live.clientInfo?.phone ?? null,
+            wa_session_id: sessionId,
+            wa_connected_at: new Date().toISOString(),
+          })
+          .eq("id", clinic.id);
       }
     }
 

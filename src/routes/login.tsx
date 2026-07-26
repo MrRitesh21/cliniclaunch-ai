@@ -11,7 +11,9 @@ import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; pw?: string; tab?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { redirect?: string; email?: string; pw?: string; tab?: string } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     email: typeof search.email === "string" ? search.email : undefined,
     pw: typeof search.pw === "string" ? search.pw : undefined,
@@ -30,7 +32,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { redirect, email: searchEmail, pw: searchPw, tab: searchTab } = Route.useSearch();
   const [loading, setLoading] = useState(false);
-  
+
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
     queryFn: () => checkMaintenanceStatus(),
@@ -89,9 +91,11 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
-      email, password,
+      email,
+      password,
       options: {
-        emailRedirectTo: typeof window !== "undefined" ? window.location.origin + "/dashboard" : undefined,
+        emailRedirectTo:
+          typeof window !== "undefined" ? window.location.origin + "/dashboard" : undefined,
         data: { full_name: fullName },
       },
     });
@@ -109,7 +113,8 @@ function LoginPage() {
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const redirectTo = typeof window !== "undefined" ? window.location.origin + "/login" : undefined;
+    const redirectTo =
+      typeof window !== "undefined" ? window.location.origin + "/login" : undefined;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -165,7 +170,9 @@ function LoginPage() {
 
           <figure className="bg-primary-foreground/10 backdrop-blur border border-primary-foreground/20 rounded-2xl p-6 max-w-md">
             <div className="flex gap-0.5 mb-3">
-              {[0,1,2,3,4].map(i => <Star key={i} className="size-4 fill-amber-300 text-amber-300" />)}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Star key={i} className="size-4 fill-amber-300 text-amber-300" />
+              ))}
             </div>
             <blockquote className="font-display text-lg leading-snug">
               "I went from a paper diary to a fully booked online calendar in an afternoon."
@@ -177,7 +184,9 @@ function LoginPage() {
         </div>
 
         <div className="relative flex items-center gap-5 text-xs text-primary-foreground/70">
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-4" /> HIPAA-ready</span>
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="size-4" /> HIPAA-ready
+          </span>
           <span>·</span>
           <span>End-to-end encrypted</span>
           <span>·</span>
@@ -195,7 +204,10 @@ function LoginPage() {
             <span className="font-display text-2xl font-bold">{platformName}</span>
           </Link>
 
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-6"
+          >
             <ArrowLeft className="size-3.5" /> Back to home
           </Link>
 
@@ -203,28 +215,61 @@ function LoginPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="mb-8">
                 <h2 className="font-display text-3xl tracking-tight">Welcome to {platformName}</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">Sign in or create a free account to launch your practice.</p>
+                <p className="text-muted-foreground text-sm mt-1.5">
+                  Sign in or create a free account to launch your practice.
+                </p>
               </div>
 
               <TabsList className="grid grid-cols-2 w-full mb-6 h-11 p-1">
-                <TabsTrigger value="signin" className="text-sm">Sign in</TabsTrigger>
-                <TabsTrigger value="signup" className="text-sm">Create account</TabsTrigger>
+                <TabsTrigger value="signin" className="text-sm">
+                  Sign in
+                </TabsTrigger>
+                <TabsTrigger value="signup" className="text-sm">
+                  Create account
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
                 <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@clinic.com" className="h-11" />
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@clinic.com"
+                      className="h-11"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
-                      <button type="button" onClick={() => setView("forgot")} className="text-xs text-primary hover:underline bg-transparent border-none p-0 cursor-pointer">Forgot?</button>
+                      <button
+                        type="button"
+                        onClick={() => setView("forgot")}
+                        className="text-xs text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                      >
+                        Forgot?
+                      </button>
                     </div>
                     <div className="relative">
-                      <Input id="password" type={showPw ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 pr-10" />
-                      <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+                      <Input
+                        id="password"
+                        type={showPw ? "text" : "password"}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="h-11 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw(!showPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Toggle password"
+                      >
                         {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </button>
                     </div>
@@ -239,17 +284,46 @@ function LoginPage() {
                 <form onSubmit={signUp} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="fname">Full name</Label>
-                    <Input id="fname" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dr. Jane Smith" className="h-11" />
+                    <Input
+                      id="fname"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Dr. Jane Smith"
+                      className="h-11"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="email2">Email</Label>
-                    <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@clinic.com" className="h-11" />
+                    <Input
+                      id="email2"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@clinic.com"
+                      className="h-11"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="pw2">Password</Label>
                     <div className="relative">
-                      <Input id="pw2" type={showPw ? "text" : "password"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" className="h-11 pr-10" />
-                      <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+                      <Input
+                        id="pw2"
+                        type={showPw ? "text" : "password"}
+                        required
+                        minLength={6}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="At least 6 characters"
+                        className="h-11 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw(!showPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Toggle password"
+                      >
                         {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </button>
                     </div>
@@ -266,18 +340,33 @@ function LoginPage() {
             <div className="w-full space-y-6 animate-in fade-in duration-200">
               <div className="mb-8">
                 <h2 className="font-display text-3xl tracking-tight">Forgot Password</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">Enter your email and we'll send you a password reset link.</p>
+                <p className="text-muted-foreground text-sm mt-1.5">
+                  Enter your email and we'll send you a password reset link.
+                </p>
               </div>
 
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="forgot-email">Email</Label>
-                  <Input id="forgot-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@clinic.com" className="h-11" />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@clinic.com"
+                    className="h-11"
+                  />
                 </div>
                 <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
                   {loading ? "Sending reset link…" : "Send reset link"}
                 </Button>
-                <Button type="button" variant="ghost" className="w-full h-11" onClick={() => setView("login")}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full h-11"
+                  onClick={() => setView("login")}
+                >
                   Back to Sign In
                 </Button>
               </form>
@@ -288,22 +377,47 @@ function LoginPage() {
             <div className="w-full space-y-6 animate-in fade-in duration-200">
               <div className="mb-8">
                 <h2 className="font-display text-3xl tracking-tight">Reset Password</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">Create a strong, new password for your account.</p>
+                <p className="text-muted-foreground text-sm mt-1.5">
+                  Create a strong, new password for your account.
+                </p>
               </div>
 
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="new-pw">New Password</Label>
                   <div className="relative">
-                    <Input id="new-pw" type={showPw ? "text" : "password"} required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 6 characters" className="h-11 pr-10" />
-                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+                    <Input
+                      id="new-pw"
+                      type={showPw ? "text" : "password"}
+                      required
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label="Toggle password"
+                    >
                       {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="confirm-pw">Confirm Password</Label>
-                  <Input id="confirm-pw" type={showPw ? "text" : "password"} required minLength={6} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" className="h-11" />
+                  <Input
+                    id="confirm-pw"
+                    type={showPw ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className="h-11"
+                  />
                 </div>
                 <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
                   {loading ? "Updating password…" : "Update password"}

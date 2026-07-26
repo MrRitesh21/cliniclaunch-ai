@@ -21,7 +21,8 @@ export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<Gs
     throw new Error(error?.message || "Clinic not found");
   }
 
-  const appDomain = process.env.APP_URL || process.env.VITE_APP_URL || "https://clinicx.digiwil.com";
+  const appDomain =
+    process.env.APP_URL || process.env.VITE_APP_URL || "https://clinicx.digiwil.com";
   const baseUrl = clinic.custom_domain
     ? `https://${clinic.custom_domain.replace(/^https?:\/\//, "")}`
     : `${appDomain.replace(/\/$/, "")}/c/${clinic.slug}`;
@@ -35,12 +36,15 @@ export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<Gs
 
   // 1. Google Sitemap Direct Ping API
   try {
-    const gPingRes = await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, {
-      method: "GET",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ClinicX-GSC-Submitter/1.0)",
+    const gPingRes = await fetch(
+      `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+      {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; ClinicX-GSC-Submitter/1.0)",
+        },
       },
-    });
+    );
     googlePingOk = gPingRes.status < 500;
   } catch (err) {
     console.warn("[GSC Pipeline] Google sitemap ping failed:", err);
@@ -49,7 +53,9 @@ export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<Gs
 
   // 2. IndexNow Protocol Ping (Google, Bing, Yandex, Seznam)
   try {
-    const host = clinic.custom_domain ? clinic.custom_domain.replace(/^https?:\/\//, "") : "clinicx.digiwil.com";
+    const host = clinic.custom_domain
+      ? clinic.custom_domain.replace(/^https?:\/\//, "")
+      : "clinicx.digiwil.com";
     const indexNowRes = await fetch("https://api.indexnow.org/indexnow", {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },

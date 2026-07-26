@@ -5,8 +5,7 @@ export const Route = createFileRoute("/api/public/hooks/seo-autopilot")({
     handlers: {
       POST: async ({ request }) => {
         const url = new URL(request.url);
-        const provided =
-          request.headers.get("x-cron-key") || url.searchParams.get("key") || "";
+        const provided = request.headers.get("x-cron-key") || url.searchParams.get("key") || "";
         const expected = process.env.CRON_KEY || "";
         if (!expected || provided !== expected) {
           return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });

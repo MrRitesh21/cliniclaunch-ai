@@ -3,9 +3,23 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Search, Sparkles, Users, UserPlus, Shield, CreditCard,
-  Package, Receipt, RotateCcw, Flag, Megaphone, Mail,
-  MessageSquare, Database, LifeBuoy, Settings, ExternalLink
+  Search,
+  Sparkles,
+  Users,
+  UserPlus,
+  Shield,
+  CreditCard,
+  Package,
+  Receipt,
+  RotateCcw,
+  Flag,
+  Megaphone,
+  Mail,
+  MessageSquare,
+  Database,
+  LifeBuoy,
+  Settings,
+  ExternalLink,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -19,12 +33,22 @@ const ADMIN_PAGES = [
   { label: "All Doctors Directory", path: "/admin/doctors", icon: Users, section: "Doctors" },
   { label: "New Signups", path: "/admin/doctors/new", icon: UserPlus, section: "Doctors" },
   { label: "Flagged Accounts", path: "/admin/doctors/flagged", icon: Shield, section: "Doctors" },
-  { label: "Subscriptions & Billing", path: "/admin/subscriptions", icon: CreditCard, section: "Revenue" },
+  {
+    label: "Subscriptions & Billing",
+    path: "/admin/subscriptions",
+    icon: CreditCard,
+    section: "Revenue",
+  },
   { label: "Plans & Pricing", path: "/admin/plans", icon: Package, section: "Revenue" },
   { label: "Transactions Log", path: "/admin/transactions", icon: Receipt, section: "Revenue" },
   { label: "Refund Management", path: "/admin/refunds", icon: RotateCcw, section: "Revenue" },
   { label: "Feature Flags", path: "/admin/features", icon: Flag, section: "Platform" },
-  { label: "Announcements Broadcast", path: "/admin/announcements", icon: Megaphone, section: "Platform" },
+  {
+    label: "Announcements Broadcast",
+    path: "/admin/announcements",
+    icon: Megaphone,
+    section: "Platform",
+  },
   { label: "Email Campaigns", path: "/admin/email", icon: Mail, section: "Platform" },
   { label: "WhatsApp Gateway", path: "/admin/whatsapp", icon: MessageSquare, section: "Platform" },
   { label: "Database Inspector", path: "/admin/db", icon: Database, section: "Platform" },
@@ -69,8 +93,10 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
     },
   });
 
-  const filteredPages = ADMIN_PAGES.filter((p) =>
-    p.label.toLowerCase().includes(query.toLowerCase()) || p.section.toLowerCase().includes(query.toLowerCase())
+  const filteredPages = ADMIN_PAGES.filter(
+    (p) =>
+      p.label.toLowerCase().includes(query.toLowerCase()) ||
+      p.section.toLowerCase().includes(query.toLowerCase()),
   );
 
   const handleSelect = (path: string) => {
@@ -109,7 +135,9 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
                 Doctors & Clinics ({doctors.length})
               </div>
               {doctors.length === 0 ? (
-                <div className="px-3 py-3 text-xs text-slate-500 italic">No doctors found matching "{query}"</div>
+                <div className="px-3 py-3 text-xs text-slate-500 italic">
+                  No doctors found matching "{query}"
+                </div>
               ) : (
                 <div className="space-y-1">
                   {doctors.map((d) => (
@@ -124,7 +152,9 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
                           {d.doctor_name?.[0] ?? "D"}
                         </div>
                         <div>
-                          <div className="font-semibold text-slate-200 group-hover:text-white">{d.doctor_name}</div>
+                          <div className="font-semibold text-slate-200 group-hover:text-white">
+                            {d.doctor_name}
+                          </div>
                           <div className="text-[11px] text-slate-400">{d.clinic_name}</div>
                         </div>
                       </div>
@@ -142,7 +172,9 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
               {query ? "Matching Admin Pages" : "Quick Admin Navigation"}
             </div>
             {filteredPages.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-500 italic">No admin pages matching "{query}"</div>
+              <div className="px-3 py-3 text-xs text-slate-500 italic">
+                No admin pages matching "{query}"
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {filteredPages.map((p) => {
@@ -159,7 +191,9 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="font-medium truncate">{p.label}</div>
-                        <div className="text-[10px] text-slate-500 group-hover:text-slate-400 truncate">{p.section}</div>
+                        <div className="text-[10px] text-slate-500 group-hover:text-slate-400 truncate">
+                          {p.section}
+                        </div>
                       </div>
                     </button>
                   );

@@ -17,11 +17,9 @@ export async function getVerifiedAdmin() {
 
   const token = authHeader.slice(7);
   const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
+  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
   const { data: claims } = await sb.auth.getClaims(token);
   const userId: string | undefined = claims?.claims?.sub;
   const userEmail: string | undefined = claims?.claims?.email;
@@ -39,7 +37,7 @@ export async function getVerifiedAdmin() {
   return {
     id: userId,
     email: userEmail || "",
-    name: (userEmail?.split("@")[0]) || "Admin",
+    name: userEmail?.split("@")[0] || "Admin",
     role: (roleRow as any).role,
     last_login_at: new Date().toISOString(),
   };
@@ -54,7 +52,7 @@ export async function createAuditLog(
   targetId: string | null,
   metadata: Record<string, any> = {},
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
 ) {
   await supabaseAdmin.from("admin_audit_logs" as any).insert({
     admin_id: adminId,
@@ -75,10 +73,10 @@ export async function getAdminStatsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
- 
+
   // Sync latest transactions from Razorpay API
   await syncRazorpayTransactions(supabaseAdmin);
- 
+
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -97,11 +95,27 @@ export async function getAdminStatsImpl() {
     recentTransactions,
   ] = await Promise.all([
     supabaseAdmin.from("clinics").select("id", { count: "exact", head: true }),
-    supabaseAdmin.from("clinics").select("id", { count: "exact", head: true }).gte("created_at", since7),
-    supabaseAdmin.from("subscriptions").select("id, plan_id, billing_cycle", { count: "exact" }).in("status", ["active", "trialing"]),
-    supabaseAdmin.from("subscriptions").select("id", { count: "exact", head: true }).eq("status", "trialing"),
-    supabaseAdmin.from("subscriptions").select("id", { count: "exact", head: true }).in("status", ["cancelled", "expired"]).gte("updated_at", startOfMonth),
-    supabaseAdmin.from("clinics").select("id", { count: "exact", head: true }).gte("created_at", startOfDay),
+    supabaseAdmin
+      .from("clinics")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since7),
+    supabaseAdmin
+      .from("subscriptions")
+      .select("id, plan_id, billing_cycle", { count: "exact" })
+      .in("status", ["active", "trialing"]),
+    supabaseAdmin
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "trialing"),
+    supabaseAdmin
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["cancelled", "expired"])
+      .gte("updated_at", startOfMonth),
+    supabaseAdmin
+      .from("clinics")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfDay),
     supabaseAdmin
       .from("clinics")
       .select("id, clinic_name, doctor_name, specialization, address, created_at, slug")
@@ -180,13 +194,17 @@ export async function listAdminDoctorsImpl(input: any) {
 
   let q = supabaseAdmin
     .from("clinics")
-    .select("id, clinic_name, doctor_name, specialization, address, email, phone, slug, owner_id, organization_id, created_at, suspended_at")
+    .select(
+      "id, clinic_name, doctor_name, specialization, address, email, phone, slug, owner_id, organization_id, created_at, suspended_at",
+    )
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (input?.search) {
     const s = `%${input.search}%`;
-    q = q.or(`clinic_name.ilike.${s},doctor_name.ilike.${s},email.ilike.${s},phone.ilike.${s},slug.ilike.${s}`);
+    q = q.or(
+      `clinic_name.ilike.${s},doctor_name.ilike.${s},email.ilike.${s},phone.ilike.${s},slug.ilike.${s}`,
+    );
   }
 
   const { data: clinics, error } = await q;
@@ -195,7 +213,10 @@ export async function listAdminDoctorsImpl(input: any) {
   const orgIds = Array.from(new Set((clinics ?? []).map((c) => c.organization_id).filter(Boolean)));
   const [{ data: subs }, plansRes] = await Promise.all([
     orgIds.length
-      ? supabaseAdmin.from("subscriptions").select("organization_id, status, plan_id, current_period_end, trial_ends_at").in("organization_id", orgIds)
+      ? supabaseAdmin
+          .from("subscriptions")
+          .select("organization_id, status, plan_id, current_period_end, trial_ends_at")
+          .in("organization_id", orgIds)
       : Promise.resolve({ data: [] }),
     supabaseAdmin.from("plans").select("id, name"),
   ]);
@@ -270,9 +291,21 @@ export async function getDoctorDetailsImpl(input: any) {
 
   const [patients, appointments, transactions, auditLogs] = await Promise.all([
     supabaseAdmin.from("patients").select("*").eq("clinic_id", clinic.id),
-    supabaseAdmin.from("appointments").select("*").eq("clinic_id", clinic.id).order("scheduled_at", { ascending: false }),
-    supabaseAdmin.from("transactions" as any).select("*").eq("doctor_id", clinic.owner_id).order("created_at", { ascending: false }),
-    supabaseAdmin.from("admin_audit_logs" as any).select("*").eq("target_id", clinic.id).order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("appointments")
+      .select("*")
+      .eq("clinic_id", clinic.id)
+      .order("scheduled_at", { ascending: false }),
+    supabaseAdmin
+      .from("transactions" as any)
+      .select("*")
+      .eq("doctor_id", clinic.owner_id)
+      .order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("admin_audit_logs" as any)
+      .select("*")
+      .eq("target_id", clinic.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   return {
@@ -320,10 +353,7 @@ export async function updateDoctorProfileImpl(input: any) {
   if (input.status !== undefined) updateData.suspended_at = suspendedAt;
 
   if (Object.keys(updateData).length > 0) {
-    const { error } = await supabaseAdmin
-      .from("clinics")
-      .update(updateData)
-      .eq("id", input.id);
+    const { error } = await supabaseAdmin.from("clinics").update(updateData).eq("id", input.id);
 
     if (error) throw error;
   }
@@ -336,7 +366,7 @@ export async function updateDoctorProfileImpl(input: any) {
       .eq("organization_id", clinic.organization_id)
       .maybeSingle();
 
-    let subStatus = input.status === "suspended" ? "active" : (input.status || "active");
+    let subStatus = input.status === "suspended" ? "active" : input.status || "active";
     if (subStatus === "canceled" || subStatus === "cancelled") {
       subStatus = "cancelled";
     }
@@ -401,14 +431,9 @@ export async function updateDoctorProfileImpl(input: any) {
     }
   }
 
-  await createAuditLog(
-    supabaseAdmin,
-    admin.id,
-    "doctor_profile_updated",
-    "doctor",
-    input.id,
-    { doctorName: input.doctorName }
-  );
+  await createAuditLog(supabaseAdmin, admin.id, "doctor_profile_updated", "doctor", input.id, {
+    doctorName: input.doctorName,
+  });
 
   return { success: true };
 }
@@ -485,21 +510,18 @@ export async function changeDoctorPlanImpl(input: any) {
     plan: input.planId || "No Plan",
     billing_cycle: "monthly",
     gateway_payment_id: `MANUAL-ADMIN-${admin.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-    gateway_order_id: input.extendDays 
-      ? `Extended trial by ${input.extendDays} days` 
-      : input.grantFreeMonth 
-      ? `Granted free month` 
-      : `Admin plan change`,
+    gateway_order_id: input.extendDays
+      ? `Extended trial by ${input.extendDays} days`
+      : input.grantFreeMonth
+        ? `Granted free month`
+        : `Admin plan change`,
   } as never);
 
-  await createAuditLog(
-    supabaseAdmin,
-    admin.id,
-    "plan_changed",
-    "doctor",
-    clinic.id,
-    { planId: input.planId, extendDays: input.extendDays, freeMonth: input.grantFreeMonth }
-  );
+  await createAuditLog(supabaseAdmin, admin.id, "plan_changed", "doctor", clinic.id, {
+    planId: input.planId,
+    extendDays: input.extendDays,
+    freeMonth: input.grantFreeMonth,
+  });
 
   return { success: true };
 }
@@ -528,14 +550,10 @@ export async function issueRefundImpl(input: any) {
     created_at: new Date().toISOString(),
   });
 
-  await createAuditLog(
-    supabaseAdmin,
-    admin.id,
-    "refund_issued",
-    "doctor",
-    clinic.id,
-    { amount: input.amount, reason: input.reason }
-  );
+  await createAuditLog(supabaseAdmin, admin.id, "refund_issued", "doctor", clinic.id, {
+    amount: input.amount,
+    reason: input.reason,
+  });
 
   return { success: true };
 }
@@ -557,8 +575,14 @@ export async function toggleDoctorSuspensionImpl(input: any) {
   const newSuspendedAt = clinic.suspended_at ? null : new Date().toISOString();
 
   await Promise.all([
-    supabaseAdmin.from("clinics").update({ suspended_at: newSuspendedAt, suspended_reason: input.reason || null }).eq("id", input.id),
-    supabaseAdmin.from("profiles").update({ suspended_at: newSuspendedAt, suspended_reason: input.reason || null }).eq("id", input.id),
+    supabaseAdmin
+      .from("clinics")
+      .update({ suspended_at: newSuspendedAt, suspended_reason: input.reason || null })
+      .eq("id", input.id),
+    supabaseAdmin
+      .from("profiles")
+      .update({ suspended_at: newSuspendedAt, suspended_reason: input.reason || null })
+      .eq("id", input.id),
   ]);
 
   await createAuditLog(
@@ -567,7 +591,7 @@ export async function toggleDoctorSuspensionImpl(input: any) {
     newSuspendedAt ? "doctor_suspended" : "doctor_unsuspended",
     "doctor",
     input.id,
-    { reason: input.reason }
+    { reason: input.reason },
   );
 
   return { success: true };
@@ -592,12 +616,17 @@ export async function deleteDoctorAccountImpl(input: any) {
     supabaseAdmin.from("appointments").delete().eq("clinic_id", clinic.id),
     supabaseAdmin.from("clinics").delete().eq("id", clinic.id),
     supabaseAdmin.from("subscriptions").delete().eq("organization_id", clinic.organization_id),
-    supabaseAdmin.from("organization_members").delete().eq("organization_id", clinic.organization_id),
+    supabaseAdmin
+      .from("organization_members")
+      .delete()
+      .eq("organization_id", clinic.organization_id),
     supabaseAdmin.from("organizations").delete().eq("id", clinic.organization_id),
     supabaseAdmin.from("profiles").delete().eq("id", clinic.id),
   ]);
 
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_deleted", "doctor", input.id, { owner_id: clinic.owner_id });
+  await createAuditLog(supabaseAdmin, admin.id, "doctor_deleted", "doctor", input.id, {
+    owner_id: clinic.owner_id,
+  });
   return { success: true };
 }
 
@@ -638,7 +667,9 @@ export async function listAdminSubscriptionsImpl() {
 
   const activeCount = (subs.data ?? []).filter((s) => s.status === "active").length;
   const trialCount = (subs.data ?? []).filter((s) => s.status === "trialing").length;
-  const expiredCount = (subs.data ?? []).filter((s) => s.status === "expired" || s.status === "cancelled").length;
+  const expiredCount = (subs.data ?? []).filter(
+    (s) => s.status === "expired" || s.status === "cancelled",
+  ).length;
 
   const list = (subs.data ?? []).map((s) => {
     const c = clinicByOrg.get(s.organization_id);
@@ -712,7 +743,10 @@ export async function listCouponsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: coupons } = await supabaseAdmin.from("coupon_codes" as any).select("*").order("created_at", { ascending: false });
+  const { data: coupons } = await supabaseAdmin
+    .from("coupon_codes" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
   return coupons ?? [];
 }
 
@@ -739,7 +773,9 @@ export async function createCouponImpl(input: any) {
 
   if (error) throw error;
 
-  await createAuditLog(supabaseAdmin, admin.id, "coupon_created", "coupon", input.code, { code: input.code });
+  await createAuditLog(supabaseAdmin, admin.id, "coupon_created", "coupon", input.code, {
+    code: input.code,
+  });
   return { success: true };
 }
 
@@ -749,8 +785,17 @@ export async function toggleCouponActiveImpl(input: any) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  await supabaseAdmin.from("coupon_codes" as any).update({ is_active: input.active }).eq("code", input.code);
-  await createAuditLog(supabaseAdmin, admin.id, input.active ? "coupon_activated" : "coupon_deactivated", "coupon", input.code);
+  await supabaseAdmin
+    .from("coupon_codes" as any)
+    .update({ is_active: input.active })
+    .eq("code", input.code);
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    input.active ? "coupon_activated" : "coupon_deactivated",
+    "coupon",
+    input.code,
+  );
 
   return { success: true };
 }
@@ -759,13 +804,13 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
   try {
     const { getPayments } = await import("@/lib/razorpay.server");
     const rzpPayments = await getPayments(100);
-    
+
     if (rzpPayments?.items?.length > 0) {
       // 1. Fetch all clinics to map organization_id and public_email to owner_id/doctor_id
       const { data: clinics } = await supabaseAdmin
         .from("clinics")
         .select("organization_id, owner_id, public_email");
-      
+
       const clinicMap = new Map((clinics ?? []).map((c: any) => [c.organization_id, c.owner_id]));
       const emailMap = new Map();
       (clinics ?? []).forEach((c: any) => {
@@ -776,7 +821,9 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
       const { data: subs } = await supabaseAdmin
         .from("subscriptions")
         .select("organization_id, gateway_subscription_id");
-      const subMap = new Map((subs ?? []).map((s: any) => [s.gateway_subscription_id, s.organization_id]));
+      const subMap = new Map(
+        (subs ?? []).map((s: any) => [s.gateway_subscription_id, s.organization_id]),
+      );
 
       // 3. Process payments
       for (const item of rzpPayments.items) {
@@ -793,10 +840,13 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
             const fetchedSub = await getSubscription(rzpSubId);
             orgId = fetchedSub?.notes?.organization_id || null;
           } catch (subErr) {
-            console.error(`Failed to fetch subscription ${rzpSubId} from Razorpay API during sync:`, subErr);
+            console.error(
+              `Failed to fetch subscription ${rzpSubId} from Razorpay API during sync:`,
+              subErr,
+            );
           }
         }
-        
+
         let doctorId = item.notes?.doctor_id || null;
         if (!doctorId && orgId) {
           doctorId = clinicMap.get(orgId) || null;
@@ -804,25 +854,29 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
         if (!doctorId && item.email) {
           doctorId = emailMap.get(item.email.toLowerCase().trim()) || null;
         }
-        
-        const statusVal = item.status === "captured" ? "captured" : item.status === "failed" ? "failed" : "success";
+
+        const statusVal =
+          item.status === "captured" ? "captured" : item.status === "failed" ? "failed" : "success";
 
         // Upsert transaction in the database
-        const { error } = await supabaseAdmin.from("transactions").upsert({
-          doctor_id: doctorId,
-          organization_id: orgId,
-          amount: item.amount / 100, // Razorpay stores in paise, convert to Rupees
-          currency: item.currency,
-          status: statusVal,
-          gateway: "razorpay",
-          plan: item.notes?.plan_id || null,
-          billing_cycle: item.notes?.billing_cycle || null,
-          gateway_payment_id: item.id,
-          razorpay_payment_id: item.id,
-          gateway_order_id: item.order_id || null,
-          razorpay_order_id: item.order_id || null,
-          created_at: new Date(item.created_at * 1000).toISOString(),
-        } as never, { onConflict: "gateway_payment_id" });
+        const { error } = await supabaseAdmin.from("transactions").upsert(
+          {
+            doctor_id: doctorId,
+            organization_id: orgId,
+            amount: item.amount / 100, // Razorpay stores in paise, convert to Rupees
+            currency: item.currency,
+            status: statusVal,
+            gateway: "razorpay",
+            plan: item.notes?.plan_id || null,
+            billing_cycle: item.notes?.billing_cycle || null,
+            gateway_payment_id: item.id,
+            razorpay_payment_id: item.id,
+            gateway_order_id: item.order_id || null,
+            razorpay_order_id: item.order_id || null,
+            created_at: new Date(item.created_at * 1000).toISOString(),
+          } as never,
+          { onConflict: "gateway_payment_id" },
+        );
 
         if (error) {
           console.error(`Failed to upsert transaction ${item.id}:`, error);
@@ -840,14 +894,17 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
 export async function listTransactionsImpl() {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");
- 
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
- 
+
   // Sync latest transactions from Razorpay API
   await syncRazorpayTransactions(supabaseAdmin);
 
   const [txs, clinics, invoices, doctors] = await Promise.all([
-    supabaseAdmin.from("transactions" as any).select("*").order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("transactions" as any)
+      .select("*")
+      .order("created_at", { ascending: false }),
     supabaseAdmin.from("clinics").select("owner_id, doctor_name, clinic_name, organization_id, id"),
     supabaseAdmin.from("invoices").select("organization_id, invoice_number"),
     supabaseAdmin.from("doctors").select("user_id, name, clinic_id"),
@@ -856,7 +913,9 @@ export async function listTransactionsImpl() {
   const clinicByOwner = new Map((clinics.data ?? []).map((c) => [c.owner_id, c]));
   const clinicByOrg = new Map((clinics.data ?? []).map((c) => [c.organization_id, c]));
   const clinicById = new Map((clinics.data ?? []).map((c) => [c.id, c]));
-  const invoiceOrgMap = new Map((invoices.data ?? []).map((i) => [i.invoice_number, i.organization_id]));
+  const invoiceOrgMap = new Map(
+    (invoices.data ?? []).map((i) => [i.invoice_number, i.organization_id]),
+  );
 
   // Map doctor's user_id to name and clinic details
   const doctorMap = new Map();
@@ -874,7 +933,7 @@ export async function listTransactionsImpl() {
   const list = (txs.data ?? []).map((t: any) => {
     // 1. Determine payment reference ID
     const refId = t.razorpay_payment_id || t.gateway_payment_id;
-    
+
     // 2. Resolve organization_id via invoice fallback if missing
     let orgId = t.organization_id;
     if (!orgId && refId) {
@@ -916,7 +975,9 @@ export async function listTransactionsImpl() {
     };
   });
 
-  const totalCaptured = (txs.data ?? []).filter((t: any) => t.status === "captured" || t.status === "success").reduce((sum: number, t: any) => sum + t.amount, 0);
+  const totalCaptured = (txs.data ?? [])
+    .filter((t: any) => t.status === "captured" || t.status === "success")
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
   const avgValue = list.length ? totalCaptured / list.length : 0;
 
   return {
@@ -934,7 +995,10 @@ export async function listFeatureFlagsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: flags } = await supabaseAdmin.from("feature_flags" as any).select("*").order("key");
+  const { data: flags } = await supabaseAdmin
+    .from("feature_flags" as any)
+    .select("*")
+    .order("key");
   return flags ?? [];
 }
 
@@ -954,7 +1018,7 @@ export async function toggleFeatureFlagImpl(input: any) {
     admin.id,
     input.enabled ? "feature_flag_enabled" : "feature_flag_disabled",
     "feature_flag",
-    input.key
+    input.key,
   );
 
   return { success: true };
@@ -975,10 +1039,17 @@ export async function updateFeatureFlagOverridesImpl(input: any) {
     })
     .eq("key", input.key);
 
-  await createAuditLog(supabaseAdmin, admin.id, "feature_flag_overrides_updated", "feature_flag", input.key, {
-    plans: input.plans,
-    doctorCount: input.doctorIds.length,
-  });
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    "feature_flag_overrides_updated",
+    "feature_flag",
+    input.key,
+    {
+      plans: input.plans,
+      doctorCount: input.doctorIds.length,
+    },
+  );
 
   return { success: true };
 }
@@ -991,7 +1062,10 @@ export async function listAnnouncementsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("announcements" as any).select("*").order("created_at", { ascending: false });
+  const { data } = await supabaseAdmin
+    .from("announcements" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
   return data ?? [];
 }
 
@@ -1011,7 +1085,13 @@ export async function createAnnouncementImpl(input: any) {
 
   if (error) throw error;
 
-  await createAuditLog(supabaseAdmin, admin.id, "announcement_created", "announcement", input.title);
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    "announcement_created",
+    "announcement",
+    input.title,
+  );
   return { success: true };
 }
 
@@ -1021,8 +1101,17 @@ export async function toggleAnnouncementActiveImpl(input: any) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  await supabaseAdmin.from("announcements" as any).update({ is_active: input.active }).eq("id", input.id);
-  await createAuditLog(supabaseAdmin, admin.id, input.active ? "announcement_activated" : "announcement_deactivated", "announcement", input.id);
+  await supabaseAdmin
+    .from("announcements" as any)
+    .update({ is_active: input.active })
+    .eq("id", input.id);
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    input.active ? "announcement_activated" : "announcement_deactivated",
+    "announcement",
+    input.id,
+  );
 
   return { success: true };
 }
@@ -1035,7 +1124,10 @@ export async function listEmailCampaignsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("email_campaigns" as any).select("*").order("created_at", { ascending: false });
+  const { data } = await supabaseAdmin
+    .from("email_campaigns" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
   return data ?? [];
 }
 
@@ -1070,7 +1162,7 @@ export async function createEmailCampaignImpl(input: any) {
     input.status === "sent" ? "campaign_sent" : "campaign_draft_created",
     "campaign",
     input.name,
-    { recipients: recipientCount }
+    { recipients: recipientCount },
   );
 
   return { success: true };
@@ -1119,7 +1211,9 @@ export async function runDatabaseCleanupImpl(input: any) {
     count = 2;
   }
 
-  await createAuditLog(supabaseAdmin, admin.id, "database_cleanup", "system", input.tool, { cleared: count });
+  await createAuditLog(supabaseAdmin, admin.id, "database_cleanup", "system", input.tool, {
+    cleared: count,
+  });
   return { success: true, count };
 }
 
@@ -1131,7 +1225,10 @@ export async function listSupportTicketsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: tickets } = await supabaseAdmin.from("support_tickets" as any).select("*").order("created_at", { ascending: false });
+  const { data: tickets } = await supabaseAdmin
+    .from("support_tickets" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
   return tickets ?? [];
 }
 
@@ -1189,7 +1286,11 @@ export async function updateTicketStatusImpl(input: any) {
 
   await supabaseAdmin
     .from("support_tickets" as any)
-    .update({ status: input.status, priority: input.priority, updated_at: new Date().toISOString() })
+    .update({
+      status: input.status,
+      priority: input.priority,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", input.id);
 
   return { success: true };
@@ -1220,11 +1321,18 @@ export async function listAuditLogsImpl() {
     ids.map(async (id) => {
       const { data } = await supabaseAdmin.auth.admin.getUserById(id);
       const u: any = data?.user;
-      if (u) idToUser.set(id, { name: u.user_metadata?.full_name || u.email?.split("@")[0] || "Admin", email: u.email || "" });
-    })
+      if (u)
+        idToUser.set(id, {
+          name: u.user_metadata?.full_name || u.email?.split("@")[0] || "Admin",
+          email: u.email || "",
+        });
+    }),
   );
 
-  return rows.map((l) => ({ ...l, admin_users: l.admin_id ? idToUser.get(l.admin_id) ?? null : null }));
+  return rows.map((l) => ({
+    ...l,
+    admin_users: l.admin_id ? (idToUser.get(l.admin_id) ?? null) : null,
+  }));
 }
 
 // -------------------------------------------------------------
@@ -1252,7 +1360,7 @@ export async function listAdminUsersImpl() {
     uniqueIds.map(async (id) => {
       const { data } = await supabaseAdmin.auth.admin.getUserById(id);
       return data?.user ?? null;
-    })
+    }),
   );
   const userById = new Map(authUsers.filter(Boolean).map((u: any) => [u.id, u]));
 
@@ -1282,7 +1390,9 @@ export async function createAdminUserImpl(input: any) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const email = String(input.email || "").trim().toLowerCase();
+  const email = String(input.email || "")
+    .trim()
+    .toLowerCase();
   const role = input.role === "super_admin" ? "super_admin" : "support";
   if (!email) throw new Error("Email is required");
 
@@ -1296,7 +1406,9 @@ export async function createAdminUserImpl(input: any) {
     if (users.length < 200) break; // last page reached
   }
   if (!target) {
-    throw new Error("No ClinicX account uses that email. Ask them to sign up first, then grant access.");
+    throw new Error(
+      "No ClinicX account uses that email. Ask them to sign up first, then grant access.",
+    );
   }
 
   const { error } = await supabaseAdmin
@@ -1304,7 +1416,10 @@ export async function createAdminUserImpl(input: any) {
     .upsert({ user_id: target.id, role } as any, { onConflict: "user_id,role" });
   if (error) throw error;
 
-  await createAuditLog(supabaseAdmin, admin.id, "admin_role_granted", "user", target.id, { email, role });
+  await createAuditLog(supabaseAdmin, admin.id, "admin_role_granted", "user", target.id, {
+    email,
+    role,
+  });
   return { success: true };
 }
 
@@ -1369,17 +1484,22 @@ export async function saveSystemSettingsImpl(input: any) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const promises = Object.entries(input).map(([key, value]) =>
-    supabaseAdmin.from("system_settings" as any).upsert({
-      key,
-      value,
-      updated_by: admin.id,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "key" })
+    supabaseAdmin.from("system_settings" as any).upsert(
+      {
+        key,
+        value,
+        updated_by: admin.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    ),
   );
 
   await Promise.all(promises);
 
-  await createAuditLog(supabaseAdmin, admin.id, "system_settings_updated", "system", "settings", { keys: Object.keys(input) });
+  await createAuditLog(supabaseAdmin, admin.id, "system_settings_updated", "system", "settings", {
+    keys: Object.keys(input),
+  });
   return { success: true };
 }
 
@@ -1407,7 +1527,10 @@ export async function impersonateDoctorImpl(input: any) {
   if (!email) throw new Error("Doctor has no email on file");
 
   const req = getRequest();
-  const origin = req?.headers?.get("origin") || req?.headers?.get("referer")?.split("/").slice(0, 3).join("/") || "";
+  const origin =
+    req?.headers?.get("origin") ||
+    req?.headers?.get("referer")?.split("/").slice(0, 3).join("/") ||
+    "";
   const redirectTo = `${origin}/dashboard`;
 
   const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
@@ -1417,14 +1540,10 @@ export async function impersonateDoctorImpl(input: any) {
   });
   if (error) throw error;
 
-  await createAuditLog(
-    supabaseAdmin,
-    admin.id,
-    "doctor_impersonated",
-    "doctor",
-    clinic.id,
-    { email, doctor_name: clinic.doctor_name },
-  );
+  await createAuditLog(supabaseAdmin, admin.id, "doctor_impersonated", "doctor", clinic.id, {
+    email,
+    doctor_name: clinic.doctor_name,
+  });
 
   return { url: link.properties?.action_link, email };
 }
@@ -1442,23 +1561,23 @@ export async function resetDoctorPasswordImpl(input: any) {
     .maybeSingle();
   if (!clinic?.owner_id) throw new Error("Clinic has no owner");
 
-  const tempPassword = input.password && input.password.length >= 8
-    ? input.password
-    : crypto.randomBytes(9).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) + "!A9";
+  const tempPassword =
+    input.password && input.password.length >= 8
+      ? input.password
+      : crypto
+          .randomBytes(9)
+          .toString("base64")
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 12) + "!A9";
 
   const { error } = await supabaseAdmin.auth.admin.updateUserById(clinic.owner_id, {
     password: tempPassword,
   });
   if (error) throw error;
 
-  await createAuditLog(
-    supabaseAdmin,
-    admin.id,
-    "doctor_password_reset",
-    "doctor",
-    clinic.id,
-    { doctor_name: clinic.doctor_name },
-  );
+  await createAuditLog(supabaseAdmin, admin.id, "doctor_password_reset", "doctor", clinic.id, {
+    doctor_name: clinic.doctor_name,
+  });
 
   return { password: tempPassword, email: clinic.email };
 }
@@ -1512,10 +1631,7 @@ export async function updateSubscriptionStatusImpl(input: any) {
   else if (input.action === "mark_expired") patch.status = "expired";
   else throw new Error("Unknown action");
 
-  const { error } = await supabaseAdmin
-    .from("subscriptions")
-    .update(patch)
-    .eq("id", input.id);
+  const { error } = await supabaseAdmin.from("subscriptions").update(patch).eq("id", input.id);
   if (error) throw error;
 
   await createAuditLog(
@@ -1537,7 +1653,10 @@ export async function deleteCouponImpl(input: any) {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { error } = await supabaseAdmin.from("coupon_codes" as any).delete().eq("code", input.code);
+  const { error } = await supabaseAdmin
+    .from("coupon_codes" as any)
+    .delete()
+    .eq("code", input.code);
   if (error) throw error;
   await createAuditLog(supabaseAdmin, admin.id, "coupon_deleted", "coupon", input.code);
   return { success: true };
@@ -1558,7 +1677,9 @@ export async function createPlanImpl(input: any) {
     sort_order: input.sortOrder ?? 999,
   } as any);
   if (error) throw error;
-  await createAuditLog(supabaseAdmin, admin.id, "plan_created", "plan", input.slug, { name: input.name });
+  await createAuditLog(supabaseAdmin, admin.id, "plan_created", "plan", input.slug, {
+    name: input.name,
+  });
   return { success: true };
 }
 
@@ -1572,7 +1693,8 @@ export async function deletePlanImpl(input: any) {
     .from("subscriptions")
     .select("id", { count: "exact", head: true })
     .eq("plan_id", input.id);
-  if ((count ?? 0) > 0) throw new Error(`Cannot delete plan: ${count} active subscription(s) still use it`);
+  if ((count ?? 0) > 0)
+    throw new Error(`Cannot delete plan: ${count} active subscription(s) still use it`);
 
   const { error } = await supabaseAdmin.from("plans").delete().eq("id", input.id);
   if (error) throw error;
@@ -1583,7 +1705,10 @@ export async function deletePlanImpl(input: any) {
 // -------------------------------------------------------------
 // Integration Test Connections
 // -------------------------------------------------------------
-export async function testIntegrationImpl(input: { provider: "wati" | "razorpay" | "openai"; settings: Record<string, string> }) {
+export async function testIntegrationImpl(input: {
+  provider: "wati" | "razorpay" | "openai";
+  settings: Record<string, string>;
+}) {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");
 
@@ -1604,7 +1729,10 @@ export async function testIntegrationImpl(input: { provider: "wati" | "razorpay"
       const keyId = settings.razorpay_key_id || "";
       const keySecret = settings.razorpay_key_secret || process.env.RAZORPAY_KEY_SECRET || "";
       if (!keyId) throw new Error("Razorpay Key ID is required");
-      if (!keySecret) throw new Error("Razorpay Key Secret is not configured (set RAZORPAY_KEY_SECRET or razorpay_key_secret)");
+      if (!keySecret)
+        throw new Error(
+          "Razorpay Key Secret is not configured (set RAZORPAY_KEY_SECRET or razorpay_key_secret)",
+        );
       const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
       const res = await fetch("https://api.razorpay.com/v1/payments?count=1", {
         headers: { Authorization: `Basic ${auth}` },

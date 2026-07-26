@@ -27,7 +27,11 @@ export const Route = createFileRoute("/sitemap.xml")({
           entries.push({ path: `/compare/${c.slug}`, changefreq: "monthly", priority: "0.8" });
         }
         for (const city of CITIES) {
-          entries.push({ path: `/clinic-software/${city.slug}`, changefreq: "monthly", priority: "0.8" });
+          entries.push({
+            path: `/clinic-software/${city.slug}`,
+            changefreq: "monthly",
+            priority: "0.8",
+          });
         }
         for (const s of SPECIALTIES) {
           entries.push({ path: `/for/${s.slug}`, changefreq: "monthly", priority: "0.7" });
@@ -42,10 +46,22 @@ export const Route = createFileRoute("/sitemap.xml")({
               if (c.slug) {
                 entries.push({ path: `/c/${c.slug}`, changefreq: "weekly", priority: "0.8" });
                 entries.push({ path: `/c/${c.slug}/about`, changefreq: "weekly", priority: "0.5" });
-                entries.push({ path: `/c/${c.slug}/services`, changefreq: "weekly", priority: "0.5" });
-                entries.push({ path: `/c/${c.slug}/contact`, changefreq: "weekly", priority: "0.4" });
+                entries.push({
+                  path: `/c/${c.slug}/services`,
+                  changefreq: "weekly",
+                  priority: "0.5",
+                });
+                entries.push({
+                  path: `/c/${c.slug}/contact`,
+                  changefreq: "weekly",
+                  priority: "0.4",
+                });
                 entries.push({ path: `/c/${c.slug}/book`, changefreq: "weekly", priority: "0.6" });
-                entries.push({ path: `/c/${c.slug}/walkin`, changefreq: "weekly", priority: "0.5" });
+                entries.push({
+                  path: `/c/${c.slug}/walkin`,
+                  changefreq: "weekly",
+                  priority: "0.5",
+                });
               }
             }
           }

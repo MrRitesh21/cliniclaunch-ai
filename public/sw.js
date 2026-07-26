@@ -1,17 +1,12 @@
 const CACHE_NAME = "clinicx-pwa-v1";
-const STATIC_ASSETS = [
-  "/",
-  "/manifest.webmanifest",
-  "/icon-512.png",
-  "/logo-icon.png",
-];
+const STATIC_ASSETS = ["/", "/manifest.webmanifest", "/icon-512.png", "/logo-icon.png"];
 
 // Install Event — pre-cache core static shell
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
-    })
+    }),
   );
   self.skipWaiting();
 });
@@ -25,9 +20,9 @@ self.addEventListener("activate", (event) => {
           if (key !== CACHE_NAME) {
             return caches.delete(key);
           }
-        })
+        }),
       );
-    })
+    }),
   );
   self.clients.claim();
 });
@@ -37,7 +32,12 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
 
   // Skip non-GET requests and Supabase/API requests from caching
-  if (request.method !== "GET" || request.url.includes("/supabase") || request.url.includes("supabase.co") || request.url.includes("/api/")) {
+  if (
+    request.method !== "GET" ||
+    request.url.includes("/supabase") ||
+    request.url.includes("supabase.co") ||
+    request.url.includes("/api/")
+  ) {
     return;
   }
 
@@ -62,6 +62,6 @@ self.addEventListener("fetch", (event) => {
             return caches.match("/");
           }
         });
-      })
+      }),
   );
 });

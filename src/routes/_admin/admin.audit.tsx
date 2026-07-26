@@ -11,7 +11,10 @@ export const Route = createFileRoute("/_admin/admin/audit")({
 
 function AuditLogsPage() {
   const fn = useServerFn(listAuditLogs);
-  const { data: logs = [], isLoading } = useQuery({ queryKey: ["admin-audit-logs"], queryFn: () => fn() });
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ["admin-audit-logs"],
+    queryFn: () => fn(),
+  });
 
   if (isLoading) {
     return (
@@ -29,7 +32,9 @@ function AuditLogsPage() {
           <ScrollText className="size-6 text-primary" />
           Audit Logs
         </h1>
-        <p className="text-sm text-muted-foreground">Chronological history of admin actions, targets, metadata, and IP footprints.</p>
+        <p className="text-sm text-muted-foreground">
+          Chronological history of admin actions, targets, metadata, and IP footprints.
+        </p>
       </div>
 
       <Card className="overflow-hidden">
@@ -47,7 +52,11 @@ function AuditLogsPage() {
             </thead>
             <tbody className="divide-y text-xs">
               {logs.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No actions logged yet.</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
+                    No actions logged yet.
+                  </td>
+                </tr>
               )}
               {logs.map((log: any) => (
                 <tr key={log.id} className="hover:bg-muted/50">
@@ -56,7 +65,9 @@ function AuditLogsPage() {
                   </td>
                   <td className="px-4 py-3 font-medium text-foreground">
                     <div>{log.admin_users?.name || "System"}</div>
-                    <div className="text-[10px] text-muted-foreground/70 font-normal">{log.admin_users?.email}</div>
+                    <div className="text-[10px] text-muted-foreground/70 font-normal">
+                      {log.admin_users?.email}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-semibold text-foreground uppercase tracking-tight text-[11px] bg-muted px-1.5 py-0.5 rounded">

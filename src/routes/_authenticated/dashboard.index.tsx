@@ -7,7 +7,17 @@ import { ValueHero } from "@/components/value/ValueHero";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Clock, Copy, ExternalLink, TrendingUp, ArrowRight, Zap, BarChart2 } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Clock,
+  Copy,
+  ExternalLink,
+  TrendingUp,
+  ArrowRight,
+  Zap,
+  BarChart2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -22,27 +32,58 @@ function Overview() {
   const clinic = useClinic();
   const { org, installedModuleIds } = useOrganization();
 
-  const [stats, setStats] = useState<{ today: number; pending: number; week: number; patients: number } | null>(null);
-  const [recent, setRecent] = useState<Array<{ id: string; patient_name: string; scheduled_at: string; status: string }>>([]);
+  const [stats, setStats] = useState<{
+    today: number;
+    pending: number;
+    week: number;
+    patients: number;
+  } | null>(null);
+  const [recent, setRecent] = useState<
+    Array<{ id: string; patient_name: string; scheduled_at: string; status: string }>
+  >([]);
 
   useEffect(() => {
     if (!clinic?.id) return;
     (async () => {
       const now = new Date();
-      const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(now); endOfDay.setHours(23, 59, 59, 999);
-      const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() + 7);
 
       const [today, pending, week, apptsData, recentRows] = await Promise.all([
-        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("clinic_id", clinic.id).gte("scheduled_at", startOfDay.toISOString()).lte("scheduled_at", endOfDay.toISOString()),
-        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("clinic_id", clinic.id).eq("status", "pending"),
-        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("clinic_id", clinic.id).gte("scheduled_at", now.toISOString()).lte("scheduled_at", weekEnd.toISOString()),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .gte("scheduled_at", startOfDay.toISOString())
+          .lte("scheduled_at", endOfDay.toISOString()),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .eq("status", "pending"),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .gte("scheduled_at", now.toISOString())
+          .lte("scheduled_at", weekEnd.toISOString()),
         supabase.from("appointments").select("patient_phone").eq("clinic_id", clinic.id),
-        supabase.from("appointments").select("id, patient_name, scheduled_at, status").eq("clinic_id", clinic.id).order("scheduled_at", { ascending: false }).limit(6),
+        supabase
+          .from("appointments")
+          .select("id, patient_name, scheduled_at, status")
+          .eq("clinic_id", clinic.id)
+          .order("scheduled_at", { ascending: false })
+          .limit(6),
       ]);
-      
-      const uniquePhones = new Set((apptsData.data ?? []).map((r: any) => r.patient_phone).filter(Boolean));
-      
+
+      const uniquePhones = new Set(
+        (apptsData.data ?? []).map((r: any) => r.patient_phone).filter(Boolean),
+      );
+
       setStats({
         today: today.count ?? 0,
         pending: pending.count ?? 0,
@@ -53,13 +94,14 @@ function Overview() {
     })();
   }, [clinic?.id]);
 
-
-
   if (!clinic) {
     return <SkeletonStatCards count={4} />;
   }
 
-  const url = getPublicClinicUrl(clinic, typeof window !== "undefined" ? window.location.origin : "");
+  const url = getPublicClinicUrl(
+    clinic,
+    typeof window !== "undefined" ? window.location.origin : "",
+  );
   const getGreetingName = () => {
     if (!clinic.doctor_name) return "Doctor";
     const cleaned = clinic.doctor_name.trim().replace(/^dr\.?\s*/i, "");
@@ -78,14 +120,25 @@ function Overview() {
         <div>
           <p className="text-sm text-muted-foreground mb-1">{greeting} 👋</p>
           <h1 className="font-display text-2xl md:text-3xl">{displayName}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{clinic.clinic_name} — here's what's happening today.</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {clinic.clinic_name} — here's what's happening today.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(url); toast.success("Clinic link copied!"); }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(url);
+              toast.success("Clinic link copied!");
+            }}
+          >
             <Copy className="size-3.5" /> Copy link
           </Button>
           <a href={url} target="_blank" rel="noreferrer">
-            <Button size="sm"><ExternalLink className="size-3.5" /> View site</Button>
+            <Button size="sm">
+              <ExternalLink className="size-3.5" /> View site
+            </Button>
           </a>
         </div>
       </div>
@@ -102,7 +155,13 @@ function Overview() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard icon={Calendar} label="Today's appointments" value={stats.today} color="blue" />
-          <StatCard icon={Clock} label="Pending confirmations" value={stats.pending} color="amber" accent />
+          <StatCard
+            icon={Clock}
+            label="Pending confirmations"
+            value={stats.pending}
+            color="amber"
+            accent
+          />
           <StatCard icon={TrendingUp} label="This week" value={stats.week} color="purple" />
           <StatCard icon={Users} label="Total patients" value={stats.patients} color="emerald" />
         </div>
@@ -146,19 +205,33 @@ function Overview() {
         {recent.length === 0 ? (
           <div className="p-10 text-center">
             <Calendar className="size-8 mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-sm text-muted-foreground">No appointments yet. Share your clinic link to start receiving bookings.</p>
-            <Button className="mt-4" size="sm" onClick={() => { navigator.clipboard.writeText(url); toast.success("Copied!"); }}>
+            <p className="text-sm text-muted-foreground">
+              No appointments yet. Share your clinic link to start receiving bookings.
+            </p>
+            <Button
+              className="mt-4"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(url);
+                toast.success("Copied!");
+              }}
+            >
               <Copy className="size-3.5" /> Copy clinic link
             </Button>
           </div>
         ) : (
           <ul className="divide-y">
             {recent.map((a) => (
-              <li key={a.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+              <li
+                key={a.id}
+                className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors"
+              >
                 <AvatarInitials name={a.patient_name} className="shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{a.patient_name}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(a.scheduled_at).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(a.scheduled_at).toLocaleString()}
+                  </p>
                 </div>
                 <StatusBadge status={a.status} />
               </li>
@@ -171,13 +244,19 @@ function Overview() {
 }
 
 const COLOR_MAP: Record<string, string> = {
-  blue:    "bg-blue-50    text-blue-600   dark:bg-blue-950/30   dark:text-blue-400",
-  amber:   "bg-amber-50   text-amber-600  dark:bg-amber-950/30  dark:text-amber-400",
+  blue: "bg-blue-50    text-blue-600   dark:bg-blue-950/30   dark:text-blue-400",
+  amber: "bg-amber-50   text-amber-600  dark:bg-amber-950/30  dark:text-amber-400",
   emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400",
-  purple:  "bg-purple-50  text-purple-600 dark:bg-purple-950/30 dark:text-purple-400",
+  purple: "bg-purple-50  text-purple-600 dark:bg-purple-950/30 dark:text-purple-400",
 };
 
-function StatCard({ icon: Icon, label, value, color = "blue", accent }: {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  color = "blue",
+  accent,
+}: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
@@ -186,7 +265,9 @@ function StatCard({ icon: Icon, label, value, color = "blue", accent }: {
 }) {
   return (
     <Card className={`p-5 card-soft ${accent ? "border-primary/20 bg-primary/3" : ""}`}>
-      <div className={`size-10 rounded-xl grid place-items-center ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}>
+      <div
+        className={`size-10 rounded-xl grid place-items-center ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}
+      >
         <Icon className="size-5" />
       </div>
       <p className="mt-3 text-3xl font-display">{value}</p>
@@ -195,7 +276,13 @@ function StatCard({ icon: Icon, label, value, color = "blue", accent }: {
   );
 }
 
-function QuickAction({ icon, label, desc, to, color }: {
+function QuickAction({
+  icon,
+  label,
+  desc,
+  to,
+  color,
+}: {
   icon: React.ReactNode;
   label: string;
   desc: string;
@@ -205,7 +292,9 @@ function QuickAction({ icon, label, desc, to, color }: {
   return (
     <Link to={to}>
       <Card className="p-4 hover:border-primary/30 hover:bg-primary/2 transition-all cursor-pointer group">
-        <div className={`size-9 rounded-lg grid place-items-center mb-3 ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}>
+        <div
+          className={`size-9 rounded-lg grid place-items-center mb-3 ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}
+        >
           {icon}
         </div>
         <p className="font-medium text-sm">{label}</p>
@@ -217,5 +306,3 @@ function QuickAction({ icon, label, desc, to, color }: {
     </Link>
   );
 }
-
-

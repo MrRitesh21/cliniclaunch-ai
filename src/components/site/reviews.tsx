@@ -5,16 +5,32 @@ import type { SiteClinic } from "./types";
 type Props = { clinic: SiteClinic };
 
 const DEFAULT_REVIEWS = [
-  { name: "Priya S.", text: "Caring, attentive and never rushed. The best clinical experience I've had in years.", rating: 5 },
-  { name: "Rahul M.", text: "Clear explanations, quick follow-ups and friendly staff. Highly recommend.", rating: 5 },
-  { name: "Anita K.", text: "Booking was seamless and the consultation felt thorough. Trustworthy doctor.", rating: 5 },
-  { name: "Vikram T.", text: "Genuinely listens. Modern clinic with a very human touch.", rating: 5 },
+  {
+    name: "Priya S.",
+    text: "Caring, attentive and never rushed. The best clinical experience I've had in years.",
+    rating: 5,
+  },
+  {
+    name: "Rahul M.",
+    text: "Clear explanations, quick follow-ups and friendly staff. Highly recommend.",
+    rating: 5,
+  },
+  {
+    name: "Anita K.",
+    text: "Booking was seamless and the consultation felt thorough. Trustworthy doctor.",
+    rating: 5,
+  },
+  {
+    name: "Vikram T.",
+    text: "Genuinely listens. Modern clinic with a very human touch.",
+    rating: 5,
+  },
 ];
 
 function reviewsFrom(clinic: SiteClinic) {
-  const c = clinic as unknown as { 
-    reviews?: unknown; 
-    google_reviews?: unknown; 
+  const c = clinic as unknown as {
+    reviews?: unknown;
+    google_reviews?: unknown;
     db_reviews?: Array<{ reviewer_name: string; rating: number; comment: string | null }>;
   };
 
@@ -24,15 +40,27 @@ function reviewsFrom(clinic: SiteClinic) {
       name: r.reviewer_name || "Verified Patient",
       text: r.comment || "Excellent care!",
       rating: r.rating || 5,
-      source: "db" as const
+      source: "db" as const,
     }));
   }
 
   // 2. Second priority: google reviews if configured
-  const g = Array.isArray(c.google_reviews) ? (c.google_reviews as Array<{ author?: string; text?: string; rating?: number; show_on_site?: boolean }>) : [];
+  const g = Array.isArray(c.google_reviews)
+    ? (c.google_reviews as Array<{
+        author?: string;
+        text?: string;
+        rating?: number;
+        show_on_site?: boolean;
+      }>)
+    : [];
   const gShown = g.filter((r) => r.show_on_site !== false && (r.text ?? "").trim().length > 0);
   if (gShown.length) {
-    return gShown.map((r) => ({ name: r.author ?? "Google user", text: r.text ?? "", rating: r.rating ?? 5, source: "google" as const }));
+    return gShown.map((r) => ({
+      name: r.author ?? "Google user",
+      text: r.text ?? "",
+      rating: r.rating ?? 5,
+      source: "google" as const,
+    }));
   }
 
   // 3. Third priority: local static/custom list configured in builder
@@ -46,7 +74,9 @@ function reviewsFrom(clinic: SiteClinic) {
 function Stars({ n = 5 }: { n?: number }) {
   return (
     <div className="flex gap-0.5 text-amber-500">
-      {Array.from({ length: n }).map((_, i) => <Star key={i} className="size-4 fill-current" />)}
+      {Array.from({ length: n }).map((_, i) => (
+        <Star key={i} className="size-4 fill-current" />
+      ))}
     </div>
   );
 }
@@ -81,7 +111,9 @@ export function ReviewsQuote({ clinic }: Props) {
   return (
     <section className="max-w-4xl mx-auto px-4 py-14 sm:py-20 text-center">
       <Quote className="size-10 text-primary mx-auto" />
-      <blockquote className="font-display text-xl sm:text-2xl md:text-3xl leading-snug mt-6">"{r.text}"</blockquote>
+      <blockquote className="font-display text-xl sm:text-2xl md:text-3xl leading-snug mt-6">
+        "{r.text}"
+      </blockquote>
       <div className="mt-6 flex items-center justify-center gap-3 text-sm text-muted-foreground">
         <Stars n={r.rating} />
         <span>— {r.name}, verified patient</span>
@@ -98,11 +130,16 @@ export function ReviewsStrip({ clinic }: Props) {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-6 sm:mb-8">
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl">Patient stories</h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground"><Stars /> <span>4.9 from {items.length * 27}+ reviews</span></div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Stars /> <span>4.9 from {items.length * 27}+ reviews</span>
+          </div>
         </div>
         <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x">
           {items.map((r, i) => (
-            <div key={i} className="snap-start shrink-0 w-[78vw] sm:w-[320px] rounded-2xl border bg-card p-5 sm:p-6">
+            <div
+              key={i}
+              className="snap-start shrink-0 w-[78vw] sm:w-[320px] rounded-2xl border bg-card p-5 sm:p-6"
+            >
               <Stars n={r.rating} />
               <p className="mt-3 text-sm">"{r.text}"</p>
               <p className="mt-4 text-xs text-muted-foreground font-medium">— {r.name}</p>

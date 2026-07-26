@@ -17,11 +17,13 @@ function DbToolsPage() {
   const getStatsFn = useServerFn(getDatabaseStats);
   const runCleanupFn = useServerFn(runDatabaseCleanup);
 
-  const { data: stats, isLoading } = useQuery({ queryKey: ["admin-db-stats"], queryFn: () => getStatsFn() });
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["admin-db-stats"],
+    queryFn: () => getStatsFn(),
+  });
 
   const cleanupMut = useMutation({
-    mutationFn: (tool: "unverified" | "sessions" | "archive") =>
-      runCleanupFn({ data: { tool } }),
+    mutationFn: (tool: "unverified" | "sessions" | "archive") => runCleanupFn({ data: { tool } }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin-db-stats"] });
       toast.success(`Cleanup run complete. ${res.count} records cleared.`);
@@ -57,7 +59,9 @@ function DbToolsPage() {
           <Database className="size-6 text-primary" />
           Database Tools
         </h1>
-        <p className="text-sm text-muted-foreground">Examine record distributions, optimize tables, and purge transient session states.</p>
+        <p className="text-sm text-muted-foreground">
+          Examine record distributions, optimize tables, and purge transient session states.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -90,12 +94,20 @@ function DbToolsPage() {
 
         {/* Maintenance Tools */}
         <Card className="p-4 sm:p-6 space-y-4 lg:col-span-2">
-          <h3 className="text-lg font-semibold text-foreground font-display">Optimization Commands</h3>
-          <p className="text-xs text-muted-foreground">Run secure cleanup utilities directly to free space or backup database schemas.</p>
+          <h3 className="text-lg font-semibold text-foreground font-display">
+            Optimization Commands
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Run secure cleanup utilities directly to free space or backup database schemas.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div className="p-3 border rounded-md bg-muted/50 space-y-2">
-              <span className="text-sm font-semibold text-foreground block">Clear Expired Sessions</span>
-              <p className="text-xs text-muted-foreground/70">Purges session logs and authentication tokens that are fully expired.</p>
+              <span className="text-sm font-semibold text-foreground block">
+                Clear Expired Sessions
+              </span>
+              <p className="text-xs text-muted-foreground/70">
+                Purges session logs and authentication tokens that are fully expired.
+              </p>
               <Button
                 size="sm"
                 variant="outline"
@@ -108,8 +120,12 @@ function DbToolsPage() {
               </Button>
             </div>
             <div className="p-3 border rounded-md bg-muted/50 space-y-2">
-              <span className="text-sm font-semibold text-foreground block">Clear Unverified Signups</span>
-              <p className="text-xs text-muted-foreground/70">Deletes clinic registration records that were never activated (over 30d).</p>
+              <span className="text-sm font-semibold text-foreground block">
+                Clear Unverified Signups
+              </span>
+              <p className="text-xs text-muted-foreground/70">
+                Deletes clinic registration records that were never activated (over 30d).
+              </p>
               <Button
                 size="sm"
                 variant="outline"
@@ -122,13 +138,14 @@ function DbToolsPage() {
               </Button>
             </div>
             <div className="p-3 border rounded-md bg-indigo-50/50 border-indigo-100 space-y-2 md:col-span-2">
-              <span className="text-sm font-semibold text-indigo-950 block">Database Schema Backup</span>
-              <p className="text-xs text-muted-foreground">Generates a client-side SQL backup containing full table structure definition scripts.</p>
-              <Button
-                size="sm"
-                className="bg-primary hover:bg-primary/90"
-                onClick={downloadBackup}
-              >
+              <span className="text-sm font-semibold text-indigo-950 block">
+                Database Schema Backup
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Generates a client-side SQL backup containing full table structure definition
+                scripts.
+              </p>
+              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={downloadBackup}>
                 <Download className="size-3.5 mr-1" />
                 Download SQL Schema Backup
               </Button>

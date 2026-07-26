@@ -16,7 +16,9 @@ export const Route = createFileRoute("/c/$slug/contact")({
 
 function ContactPage() {
   const { clinic } = ClinicRoute.useLoaderData();
-  const mapsHref = clinic.address ? `https://www.google.com/maps?q=${encodeURIComponent(clinic.address)}` : null;
+  const mapsHref = clinic.address
+    ? `https://www.google.com/maps?q=${encodeURIComponent(clinic.address)}`
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
@@ -36,21 +38,41 @@ function ContactPage() {
       </Card>
 
       <div className="mt-6 flex justify-center">
-        <a href={`/c/${clinic.slug}/book`}><Button size="lg">Book an appointment</Button></a>
+        <a href={`/c/${clinic.slug}/book`}>
+          <Button size="lg">Book an appointment</Button>
+        </a>
       </div>
     </div>
   );
 }
 
-function Row({ icon: Icon, label, value, href }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; href?: string }) {
+function Row({
+  icon: Icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  href?: string;
+}) {
   const inner = (
     <div className="flex items-start gap-3">
-      <div className="size-9 rounded-lg bg-accent text-accent-foreground grid place-items-center"><Icon className="size-4" /></div>
+      <div className="size-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+        <Icon className="size-4" />
+      </div>
       <div>
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
         <p className="mt-0.5">{value}</p>
       </div>
     </div>
   );
-  return href ? <a href={href} target="_blank" rel="noreferrer" className="block hover:opacity-80">{inner}</a> : inner;
+  return href ? (
+    <a href={href} target="_blank" rel="noreferrer" className="block hover:opacity-80">
+      {inner}
+    </a>
+  ) : (
+    inner
+  );
 }

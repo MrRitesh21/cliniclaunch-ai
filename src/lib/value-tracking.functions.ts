@@ -9,15 +9,17 @@ export type ValueType = "money_saved" | "money_gained" | "time_saved_minutes";
  */
 export const logValueEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: {
-    organizationId: string;
-    moduleKey: string;
-    eventType: string;
-    valueType: ValueType;
-    valueAmount: number;
-    description?: string;
-    relatedId?: string;
-  }) => input)
+  .inputValidator(
+    (input: {
+      organizationId: string;
+      moduleKey: string;
+      eventType: string;
+      valueType: ValueType;
+      valueAmount: number;
+      description?: string;
+      relatedId?: string;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("value_events").insert({
       organization_id: data.organizationId,
@@ -48,11 +50,15 @@ function getPeriodRange(period: PeriodKey): { from: string; to: string } {
       break;
     }
     case "this_month":
-      from.setDate(1); from.setHours(0, 0, 0, 0);
+      from.setDate(1);
+      from.setHours(0, 0, 0, 0);
       break;
     case "last_month": {
-      from.setMonth(from.getMonth() - 1, 1); from.setHours(0, 0, 0, 0);
-      to.setDate(1); to.setHours(0, 0, 0, 0); to.setMilliseconds(-1);
+      from.setMonth(from.getMonth() - 1, 1);
+      from.setHours(0, 0, 0, 0);
+      to.setDate(1);
+      to.setHours(0, 0, 0, 0);
+      to.setMilliseconds(-1);
       break;
     }
     case "last_30_days":
@@ -90,11 +96,14 @@ export interface ValueSummary {
   amountPaid: number;
   roiMultiplier: number;
   byModule: Record<string, ModuleSummary>;
-  benchmarks: Record<string, {
-    competitor_name: string | null;
-    competitor_monthly_cost: number;
-    description: string | null;
-  }>;
+  benchmarks: Record<
+    string,
+    {
+      competitor_name: string | null;
+      competitor_monthly_cost: number;
+      description: string | null;
+    }
+  >;
 }
 
 export const getValueSummary = createServerFn({ method: "GET" })
@@ -136,7 +145,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
 
     const clinicId = clinicRes.data?.id;
     const events = eventsRes.data ?? [];
-    const installedModules = (modulesRes.data ?? []).map(m => m.module_id);
+    const installedModules = (modulesRes.data ?? []).map((m) => m.module_id);
 
     // Always synthesize value events from system usage (completed appointments, whatsapp logs, reviews, invoices)
     let finalEvents = [...events];
@@ -145,7 +154,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
       const [apptsRes, waLogsRes, reviewsRes, invoicesRes] = await Promise.all([
         context.supabase
           .from("appointments")
-          .select("id, status, scheduled_at, consultation_fee, appointment_type, patient_phone, patient_name, source")
+          .select("id, status, scheduled_at, appointment_type, patient_phone, patient_name, source")
           .eq("clinic_id", clinicId)
           .gte("scheduled_at", from)
           .lte("scheduled_at", to),
@@ -184,18 +193,19 @@ export const getValueSummary = createServerFn({ method: "GET" })
       for (const appt of appointments) {
         // Gained revenue from completed appointments
         if (appt.status === "completed") {
-          const fee = Number(appt.consultation_fee) || Number(clinicRes.data?.consultation_fee) || 500;
+          const fee = Number(clinicRes.data?.consultation_fee) || 500;
           finalEvents.push({
             id: `appt-gain-${appt.id}`,
-            module_key: appt.appointment_type === "online" ? "online_consultation" : "website_builder",
+            module_key:
+              appt.appointment_type === "online" ? "online_consultation" : "website_builder",
             event_type: "consultation_completed",
             value_type: "money_gained",
             value_amount: fee,
             description: `Revenue from completed appointment (${appt.patient_name})`,
-            created_at: appt.scheduled_at ?? new Date().toISOString()
+            created_at: appt.scheduled_at ?? new Date().toISOString(),
           });
         }
-        
+
         // Time saved by letting patients book online instead of manual calls (10 mins)
         if (appt.source !== "walkin") {
           finalEvents.push({
@@ -205,7 +215,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
             value_type: "time_saved_minutes",
             value_amount: 10,
             description: `Staff time saved via automated online slot booking (${appt.patient_name})`,
-            created_at: appt.scheduled_at ?? new Date().toISOString()
+            created_at: appt.scheduled_at ?? new Date().toISOString(),
           });
         }
       }
@@ -220,7 +230,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
           value_type: "time_saved_minutes",
           value_amount: 5,
           description: `Time saved via automated WhatsApp reminder to ${log.patient_name ?? "patient"}`,
-          created_at: log.created_at
+          created_at: log.created_at,
         });
         // Cost saved compared to manual outreach campaigns
         finalEvents.push({
@@ -230,7 +240,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
           value_type: "money_saved",
           value_amount: 8, // ₹8 per reminder benchmark cost
           description: "Cost saved vs manual outreach campaigns",
-          created_at: log.created_at
+          created_at: log.created_at,
         });
       }
 
@@ -243,7 +253,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
           value_type: "money_saved",
           value_amount: 200, // ₹200 worth of SEO marketing value per review
           description: `Review collected from ${rev.reviewer_name} (${rev.rating} stars)`,
-          created_at: rev.created_at
+          created_at: rev.created_at,
         });
       }
 
@@ -256,7 +266,7 @@ export const getValueSummary = createServerFn({ method: "GET" })
           value_type: "time_saved_minutes",
           value_amount: 5,
           description: `Auto-generated digital invoice (${inv.invoice_number})`,
-          created_at: inv.created_at
+          created_at: inv.created_at,
         });
         finalEvents.push({
           id: `inv-cost-${inv.id}`,
@@ -265,10 +275,9 @@ export const getValueSummary = createServerFn({ method: "GET" })
           value_type: "money_saved",
           value_amount: 15, // ₹15 saved in paper/print cost
           description: `Saved paper & billing operations cost`,
-          created_at: inv.created_at
+          created_at: inv.created_at,
         });
       }
-
     }
 
     const byModule: Record<string, ModuleSummary> = {};
@@ -278,21 +287,34 @@ export const getValueSummary = createServerFn({ method: "GET" })
 
     for (const e of finalEvents) {
       const m = (byModule[e.module_key] ??= {
-        moneyGained: 0, moneySaved: 0, timeSavedMinutes: 0, eventCount: 0, recentEvents: [],
+        moneyGained: 0,
+        moneySaved: 0,
+        timeSavedMinutes: 0,
+        eventCount: 0,
+        recentEvents: [],
       });
       m.eventCount++;
       const amt = Number(e.value_amount) || 0;
-      if (e.value_type === "money_gained") { m.moneyGained += amt; totalMoneyGained += amt; }
-      else if (e.value_type === "money_saved") { m.moneySaved += amt; totalMoneySaved += amt; }
-      else if (e.value_type === "time_saved_minutes") { m.timeSavedMinutes += amt; totalTimeSavedMinutes += amt; }
+      if (e.value_type === "money_gained") {
+        m.moneyGained += amt;
+        totalMoneyGained += amt;
+      } else if (e.value_type === "money_saved") {
+        m.moneySaved += amt;
+        totalMoneySaved += amt;
+      } else if (e.value_type === "time_saved_minutes") {
+        m.timeSavedMinutes += amt;
+        totalTimeSavedMinutes += amt;
+      }
       if (m.recentEvents.length < 5) m.recentEvents.push(e);
     }
 
-    const amountPaid = (subRes.data as { plans?: { monthly_price?: number } } | null)?.plans?.monthly_price ?? 0;
+    const amountPaid =
+      (subRes.data as { plans?: { monthly_price?: number } } | null)?.plans?.monthly_price ?? 0;
     const totalValueDelivered = Math.round(
       totalMoneyGained + totalMoneySaved + totalTimeSavedMinutes * HOURLY_RATE_PER_MIN,
     );
-    const roiMultiplier = amountPaid > 0 ? Math.round((totalValueDelivered / amountPaid) * 10) / 10 : 0;
+    const roiMultiplier =
+      amountPaid > 0 ? Math.round((totalValueDelivered / amountPaid) * 10) / 10 : 0;
 
     const benchmarks: ValueSummary["benchmarks"] = {};
     for (const b of benchRes.data ?? []) {

@@ -21,7 +21,13 @@ type Props = {
   disconnect: () => Promise<{ ok: boolean }>;
 };
 
-export function WhatsappConnectCard({ title = "Connect WhatsApp", description, getStatus, start, disconnect }: Props) {
+export function WhatsappConnectCard({
+  title = "Connect WhatsApp",
+  description,
+  getStatus,
+  start,
+  disconnect,
+}: Props) {
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -30,11 +36,16 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
     try {
       const r = await getStatus();
       setStatus(r.status);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
   }, [getStatus]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   // Poll while pending / has QR
   useEffect(() => {
@@ -52,7 +63,9 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
       toast.success("Session started — scan the QR with WhatsApp");
     } catch (e) {
       toast.error((e as Error).message);
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleDisconnect() {
@@ -61,7 +74,9 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
       await disconnect();
       setStatus(null);
       toast.success("WhatsApp disconnected");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   const connected = !!status?.ready;
@@ -87,7 +102,9 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div>
+        <div className="py-10 text-center text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…
+        </div>
       ) : connected ? (
         <div className="flex items-center justify-between gap-4 flex-wrap rounded-lg border bg-muted/30 p-4">
           <div>
@@ -107,8 +124,12 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
             <p className="font-medium">Scan to link your WhatsApp</p>
             <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
               <li>Open WhatsApp on your phone</li>
-              <li>Tap <b>Menu</b> → <b>Linked devices</b></li>
-              <li>Tap <b>Link a device</b> and scan this code</li>
+              <li>
+                Tap <b>Menu</b> → <b>Linked devices</b>
+              </li>
+              <li>
+                Tap <b>Link a device</b> and scan this code
+              </li>
             </ol>
             <Button size="sm" variant="ghost" onClick={refresh} className="mt-2">
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
@@ -117,9 +138,15 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
         </div>
       ) : (
         <div className="text-center py-8">
-          <p className="text-muted-foreground mb-4">Link your WhatsApp to send automated messages to patients.</p>
+          <p className="text-muted-foreground mb-4">
+            Link your WhatsApp to send automated messages to patients.
+          </p>
           <Button onClick={handleStart} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Smartphone className="h-4 w-4 mr-2" />}
+            {busy ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Smartphone className="h-4 w-4 mr-2" />
+            )}
             Generate QR Code
           </Button>
         </div>

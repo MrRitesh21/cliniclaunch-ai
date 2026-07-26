@@ -35,3 +35,5 @@ dist-ssr
 
 # Local tools/plugins
 .codegraph/
+.gstack/
+qa-evidence/

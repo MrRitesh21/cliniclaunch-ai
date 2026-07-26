@@ -39,11 +39,21 @@ export function LegalPage({ title, updated, children }: Props) {
         </article>
 
         <div className="mt-16 pt-8 border-t text-xs text-muted-foreground flex flex-wrap gap-x-6 gap-y-2">
-          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
-          <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
-          <Link to="/refund-policy" className="hover:text-foreground">Refund Policy</Link>
-          <Link to="/shipping-policy" className="hover:text-foreground">Shipping Policy</Link>
-          <Link to="/contact" className="hover:text-foreground">Contact</Link>
+          <Link to="/privacy" className="hover:text-foreground">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground">
+            Terms of Service
+          </Link>
+          <Link to="/refund-policy" className="hover:text-foreground">
+            Refund Policy
+          </Link>
+          <Link to="/shipping-policy" className="hover:text-foreground">
+            Shipping Policy
+          </Link>
+          <Link to="/contact" className="hover:text-foreground">
+            Contact
+          </Link>
         </div>
       </main>
     </div>
