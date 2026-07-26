@@ -15,6 +15,7 @@ import {
   Stethoscope, LayoutDashboard, Calendar, Users, Settings, LogOut, ExternalLink,
   MessageSquare, Blocks, CreditCard, Palette, MessageCircle, Star, Megaphone, Box,
   QrCode, Video, BarChart3, Receipt, FileText, FlaskConical, Menu,
+  ListOrdered, Pill, HeartPulse,
   ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles, Download,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -152,6 +153,7 @@ const NAV_SECTIONS = [
       { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
       { to: "/dashboard/appointments", label: "Appointments", icon: Calendar, module: "appointments" },
       { to: "/dashboard/qr", label: "QR & Walk-ins", icon: QrCode, module: "qr_appointment" },
+      { to: "/dashboard/queue", label: "Queue", icon: ListOrdered, module: "queue" },
       { to: "/dashboard/leads", label: "Leads", icon: MessageSquare },
       { to: "/dashboard/patients", label: "Patients", icon: Users, module: "crm" },
     ] as NavItem[],
@@ -173,6 +175,7 @@ const NAV_SECTIONS = [
       { to: "/dashboard/doctors", label: "Doctors", icon: Stethoscope },
       { to: "/dashboard/staff", label: "Staff", icon: Users, module: "staff" },
       { to: "/dashboard/inventory", label: "Inventory", icon: Box, module: "inventory" },
+      { to: "/dashboard/pharmacy", label: "Pharmacy", icon: Pill, module: "pharmacy" },
       { to: "/dashboard/finance", label: "Finance", icon: Receipt, module: "billing" },
     ] as NavItem[],
   },
@@ -180,6 +183,8 @@ const NAV_SECTIONS = [
     label: "Clinical",
     items: [
       { to: "/dashboard/consult", label: "Consult", icon: Video, module: "consultation" },
+      { to: "/dashboard/records", label: "Patient records", icon: HeartPulse, module: "emr" },
+      { to: "/dashboard/assistant", label: "AI Assistant", icon: Sparkles, module: "ai_assistant" },
       { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
       { to: "/dashboard/prescriptions", label: "Prescriptions", icon: FileText, module: "prescriptions" },
       { to: "/dashboard/lab", label: "Lab", icon: FlaskConical, module: "lab" },

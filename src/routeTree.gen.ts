@@ -60,8 +60,11 @@ import { Route as AuthenticatedDashboardStaffRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardSeoRouteImport } from './routes/_authenticated/dashboard.seo'
 import { Route as AuthenticatedDashboardReviewsRouteImport } from './routes/_authenticated/dashboard.reviews'
+import { Route as AuthenticatedDashboardRecordsRouteImport } from './routes/_authenticated/dashboard.records'
+import { Route as AuthenticatedDashboardQueueRouteImport } from './routes/_authenticated/dashboard.queue'
 import { Route as AuthenticatedDashboardQrRouteImport } from './routes/_authenticated/dashboard.qr'
 import { Route as AuthenticatedDashboardPrescriptionsRouteImport } from './routes/_authenticated/dashboard.prescriptions'
+import { Route as AuthenticatedDashboardPharmacyRouteImport } from './routes/_authenticated/dashboard.pharmacy'
 import { Route as AuthenticatedDashboardPatientsRouteImport } from './routes/_authenticated/dashboard.patients'
 import { Route as AuthenticatedDashboardModulesRouteImport } from './routes/_authenticated/dashboard.modules'
 import { Route as AuthenticatedDashboardMarketingRouteImport } from './routes/_authenticated/dashboard.marketing'
@@ -73,6 +76,7 @@ import { Route as AuthenticatedDashboardFinanceRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardDoctorsRouteImport } from './routes/_authenticated/dashboard.doctors'
 import { Route as AuthenticatedDashboardConsultRouteImport } from './routes/_authenticated/dashboard.consult'
 import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_authenticated/dashboard.billing'
+import { Route as AuthenticatedDashboardAssistantRouteImport } from './routes/_authenticated/dashboard.assistant'
 import { Route as AuthenticatedDashboardAppointmentsRouteImport } from './routes/_authenticated/dashboard.appointments'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AdminAdminWhatsappRouteImport } from './routes/_admin/admin.whatsapp'
@@ -363,6 +367,18 @@ const AuthenticatedDashboardReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardRecordsRoute =
+  AuthenticatedDashboardRecordsRouteImport.update({
+    id: '/records',
+    path: '/records',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardQueueRoute =
+  AuthenticatedDashboardQueueRouteImport.update({
+    id: '/queue',
+    path: '/queue',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardQrRoute =
   AuthenticatedDashboardQrRouteImport.update({
     id: '/qr',
@@ -373,6 +389,12 @@ const AuthenticatedDashboardPrescriptionsRoute =
   AuthenticatedDashboardPrescriptionsRouteImport.update({
     id: '/prescriptions',
     path: '/prescriptions',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardPharmacyRoute =
+  AuthenticatedDashboardPharmacyRouteImport.update({
+    id: '/pharmacy',
+    path: '/pharmacy',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardPatientsRoute =
@@ -439,6 +461,12 @@ const AuthenticatedDashboardBillingRoute =
   AuthenticatedDashboardBillingRouteImport.update({
     id: '/billing',
     path: '/billing',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardAssistantRoute =
+  AuthenticatedDashboardAssistantRouteImport.update({
+    id: '/assistant',
+    path: '/assistant',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardAppointmentsRoute =
@@ -628,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/admin/whatsapp': typeof AdminAdminWhatsappRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
+  '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/consult': typeof AuthenticatedDashboardConsultRoute
   '/dashboard/doctors': typeof AuthenticatedDashboardDoctorsRoute
@@ -639,8 +668,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
+  '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/dashboard/qr': typeof AuthenticatedDashboardQrRoute
+  '/dashboard/queue': typeof AuthenticatedDashboardQueueRoute
+  '/dashboard/records': typeof AuthenticatedDashboardRecordsRoute
   '/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/dashboard/seo': typeof AuthenticatedDashboardSeoRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -715,6 +747,7 @@ export interface FileRoutesByTo {
   '/admin/whatsapp': typeof AdminAdminWhatsappRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
+  '/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/dashboard/consult': typeof AuthenticatedDashboardConsultRoute
   '/dashboard/doctors': typeof AuthenticatedDashboardDoctorsRoute
@@ -726,8 +759,11 @@ export interface FileRoutesByTo {
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
+  '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/dashboard/qr': typeof AuthenticatedDashboardQrRoute
+  '/dashboard/queue': typeof AuthenticatedDashboardQueueRoute
+  '/dashboard/records': typeof AuthenticatedDashboardRecordsRoute
   '/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/dashboard/seo': typeof AuthenticatedDashboardSeoRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -808,6 +844,7 @@ export interface FileRoutesById {
   '/_admin/admin/whatsapp': typeof AdminAdminWhatsappRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
+  '/_authenticated/dashboard/assistant': typeof AuthenticatedDashboardAssistantRoute
   '/_authenticated/dashboard/billing': typeof AuthenticatedDashboardBillingRoute
   '/_authenticated/dashboard/consult': typeof AuthenticatedDashboardConsultRoute
   '/_authenticated/dashboard/doctors': typeof AuthenticatedDashboardDoctorsRoute
@@ -819,8 +856,11 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/_authenticated/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/_authenticated/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
+  '/_authenticated/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/_authenticated/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/_authenticated/dashboard/qr': typeof AuthenticatedDashboardQrRoute
+  '/_authenticated/dashboard/queue': typeof AuthenticatedDashboardQueueRoute
+  '/_authenticated/dashboard/records': typeof AuthenticatedDashboardRecordsRoute
   '/_authenticated/dashboard/reviews': typeof AuthenticatedDashboardReviewsRoute
   '/_authenticated/dashboard/seo': typeof AuthenticatedDashboardSeoRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -900,6 +940,7 @@ export interface FileRouteTypes {
     | '/admin/whatsapp'
     | '/dashboard/analytics'
     | '/dashboard/appointments'
+    | '/dashboard/assistant'
     | '/dashboard/billing'
     | '/dashboard/consult'
     | '/dashboard/doctors'
@@ -911,8 +952,11 @@ export interface FileRouteTypes {
     | '/dashboard/marketing'
     | '/dashboard/modules'
     | '/dashboard/patients'
+    | '/dashboard/pharmacy'
     | '/dashboard/prescriptions'
     | '/dashboard/qr'
+    | '/dashboard/queue'
+    | '/dashboard/records'
     | '/dashboard/reviews'
     | '/dashboard/seo'
     | '/dashboard/settings'
@@ -987,6 +1031,7 @@ export interface FileRouteTypes {
     | '/admin/whatsapp'
     | '/dashboard/analytics'
     | '/dashboard/appointments'
+    | '/dashboard/assistant'
     | '/dashboard/billing'
     | '/dashboard/consult'
     | '/dashboard/doctors'
@@ -998,8 +1043,11 @@ export interface FileRouteTypes {
     | '/dashboard/marketing'
     | '/dashboard/modules'
     | '/dashboard/patients'
+    | '/dashboard/pharmacy'
     | '/dashboard/prescriptions'
     | '/dashboard/qr'
+    | '/dashboard/queue'
+    | '/dashboard/records'
     | '/dashboard/reviews'
     | '/dashboard/seo'
     | '/dashboard/settings'
@@ -1079,6 +1127,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/whatsapp'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/appointments'
+    | '/_authenticated/dashboard/assistant'
     | '/_authenticated/dashboard/billing'
     | '/_authenticated/dashboard/consult'
     | '/_authenticated/dashboard/doctors'
@@ -1090,8 +1139,11 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/marketing'
     | '/_authenticated/dashboard/modules'
     | '/_authenticated/dashboard/patients'
+    | '/_authenticated/dashboard/pharmacy'
     | '/_authenticated/dashboard/prescriptions'
     | '/_authenticated/dashboard/qr'
+    | '/_authenticated/dashboard/queue'
+    | '/_authenticated/dashboard/records'
     | '/_authenticated/dashboard/reviews'
     | '/_authenticated/dashboard/seo'
     | '/_authenticated/dashboard/settings'
@@ -1520,6 +1572,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardReviewsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/records': {
+      id: '/_authenticated/dashboard/records'
+      path: '/records'
+      fullPath: '/dashboard/records'
+      preLoaderRoute: typeof AuthenticatedDashboardRecordsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/queue': {
+      id: '/_authenticated/dashboard/queue'
+      path: '/queue'
+      fullPath: '/dashboard/queue'
+      preLoaderRoute: typeof AuthenticatedDashboardQueueRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/qr': {
       id: '/_authenticated/dashboard/qr'
       path: '/qr'
@@ -1532,6 +1598,13 @@ declare module '@tanstack/react-router' {
       path: '/prescriptions'
       fullPath: '/dashboard/prescriptions'
       preLoaderRoute: typeof AuthenticatedDashboardPrescriptionsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/pharmacy': {
+      id: '/_authenticated/dashboard/pharmacy'
+      path: '/pharmacy'
+      fullPath: '/dashboard/pharmacy'
+      preLoaderRoute: typeof AuthenticatedDashboardPharmacyRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/patients': {
@@ -1609,6 +1682,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/dashboard/billing'
       preLoaderRoute: typeof AuthenticatedDashboardBillingRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/assistant': {
+      id: '/_authenticated/dashboard/assistant'
+      path: '/assistant'
+      fullPath: '/dashboard/assistant'
+      preLoaderRoute: typeof AuthenticatedDashboardAssistantRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/_authenticated/dashboard/appointments': {
@@ -1860,6 +1940,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardAppointmentsRoute: typeof AuthenticatedDashboardAppointmentsRoute
+  AuthenticatedDashboardAssistantRoute: typeof AuthenticatedDashboardAssistantRoute
   AuthenticatedDashboardBillingRoute: typeof AuthenticatedDashboardBillingRoute
   AuthenticatedDashboardConsultRoute: typeof AuthenticatedDashboardConsultRoute
   AuthenticatedDashboardDoctorsRoute: typeof AuthenticatedDashboardDoctorsRoute
@@ -1871,8 +1952,11 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardMarketingRoute: typeof AuthenticatedDashboardMarketingRoute
   AuthenticatedDashboardModulesRoute: typeof AuthenticatedDashboardModulesRoute
   AuthenticatedDashboardPatientsRoute: typeof AuthenticatedDashboardPatientsRoute
+  AuthenticatedDashboardPharmacyRoute: typeof AuthenticatedDashboardPharmacyRoute
   AuthenticatedDashboardPrescriptionsRoute: typeof AuthenticatedDashboardPrescriptionsRoute
   AuthenticatedDashboardQrRoute: typeof AuthenticatedDashboardQrRoute
+  AuthenticatedDashboardQueueRoute: typeof AuthenticatedDashboardQueueRoute
+  AuthenticatedDashboardRecordsRoute: typeof AuthenticatedDashboardRecordsRoute
   AuthenticatedDashboardReviewsRoute: typeof AuthenticatedDashboardReviewsRoute
   AuthenticatedDashboardSeoRoute: typeof AuthenticatedDashboardSeoRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
@@ -1888,6 +1972,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardAppointmentsRoute:
       AuthenticatedDashboardAppointmentsRoute,
+    AuthenticatedDashboardAssistantRoute: AuthenticatedDashboardAssistantRoute,
     AuthenticatedDashboardBillingRoute: AuthenticatedDashboardBillingRoute,
     AuthenticatedDashboardConsultRoute: AuthenticatedDashboardConsultRoute,
     AuthenticatedDashboardDoctorsRoute: AuthenticatedDashboardDoctorsRoute,
@@ -1899,9 +1984,12 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardMarketingRoute: AuthenticatedDashboardMarketingRoute,
     AuthenticatedDashboardModulesRoute: AuthenticatedDashboardModulesRoute,
     AuthenticatedDashboardPatientsRoute: AuthenticatedDashboardPatientsRoute,
+    AuthenticatedDashboardPharmacyRoute: AuthenticatedDashboardPharmacyRoute,
     AuthenticatedDashboardPrescriptionsRoute:
       AuthenticatedDashboardPrescriptionsRoute,
     AuthenticatedDashboardQrRoute: AuthenticatedDashboardQrRoute,
+    AuthenticatedDashboardQueueRoute: AuthenticatedDashboardQueueRoute,
+    AuthenticatedDashboardRecordsRoute: AuthenticatedDashboardRecordsRoute,
     AuthenticatedDashboardReviewsRoute: AuthenticatedDashboardReviewsRoute,
     AuthenticatedDashboardSeoRoute: AuthenticatedDashboardSeoRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,

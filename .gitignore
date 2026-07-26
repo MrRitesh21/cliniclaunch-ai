@@ -35,3 +35,4 @@ dist-ssr
 
 # Local tools/plugins
 .codegraph/
+.gstack/
