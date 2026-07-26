@@ -380,7 +380,7 @@ function InviteDialog({ orgId, onClose, onSaved }: { orgId: string; onClose: () 
     if (!result || !result.token) return "";
     const base = typeof window !== "undefined" ? window.location.origin : "";
     return result.tempPassword
-      ? `${base}/invite/${result.token}?pw=${encodeURIComponent(result.tempPassword)}`
+      ? `${base}/invite/${result.token}?np=1`
       : `${base}/invite/${result.token}`;
   }, [result]);
 

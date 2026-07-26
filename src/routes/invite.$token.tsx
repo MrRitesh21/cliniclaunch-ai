@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/invite/$token")({
   validateSearch: (search: Record<string, unknown>) => ({
-    pw: typeof search.pw === "string" ? search.pw : undefined,
+    np: search.np === "1" || search.np === 1 || search.np === true ? true : undefined,
   }),
   component: InvitePage,
 });
@@ -22,7 +22,7 @@ type Invite = {
 
 function InvitePage() {
   const { token } = Route.useParams();
-  const { pw } = Route.useSearch();
+  const { np } = Route.useSearch();
   const navigate = useNavigate();
   const [invite, setInvite] = useState<Invite | null | "missing">("missing");
   const [loading, setLoading] = useState(true);
@@ -107,7 +107,7 @@ function InvitePage() {
       .eq("id", invite.id);
     toast.success(`Joined ${invite.organization?.name ?? "organization"}`);
     setAccepting(false);
-    if (pw) {
+    if (np) {
       navigate({ to: "/dashboard", search: { change_password: true } as any });
     } else {
       navigate({ to: "/dashboard" });
@@ -146,9 +146,8 @@ function InvitePage() {
               <Link
                 to="/login"
                 search={{
-                  redirect: `/invite/${token}`,
+                  redirect: np ? `/invite/${token}?np=1` : `/invite/${token}`,
                   email: invite.email,
-                  pw: pw,
                 } as any}
               >
                 Switch account & Accept
@@ -162,9 +161,8 @@ function InvitePage() {
               <Link
                 to="/login"
                 search={{
-                  redirect: `/invite/${token}`,
+                  redirect: np ? `/invite/${token}?np=1` : `/invite/${token}`,
                   email: invite.email,
-                  pw: pw,
                 } as any}
               >
                 Sign in to accept
