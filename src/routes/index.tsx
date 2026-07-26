@@ -8,49 +8,11 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/lib/plans.functions";
 import {
-  Calendar,
-  Globe,
-  Stethoscope,
-  Users,
-  ShieldCheck,
-  ArrowRight,
-  Sparkles,
-  MessageSquare,
-  IndianRupee,
-  Shield,
-  Activity,
-  Check,
-  Menu,
-  X,
-  Plus,
-  Search,
-  Clock,
-  CheckCircle,
-  FileText,
-  Palette,
-  Layout,
-  Star,
-  ExternalLink,
-  ChevronRight,
-  Sun,
-  Moon,
-  Monitor,
-  QrCode,
-  Pill,
-  Beaker,
-  Zap,
-  CheckCircle2,
-  ArrowUpRight,
-  Lock,
-  Building2,
-  Phone,
-  Command,
-  Layers,
-  Flame,
-  ChevronDown,
-  HelpCircle,
-  AlertTriangle,
-  RefreshCw,
+  Calendar, Globe, Stethoscope, Users, ShieldCheck, ArrowRight, Sparkles,
+  MessageSquare, IndianRupee, Shield, Activity, Check, Menu, X, Plus, Search,
+  Clock, CheckCircle, FileText, Palette, Layout, Star, ExternalLink, ChevronRight,
+  Sun, Moon, Monitor, QrCode, Pill, Beaker, Zap, CheckCircle2, ArrowUpRight, Lock,
+  Building2, Phone, Command, Layers, Flame, ChevronDown, HelpCircle, AlertTriangle, RefreshCw
 } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { resolveHostToClinic } from "@/lib/domain.functions";
@@ -84,15 +46,9 @@ export const Route = createFileRoute("/")({
     if (c) {
       const seo = typeof c.seo_config === "object" && c.seo_config ? (c.seo_config as any) : {};
       const title = seo.meta_title || `${c.doctor_name} — ${c.specialization} | ${c.clinic_name}`;
-      const desc =
-        seo.meta_description ||
-        c.bio ||
-        `Book an appointment with ${c.doctor_name}, ${c.specialization} at ${c.clinic_name}.`;
-      const keywords =
-        seo.keywords ||
-        `${c.specialization}, ${c.doctor_name}, ${c.clinic_name}, appointment booking`;
-      const image =
-        c.avatar_url || (Array.isArray(c.gallery) && (c.gallery as string[])[0]) || undefined;
+      const desc = seo.meta_description || c.bio || `Book an appointment with ${c.doctor_name}, ${c.specialization} at ${c.clinic_name}.`;
+      const keywords = seo.keywords || `${c.specialization}, ${c.doctor_name}, ${c.clinic_name}, appointment booking`;
+      const image = c.avatar_url || (Array.isArray(c.gallery) && (c.gallery as string[])[0]) || undefined;
       return {
         meta: [
           { title },
@@ -101,19 +57,13 @@ export const Route = createFileRoute("/")({
           { property: "og:title", content: title },
           { property: "og:description", content: desc },
           { property: "og:type", content: "website" },
-          ...(image
-            ? [
-                { property: "og:image", content: image },
-                { name: "twitter:image", content: image },
-              ]
-            : []),
+          ...(image ? [{ property: "og:image", content: image }, { name: "twitter:image", content: image }] : []),
         ],
       };
     }
     const siteUrl = "https://clinics.digiwil.com";
     const title = "ClinicX — Operating System for Independent Doctors";
-    const desc =
-      "Linear-grade medical practice console. Custom clinic website, 24/7 online appointments, WhatsApp bot automation, EHR, and Razorpay billing — from ₹499/month.";
+    const desc = "Linear-grade medical practice console. Custom clinic website, 24/7 online appointments, WhatsApp bot automation, EHR, and Razorpay billing — from ₹499/month.";
     return {
       meta: [
         { title },
@@ -158,25 +108,19 @@ export const Route = createFileRoute("/")({
 function ClinicDomainView({ clinic }: { clinic: any }) {
   const c = clinic as unknown as SiteClinic;
   const variants = resolveVariants(c.template, c.section_variants);
-
-  const order: SectionKey[] =
-    Array.isArray(c.section_order) && c.section_order.length
-      ? (c.section_order as SectionKey[])
-      : DEFAULT_SECTION_ORDER;
-  const hidden = new Set<SectionKey>(
-    Array.isArray(c.section_hidden) ? (c.section_hidden as SectionKey[]) : [],
-  );
+  
+  const order: SectionKey[] = Array.isArray(c.section_order) && c.section_order.length
+    ? (c.section_order as SectionKey[])
+    : DEFAULT_SECTION_ORDER;
+  const hidden = new Set<SectionKey>(Array.isArray(c.section_hidden) ? (c.section_hidden as SectionKey[]) : []);
 
   const visible = order.filter((k) => k !== "navbar" && k !== "footer" && !hidden.has(k));
-
+  
   const Navbar = getVariantComponent("navbar", variants.navbar);
   const Footer = getVariantComponent("footer", variants.footer);
 
   const theme = c.theme_color || "#2563eb";
-  const themeStyle = {
-    ["--primary" as const]: theme,
-    ["--ring" as const]: theme,
-  } as React.CSSProperties;
+  const themeStyle = { ["--primary" as const]: theme, ["--ring" as const]: theme } as React.CSSProperties;
 
   return (
     <div className="min-h-screen flex flex-col bg-background" style={themeStyle}>
@@ -186,12 +130,7 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
           const Comp = getVariantComponent(key, variants[key]);
           return <Comp key={key} clinic={c} />;
         })}
-        <LeadCapture
-          clinicId={c.id}
-          slug={c.slug}
-          doctorName={c.doctor_name}
-          offer="20% off your first consultation"
-        />
+        <LeadCapture clinicId={c.id} slug={c.slug} doctorName={c.doctor_name} offer="20% off your first consultation" />
       </main>
       <Footer clinic={c} />
     </div>
@@ -212,10 +151,7 @@ function BeforeAfterShowcase() {
             Practice Modernization
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            See the difference{" "}
-            <em className="text-primary font-normal not-italic underline decoration-primary/30">
-              software makes.
-            </em>
+            See the difference <em className="text-primary font-normal not-italic underline decoration-primary/30">software makes.</em>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base">
             Toggle below to compare traditional clinic operations vs running on ClinicX OS.
@@ -250,78 +186,48 @@ function BeforeAfterShowcase() {
         {viewMode === "before" ? (
           <div className="grid md:grid-cols-3 gap-6 animate-in fade-in duration-300">
             <Card className="p-6 border-rose-500/20 bg-rose-500/5 space-y-4">
-              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">
-                ❌
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground">
-                35% Patient No-Shows
-              </h3>
+              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">❌</div>
+              <h3 className="font-display text-lg font-bold text-foreground">35% Patient No-Shows</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Patients forget appointments. Receptionists manually call numbers one by one,
-                wasting 3 hours daily.
+                Patients forget appointments. Receptionists manually call numbers one by one, wasting 3 hours daily.
               </p>
             </Card>
             <Card className="p-6 border-rose-500/20 bg-rose-500/5 space-y-4">
-              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">
-                ❌
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground">
-                Paper Registers & Chaos
-              </h3>
+              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">❌</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Paper Registers & Chaos</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Walk-in patients crowd the waiting room, handwriting names on paper sheets with zero
-                queue visibility.
+                Walk-in patients crowd the waiting room, handwriting names on paper sheets with zero queue visibility.
               </p>
             </Card>
             <Card className="p-6 border-rose-500/20 bg-rose-500/5 space-y-4">
-              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">
-                ❌
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground">
-                Listing Portals Steal Data
-              </h3>
+              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 grid place-items-center font-bold">❌</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Listing Portals Steal Data</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Directory platforms charge heavy commissions per booking and divert your loyal
-                patients to competitors.
+                Directory platforms charge heavy commissions per booking and divert your loyal patients to competitors.
               </p>
             </Card>
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6 animate-in fade-in duration-300">
             <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 space-y-4">
-              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">
-                ⚡
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground">
-                Automated WhatsApp Bot
-              </h3>
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">⚡</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Automated WhatsApp Bot</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Instant 24-hour WhatsApp reminders & 1-click patient confirmations reduce no-shows
-                to under 4%.
+                Instant 24-hour WhatsApp reminders & 1-click patient confirmations reduce no-shows to under 4%.
               </p>
             </Card>
             <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 space-y-4">
-              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">
-                ⚡
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground">
-                Instant Walk-in QR Registration
-              </h3>
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">⚡</div>
+              <h3 className="font-display text-lg font-bold text-foreground">Instant Walk-in QR Registration</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Patients scan a QR code at reception, choose an open slot, and get a digital queue
-                token on their phone.
+                Patients scan a QR code at reception, choose an open slot, and get a digital queue token on their phone.
               </p>
             </Card>
             <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 space-y-4">
-              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">
-                ⚡
-              </div>
-              <h3 className="font-display text-lg font-bold text-foreground">
-                0% Booking Commission & Custom Site
-              </h3>
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center font-bold">⚡</div>
+              <h3 className="font-display text-lg font-bold text-foreground">0% Booking Commission & Custom Site</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                100% data ownership with your custom domain (drsmith.com). Accept direct Razorpay
-                UPI co-pays.
+                100% data ownership with your custom domain (drsmith.com). Accept direct Razorpay UPI co-pays.
               </p>
             </Card>
           </div>
@@ -344,24 +250,17 @@ function ROICalculator() {
   const monthlyRevenue = monthlyPatients * consultFee;
 
   return (
-    <section
-      id="roi-calculator"
-      className="py-24 bg-muted/30 border-y border-border/60 relative overflow-hidden"
-    >
+    <section id="roi-calculator" className="py-24 bg-muted/30 border-y border-border/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-12">
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wide bg-primary/10 text-primary uppercase border border-primary/20">
             <Sparkles className="size-3.5 text-amber-500" /> Financial Impact Engine
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Quantify your{" "}
-            <em className="text-primary font-normal not-italic underline decoration-primary/30">
-              practice growth.
-            </em>
+            Quantify your <em className="text-primary font-normal not-italic underline decoration-primary/30">practice growth.</em>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-            See how much administrative overhead and lost no-show revenue ClinicX recovers for your
-            practice every month.
+            See how much administrative overhead and lost no-show revenue ClinicX recovers for your practice every month.
           </p>
         </div>
 
@@ -395,8 +294,7 @@ function ROICalculator() {
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="font-bold text-foreground flex items-center gap-2">
-                  <IndianRupee className="size-4 text-emerald-600 dark:text-emerald-400" /> Average
-                  Consultation Fee
+                  <IndianRupee className="size-4 text-emerald-600 dark:text-emerald-400" /> Average Consultation Fee
                 </span>
                 <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-base bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
                   ₹{consultFee.toLocaleString()} / visit
@@ -423,8 +321,7 @@ function ROICalculator() {
                 <span>Monthly Volume Projection</span>
               </div>
               <p className="text-muted-foreground leading-relaxed font-mono">
-                ~{monthlyPatients.toLocaleString()} consultations/month generating ₹
-                {monthlyRevenue.toLocaleString()} gross income.
+                ~{monthlyPatients.toLocaleString()} consultations/month generating ₹{monthlyRevenue.toLocaleString()} gross income.
               </p>
             </div>
           </div>
@@ -436,12 +333,9 @@ function ROICalculator() {
             </div>
 
             <div>
-              <span className="text-xs uppercase font-mono font-bold tracking-widest text-slate-300">
-                Estimated Monthly Value Created
-              </span>
+              <span className="text-xs uppercase font-mono font-bold tracking-widest text-slate-300">Estimated Monthly Value Created</span>
               <div className="text-4xl sm:text-5xl font-extrabold font-display mt-1 text-emerald-400">
-                ₹{noShowRescuedRevenue.toLocaleString()}{" "}
-                <span className="text-sm font-normal text-slate-300">/ month</span>
+                ₹{noShowRescuedRevenue.toLocaleString()} <span className="text-sm font-normal text-slate-300">/ month</span>
               </div>
               <p className="text-xs text-slate-200 mt-1.5 leading-relaxed">
                 Recovered revenue from reduced no-shows via automated WhatsApp reminders.
@@ -451,29 +345,19 @@ function ROICalculator() {
             <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6 font-mono">
               <div>
                 <span className="text-xs text-slate-300 font-medium">Admin Time Saved</span>
-                <div className="text-2xl font-bold font-display text-white mt-0.5">
-                  {hoursSavedMonth} Hours
-                </div>
-                <span className="text-[11px] text-slate-300">
-                  ~{(hoursSavedMonth / 24).toFixed(1)} full days/mo
-                </span>
+                <div className="text-2xl font-bold font-display text-white mt-0.5">{hoursSavedMonth} Hours</div>
+                <span className="text-[11px] text-slate-300">~{(hoursSavedMonth / 24).toFixed(1)} full days/mo</span>
               </div>
               <div>
                 <span className="text-xs text-slate-300 font-medium">Net Software ROI</span>
-                <div className="text-2xl font-bold font-display text-amber-300 mt-0.5">
-                  &gt; 420%
-                </div>
+                <div className="text-2xl font-bold font-display text-amber-300 mt-0.5">&gt; 420%</div>
                 <span className="text-[11px] text-slate-300">Pays for itself in 3 days</span>
               </div>
             </div>
 
             <div className="pt-2">
               <Link to="/signup">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full font-bold bg-white text-slate-950 hover:bg-slate-100 h-12 text-sm shadow-lg"
-                >
+                <Button type="button" size="lg" className="w-full font-bold bg-white text-slate-950 hover:bg-slate-100 h-12 text-sm shadow-lg">
                   Claim Your Savings — Start 14-Day Free Trial &rarr;
                 </Button>
               </Link>
@@ -493,32 +377,12 @@ function CompetitorComparisonTable() {
     { feature: "Custom Branded Website & Domain", clinicx: true, practo: false, paper: false },
     { feature: "0% Commission per Patient Booking", clinicx: true, practo: false, paper: true },
     { feature: "100% Patient Data Ownership", clinicx: true, practo: false, paper: true },
-    {
-      feature: "Automated WhatsApp Confirmations",
-      clinicx: true,
-      practo: "Paid Add-on",
-      paper: false,
-    },
+    { feature: "Automated WhatsApp Confirmations", clinicx: true, practo: "Paid Add-on", paper: false },
     { feature: "Instant Walk-in QR Registration", clinicx: true, practo: false, paper: false },
     { feature: "Digital EHR & E-Prescriptions", clinicx: true, practo: true, paper: false },
-    {
-      feature: "Razorpay GST Invoicing & Payments",
-      clinicx: true,
-      practo: "Complex",
-      paper: false,
-    },
-    {
-      feature: "Setup Time",
-      clinicx: "Under 5 mins",
-      practo: "Days / Phone required",
-      paper: "Immediate",
-    },
-    {
-      feature: "Starting Price",
-      clinicx: "₹499 / mo",
-      practo: "₹1,500+ / mo",
-      paper: "Free (Manual)",
-    },
+    { feature: "Razorpay GST Invoicing & Payments", clinicx: true, practo: "Complex", paper: false },
+    { feature: "Setup Time", clinicx: "Under 5 mins", practo: "Days / Phone required", paper: "Immediate" },
+    { feature: "Starting Price", clinicx: "₹499 / mo", practo: "₹1,500+ / mo", paper: "Free (Manual)" },
   ];
 
   return (
@@ -529,14 +393,10 @@ function CompetitorComparisonTable() {
             Why Independent Doctors Switch
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            How ClinicX compares to{" "}
-            <em className="text-primary font-normal not-italic underline decoration-primary/30">
-              alternatives.
-            </em>
+            How ClinicX compares to <em className="text-primary font-normal not-italic underline decoration-primary/30">alternatives.</em>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-            No listing directory stealing your patients. No hidden fees. Just clean software for
-            your clinic.
+            No listing directory stealing your patients. No hidden fees. Just clean software for your clinic.
           </p>
         </div>
 
@@ -545,9 +405,7 @@ function CompetitorComparisonTable() {
             <thead>
               <tr className="border-b bg-muted/40 text-xs font-mono font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="p-5 font-bold text-foreground">Feature / Capability</th>
-                <th className="p-5 bg-primary/10 text-primary font-extrabold text-sm text-center border-x border-primary/20">
-                  ClinicX OS
-                </th>
+                <th className="p-5 bg-primary/10 text-primary font-extrabold text-sm text-center border-x border-primary/20">ClinicX OS</th>
                 <th className="p-5 text-center">Practo / Directory Platforms</th>
                 <th className="p-5 text-center">Paper / Manual WhatsApp</th>
               </tr>
@@ -558,33 +416,21 @@ function CompetitorComparisonTable() {
                   <td className="p-5 font-semibold text-foreground">{c.feature}</td>
                   <td className="p-5 bg-primary/5 text-center font-bold text-primary border-x border-primary/10">
                     {typeof c.clinicx === "boolean" ? (
-                      c.clinicx ? (
-                        <CheckCircle2 className="size-5 mx-auto text-emerald-500" />
-                      ) : (
-                        <X className="size-5 mx-auto text-rose-500" />
-                      )
+                      c.clinicx ? <CheckCircle2 className="size-5 mx-auto text-emerald-500" /> : <X className="size-5 mx-auto text-rose-500" />
                     ) : (
                       c.clinicx
                     )}
                   </td>
                   <td className="p-5 text-center text-muted-foreground font-mono text-xs">
                     {typeof c.practo === "boolean" ? (
-                      c.practo ? (
-                        <Check className="size-4 mx-auto text-emerald-500" />
-                      ) : (
-                        <X className="size-4 mx-auto text-muted-foreground/40" />
-                      )
+                      c.practo ? <Check className="size-4 mx-auto text-emerald-500" /> : <X className="size-4 mx-auto text-muted-foreground/40" />
                     ) : (
                       c.practo
                     )}
                   </td>
                   <td className="p-5 text-center text-muted-foreground font-mono text-xs">
                     {typeof c.paper === "boolean" ? (
-                      c.paper ? (
-                        <Check className="size-4 mx-auto text-emerald-500" />
-                      ) : (
-                        <X className="size-4 mx-auto text-muted-foreground/40" />
-                      )
+                      c.paper ? <Check className="size-4 mx-auto text-emerald-500" /> : <X className="size-4 mx-auto text-muted-foreground/40" />
                     ) : (
                       c.paper
                     )}
@@ -597,11 +443,7 @@ function CompetitorComparisonTable() {
 
         <div className="text-center pt-2">
           <Link to="/compare/$competitor" params={{ competitor: "practo" }}>
-            <Button
-              type="button"
-              variant="outline"
-              className="font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2 h-11 px-6"
-            >
+            <Button type="button" variant="outline" className="font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2 h-11 px-6">
               View Detailed Practo vs ClinicX Analysis &rarr;
             </Button>
           </Link>
@@ -620,24 +462,24 @@ function FAQSection() {
   const faqs = [
     {
       q: "How fast can I launch my clinic website and WhatsApp automation?",
-      a: "Under 5 minutes! Simply enter your clinic name, doctor details, and consultation fees. Your custom website and booking link will be live instantly with zero coding needed.",
+      a: "Under 5 minutes! Simply enter your clinic name, doctor details, and consultation fees. Your custom website and booking link will be live instantly with zero coding needed."
     },
     {
       q: "Can I use my own custom domain (e.g. drsmithdermatology.com)?",
-      a: "Yes! All plans include custom domain mapping. You can link your existing domain or use a free sub-domain provided by ClinicX.",
+      a: "Yes! All plans include custom domain mapping. You can link your existing domain or use a free sub-domain provided by ClinicX."
     },
     {
       q: "How does the WhatsApp Bot automation work?",
-      a: "Connect your WhatsApp number with a 1-click QR code scan. ClinicX automatically sends instant booking confirmations, 24-hour appointment reminders, e-prescriptions, and 5-star Google review requests.",
+      a: "Connect your WhatsApp number with a 1-click QR code scan. ClinicX automatically sends instant booking confirmations, 24-hour appointment reminders, e-prescriptions, and 5-star Google review requests."
     },
     {
       q: "Are there any hidden booking fees or patient commissions?",
-      a: "Zero! Unlike directory listing portals like Practo, ClinicX never charges commissions per booking or steals your patient database. You own 100% of your patient data.",
+      a: "Zero! Unlike directory listing portals like Practo, ClinicX never charges commissions per booking or steals your patient database. You own 100% of your patient data."
     },
     {
       q: "Can patients pay online via UPI, Razorpay, or credit cards?",
-      a: "Yes! Integrated Razorpay support allows you to accept advance co-pays, consultation fees, and GST invoices directly into your bank account.",
-    },
+      a: "Yes! Integrated Razorpay support allows you to accept advance co-pays, consultation fees, and GST invoices directly into your bank account."
+    }
   ];
 
   return (
@@ -648,10 +490,7 @@ function FAQSection() {
             <HelpCircle className="size-3.5 text-primary" /> Frequently Asked Questions
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Everything you need to{" "}
-            <em className="text-primary font-normal not-italic underline decoration-primary/30">
-              know.
-            </em>
+            Everything you need to <em className="text-primary font-normal not-italic underline decoration-primary/30">know.</em>
           </h2>
         </div>
 
@@ -668,9 +507,7 @@ function FAQSection() {
               >
                 <div className="p-6 flex items-center justify-between gap-4 font-semibold text-base sm:text-lg">
                   <span className="text-foreground">{faq.q}</span>
-                  <ChevronDown
-                    className={`size-5 text-primary shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
-                  />
+                  <ChevronDown className={`size-5 text-primary shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
                 </div>
                 {isOpen && (
                   <div className="px-6 pb-6 text-sm text-muted-foreground leading-relaxed pt-1 border-t border-border/40 animate-in fade-in duration-200">
@@ -691,12 +528,8 @@ function FAQSection() {
 // ----------------------------------------------------
 function Landing() {
   const { clinic } = Route.useLoaderData();
-  const [activeTab, setActiveTab] = useState<
-    "analytics" | "appointments" | "whatsapp" | "notes" | "billing"
-  >("analytics");
-  const [selectedSpecialty, setSelectedSpecialty] = useState<
-    "dermatology" | "cardiology" | "pediatrics" | "general"
-  >("dermatology");
+  const [activeTab, setActiveTab] = useState<"analytics" | "appointments" | "whatsapp" | "notes" | "billing">("analytics");
+  const [selectedSpecialty, setSelectedSpecialty] = useState<"dermatology" | "cardiology" | "pediatrics" | "general">("dermatology");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
   const [cmdOpen, setCmdOpen] = useState(false);
   const [previewDoctorName, setPreviewDoctorName] = useState("");
@@ -712,10 +545,7 @@ function Landing() {
       const plans = await getPlansFn();
       if (!plans || plans.length === 0) {
         // Fallback to client-side supabase query if server function returns empty
-        const { data } = await supabase
-          .from("plans")
-          .select("*")
-          .order("sort_order", { ascending: true });
+        const { data } = await supabase.from("plans").select("*").order("sort_order", { ascending: true });
         return data ?? [];
       }
       return plans;
@@ -733,122 +563,59 @@ function Landing() {
       name: "Starter",
       tagline: "Ideal for solo practitioners launching their first online presence.",
       monthly_price: 499,
-      discounted_monthly_price: null as number | null,
       yearly_price: 4788,
       discounted_yearly_price: 399,
       is_popular: false,
-      features: [
-        "Custom branded website",
-        "Online appointment booking",
-        "WhatsApp manual notifications",
-        "Digital EHR & visit notes",
-        "GST Invoices",
-      ],
+      features: ["Custom branded website", "Online appointment booking", "WhatsApp manual notifications", "Digital EHR & visit notes", "GST Invoices"],
     },
     {
       id: "growth",
       name: "Growth",
       tagline: "Best for growing clinics requiring automated WhatsApp comms & billing.",
       monthly_price: 1199,
-      discounted_monthly_price: null as number | null,
       yearly_price: 11508,
       discounted_yearly_price: 959,
       is_popular: true,
-      features: [
-        "Everything in Starter",
-        "Automated WhatsApp Bot confirmations",
-        "Razorpay online UPI/Card payment integration",
-        "Google review collection",
-        "QR Walk-in queue manager",
-      ],
+      features: ["Everything in Starter", "Automated WhatsApp Bot confirmations", "Razorpay online UPI/Card payment integration", "Google review collection", "QR Walk-in queue manager"],
     },
     {
       id: "professional",
       name: "Professional",
       tagline: "Complete enterprise OS for multi-doctor clinics & diagnostic centers.",
       monthly_price: 2499,
-      discounted_monthly_price: null as number | null,
       yearly_price: 23988,
       discounted_yearly_price: 1999,
       is_popular: false,
-      features: [
-        "Everything in Growth",
-        "Multi-doctor & staff management",
-        "Inventory & stock control",
-        "Lab orders & diagnostics workflow",
-        "Dedicated priority support",
-      ],
+      features: ["Everything in Growth", "Multi-doctor & staff management", "Inventory & stock control", "Lab orders & diagnostics workflow", "Dedicated priority support"],
     },
   ];
 
   // Map dynamic DB plans or fallback
-  const displayPlans =
-    dbPlans && dbPlans.length > 0
-      ? dbPlans.map((p) => ({
-          id: p.id,
-          name: p.name,
-          tagline:
-            p.tagline ||
-            (p.name === "Starter"
-              ? "For solo doctors getting started"
-              : p.name === "Growth"
-                ? "For growing clinics ready to scale"
-                : p.name === "Professional"
-                  ? "For multi-doctor practices"
-                  : "For enterprise & diagnostic centers"),
-          monthly_price: Number(p.monthly_price),
-          discounted_monthly_price: p.discounted_monthly_price
-            ? Number(p.discounted_monthly_price)
-            : null,
-          yearly_price: Number(p.yearly_price),
-          discounted_yearly_price: p.discounted_yearly_price
-            ? Number(p.discounted_yearly_price)
-            : null,
-          is_popular: Boolean(p.is_popular),
-          features: Array.isArray(p.features)
-            ? (p.features as string[])
-            : typeof p.features === "string"
-              ? JSON.parse(p.features)
-              : [],
-        }))
-      : fallbackPlans;
+  const displayPlans = dbPlans && dbPlans.length > 0 ? dbPlans.map((p) => ({
+    id: p.id,
+    name: p.name,
+    tagline: p.tagline || (p.name === 'Starter' ? 'For solo doctors getting started' : p.name === 'Growth' ? 'For growing clinics ready to scale' : p.name === 'Professional' ? 'For multi-doctor practices' : 'For enterprise & diagnostic centers'),
+    monthly_price: Number(p.monthly_price),
+    discounted_monthly_price: p.discounted_monthly_price ? Number(p.discounted_monthly_price) : null,
+    yearly_price: Number(p.yearly_price),
+    discounted_yearly_price: p.discounted_yearly_price ? Number(p.discounted_yearly_price) : null,
+    is_popular: Boolean(p.is_popular),
+    features: Array.isArray(p.features) ? (p.features as string[]) : (typeof p.features === 'string' ? JSON.parse(p.features) : []),
+  })) : fallbackPlans;
 
   const handleGeneratePreview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!previewDoctorName.trim()) return;
-    const cleanName = previewDoctorName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "-")
-      .replace(/-+/g, "-");
+    const cleanName = previewDoctorName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
     const cleanSpec = previewSpecialty.toLowerCase().replace(/[^a-z0-9]/g, "-");
     setGeneratedSlug(`${cleanName}${cleanSpec ? `-${cleanSpec}` : ""}`);
   };
 
   const specialtyData = {
-    dermatology: {
-      doc: "Dr. Sarah Jenkins",
-      fee: "₹800",
-      rx: "Tretinoin 0.025% Cream, SPF 50+ Gel",
-      complaint: "Facial erythema & acne scar treatment",
-    },
-    cardiology: {
-      doc: "Dr. Rajesh Varma",
-      fee: "₹1,200",
-      rx: "Telmisartan 40mg, Atorvastatin 10mg",
-      complaint: "Routine ECG screening & BP checkup",
-    },
-    pediatrics: {
-      doc: "Dr. Ananya Sharma",
-      fee: "₹600",
-      rx: "Paracetamol Drops, ORS Solution",
-      complaint: "Pediatric growth assessment & vaccination",
-    },
-    general: {
-      doc: "Dr. Vikram Sethi",
-      fee: "₹500",
-      rx: "Amoxicillin 500mg, Pantoprazole 40mg",
-      complaint: "Seasonal viral fever & throat infection",
-    },
+    dermatology: { doc: "Dr. Sarah Jenkins", fee: "₹800", rx: "Tretinoin 0.025% Cream, SPF 50+ Gel", complaint: "Facial erythema & acne scar treatment" },
+    cardiology: { doc: "Dr. Rajesh Varma", fee: "₹1,200", rx: "Telmisartan 40mg, Atorvastatin 10mg", complaint: "Routine ECG screening & BP checkup" },
+    pediatrics: { doc: "Dr. Ananya Sharma", fee: "₹600", rx: "Paracetamol Drops, ORS Solution", complaint: "Pediatric growth assessment & vaccination" },
+    general: { doc: "Dr. Vikram Sethi", fee: "₹500", rx: "Amoxicillin 500mg, Pantoprazole 40mg", complaint: "Seasonal viral fever & throat infection" },
   };
 
   const activeSpecData = specialtyData[selectedSpecialty];
@@ -878,22 +645,16 @@ function Landing() {
           {/* Headline */}
           <div className="max-w-4xl mx-auto space-y-6">
             <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.04]">
-              The operating system for{" "}
-              <em className="text-primary font-normal not-italic underline decoration-primary/30 decoration-wavy decoration-2">
-                independent doctors.
-              </em>
+              The operating system for <em className="text-primary font-normal not-italic underline decoration-primary/30 decoration-wavy decoration-2">independent doctors.</em>
             </h1>
             <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
-              Replace paper diaries, clunky listing portals, and manual WhatsApp messages. Get a
-              custom website, 24/7 online bookings, EHR notes, and Razorpay billing in 5 minutes.
+              Replace paper diaries, clunky listing portals, and manual WhatsApp messages. Get a custom website, 24/7 online bookings, EHR notes, and Razorpay billing in 5 minutes.
             </p>
           </div>
 
           {/* Specialty Switcher Pills */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            <span className="text-xs text-muted-foreground font-mono font-bold uppercase mr-2">
-              Specialty View:
-            </span>
+            <span className="text-xs text-muted-foreground font-mono font-bold uppercase mr-2">Specialty View:</span>
             {[
               { id: "dermatology", label: "🩺 Dermatology" },
               { id: "cardiology", label: "❤️ Cardiology" },
@@ -919,9 +680,7 @@ function Landing() {
           <div className="max-w-xl mx-auto bg-card border border-border/80 rounded-2xl p-2 sm:p-3 shadow-xl backdrop-blur-xl">
             <form onSubmit={handleGeneratePreview} className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 space-y-1 text-left px-2">
-                <span className="text-[10px] uppercase font-mono font-bold text-muted-foreground">
-                  Test Your Website Link
-                </span>
+                <span className="text-[10px] uppercase font-mono font-bold text-muted-foreground">Test Your Website Link</span>
                 <div className="flex items-center gap-2">
                   <Stethoscope className="size-4 text-primary shrink-0" />
                   <Input
@@ -932,24 +691,17 @@ function Landing() {
                   />
                 </div>
               </div>
-              <Button
-                type="submit"
-                size="default"
-                className="h-10 px-5 font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/95 shrink-0 gap-1.5"
-              >
+              <Button type="submit" size="default" className="h-10 px-5 font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/95 shrink-0 gap-1.5">
                 <Sparkles className="size-3.5 text-amber-300" /> Preview Site &rarr;
               </Button>
             </form>
             {generatedSlug && (
               <div className="mt-2 pt-2 border-t border-border/40 text-xs text-left px-2 flex items-center justify-between animate-in fade-in">
                 <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold flex items-center gap-1">
-                  <CheckCircle2 className="size-3.5" /> Your Live URL: https://{generatedSlug}
-                  .clinicx.app
+                  <CheckCircle2 className="size-3.5" /> Your Live URL: https://{generatedSlug}.clinicx.app
                 </span>
                 <Link to="/signup">
-                  <span className="text-primary font-bold hover:underline cursor-pointer text-[11px]">
-                    Claim This Domain &rarr;
-                  </span>
+                  <span className="text-primary font-bold hover:underline cursor-pointer text-[11px]">Claim This Domain &rarr;</span>
                 </Link>
               </div>
             )}
@@ -958,21 +710,12 @@ function Landing() {
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link to="/signup" className="w-full sm:w-auto">
-              <Button
-                type="button"
-                size="lg"
-                className="w-full sm:w-auto h-13 px-8 text-base font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-xl shadow-primary/25 gap-2"
-              >
+              <Button type="button" size="lg" className="w-full sm:w-auto h-13 px-8 text-base font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-xl shadow-primary/25 gap-2">
                 Start 14-Day Free Trial <ArrowRight className="size-5" />
               </Button>
             </Link>
             <Link to="/demo" className="w-full sm:w-auto">
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto h-13 px-8 text-base font-bold border-primary/40 text-primary hover:bg-primary/10 gap-2"
-              >
+              <Button type="button" size="lg" variant="outline" className="w-full sm:w-auto h-13 px-8 text-base font-bold border-primary/40 text-primary hover:bg-primary/10 gap-2">
                 <Sparkles className="size-4 text-amber-500" /> ⚡ Open Live Demo
               </Button>
             </Link>
@@ -1005,14 +748,11 @@ function Landing() {
                     <span className="size-3 rounded-full bg-emerald-500/80 inline-block" />
                   </div>
                   <div className="hidden sm:flex items-center gap-1 text-xs font-mono bg-background border border-border/60 px-3 py-1 rounded-md text-muted-foreground">
-                    <Lock className="size-3 text-emerald-500" /> https://
-                    {generatedSlug || activeSpecData.doc.toLowerCase().replace(/[^a-z0-9]/g, "-")}
-                    .clinicx.app
+                    <Lock className="size-3 text-emerald-500" /> https://{generatedSlug || activeSpecData.doc.toLowerCase().replace(/[^a-z0-9]/g, "-")}.clinicx.app
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono font-bold text-primary">
-                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" /> Live Doctor
-                  OS Console
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" /> Live Doctor OS Console
                 </div>
               </div>
 
@@ -1046,41 +786,23 @@ function Landing() {
                   <div className="space-y-6 animate-in fade-in duration-300">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div className="p-4 bg-muted/30 rounded-2xl border border-border/60 font-mono">
-                        <span className="text-[11px] text-muted-foreground">
-                          Today's Appointments
-                        </span>
-                        <div className="text-2xl font-bold font-display mt-1 text-foreground">
-                          24
-                        </div>
-                        <span className="text-[10px] text-emerald-600 font-bold">
-                          +14% vs yesterday
-                        </span>
+                        <span className="text-[11px] text-muted-foreground">Today's Appointments</span>
+                        <div className="text-2xl font-bold font-display mt-1 text-foreground">24</div>
+                        <span className="text-[10px] text-emerald-600 font-bold">+14% vs yesterday</span>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-2xl border border-border/60 font-mono">
                         <span className="text-[11px] text-muted-foreground">Weekly Revenue</span>
-                        <div className="text-2xl font-bold font-display mt-1 text-emerald-600">
-                          ₹1,42,850
-                        </div>
-                        <span className="text-[10px] text-emerald-600 font-bold">
-                          100% collected
-                        </span>
+                        <div className="text-2xl font-bold font-display mt-1 text-emerald-600">₹1,42,850</div>
+                        <span className="text-[10px] text-emerald-600 font-bold">100% collected</span>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-2xl border border-border/60 font-mono">
-                        <span className="text-[11px] text-muted-foreground">
-                          WhatsApp Reminders
-                        </span>
-                        <div className="text-2xl font-bold font-display mt-1 text-primary">
-                          148 Sent
-                        </div>
-                        <span className="text-[10px] text-emerald-600 font-bold">
-                          98% delivery rate
-                        </span>
+                        <span className="text-[11px] text-muted-foreground">WhatsApp Reminders</span>
+                        <div className="text-2xl font-bold font-display mt-1 text-primary">148 Sent</div>
+                        <span className="text-[10px] text-emerald-600 font-bold">98% delivery rate</span>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-2xl border border-border/60 font-mono">
                         <span className="text-[11px] text-muted-foreground">Google Rating</span>
-                        <div className="text-2xl font-bold font-display mt-1 text-amber-500">
-                          4.9 ★
-                        </div>
+                        <div className="text-2xl font-bold font-display mt-1 text-amber-500">4.9 ★</div>
                         <span className="text-[10px] text-muted-foreground">182 reviews</span>
                       </div>
                     </div>
@@ -1090,47 +812,22 @@ function Landing() {
                 {activeTab === "appointments" && (
                   <div className="space-y-3 animate-in fade-in duration-300">
                     {[
-                      {
-                        name: "Anaya Kapoor",
-                        time: "10:30 AM",
-                        type: `${selectedSpecialty.toUpperCase()} Consultation`,
-                        status: "Confirmed",
-                        phone: "+91 98201 12345",
-                      },
-                      {
-                        name: "Rahul Verma",
-                        time: "11:15 AM",
-                        type: "Follow-up Assessment",
-                        status: "Confirmed",
-                        phone: "+91 98765 43210",
-                      },
-                      {
-                        name: "Priya Sharma",
-                        time: "12:00 PM",
-                        type: "Specialized Therapy",
-                        status: "In Progress",
-                        phone: "+91 98111 22334",
-                      },
+                      { name: "Anaya Kapoor", time: "10:30 AM", type: `${selectedSpecialty.toUpperCase()} Consultation`, status: "Confirmed", phone: "+91 98201 12345" },
+                      { name: "Rahul Verma", time: "11:15 AM", type: "Follow-up Assessment", status: "Confirmed", phone: "+91 98765 43210" },
+                      { name: "Priya Sharma", time: "12:00 PM", type: "Specialized Therapy", status: "In Progress", phone: "+91 98111 22334" },
                     ].map((app, i) => (
-                      <div
-                        key={i}
-                        className="p-4 bg-muted/30 rounded-2xl border border-border/60 flex items-center justify-between gap-4"
-                      >
+                      <div key={i} className="p-4 bg-muted/30 rounded-2xl border border-border/60 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <div className="size-10 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-sm">
                             {app.name[0]}
                           </div>
                           <div>
                             <div className="font-bold text-sm text-foreground">{app.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {app.type} · {app.phone}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{app.type} · {app.phone}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-mono font-bold text-muted-foreground">
-                            {app.time}
-                          </span>
+                          <span className="text-xs font-mono font-bold text-muted-foreground">{app.time}</span>
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 uppercase">
                             {app.status}
                           </span>
@@ -1148,9 +845,7 @@ function Landing() {
                     </div>
                     <div className="bg-emerald-950/40 border border-emerald-900/40 text-emerald-100 p-3 rounded-2xl rounded-tl-none text-xs leading-relaxed">
                       <p className="font-bold text-[10px] text-emerald-400 mb-1">ClinicX Bot</p>
-                      Hi Anaya! Your consultation with{" "}
-                      <strong>{previewDoctorName || activeSpecData.doc}</strong> is confirmed for
-                      tomorrow 10:30 AM.
+                      Hi Anaya! Your consultation with <strong>{previewDoctorName || activeSpecData.doc}</strong> is confirmed for tomorrow 10:30 AM.
                     </div>
                     <div className="bg-slate-800 text-slate-100 p-2.5 rounded-2xl rounded-tr-none text-xs ml-auto max-w-[70%] text-right">
                       Confirmed! Thank you doc 🙏
@@ -1160,9 +855,7 @@ function Landing() {
 
                 {activeTab === "notes" && (
                   <div className="p-4 bg-muted/30 rounded-2xl border border-border/60 space-y-2 text-xs animate-in fade-in duration-300">
-                    <div className="font-bold text-sm text-foreground">
-                      SOAP Visit Journal — Doctor: {activeSpecData.doc}
-                    </div>
+                    <div className="font-bold text-sm text-foreground">SOAP Visit Journal — Doctor: {activeSpecData.doc}</div>
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div>
                         <span className="font-bold text-primary">Chief Complaint:</span>
@@ -1180,16 +873,10 @@ function Landing() {
                   <div className="p-5 bg-muted/30 rounded-2xl border border-border/60 space-y-4 text-xs font-mono animate-in fade-in duration-300">
                     <div className="flex justify-between items-center border-b border-border pb-3">
                       <div>
-                        <div className="font-bold text-sm text-foreground">
-                          Invoice #INV-2026-084
-                        </div>
-                        <div className="text-muted-foreground text-[11px]">
-                          {activeSpecData.doc} · GSTIN: 27AAAAA0000A1Z5
-                        </div>
+                        <div className="font-bold text-sm text-foreground">Invoice #INV-2026-084</div>
+                        <div className="text-muted-foreground text-[11px]">{activeSpecData.doc} · GSTIN: 27AAAAA0000A1Z5</div>
                       </div>
-                      <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 font-bold rounded-full text-xs">
-                        Paid via UPI
-                      </span>
+                      <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 font-bold rounded-full text-xs">Paid via UPI</span>
                     </div>
                     <div className="flex justify-between font-bold text-sm text-foreground pt-1">
                       <span>Clinical Consultation + Treatment Plan</span>
@@ -1220,14 +907,10 @@ function Landing() {
               The Complete Practice OS
             </span>
             <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Everything your practice needs,{" "}
-              <em className="text-primary font-normal not-italic underline decoration-primary/30">
-                in one login.
-              </em>
+              Everything your practice needs, <em className="text-primary font-normal not-italic underline decoration-primary/30">in one login.</em>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-              Stop juggling six logins. ClinicX unifies your website, scheduler, EHR, billing, and
-              comms — one subscription, one source of truth.
+              Stop juggling six logins. ClinicX unifies your website, scheduler, EHR, billing, and comms — one subscription, one source of truth.
             </p>
           </div>
 
@@ -1237,20 +920,14 @@ function Landing() {
                 <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <Globe className="size-6" />
                 </div>
-                <h3 className="font-display text-2xl font-bold">
-                  Custom Branded Website & SEO Autopilot
-                </h3>
+                <h3 className="font-display text-2xl font-bold">Custom Branded Website & SEO Autopilot</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
-                  Generate a mobile-first clinic website in 5 minutes. Connect your custom domain
-                  (e.g. drjenkins.com) and rank for local Google searches ("dermatologist near me")
-                  on autopilot.
+                  Generate a mobile-first clinic website in 5 minutes. Connect your custom domain (e.g. drjenkins.com) and rank for local Google searches ("dermatologist near me") on autopilot.
                 </p>
               </div>
               <div className="pt-6 mt-6 border-t border-border/50 flex items-center justify-between text-xs font-bold text-primary font-mono">
                 <span>0% Commission · Your Own Branding</span>
-                <Link to="/features" className="hover:underline flex items-center gap-1">
-                  Explore website features &rarr;
-                </Link>
+                <Link to="/features" className="hover:underline flex items-center gap-1">Explore website features &rarr;</Link>
               </div>
             </Card>
 
@@ -1261,8 +938,7 @@ function Landing() {
                 </div>
                 <h3 className="font-display text-xl font-bold">WhatsApp Automation</h3>
                 <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                  Automate booking confirmations, 24h reminders, post-visit feedback, and 5-star
-                  Google review requests over WhatsApp.
+                  Automate booking confirmations, 24h reminders, post-visit feedback, and 5-star Google review requests over WhatsApp.
                 </p>
               </div>
               <div className="pt-6 mt-6 border-t border-border/50 text-xs font-bold text-emerald-600 font-mono">
@@ -1277,8 +953,7 @@ function Landing() {
                 </div>
                 <h3 className="font-display text-xl font-bold">Digital EHR & E-Prescriptions</h3>
                 <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                  Structured SOAP visit journals, medical history tagging, drug directory lookup,
-                  and instant WhatsApp PDF prescriptions.
+                  Structured SOAP visit journals, medical history tagging, drug directory lookup, and instant WhatsApp PDF prescriptions.
                 </p>
               </div>
               <div className="pt-6 mt-6 border-t border-border/50 text-xs font-bold text-primary font-mono">
@@ -1291,22 +966,14 @@ function Landing() {
                 <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <IndianRupee className="size-6" />
                 </div>
-                <h3 className="font-display text-2xl font-bold">
-                  Razorpay Invoicing & Advance Co-pays
-                </h3>
+                <h3 className="font-display text-2xl font-bold">Razorpay Invoicing & Advance Co-pays</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
-                  Generate professional GST PDF invoices, accept UPI/Cards online, collect advance
-                  booking co-pays, and track daily revenue analytics seamlessly.
+                  Generate professional GST PDF invoices, accept UPI/Cards online, collect advance booking co-pays, and track daily revenue analytics seamlessly.
                 </p>
               </div>
               <div className="pt-6 mt-6 border-t border-border/50 flex items-center justify-between text-xs font-bold text-emerald-600 font-mono">
                 <span>Instant Razorpay UPI Integration</span>
-                <Link
-                  to="/features"
-                  className="hover:underline text-primary flex items-center gap-1"
-                >
-                  View billing features &rarr;
-                </Link>
+                <Link to="/features" className="hover:underline text-primary flex items-center gap-1">View billing features &rarr;</Link>
               </div>
             </Card>
           </div>
@@ -1321,39 +988,19 @@ function Landing() {
               Trusted by Practitioners
             </span>
             <h2 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">
-              Doctors don't have time for{" "}
-              <em className="text-primary font-normal not-italic underline decoration-primary/30">
-                clunky software.
-              </em>
+              Doctors don't have time for <em className="text-primary font-normal not-italic underline decoration-primary/30">clunky software.</em>
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              {
-                q: "I went from a paper diary to a fully booked online calendar in an afternoon. My receptionist thanked me.",
-                n: "Dr. Aanya Patel",
-                r: "Dermatologist · Mumbai",
-              },
-              {
-                q: "WhatsApp confirmations cut my no-shows nearly in half. The ROI was obvious in the first month.",
-                n: "Dr. Marco Silva",
-                r: "Cardiologist · Lisbon",
-              },
-              {
-                q: "Finally a clinical tool that doesn't look like it was built in 2008. My patients actually comment on how easy the website is.",
-                n: "Dr. Rachel Kim",
-                r: "Pediatrician · Toronto",
-              },
+              { q: "I went from a paper diary to a fully booked online calendar in an afternoon. My receptionist thanked me.", n: "Dr. Aanya Patel", r: "Dermatologist · Mumbai" },
+              { q: "WhatsApp confirmations cut my no-shows nearly in half. The ROI was obvious in the first month.", n: "Dr. Marco Silva", r: "Cardiologist · Lisbon" },
+              { q: "Finally a clinical tool that doesn't look like it was built in 2008. My patients actually comment on how easy the website is.", n: "Dr. Rachel Kim", r: "Pediatrician · Toronto" },
             ].map((t) => (
-              <Card
-                key={t.n}
-                className="p-8 flex flex-col justify-between border-border/80 bg-card shadow-sm hover:shadow-md transition-all space-y-6"
-              >
+              <Card key={t.n} className="p-8 flex flex-col justify-between border-border/80 bg-card shadow-sm hover:shadow-md transition-all space-y-6">
                 <div className="space-y-4">
                   <div className="flex gap-1">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
-                    ))}
+                    {[0,1,2,3,4].map(i => <Star key={i} className="size-4 fill-amber-400 text-amber-400" />)}
                   </div>
                   <blockquote className="font-display text-lg leading-relaxed text-foreground">
                     &ldquo;{t.q}&rdquo;
@@ -1377,10 +1024,7 @@ function Landing() {
               Transparent Pricing
             </span>
             <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Simple plans for{" "}
-              <em className="text-primary font-normal not-italic underline decoration-primary/30">
-                every stage of growth.
-              </em>
+              Simple plans for <em className="text-primary font-normal not-italic underline decoration-primary/30">every stage of growth.</em>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base">
               No hidden setup fees. 14-day free trial on all plans. Cancel anytime.
@@ -1399,17 +1043,12 @@ function Landing() {
                 onClick={() => setBillingCycle("annual")}
                 className={`px-4 py-1.5 rounded-full transition-all ${billingCycle === "annual" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Annual{" "}
-                <span className="text-[10px] text-amber-300 font-extrabold ml-1 uppercase">
-                  GET 2 MONTHS FREE
-                </span>
+                Annual <span className="text-[10px] text-amber-300 font-extrabold ml-1 uppercase">GET 2 MONTHS FREE</span>
               </button>
             </div>
           </div>
 
-          <div
-            className={`grid gap-8 items-stretch ${displayPlans.length >= 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}
-          >
+          <div className={`grid gap-8 items-stretch ${displayPlans.length >= 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
             {displayPlans.map((p, idx) => {
               const isAnnual = billingCycle === "annual";
 
@@ -1425,21 +1064,15 @@ function Landing() {
 
               if (isAnnual) {
                 // Annual Billing View: Effective Monthly Rate = (Discounted Yearly || Yearly) / 12
-                annualBillAmount =
-                  discYearly && discYearly > 0
-                    ? discYearly
-                    : origYearly && origYearly > 0
-                      ? origYearly
-                      : Math.round(origMonthly * 12 * 0.8);
+                annualBillAmount = discYearly && discYearly > 0 ? discYearly : (origYearly && origYearly > 0 ? origYearly : Math.round(origMonthly * 12 * 0.8));
                 effectiveMonthly = Math.round(annualBillAmount / 12);
 
-                const origMonthlyEquivalent =
-                  origMonthly || (origYearly ? Math.round(origYearly / 12) : null);
+                const origMonthlyEquivalent = origMonthly || (origYearly ? Math.round(origYearly / 12) : null);
                 if (origMonthlyEquivalent && origMonthlyEquivalent > effectiveMonthly) {
                   strikethroughMonthly = origMonthlyEquivalent;
                 }
 
-                savingsAmount = Math.max(0, origMonthly * 12 - annualBillAmount);
+                savingsAmount = Math.max(0, (origMonthly * 12) - annualBillAmount);
               } else {
                 // Monthly Billing View: Effective Monthly Rate = Discounted Monthly || Monthly
                 effectiveMonthly = discMonthly && discMonthly > 0 ? discMonthly : origMonthly;
@@ -1499,10 +1132,7 @@ function Landing() {
 
                     <ul className="space-y-3 pt-4 border-t border-border/50 text-xs">
                       {p.features.map((f: string, fi: number) => (
-                        <li
-                          key={fi}
-                          className="flex items-center gap-2 text-foreground font-medium"
-                        >
+                        <li key={fi} className="flex items-center gap-2 text-foreground font-medium">
                           <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
                           <span>{f}</span>
                         </li>
@@ -1512,11 +1142,7 @@ function Landing() {
 
                   <div className="pt-8 mt-6 border-t border-border/50">
                     <Link to="/signup">
-                      <Button
-                        type="button"
-                        className={`w-full font-bold h-11 ${p.is_popular ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`}
-                        variant={p.is_popular ? "default" : "outline"}
-                      >
+                      <Button type="button" className={`w-full font-bold h-11 ${p.is_popular ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`} variant={p.is_popular ? "default" : "outline"}>
                         Start 14-Day Free Trial
                       </Button>
                     </Link>
@@ -1539,26 +1165,16 @@ function Landing() {
               Ready to transform your clinical practice?
             </h2>
             <p className="text-primary-foreground/90 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-              Join hundreds of independent doctors across India running their practice on ClinicX.
-              Setup in under 5 minutes.
+              Join hundreds of independent doctors across India running their practice on ClinicX. Setup in under 5 minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <Link to="/signup" className="w-full sm:w-auto">
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="secondary"
-                  className="w-full sm:w-auto h-12 px-8 font-bold bg-white text-slate-950 hover:bg-slate-100"
-                >
+                <Button type="button" size="lg" variant="secondary" className="w-full sm:w-auto h-12 px-8 font-bold bg-white text-slate-950 hover:bg-slate-100">
                   Start 14-Day Free Trial &rarr;
                 </Button>
               </Link>
               <Link to="/demo" className="w-full sm:w-auto">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full sm:w-auto h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900"
-                >
+                <Button type="button" size="lg" className="w-full sm:w-auto h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900">
                   ⚡ Open Live Demo
                 </Button>
               </Link>

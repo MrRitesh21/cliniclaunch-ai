@@ -4,11 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function ownedClinic(clinicId: string, userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
-    .from("clinics")
-    .select("id, owner_id")
-    .eq("id", clinicId)
-    .maybeSingle();
+  const { data } = await supabaseAdmin.from("clinics").select("id, owner_id").eq("id", clinicId).maybeSingle();
   if (!data) throw new Error("Clinic not found");
   if ((data as { owner_id?: string | null }).owner_id !== userId) throw new Error("Unauthorized");
   return data;
@@ -17,9 +13,7 @@ async function ownedClinic(clinicId: string, userId: string) {
 export const saveGooglePlaceId = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z
-      .object({ clinic_id: z.string().uuid(), place_id: z.string().trim().max(200).nullable() })
-      .parse(i),
+    z.object({ clinic_id: z.string().uuid(), place_id: z.string().trim().max(200).nullable() }).parse(i),
   )
   .handler(async ({ data, context }) => {
     await ownedClinic(data.clinic_id, context.userId);
@@ -43,9 +37,7 @@ export const syncGoogleReviews = createServerFn({ method: "POST" })
 export const toggleGoogleReviewVisibility = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z
-      .object({ clinic_id: z.string().uuid(), index: z.number().int().min(0), show: z.boolean() })
-      .parse(i),
+    z.object({ clinic_id: z.string().uuid(), index: z.number().int().min(0), show: z.boolean() }).parse(i),
   )
   .handler(async ({ data, context }) => {
     await ownedClinic(data.clinic_id, context.userId);

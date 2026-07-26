@@ -35,9 +35,7 @@ function AdminWhatsApp() {
       const r = await send({ data: { phone, message } });
       if (r.ok) toast.success("Message sent");
       else toast.error(r.error || "Send failed");
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   }
 
   return (
@@ -45,8 +43,7 @@ function AdminWhatsApp() {
       <div>
         <h1 className="font-display text-3xl">Platform WhatsApp</h1>
         <p className="text-muted-foreground">
-          Connect a WhatsApp number for platform-wide automations: OTP verification, doctor
-          onboarding alerts, lead notifications.
+          Connect a WhatsApp number for platform-wide automations: OTP verification, doctor onboarding alerts, lead notifications.
         </p>
       </div>
 
@@ -63,11 +60,7 @@ function AdminWhatsApp() {
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <Label>Phone (with country code)</Label>
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="919876543210"
-            />
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="919876543210" />
           </div>
         </div>
         <div>
@@ -75,9 +68,7 @@ function AdminWhatsApp() {
           <Textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} />
         </div>
         <div className="flex justify-end">
-          <Button onClick={handleSend} disabled={busy || !phone || !message}>
-            Send
-          </Button>
+          <Button onClick={handleSend} disabled={busy || !phone || !message}>Send</Button>
         </div>
       </Card>
     </div>

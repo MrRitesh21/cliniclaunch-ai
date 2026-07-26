@@ -6,23 +6,9 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  PhoneOff,
-  Copy,
-  Loader2,
-  ScreenShare,
-  ScreenShareOff,
-  MessageSquare,
-  Send,
-  X,
-  ArrowLeft,
-  MoreVertical,
-  Volume2,
-  Camera,
-  User,
+  Mic, MicOff, Video, VideoOff, PhoneOff, Copy, Loader2,
+  ScreenShare, ScreenShareOff, MessageSquare, Send, X,
+  ArrowLeft, MoreVertical, Volume2, Camera, User,
 } from "lucide-react";
 import { getConsultAppointment } from "@/lib/clinic.functions";
 
@@ -61,12 +47,7 @@ const ICE_SERVERS: RTCIceServer[] = [
 ];
 
 function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase())
-    .join("");
+  return name.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
 }
 
 function formatDuration(sec: number) {
@@ -80,9 +61,7 @@ function formatDuration(sec: number) {
 function ConsultRoom() {
   const { appointmentId } = Route.useParams();
   const [appt, setAppt] = useState<Appt | null>(null);
-  const [status, setStatus] = useState<
-    "idle" | "waiting" | "connecting" | "connected" | "ended" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "waiting" | "connecting" | "connected" | "ended" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
@@ -114,16 +93,9 @@ function ConsultRoom() {
     (async () => {
       try {
         const data = await getConsultAppointment({ data: { id: appointmentId } });
-        if (!data) {
-          setErrorMsg("Appointment not found.");
-          setStatus("error");
-          return;
-        }
+        if (!data) { setErrorMsg("Appointment not found."); setStatus("error"); return; }
         setAppt(data as unknown as Appt);
-      } catch {
-        setErrorMsg("Appointment not found.");
-        setStatus("error");
-      }
+      } catch { setErrorMsg("Appointment not found."); setStatus("error"); }
     })();
   }, [appointmentId]);
 
@@ -136,10 +108,7 @@ function ConsultRoom() {
 
   // Auto-hide controls after 4s of inactivity while connected
   useEffect(() => {
-    if (status !== "connected") {
-      setControlsVisible(true);
-      return;
-    }
+    if (status !== "connected") { setControlsVisible(true); return; }
     const reset = () => {
       setControlsVisible(true);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
@@ -182,8 +151,7 @@ function ConsultRoom() {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
     pc.onicecandidate = (e) => {
-      if (e.candidate)
-        send({ kind: "ice", from: myIdRef.current, candidate: e.candidate.toJSON() });
+      if (e.candidate) send({ kind: "ice", from: myIdRef.current, candidate: e.candidate.toJSON() });
     };
     pc.ontrack = (e) => {
       if (remoteVideoRef.current && e.streams[0]) remoteVideoRef.current.srcObject = e.streams[0];
@@ -197,13 +165,9 @@ function ConsultRoom() {
       try {
         makingOfferRef.current = true;
         await pc.setLocalDescription();
-        if (pc.localDescription)
-          send({ kind: "offer", from: myIdRef.current, sdp: pc.localDescription });
-      } catch (err) {
-        console.error("negotiation error", err);
-      } finally {
-        makingOfferRef.current = false;
-      }
+        if (pc.localDescription) send({ kind: "offer", from: myIdRef.current, sdp: pc.localDescription });
+      } catch (err) { console.error("negotiation error", err); }
+      finally { makingOfferRef.current = false; }
     };
     localStreamRef.current?.getTracks().forEach((track) => {
       pc.addTrack(track, localStreamRef.current!);
@@ -245,24 +209,12 @@ function ConsultRoom() {
           if (pc.remoteDescription) await pc.addIceCandidate(msg.candidate);
           else pendingIceRef.current.push(msg.candidate);
         } else if (msg.kind === "chat") {
-          setMessages((m) => [
-            ...m,
-            {
-              id: `${msg.from}-${msg.ts}`,
-              from: msg.from,
-              author: msg.author,
-              text: msg.text,
-              ts: msg.ts,
-            },
-          ]);
+          setMessages((m) => [...m, { id: `${msg.from}-${msg.ts}`, from: msg.from, author: msg.author, text: msg.text, ts: msg.ts }]);
           setUnread((u) => (chatOpen ? u : u + 1));
         } else if (msg.kind === "bye") {
-          setStatus("ended");
-          cleanup();
+          setStatus("ended"); cleanup();
         }
-      } catch (err) {
-        console.error("signal error", err);
-      }
+      } catch (err) { console.error("signal error", err); }
     },
     [ensurePeer, send, cleanup, chatOpen],
   );
@@ -276,18 +228,13 @@ function ConsultRoom() {
       setJoined(true);
       setStatus("waiting");
 
-      const channel = supabase.channel(`consult:${appointmentId}`, {
-        config: { broadcast: { self: false } },
-      });
+      const channel = supabase.channel(`consult:${appointmentId}`, { config: { broadcast: { self: false } } });
       channelRef.current = channel;
-      channel.on("broadcast", { event: "signal" }, (payload) =>
-        handleSignal(payload.payload as Signal),
-      );
+      channel.on("broadcast", { event: "signal" }, (payload) => handleSignal(payload.payload as Signal));
       await new Promise<void>((resolve, reject) => {
         channel.subscribe((s) => {
           if (s === "SUBSCRIBED") resolve();
-          else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT")
-            reject(new Error("Realtime channel error"));
+          else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") reject(new Error("Realtime channel error"));
         });
       });
       ensurePeer();
@@ -302,19 +249,16 @@ function ConsultRoom() {
   function toggleMic() {
     const track = localStreamRef.current?.getAudioTracks()[0];
     if (!track) return;
-    track.enabled = !track.enabled;
-    setMicOn(track.enabled);
+    track.enabled = !track.enabled; setMicOn(track.enabled);
   }
   function toggleCam() {
     const track = localStreamRef.current?.getVideoTracks()[0];
     if (!track) return;
-    track.enabled = !track.enabled;
-    setCamOn(track.enabled);
+    track.enabled = !track.enabled; setCamOn(track.enabled);
   }
 
   async function toggleShare() {
-    const pc = pcRef.current;
-    if (!pc) return;
+    const pc = pcRef.current; if (!pc) return;
     const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
     if (!videoSender) return;
     if (!sharing) {
@@ -325,9 +269,7 @@ function ConsultRoom() {
         const screenTrack = screen.getVideoTracks()[0];
         await videoSender.replaceTrack(screenTrack);
         if (localVideoRef.current) localVideoRef.current.srcObject = screen;
-        screenTrack.onended = () => {
-          void toggleShare();
-        };
+        screenTrack.onended = () => { void toggleShare(); };
         setSharing(true);
       } catch (e) {
         if ((e as Error).name !== "NotAllowedError") toast.error("Couldn't start screen share");
@@ -337,8 +279,7 @@ function ConsultRoom() {
       if (cam) await videoSender.replaceTrack(cam);
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
-      if (localVideoRef.current && localStreamRef.current)
-        localVideoRef.current.srcObject = localStreamRef.current;
+      if (localVideoRef.current && localStreamRef.current) localVideoRef.current.srcObject = localStreamRef.current;
       setSharing(false);
     }
   }
@@ -350,8 +291,7 @@ function ConsultRoom() {
     const next = current === "user" ? "environment" : "user";
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: next } },
-        audio: false,
+        video: { facingMode: { ideal: next } }, audio: false,
       });
       const newTrack = newStream.getVideoTracks()[0];
       const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
@@ -360,14 +300,11 @@ function ConsultRoom() {
       localStreamRef.current?.removeTrack(track);
       localStreamRef.current?.addTrack(newTrack);
       if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
-    } catch {
-      toast.error("Couldn't switch camera");
-    }
+    } catch { toast.error("Couldn't switch camera"); }
   }
 
   function sendChat() {
-    const text = chatInput.trim();
-    if (!text) return;
+    const text = chatInput.trim(); if (!text) return;
     const ts = Date.now();
     setMessages((m) => [...m, { id: `me-${ts}`, from: myIdRef.current, author: "You", text, ts }]);
     send({ kind: "chat", from: myIdRef.current, author: "You", text, ts });
@@ -375,8 +312,7 @@ function ConsultRoom() {
   }
   function endCall() {
     send({ kind: "bye", from: myIdRef.current });
-    setStatus("ended");
-    cleanup();
+    setStatus("ended"); cleanup();
   }
   function copyLink() {
     navigator.clipboard.writeText(window.location.href);
@@ -396,9 +332,7 @@ function ConsultRoom() {
           </div>
           <h1 className="font-display text-2xl">Can't start the call</h1>
           <p className="text-muted-foreground mt-2 text-sm">{errorMsg}</p>
-          <Link to="/" className="inline-block mt-6">
-            <Button variant="outline">Go home</Button>
-          </Link>
+          <Link to="/" className="inline-block mt-6"><Button variant="outline">Go home</Button></Link>
         </Card>
       </div>
     );
@@ -415,20 +349,8 @@ function ConsultRoom() {
           <h1 className="font-display text-2xl">Call ended</h1>
           <p className="text-white/60 text-sm mt-1">Duration · {formatDuration(callSeconds)}</p>
           <div className="mt-6 flex gap-2 justify-center">
-            <Link to="/">
-              <Button
-                variant="outline"
-                className="bg-transparent border-white/20 text-white hover:bg-white/10"
-              >
-                Home
-              </Button>
-            </Link>
-            <Button
-              onClick={() => window.location.reload()}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              Rejoin
-            </Button>
+            <Link to="/"><Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10">Home</Button></Link>
+            <Button onClick={() => window.location.reload()} className="bg-emerald-600 hover:bg-emerald-700">Rejoin</Button>
           </div>
         </div>
       </div>
@@ -453,7 +375,9 @@ function ConsultRoom() {
             <h1 className="font-display text-2xl">{appt ? remoteName : "Loading…"}</h1>
             {appt && (
               <>
-                <p className="text-white/60 text-sm mt-1">{appt.clinics?.clinic_name}</p>
+                <p className="text-white/60 text-sm mt-1">
+                  {appt.clinics?.clinic_name}
+                </p>
                 <p className="text-white/40 text-xs mt-3">
                   Appointment · {new Date(appt.scheduled_at).toLocaleString()}
                 </p>
@@ -466,12 +390,8 @@ function ConsultRoom() {
               className="mt-8 w-full h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-base font-medium shadow-lg shadow-emerald-900/40"
             >
               {appt ? (
-                <>
-                  <Video className="size-5 mr-2" /> Join video call
-                </>
-              ) : (
-                <Loader2 className="size-5 animate-spin" />
-              )}
+                <><Video className="size-5 mr-2" /> Join video call</>
+              ) : <Loader2 className="size-5 animate-spin" />}
             </Button>
 
             <button
@@ -483,8 +403,7 @@ function ConsultRoom() {
 
             <p className="text-[11px] text-white/40 mt-8 leading-relaxed">
               Your browser will ask for camera and microphone access.
-              <br />
-              The call is end-to-end peer-to-peer.
+              <br />The call is end-to-end peer-to-peer.
             </p>
           </div>
         </div>
@@ -499,7 +418,12 @@ function ConsultRoom() {
     <div className="min-h-screen bg-black text-white overflow-hidden fixed inset-0 flex flex-col">
       {/* Remote video (full bleed) */}
       <div className="absolute inset-0 bg-slate-950">
-        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+        />
         {showOverlay && (
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 grid place-items-center">
             <div className="text-center">
@@ -551,18 +475,10 @@ function ConsultRoom() {
                   <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {formatDuration(callSeconds)}
                 </span>
-              ) : status === "waiting" ? (
-                "Ringing…"
-              ) : (
-                "Connecting…"
-              )}
+              ) : status === "waiting" ? "Ringing…" : "Connecting…"}
             </p>
           </div>
-          <button
-            onClick={copyLink}
-            className="p-2 rounded-full hover:bg-white/10"
-            aria-label="Copy link"
-          >
+          <button onClick={copyLink} className="p-2 rounded-full hover:bg-white/10" aria-label="Copy link">
             <Copy className="size-4" />
           </button>
           <button className="p-2 rounded-full hover:bg-white/10" aria-label="More">
@@ -611,28 +527,17 @@ function ConsultRoom() {
           <CtrlButton onClick={toggleMic} active={!micOn} label={micOn ? "Mute" : "Unmute"}>
             {micOn ? <Mic className="size-5" /> : <MicOff className="size-5" />}
           </CtrlButton>
-          <CtrlButton
-            onClick={toggleCam}
-            active={!camOn}
-            label={camOn ? "Turn camera off" : "Turn camera on"}
-          >
+          <CtrlButton onClick={toggleCam} active={!camOn} label={camOn ? "Turn camera off" : "Turn camera on"}>
             {camOn ? <Video className="size-5" /> : <VideoOff className="size-5" />}
           </CtrlButton>
           <CtrlButton onClick={switchCamera} label="Switch camera">
             <Camera className="size-5" />
           </CtrlButton>
-          <CtrlButton
-            onClick={toggleShare}
-            highlight={sharing}
-            label={sharing ? "Stop sharing" : "Share screen"}
-          >
+          <CtrlButton onClick={toggleShare} highlight={sharing} label={sharing ? "Stop sharing" : "Share screen"}>
             {sharing ? <ScreenShareOff className="size-5" /> : <ScreenShare className="size-5" />}
           </CtrlButton>
           <CtrlButton
-            onClick={() => {
-              setChatOpen((o) => !o);
-              setUnread(0);
-            }}
+            onClick={() => { setChatOpen((o) => !o); setUnread(0); }}
             highlight={chatOpen}
             label="Chat"
             badge={unread > 0 && !chatOpen ? unread : undefined}
@@ -652,29 +557,22 @@ function ConsultRoom() {
       {/* Chat sheet (WhatsApp-style) */}
       {chatOpen && (
         <div className="absolute inset-0 z-30 flex flex-col sm:justify-end sm:items-end">
-          <div
-            className="hidden sm:block absolute inset-0 bg-black/40"
-            onClick={() => setChatOpen(false)}
-          />
+          <div className="hidden sm:block absolute inset-0 bg-black/40" onClick={() => setChatOpen(false)} />
           <div className="relative w-full sm:w-96 sm:m-4 sm:rounded-2xl bg-[#0b141a] flex flex-col h-full sm:h-[80vh] shadow-2xl overflow-hidden">
             <div className="px-4 py-3 bg-[#075E54] flex items-center gap-3">
-              <button
-                onClick={() => setChatOpen(false)}
-                className="p-1 -ml-1 rounded-full hover:bg-white/10"
-              >
+              <button onClick={() => setChatOpen(false)} className="p-1 -ml-1 rounded-full hover:bg-white/10">
                 <X className="size-5" />
               </button>
               <div className="flex-1">
                 <p className="text-sm font-medium">In-call chat</p>
-                <p className="text-[11px] text-white/70">
-                  {patientName} · {remoteName}
-                </p>
+                <p className="text-[11px] text-white/70">{patientName} · {remoteName}</p>
               </div>
             </div>
             <div
               className="flex-1 overflow-y-auto p-3 space-y-1.5"
               style={{
-                backgroundImage: "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
+                backgroundImage:
+                  "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
                 backgroundSize: "18px 18px",
               }}
             >
@@ -684,37 +582,29 @@ function ConsultRoom() {
                     Messages here stay only during this call.
                   </div>
                 </div>
-              ) : (
-                messages.map((m) => {
-                  const mine = m.from === myIdRef.current;
-                  return (
-                    <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[75%] rounded-lg px-2.5 py-1.5 text-sm shadow ${
-                          mine
-                            ? "bg-[#005c4b] text-white rounded-tr-none"
-                            : "bg-[#202c33] text-white rounded-tl-none"
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap break-words leading-snug">{m.text}</p>
-                        <p className="text-[9px] opacity-60 text-right mt-0.5">
-                          {new Date(m.ts).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
+              ) : messages.map((m) => {
+                const mine = m.from === myIdRef.current;
+                return (
+                  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[75%] rounded-lg px-2.5 py-1.5 text-sm shadow ${
+                        mine
+                          ? "bg-[#005c4b] text-white rounded-tr-none"
+                          : "bg-[#202c33] text-white rounded-tl-none"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words leading-snug">{m.text}</p>
+                      <p className="text-[9px] opacity-60 text-right mt-0.5">
+                        {new Date(m.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })}
               <div ref={chatEndRef} />
             </div>
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendChat();
-              }}
+              onSubmit={(e) => { e.preventDefault(); sendChat(); }}
               className="p-2 bg-[#0b141a] flex gap-2 items-center border-t border-white/5"
             >
               <Input
@@ -740,17 +630,12 @@ function ConsultRoom() {
 }
 
 function CtrlButton({
-  children,
-  onClick,
-  active,
-  highlight,
-  label,
-  badge,
+  children, onClick, active, highlight, label, badge,
 }: {
   children: React.ReactNode;
   onClick: () => void;
-  active?: boolean; // "off" state (mic muted, cam off) → red-tinted
-  highlight?: boolean; // "on" toggle (sharing, chat open) → white bg
+  active?: boolean;      // "off" state (mic muted, cam off) → red-tinted
+  highlight?: boolean;   // "on" toggle (sharing, chat open) → white bg
   label: string;
   badge?: number;
 }) {

@@ -3,20 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Search,
-  Sparkles,
-  ArrowRight,
-  Stethoscope,
-  Calendar,
-  MessageSquare,
-  IndianRupee,
-  ShieldCheck,
-  Globe,
-  HelpCircle,
-  Layers,
-  MapPin,
-  Command,
-  X,
+  Search, Sparkles, ArrowRight, Stethoscope, Calendar, MessageSquare,
+  IndianRupee, ShieldCheck, Globe, HelpCircle, Layers, MapPin, Command, X
 } from "lucide-react";
 
 type ActionItem = {
@@ -45,10 +33,7 @@ export function CommandPalette({
       title: "Open Live Demo Workspace (Dr. Sarah Jenkins)",
       category: "Product",
       icon: Sparkles,
-      action: () => {
-        navigate({ to: "/demo" });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/demo" }); onOpenChange(false); },
       shortcut: "⚡ Demo",
     },
     {
@@ -56,10 +41,7 @@ export function CommandPalette({
       title: "Start 14-Day Free Trial",
       category: "Product",
       icon: ArrowRight,
-      action: () => {
-        navigate({ to: "/login" });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/login" }); onOpenChange(false); },
       shortcut: "Trial",
     },
     {
@@ -67,67 +49,49 @@ export function CommandPalette({
       title: "Explore 12 Clinical Modules & Features",
       category: "Navigation",
       icon: Layers,
-      action: () => {
-        navigate({ to: "/features" });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/features" }); onOpenChange(false); },
     },
     {
       id: "how-it-works",
       title: "How It Works — 3-Step Setup",
       category: "Navigation",
       icon: Calendar,
-      action: () => {
-        navigate({ to: "/how-it-works" });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/how-it-works" }); onOpenChange(false); },
     },
     {
       id: "practo",
       title: "ClinicX vs Practo Comparison",
       category: "Comparisons",
       icon: ShieldCheck,
-      action: () => {
-        navigate({ to: "/compare/$competitor", params: { competitor: "practo" } });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/compare/$competitor", params: { competitor: "practo" } }); onOpenChange(false); },
     },
     {
       id: "dermatology",
       title: "Clinic Software for Dermatologists",
       category: "Specialties",
       icon: Stethoscope,
-      action: () => {
-        navigate({ to: "/for/$specialty", params: { specialty: "dermatologists" } });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/for/$specialty", params: { specialty: "dermatologists" } }); onOpenChange(false); },
     },
     {
       id: "mumbai",
       title: "Clinic Software in Mumbai",
       category: "Specialties",
       icon: MapPin,
-      action: () => {
-        navigate({ to: "/clinic-software/$city", params: { city: "mumbai" } });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/clinic-software/$city", params: { city: "mumbai" } }); onOpenChange(false); },
     },
     {
       id: "faq",
       title: "Frequently Asked Questions",
       category: "Navigation",
       icon: HelpCircle,
-      action: () => {
-        navigate({ to: "/faq" });
-        onOpenChange(false);
-      },
+      action: () => { navigate({ to: "/faq" }); onOpenChange(false); },
     },
   ];
 
   const filtered = actions.filter(
     (a) =>
       a.title.toLowerCase().includes(query.toLowerCase()) ||
-      a.category.toLowerCase().includes(query.toLowerCase()),
+      a.category.toLowerCase().includes(query.toLowerCase())
   );
 
   useEffect(() => {
@@ -190,7 +154,9 @@ export function CommandPalette({
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`size-8 rounded-lg grid place-items-center shrink-0 ${
-                        isSelected ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400"
+                        isSelected
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-800 text-slate-400"
                       }`}
                     >
                       <Icon className="size-4" />

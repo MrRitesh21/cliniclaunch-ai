@@ -12,11 +12,7 @@ export const Route = createFileRoute("/_admin/admin/refunds")({
 });
 
 function inr(rupees: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(rupees);
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(rupees);
 }
 
 function RefundsPage() {
@@ -48,10 +44,7 @@ function RefundsPage() {
           <RotateCcw className="size-6 text-primary" />
           Refund Logs
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Logs of all cashback transactions issued to doctor clinics. Total volume:{" "}
-          {inr(totalRefunded)}
-        </p>
+        <p className="text-sm text-muted-foreground">Logs of all cashback transactions issued to doctor clinics. Total volume: {inr(totalRefunded)}</p>
       </div>
 
       <Card className="overflow-hidden">
@@ -69,11 +62,7 @@ function RefundsPage() {
             </thead>
             <tbody className="divide-y">
               {refunds.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
-                    No refunds issued yet.
-                  </td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No refunds issued yet.</td></tr>
               )}
               {refunds.map((t: any) => (
                 <tr key={t.id} className="hover:bg-muted/50">
@@ -84,7 +73,9 @@ function RefundsPage() {
                   <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                     {t.razorpayId || "—"}
                   </td>
-                  <td className="px-4 py-3 font-bold text-rose-600">{inr(Math.abs(t.amount))}</td>
+                  <td className="px-4 py-3 font-bold text-rose-600">
+                    {inr(Math.abs(t.amount))}
+                  </td>
                   <td className="px-4 py-3 text-foreground/80 capitalize">
                     {t.plan || "Manual Refund"}
                   </td>

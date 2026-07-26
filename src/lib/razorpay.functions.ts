@@ -6,14 +6,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const validateCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z
-      .object({
-        code: z.string().trim().min(1).max(64),
-        plan_id: z.string().min(1),
-        billing_cycle: z.enum(["monthly", "yearly"]),
-        base_amount: z.number().int().positive(), // in rupees
-      })
-      .parse(i),
+    z.object({
+      code: z.string().trim().min(1).max(64),
+      plan_id: z.string().min(1),
+      billing_cycle: z.enum(["monthly", "yearly"]),
+      base_amount: z.number().int().positive(), // in rupees
+    }).parse(i),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -26,18 +24,13 @@ export const validateCoupon = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!row) throw new Error("Invalid coupon code");
     const c = row as {
-      code: string;
-      discount_type: string;
-      discount_value: number;
-      max_uses: number | null;
-      uses_count: number | null;
-      expires_at: string | null;
-      applicable_plan: string | null;
+      code: string; discount_type: string; discount_value: number;
+      max_uses: number | null; uses_count: number | null;
+      expires_at: string | null; applicable_plan: string | null;
       razorpay_offer_id?: string | null;
     };
     if (c.expires_at && new Date(c.expires_at) < new Date()) throw new Error("Coupon has expired");
-    if (c.max_uses != null && (c.uses_count ?? 0) >= c.max_uses)
-      throw new Error("Coupon usage limit reached");
+    if (c.max_uses != null && (c.uses_count ?? 0) >= c.max_uses) throw new Error("Coupon usage limit reached");
     if (c.applicable_plan && c.applicable_plan !== "all" && c.applicable_plan !== data.plan_id) {
       throw new Error("Coupon not applicable to this plan");
     }
@@ -63,14 +56,12 @@ export const validateCoupon = createServerFn({ method: "POST" })
 export const startRazorpaySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z
-      .object({
-        plan_id: z.string().min(1),
-        billing_cycle: z.enum(["monthly", "yearly"]),
-        organization_id: z.string().uuid(),
-        coupon_code: z.string().trim().min(1).max(64).optional(),
-      })
-      .parse(i),
+    z.object({
+      plan_id: z.string().min(1),
+      billing_cycle: z.enum(["monthly", "yearly"]),
+      organization_id: z.string().uuid(),
+      coupon_code: z.string().trim().min(1).max(64).optional(),
+    }).parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -92,11 +83,7 @@ export const startRazorpaySubscription = createServerFn({ method: "POST" })
       throw new Error("Only owners/admins can start a subscription");
     }
 
-    const { data: plan } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .eq("id", data.plan_id)
-      .maybeSingle();
+    const { data: plan } = await supabaseAdmin.from("plans").select("*").eq("id", data.plan_id).maybeSingle();
     if (!plan) throw new Error("Plan not found");
     const p = plan as { id: string; name: string; monthly_price: number; yearly_price: number };
     let rupees = data.billing_cycle === "monthly" ? p.monthly_price : p.yearly_price;
@@ -118,25 +105,13 @@ export const startRazorpaySubscription = createServerFn({ method: "POST" })
         .eq("is_active", true)
         .maybeSingle();
       if (!row) throw new Error("Invalid coupon code");
-      const c = row as {
-        code: string;
-        discount_type: string;
-        discount_value: number;
-        max_uses: number | null;
-        uses_count: number | null;
-        expires_at: string | null;
-        applicable_plan: string | null;
-        razorpay_offer_id?: string | null;
-      };
-      if (c.expires_at && new Date(c.expires_at) < new Date())
-        throw new Error("Coupon has expired");
-      if (c.max_uses != null && (c.uses_count ?? 0) >= c.max_uses)
-        throw new Error("Coupon usage limit reached");
+      const c = row as { code: string; discount_type: string; discount_value: number; max_uses: number | null; uses_count: number | null; expires_at: string | null; applicable_plan: string | null; razorpay_offer_id?: string | null };
+      if (c.expires_at && new Date(c.expires_at) < new Date()) throw new Error("Coupon has expired");
+      if (c.max_uses != null && (c.uses_count ?? 0) >= c.max_uses) throw new Error("Coupon usage limit reached");
       if (c.applicable_plan && c.applicable_plan !== "all" && c.applicable_plan !== data.plan_id) {
         throw new Error("Coupon not applicable to this plan");
       }
-      if (c.discount_type === "percent")
-        discountRupees = Math.round((rupees * c.discount_value) / 100);
+      if (c.discount_type === "percent") discountRupees = Math.round((rupees * c.discount_value) / 100);
       else discountRupees = Math.min(c.discount_value, rupees);
       // Cap discount so at least ₹1 is charged on the first cycle.
       discountRupees = Math.min(discountRupees, rupees - 1);
@@ -166,10 +141,11 @@ export const startRazorpaySubscription = createServerFn({ method: "POST" })
         // Fallback: collect the discounted price upfront and shift subscription start date by 1 cycle.
         const finalRupees = Math.max(1, rupees - discountRupees);
         upfrontAmountPaise = Math.round(finalRupees * 100);
-
+        
         const nowSecs = Math.floor(Date.now() / 1000);
-        const cycleSeconds =
-          data.billing_cycle === "yearly" ? 365 * 24 * 60 * 60 : 30 * 24 * 60 * 60; // 30 days
+        const cycleSeconds = data.billing_cycle === "yearly" 
+          ? 365 * 24 * 60 * 60 
+          : 30 * 24 * 60 * 60; // 30 days
         startAt = nowSecs + cycleSeconds;
       }
     }
@@ -180,29 +156,20 @@ export const startRazorpaySubscription = createServerFn({ method: "POST" })
       .eq("organization_id", data.organization_id)
       .limit(1)
       .maybeSingle();
-    const contact =
-      (clinicRow as {
-        public_email?: string | null;
-        public_phone?: string | null;
-        owner_id?: string | null;
-      } | null) ?? {};
-    const sub = await createSubscription(
-      rzpPlanId,
-      {
-        organization_id: data.organization_id,
-        doctor_id: contact.owner_id || "",
-        plan_id: data.plan_id,
-        billing_cycle: data.billing_cycle,
-        ...(couponCode ? { coupon_code: couponCode } : {}),
-        ...(offerId ? { __offer_id: offerId } : {}),
-        ...(contact.public_email ? { notify_email: contact.public_email } : {}),
-        ...(contact.public_phone ? { notify_phone: contact.public_phone } : {}),
-      },
-      {
-        startAt,
-        upfrontAmountPaise,
-      },
-    );
+    const contact = (clinicRow as { public_email?: string | null; public_phone?: string | null; owner_id?: string | null } | null) ?? {};
+    const sub = await createSubscription(rzpPlanId, {
+      organization_id: data.organization_id,
+      doctor_id: contact.owner_id || "",
+      plan_id: data.plan_id,
+      billing_cycle: data.billing_cycle,
+      ...(couponCode ? { coupon_code: couponCode } : {}),
+      ...(offerId ? { __offer_id: offerId } : {}),
+      ...(contact.public_email ? { notify_email: contact.public_email } : {}),
+      ...(contact.public_phone ? { notify_phone: contact.public_phone } : {}),
+    }, {
+      startAt,
+      upfrontAmountPaise,
+    });
 
     // Persist local pending subscription
     const { data: existing } = await supabaseAdmin
@@ -242,22 +209,16 @@ export const startRazorpaySubscription = createServerFn({ method: "POST" })
 export const startOnboardingTrialSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z
-      .object({
-        plan_id: z.string().min(1),
-        billing_cycle: z.enum(["monthly", "yearly"]),
-        organization_id: z.string().uuid(),
-      })
-      .parse(i),
+    z.object({
+      plan_id: z.string().min(1),
+      billing_cycle: z.enum(["monthly", "yearly"]),
+      organization_id: z.string().uuid(),
+    }).parse(i),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: plan } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .eq("id", data.plan_id)
-      .maybeSingle();
+    const { data: plan } = await supabaseAdmin.from("plans").select("*").eq("id", data.plan_id).maybeSingle();
     if (!plan) throw new Error("Plan not found");
     const p = plan as { id: string; name: string; monthly_price: number; yearly_price: number };
     let rupees = data.billing_cycle === "monthly" ? p.monthly_price : p.yearly_price;
@@ -284,33 +245,26 @@ export const startOnboardingTrialSubscription = createServerFn({ method: "POST" 
       .maybeSingle();
     const doctorId = clinicRow?.owner_id || null;
 
-    const sub = await createSubscription(
-      rzpPlanId,
-      {
-        organization_id: data.organization_id,
-        doctor_id: doctorId || "",
-        plan_id: data.plan_id,
-        billing_cycle: data.billing_cycle,
-        coupon_code: "Trial Activation",
-      },
-      {
-        startAt,
-        upfrontAmountPaise,
-      },
-    );
+    const sub = await createSubscription(rzpPlanId, {
+      organization_id: data.organization_id,
+      doctor_id: doctorId || "",
+      plan_id: data.plan_id,
+      billing_cycle: data.billing_cycle,
+      coupon_code: "Trial Activation",
+    }, {
+      startAt,
+      upfrontAmountPaise,
+    });
 
     // Persist local pending subscription using upsert on organization_id
-    await supabaseAdmin.from("subscriptions").upsert(
-      {
-        organization_id: data.organization_id,
-        plan_id: data.plan_id,
-        billing_cycle: data.billing_cycle,
-        status: "pending",
-        gateway: "razorpay" as never,
-        gateway_subscription_id: sub.id as never,
-      } as never,
-      { onConflict: "organization_id" },
-    );
+    await supabaseAdmin.from("subscriptions").upsert({
+      organization_id: data.organization_id,
+      plan_id: data.plan_id,
+      billing_cycle: data.billing_cycle,
+      status: "pending",
+      gateway: "razorpay" as never,
+      gateway_subscription_id: sub.id as never,
+    } as never, { onConflict: "organization_id" });
 
     return {
       subscription_id: sub.id,
@@ -339,11 +293,7 @@ export const cancelRazorpaySubscription = createServerFn({ method: "POST" })
       .eq("organization_id", data.organization_id)
       .maybeSingle();
     if (!sub) throw new Error("No subscription");
-    const s = sub as {
-      id: string;
-      gateway?: string | null;
-      gateway_subscription_id?: string | null;
-    };
+    const s = sub as { id: string; gateway?: string | null; gateway_subscription_id?: string | null };
     if (s.gateway === "razorpay" && s.gateway_subscription_id) {
       const { cancelSubscription } = await import("@/lib/razorpay.server");
       await cancelSubscription(s.gateway_subscription_id);
@@ -391,16 +341,14 @@ export const verifySubscriptionStatus = createServerFn({ method: "POST" })
 
 export const activateRazorpaySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({ subscription_id: z.string(), payment_id: z.string().optional() }).parse(i),
-  )
+  .inputValidator((i: unknown) => z.object({ subscription_id: z.string(), payment_id: z.string().optional() }).parse(i))
   .handler(async ({ data }) => {
     const { getPayment } = await import("@/lib/razorpay.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Fetch subscription details directly from Razorpay API to verify (with retry)
     const sub = await getSubscriptionWithRetry(data.subscription_id);
-
+    
     // Status can be active or authenticated (meaning checkout succeeded, mandate authorized)
     const isActive = sub && (sub.status === "active" || sub.status === "authenticated");
     if (!isActive) {
@@ -469,7 +417,7 @@ export const activateRazorpaySubscription = createServerFn({ method: "POST" })
     // Generate Invoice immediately on activation if a payment_id is provided
     if (data.payment_id) {
       const invNum = `RZP-${data.payment_id.slice(-8).toUpperCase()}`;
-
+      
       // Check if invoice already exists to avoid duplicates
       const { data: existingInvoice } = await supabaseAdmin
         .from("invoices")
@@ -510,7 +458,7 @@ export const activateRazorpaySubscription = createServerFn({ method: "POST" })
       const { data: existingTrialTxs } = await supabaseAdmin
         .from("transactions")
         .select("id")
-        .eq("doctor_id", doctorId ?? "")
+        .eq("doctor_id", doctorId)
         .eq("plan", planId || "")
         .eq("gateway_order_id", "Trial Setup")
         .limit(1);
@@ -554,11 +502,7 @@ export const syncRazorpaySubscription = createServerFn({ method: "POST" })
       .select("id, gateway, gateway_subscription_id")
       .eq("organization_id", data.organization_id)
       .maybeSingle();
-    const s = subRow as {
-      id: string;
-      gateway?: string | null;
-      gateway_subscription_id?: string | null;
-    } | null;
+    const s = subRow as { id: string; gateway?: string | null; gateway_subscription_id?: string | null } | null;
     if (!s || s.gateway !== "razorpay" || !s.gateway_subscription_id) {
       return { ok: false, reason: "No Razorpay subscription linked" };
     }
@@ -567,21 +511,15 @@ export const syncRazorpaySubscription = createServerFn({ method: "POST" })
     let localStatus: string | null = null;
     if (remote.status === "active" || remote.status === "authenticated") localStatus = "active";
     else if (remote.status === "halted" || remote.status === "pending") localStatus = "past_due";
-    else if (remote.status === "completed" || remote.status === "cancelled")
-      localStatus = "cancelled";
+    else if (remote.status === "completed" || remote.status === "cancelled") localStatus = "cancelled";
     else if (remote.status === "expired") localStatus = "expired";
 
     const patch: Record<string, unknown> = {};
     if (localStatus) patch.status = localStatus;
-    if (remote.current_start)
-      patch.current_period_start = new Date(remote.current_start * 1000).toISOString();
-    if (remote.current_end)
-      patch.current_period_end = new Date(remote.current_end * 1000).toISOString();
+    if (remote.current_start) patch.current_period_start = new Date(remote.current_start * 1000).toISOString();
+    if (remote.current_end) patch.current_period_end = new Date(remote.current_end * 1000).toISOString();
     if (Object.keys(patch).length > 0) {
-      await supabaseAdmin
-        .from("subscriptions")
-        .update(patch as never)
-        .eq("id", s.id);
+      await supabaseAdmin.from("subscriptions").update(patch as never).eq("id", s.id);
     }
 
     // Clear stale banners if the sub is healthy again.
@@ -596,9 +534,7 @@ export const syncRazorpaySubscription = createServerFn({ method: "POST" })
     return {
       ok: true,
       status: localStatus,
-      current_period_end: remote.current_end
-        ? new Date(remote.current_end * 1000).toISOString()
-        : null,
+      current_period_end: remote.current_end ? new Date(remote.current_end * 1000).toISOString() : null,
     };
   });
 
@@ -622,20 +558,13 @@ export const listBillingReminders = createServerFn({ method: "GET" })
       .is("dismissed_at", null)
       .order("created_at", { ascending: false });
     return (rows ?? []) as Array<{
-      id: string;
-      kind: string;
-      severity: string;
-      title: string;
-      body: string | null;
-      created_at: string;
+      id: string; kind: string; severity: string; title: string; body: string | null; created_at: string;
     }>;
   });
 
 export const dismissBillingReminder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), organization_id: z.string().uuid() }).parse(i),
-  )
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid(), organization_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: member } = await supabaseAdmin
@@ -645,8 +574,7 @@ export const dismissBillingReminder = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     const role = (member as { role?: string } | null)?.role;
-    if (!role || !["owner", "admin"].includes(role))
-      throw new Error("Only owners/admins can dismiss");
+    if (!role || !["owner", "admin"].includes(role)) throw new Error("Only owners/admins can dismiss");
     await (supabaseAdmin as any)
       .from("subscription_reminders")
       .update({ dismissed_at: new Date().toISOString() })

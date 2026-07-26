@@ -8,20 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Download, Search, ExternalLink, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,16 +17,7 @@ export const Route = createFileRoute("/_admin/admin/doctors/")({
   component: DoctorsPage,
 });
 
-const STATUS_OPTIONS = [
-  "all",
-  "trialing",
-  "active",
-  "past_due",
-  "canceled",
-  "expired",
-  "suspended",
-  "unpaid",
-] as const;
+const STATUS_OPTIONS = ["all", "trialing", "active", "past_due", "canceled", "expired", "suspended", "unpaid"] as const;
 
 function planVariant(plan: string) {
   if (plan === "No Plan" || plan === "None" || plan === "—") return "secondary";
@@ -73,18 +52,9 @@ function DoctorsPage() {
   });
 
   type Row = {
-    id: string;
-    clinicName: string;
-    doctorName: string;
-    specialization: string;
-    city: string;
-    email: string;
-    phone: string;
-    slug: string;
-    joined: string;
-    plan: string;
-    status: string;
-    periodEnd: string | null;
+    id: string; clinicName: string; doctorName: string; specialization: string;
+    city: string; email: string; phone: string; slug: string; joined: string;
+    plan: string; status: string; periodEnd: string | null;
   };
   const rows: Row[] = (data ?? []) as Row[];
 
@@ -121,8 +91,7 @@ function DoctorsPage() {
     setEditPhone(doctor.phone || "");
     setEditCity(doctor.city || "");
     setEditPlanId(planNameToId(doctor.plan));
-    const normalizedStatus =
-      doctor.status === "canceled" || doctor.status === "cancelled" ? "cancelled" : doctor.status;
+    const normalizedStatus = doctor.status === "canceled" || doctor.status === "cancelled" ? "cancelled" : doctor.status;
     setEditStatus(normalizedStatus);
     setEditPeriodEnd(doctor.periodEnd ? doctor.periodEnd.split("T")[0] : "");
   };
@@ -162,33 +131,11 @@ function DoctorsPage() {
   });
 
   function exportCsv() {
-    const headers = [
-      "Doctor",
-      "Clinic",
-      "Specialty",
-      "City",
-      "Email",
-      "Phone",
-      "Plan",
-      "Status",
-      "Joined",
-      "Slug",
-    ];
+    const headers = ["Doctor", "Clinic", "Specialty", "City", "Email", "Phone", "Plan", "Status", "Joined", "Slug"];
     const lines = [headers.join(",")];
     rows.forEach((r) => {
       lines.push(
-        [
-          r.doctorName,
-          r.clinicName,
-          r.specialization,
-          r.city,
-          r.email,
-          r.phone,
-          r.plan,
-          r.status,
-          r.joined,
-          r.slug,
-        ]
+        [r.doctorName, r.clinicName, r.specialization, r.city, r.email, r.phone, r.plan, r.status, r.joined, r.slug]
           .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
           .join(","),
       );
@@ -207,9 +154,7 @@ function DoctorsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-display">All Doctors</h1>
-          <p className="text-sm text-muted-foreground">
-            {rows.length} result{rows.length === 1 ? "" : "s"}
-          </p>
+          <p className="text-sm text-muted-foreground">{rows.length} result{rows.length === 1 ? "" : "s"}</p>
         </div>
         <Button onClick={exportCsv} variant="outline">
           <Download className="size-4 mr-1.5" />
@@ -228,18 +173,11 @@ function DoctorsPage() {
               className="pl-8"
             />
           </div>
-          <Select
-            value={status}
-            onValueChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
+          <Select value={status} onValueChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])}>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s} className="capitalize">
-                  {s}
-                </SelectItem>
+                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -263,18 +201,10 @@ function DoctorsPage() {
             </thead>
             <tbody className="divide-y">
               {isLoading && (
-                <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground/70">
-                    Loading…
-                  </td>
-                </tr>
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground/70">Loading…</td></tr>
               )}
               {!isLoading && rows.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground/70">
-                    No doctors found.
-                  </td>
-                </tr>
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground/70">No doctors found.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/50">
@@ -286,9 +216,7 @@ function DoctorsPage() {
                       <div>
                         <div className="font-medium text-foreground flex items-center gap-1.5">
                           {r.doctorName}
-                          {r.status === "suspended" && (
-                            <ShieldAlert className="size-3.5 text-red-500" />
-                          )}
+                          {r.status === "suspended" && <ShieldAlert className="size-3.5 text-red-500" />}
                         </div>
                         <div className="text-xs text-muted-foreground">{r.email || "—"}</div>
                       </div>
@@ -301,15 +229,11 @@ function DoctorsPage() {
                     <Badge variant={planVariant(r.plan)}>{r.plan}</Badge>
                   </td>
                   <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(r.status)}`}
-                    >
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(r.status)}`}>
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground text-xs">
-                    {new Date(r.joined).toLocaleDateString()}
-                  </td>
+                  <td className="px-3 py-2 text-muted-foreground text-xs">{new Date(r.joined).toLocaleDateString()}</td>
                   <td className="px-3 py-2 text-right">
                     <div className="inline-flex gap-1.5">
                       <Button asChild size="sm" variant="outline" title="Public site">
@@ -322,7 +246,11 @@ function DoctorsPage() {
                           View
                         </Link>
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startEdit(r)}
+                      >
                         Edit
                       </Button>
                       <Button
@@ -350,9 +278,7 @@ function DoctorsPage() {
         <Dialog open={!!editingDoctor} onOpenChange={(open) => !open && setEditingDoctor(null)}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle className="font-display text-xl text-foreground">
-                Edit Doctor Profile
-              </DialogTitle>
+              <DialogTitle className="font-display text-xl text-foreground">Edit Doctor Profile</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
@@ -411,9 +337,7 @@ function DoctorsPage() {
                 </div>
               </div>
               <hr className="my-2 border-border" />
-              <div className="text-sm font-semibold text-foreground font-display">
-                Subscription & Plan Details
-              </div>
+              <div className="text-sm font-semibold text-foreground font-display">Subscription & Plan Details</div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="editPlanId">Subscription Plan</Label>

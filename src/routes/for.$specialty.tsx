@@ -45,9 +45,7 @@ export const Route = createFileRoute("/for/$specialty")({
       <div className="min-h-[60vh] grid place-items-center px-4 text-center">
         <div>
           <h1 className="font-display text-2xl">Specialty page not found</h1>
-          <Link to="/" className="mt-4 inline-block text-primary font-bold underline">
-            Back home
-          </Link>
+          <Link to="/" className="mt-4 inline-block text-primary font-bold underline">Back home</Link>
         </div>
       </div>
     </MarketingShell>
@@ -75,11 +73,7 @@ function SpecialtyPage() {
             </Button>
           </Link>
           <Link to="/demo">
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2"
-            >
+            <Button size="lg" variant="outline" className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2">
               ⚡ Open Live Demo
             </Button>
           </Link>
@@ -88,9 +82,7 @@ function SpecialtyPage() {
 
       <section className="max-w-5xl mx-auto px-4 py-14">
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            Tailored Workflows
-          </span>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Tailored Workflows</span>
           <h2 className="font-display text-3xl font-bold">
             Built for how {s.plural.toLowerCase()} actually practice
           </h2>
@@ -98,10 +90,7 @@ function SpecialtyPage() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           {s.features.map((f: string, i: number) => (
-            <Card
-              key={i}
-              className="p-6 flex items-start gap-4 border-border/80 shadow-sm hover:shadow-md transition-all"
-            >
+            <Card key={i} className="p-6 flex items-start gap-4 border-border/80 shadow-sm hover:shadow-md transition-all">
               <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
                 <CheckCircle2 className="size-5" />
               </div>
@@ -113,27 +102,18 @@ function SpecialtyPage() {
 
       <section className="max-w-4xl mx-auto px-4 pb-20 text-center">
         <Card className="p-8 sm:p-12 bg-gradient-to-br from-primary via-indigo-600 to-primary text-primary-foreground border-primary/20 shadow-2xl rounded-3xl space-y-4">
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white">
-            Ready to modernise your practice?
-          </h2>
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white">Ready to modernise your practice?</h2>
           <p className="text-primary-foreground/90 text-sm max-w-lg mx-auto">
             14-day free trial. No credit card required. Setup in under 5 minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <Link to="/login">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95"
-              >
+              <Button size="lg" variant="secondary" className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95">
                 Get Started Free &rarr;
               </Button>
             </Link>
             <Link to="/demo">
-              <Button
-                size="lg"
-                className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900"
-              >
+              <Button size="lg" className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900">
                 ⚡ Open Live Demo
               </Button>
             </Link>
@@ -142,20 +122,12 @@ function SpecialtyPage() {
 
         <div className="mt-10 text-xs text-muted-foreground font-medium">
           <span>Also built for: </span>
-          {SPECIALTIES.filter((x) => x.slug !== s.slug)
-            .slice(0, 5)
-            .map((x, i) => (
-              <span key={x.slug}>
-                {i > 0 && " · "}
-                <Link
-                  to="/for/$specialty"
-                  params={{ specialty: x.slug }}
-                  className="text-primary font-bold hover:underline"
-                >
-                  {x.plural}
-                </Link>
-              </span>
-            ))}
+          {SPECIALTIES.filter((x) => x.slug !== s.slug).slice(0, 5).map((x, i) => (
+            <span key={x.slug}>
+              {i > 0 && " · "}
+              <Link to="/for/$specialty" params={{ specialty: x.slug }} className="text-primary font-bold hover:underline">{x.plural}</Link>
+            </span>
+          ))}
         </div>
       </section>
     </MarketingShell>

@@ -86,27 +86,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "ClinicX" },
       { name: "mobile-web-app-capable", content: "yes" },
       { title: "ClinicX — Your online clinic, ready in 5 minutes" },
-      {
-        name: "description",
-        content:
-          "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes.",
-      },
+      { name: "description", content: "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes." },
       { name: "author", content: "ClinicX" },
       { property: "og:title", content: "ClinicX — Your online clinic, ready in 5 minutes" },
-      {
-        property: "og:description",
-        content:
-          "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes.",
-      },
+      { property: "og:description", content: "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ClinicX" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "ClinicX — Your online clinic, ready in 5 minutes" },
-      {
-        name: "twitter:description",
-        content:
-          "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes.",
-      },
+      { name: "twitter:description", content: "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -115,10 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/icon-512.png", type: "image/png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&display=swap",
-      },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&display=swap" },
     ],
   }),
   shellComponent: RootShell,
@@ -151,12 +136,13 @@ function MaintenancePage({ message }: { message: string }) {
         <div className="size-16 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-6 text-rose-400">
           <Hammer className="size-8 animate-pulse" />
         </div>
-
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-3">Under Maintenance</h1>
-
+        
+        <h1 className="text-3xl font-bold tracking-tight text-white mb-3">
+          Under Maintenance
+        </h1>
+        
         <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-          {message ||
-            "We are currently performing scheduled upgrades. We'll be back online shortly."}
+          {message || "We are currently performing scheduled upgrades. We'll be back online shortly."}
         </p>
 
         <div className="w-full h-px bg-slate-800 my-4" />
@@ -207,8 +193,7 @@ function RootContent() {
     }
   }, [platformName, location.pathname]);
 
-  const isAdminRoute =
-    location.pathname.startsWith("/admin") || location.pathname.startsWith("/_admin");
+  const isAdminRoute = location.pathname.startsWith("/admin") || location.pathname.startsWith("/_admin");
   const isMaintenanceActive = mStatus?.maintenance_mode === "true" && !isAdminRoute;
 
   if (isMaintenanceActive) {

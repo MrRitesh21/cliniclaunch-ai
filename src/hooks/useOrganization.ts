@@ -54,13 +54,12 @@ export function useOrganization(): OrgContext {
     const orgId = mem[0].organization_id;
     setRole(mem[0].role);
 
-    const [{ data: orgRow }, { data: modRows }, { data: subRow }, { data: planRows }] =
-      await Promise.all([
-        supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
-        supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
-        supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
-        supabase.from("plans").select("id, module_ids"),
-      ]);
+    const [{ data: orgRow }, { data: modRows }, { data: subRow }, { data: planRows }] = await Promise.all([
+      supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
+      supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
+      supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
+      supabase.from("plans").select("id, module_ids"),
+    ]);
 
     setOrg(orgRow ?? null);
     setSubscription((subRow as Subscription) ?? null);
@@ -72,13 +71,12 @@ export function useOrganization(): OrgContext {
     const targetEnd = subRow?.current_period_end ?? subRow?.trial_ends_at;
     const periodEndMs = targetEnd ? new Date(targetEnd).getTime() : null;
     const periodElapsed = periodEndMs !== null && periodEndMs < Date.now();
-    const statusActive =
-      subRow &&
-      (subRow.status === "active" || subRow.status === "trialing" || subRow.status === "past_due");
-    const statusCancelledNotElapsed =
-      subRow && subRow.status === "cancelled" && periodEndMs !== null && !periodElapsed;
-    const activePlanId =
-      (statusActive && !periodElapsed) || statusCancelledNotElapsed ? subRow!.plan_id : null;
+    const statusActive = subRow && (subRow.status === "active" || subRow.status === "trialing" || subRow.status === "past_due");
+    const statusCancelledNotElapsed = subRow && 
+      (subRow.status === "cancelled" || subRow.status === "canceled") && 
+      periodEndMs !== null && 
+      !periodElapsed;
+    const activePlanId = (statusActive && !periodElapsed) || statusCancelledNotElapsed ? subRow!.plan_id : null;
 
     // A subscription is expired if a subscription record exists but activePlanId is null.
     // If subRow is null, it means no subscription has ever been created, which is handled during onboarding.
@@ -92,7 +90,7 @@ export function useOrganization(): OrgContext {
     const allowedSet = new Set(allowedModuleIds);
 
     const ids = (modRows ?? []).map((m) => m.module_id);
-
+    
     // Only return installed modules that are allowed under the current plan
     const filteredIds = ids.filter((id) => allowedSet.has(id));
 

@@ -26,19 +26,13 @@ function Logo({ clinic, compact = false }: Props & { compact?: boolean }) {
           className={`${compact ? "h-8 w-8" : "h-9 w-9"} rounded-xl object-contain bg-background border shrink-0`}
         />
       ) : (
-        <div
-          className={`${compact ? "size-8" : "size-9"} rounded-xl bg-primary text-primary-foreground grid place-items-center shrink-0`}
-        >
+        <div className={`${compact ? "size-8" : "size-9"} rounded-xl bg-primary text-primary-foreground grid place-items-center shrink-0`}>
           <Stethoscope className="size-4" />
         </div>
       )}
       <div className="min-w-0">
-        <div className="font-display text-sm sm:text-base leading-tight truncate">
-          {clinic.doctor_name}
-        </div>
-        <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
-          {clinic.specialization}
-        </div>
+        <div className="font-display text-sm sm:text-base leading-tight truncate">{clinic.doctor_name}</div>
+        <div className="text-[11px] sm:text-xs text-muted-foreground truncate">{clinic.specialization}</div>
       </div>
     </a>
   );
@@ -117,23 +111,13 @@ export function NavbarMinimal({ clinic, pathname }: Props) {
           {links.map((n) => {
             const active = n.exact ? pathname === n.to : pathname?.startsWith(n.to);
             return (
-              <a
-                key={n.to}
-                href={n.to}
-                className={`px-3 py-2 text-sm rounded-md ${active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {n.label}
-              </a>
+              <a key={n.to} href={n.to} className={`px-3 py-2 text-sm rounded-md ${active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>{n.label}</a>
             );
           })}
-          <a href={`/c/${clinic.slug}/book`}>
-            <Button className="ml-2">Book appointment</Button>
-          </a>
+          <a href={`/c/${clinic.slug}/book`}><Button className="ml-2">Book appointment</Button></a>
         </nav>
         <div className="md:hidden flex items-center gap-2 shrink-0">
-          <a href={`/c/${clinic.slug}/book`}>
-            <Button size="sm">Book</Button>
-          </a>
+          <a href={`/c/${clinic.slug}/book`}><Button size="sm">Book</Button></a>
           <MobileMenu clinic={clinic} pathname={pathname} />
         </div>
       </div>
@@ -152,32 +136,14 @@ export function NavbarCentered({ clinic, pathname }: Props) {
         <nav className="flex items-center justify-end gap-2">
           {links.slice(0, half).map((n) => {
             const active = n.exact ? pathname === n.to : pathname?.startsWith(n.to);
-            return (
-              <a
-                key={n.to}
-                href={n.to}
-                className={`px-3 py-2 text-sm uppercase tracking-wider ${active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {n.label}
-              </a>
-            );
+            return <a key={n.to} href={n.to} className={`px-3 py-2 text-sm uppercase tracking-wider ${active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>{n.label}</a>;
           })}
         </nav>
-        <div className="flex justify-center">
-          <Logo clinic={clinic} />
-        </div>
+        <div className="flex justify-center"><Logo clinic={clinic} /></div>
         <nav className="flex items-center gap-2">
           {links.slice(half).map((n) => {
             const active = n.exact ? pathname === n.to : pathname?.startsWith(n.to);
-            return (
-              <a
-                key={n.to}
-                href={n.to}
-                className={`px-3 py-2 text-sm uppercase tracking-wider ${active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {n.label}
-              </a>
-            );
+            return <a key={n.to} href={n.to} className={`px-3 py-2 text-sm uppercase tracking-wider ${active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>{n.label}</a>;
           })}
         </nav>
       </div>
@@ -185,9 +151,7 @@ export function NavbarCentered({ clinic, pathname }: Props) {
       <div className="md:hidden max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
         <Logo clinic={clinic} />
         <div className="flex items-center gap-2 shrink-0">
-          <a href={`/c/${clinic.slug}/book`}>
-            <Button size="sm">Book</Button>
-          </a>
+          <a href={`/c/${clinic.slug}/book`}><Button size="sm">Book</Button></a>
           <MobileMenu clinic={clinic} pathname={pathname} />
         </div>
       </div>
@@ -205,26 +169,12 @@ export function NavbarPill({ clinic, pathname }: Props) {
         <nav className="hidden lg:flex items-center gap-1">
           {links.map((n) => {
             const active = n.exact ? pathname === n.to : pathname?.startsWith(n.to);
-            return (
-              <a
-                key={n.to}
-                href={n.to}
-                className={`px-3 py-1.5 text-sm rounded-full ${active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {n.label}
-              </a>
-            );
+            return <a key={n.to} href={n.to} className={`px-3 py-1.5 text-sm rounded-full ${active ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}>{n.label}</a>;
           })}
         </nav>
         <div className="flex items-center gap-2 shrink-0">
-          <a href={`/c/${clinic.slug}/book`}>
-            <Button size="sm" className="rounded-full">
-              Book
-            </Button>
-          </a>
-          <div className="lg:hidden">
-            <MobileMenu clinic={clinic} pathname={pathname} />
-          </div>
+          <a href={`/c/${clinic.slug}/book`}><Button size="sm" className="rounded-full">Book</Button></a>
+          <div className="lg:hidden"><MobileMenu clinic={clinic} pathname={pathname} /></div>
         </div>
       </div>
     </header>
@@ -237,12 +187,8 @@ export function NavbarDense({ clinic, pathname }: Props) {
   return (
     <header className="bg-foreground text-background">
       <div className="max-w-6xl mx-auto px-4 h-10 sm:h-12 flex items-center justify-between text-[11px] sm:text-xs opacity-90 gap-3">
-        <span className="truncate">
-          {clinic.public_phone ? `Call: ${clinic.public_phone}` : clinic.clinic_name}
-        </span>
-        <span className="hidden sm:inline truncate">
-          {clinic.public_address || `${clinic.specialization} clinic`}
-        </span>
+        <span className="truncate">{clinic.public_phone ? `Call: ${clinic.public_phone}` : clinic.clinic_name}</span>
+        <span className="hidden sm:inline truncate">{clinic.public_address || `${clinic.specialization} clinic`}</span>
       </div>
       <div className="bg-background text-foreground border-b">
         <div className="max-w-6xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-3">
@@ -250,26 +196,12 @@ export function NavbarDense({ clinic, pathname }: Props) {
           <nav className="hidden md:flex items-center gap-1">
             {links.map((n) => {
               const active = n.exact ? pathname === n.to : pathname?.startsWith(n.to);
-              return (
-                <a
-                  key={n.to}
-                  href={n.to}
-                  className={`px-3 py-2 text-sm border-b-2 ${active ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-                >
-                  {n.label}
-                </a>
-              );
+              return <a key={n.to} href={n.to} className={`px-3 py-2 text-sm border-b-2 ${active ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{n.label}</a>;
             })}
-            <a href={`/c/${clinic.slug}/book`}>
-              <Button className="ml-2 rounded-none">Book now</Button>
-            </a>
+            <a href={`/c/${clinic.slug}/book`}><Button className="ml-2 rounded-none">Book now</Button></a>
           </nav>
           <div className="md:hidden flex items-center gap-2 shrink-0">
-            <a href={`/c/${clinic.slug}/book`}>
-              <Button size="sm" className="rounded-none">
-                Book
-              </Button>
-            </a>
+            <a href={`/c/${clinic.slug}/book`}><Button size="sm" className="rounded-none">Book</Button></a>
             <MobileMenu clinic={clinic} pathname={pathname} />
           </div>
         </div>

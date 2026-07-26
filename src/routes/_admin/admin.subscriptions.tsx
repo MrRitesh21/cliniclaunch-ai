@@ -2,40 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  listAdminSubscriptions,
-  updateSubscriptionStatus,
-  updateDoctorProfile,
-} from "@/lib/admin.functions";
+import { listAdminSubscriptions, updateSubscriptionStatus, updateDoctorProfile } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  CreditCard,
-  Loader2,
-  ArrowUpRight,
-  TrendingUp,
-  XCircle,
-  PlayCircle,
-  Edit,
-} from "lucide-react";
+import { CreditCard, Loader2, ArrowUpRight, TrendingUp, XCircle, PlayCircle, Edit } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin/subscriptions")({
   component: SubscriptionsPage,
@@ -81,8 +57,7 @@ function SubscriptionsPage() {
   const startEditSub = (sub: any) => {
     setEditingSub(sub);
     setEditPlanId(sub.planId || planNameToId(sub.plan));
-    const normalizedStatus =
-      sub.status === "canceled" || sub.status === "cancelled" ? "cancelled" : sub.status;
+    const normalizedStatus = sub.status === "canceled" || sub.status === "cancelled" ? "cancelled" : sub.status;
     setEditStatus(normalizedStatus);
     setEditPeriodEnd(sub.end ? sub.end.split("T")[0] : "");
   };
@@ -124,57 +99,41 @@ function SubscriptionsPage() {
     );
   }
 
-  const {
-    activeCount = 0,
-    trialCount = 0,
-    expiredCount = 0,
-    totalCount = 0,
-    subscriptions = [],
-  } = data || {};
+  const { activeCount = 0, trialCount = 0, expiredCount = 0, totalCount = 0, subscriptions = [] } = data || {};
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground font-display">Subscriptions</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage billing plans and cycles for all registered accounts.
-        </p>
+        <p className="text-sm text-muted-foreground">Manage billing plans and cycles for all registered accounts.</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="p-4 flex items-center justify-between">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Total Accounts
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total Accounts</span>
             <div className="text-2xl font-extrabold text-foreground mt-1">{totalCount}</div>
           </div>
           <CreditCard className="size-5 text-muted-foreground/70" />
         </Card>
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-emerald-500">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Active Paid
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Active Paid</span>
             <div className="text-2xl font-extrabold text-emerald-600 mt-1">{activeCount}</div>
           </div>
           <ArrowUpRight className="size-5 text-emerald-500" />
         </Card>
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-amber-500">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Active Trial
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Active Trial</span>
             <div className="text-2xl font-extrabold text-amber-600 mt-1">{trialCount}</div>
           </div>
           <TrendingUp className="size-5 text-amber-500" />
         </Card>
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-rose-500">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Expired / Churned
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Expired / Churned</span>
             <div className="text-2xl font-extrabold text-rose-600 mt-1">{expiredCount}</div>
           </div>
           <CreditCard className="size-5 text-rose-400" />
@@ -197,11 +156,7 @@ function SubscriptionsPage() {
             </thead>
             <tbody className="divide-y">
               {subscriptions.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
-                    No active subscriptions.
-                  </td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No active subscriptions.</td></tr>
               )}
               {subscriptions.map((s: any) => (
                 <tr key={s.id} className="hover:bg-muted/50">
@@ -216,21 +171,11 @@ function SubscriptionsPage() {
                     {s.end ? new Date(s.end).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
-                      variant={
-                        s.status === "active"
-                          ? "default"
-                          : s.status === "trialing"
-                            ? "secondary"
-                            : "destructive"
-                      }
-                    >
+                    <Badge variant={s.status === "active" ? "default" : s.status === "trialing" ? "secondary" : "destructive"}>
                       {s.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs font-mono text-muted-foreground/70">
-                    {s.razorpayId}
-                  </td>
+                  <td className="px-4 py-3 text-xs font-mono text-muted-foreground/70">{s.razorpayId}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex gap-1.5 justify-end">
                       <Button
@@ -248,8 +193,7 @@ function SubscriptionsPage() {
                           className="text-rose-600 border-rose-200 hover:bg-rose-50 h-7"
                           disabled={updateMut.isPending}
                           onClick={() => {
-                            if (confirm(`Cancel subscription for ${s.doctorName}?`))
-                              updateMut.mutate({ id: s.id, action: "cancel" });
+                            if (confirm(`Cancel subscription for ${s.doctorName}?`)) updateMut.mutate({ id: s.id, action: "cancel" });
                           }}
                         >
                           <XCircle className="size-3.5 mr-1" /> Cancel
@@ -288,15 +232,11 @@ function SubscriptionsPage() {
         <Dialog open={!!editingSub} onOpenChange={(open) => !open && setEditingSub(null)}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle className="font-display text-xl text-foreground">
-                Edit Subscription Details
-              </DialogTitle>
+              <DialogTitle className="font-display text-xl text-foreground">Edit Subscription Details</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="text-sm font-medium text-muted-foreground">
-                Updating subscription for{" "}
-                <span className="font-semibold text-foreground">{editingSub.doctorName}</span> (
-                {editingSub.clinicName})
+                Updating subscription for <span className="font-semibold text-foreground">{editingSub.doctorName}</span> ({editingSub.clinicName})
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">

@@ -18,9 +18,7 @@ import {
   type SectionVariants,
   type SiteClinic,
 } from "@/components/site/types";
-import { SectionsMeta, resolveVariants, getVariantComponent } from "@/components/site/registry";
-import { TemplateGallery } from "@/components/site/TemplateGallery";
-import type { SiteTokens } from "@/components/site/tokens";
+import { SectionsMeta, Templates, resolveVariants, getVariantComponent } from "@/components/site/registry";
 import {
   DndContext,
   closestCenter,
@@ -37,41 +35,20 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  Eye,
-  EyeOff,
-  GripVertical,
-  Save,
-  RefreshCcw,
-  ExternalLink,
-  Monitor,
-  Smartphone,
-  ChevronLeft,
-  Settings2,
-  Loader2,
-  LayoutTemplate,
-  Wand2,
-  Check,
-  Rocket,
-  Copy,
-  Trash2,
-  Star,
-  Globe,
+  Eye, EyeOff, GripVertical, Save, RefreshCcw, ExternalLink,
+  Monitor, Smartphone, ChevronLeft, Settings2, Loader2,
+  LayoutTemplate, Wand2, Check, Rocket, Copy, Trash2, Star, Globe
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppGuard } from "@/components/app/AppGuard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/website")({
-  component: () => (
-    <AppGuard appKey="website_builder">
-      <WebsiteApp />
-    </AppGuard>
-  ),
+  component: () => <AppGuard appKey="website_builder"><WebsiteApp /></AppGuard>,
 });
 
 type EditorState = {
   template: string;
   theme_color: string;
-  design_tokens: Partial<SiteTokens>;
   section_order: SectionKey[];
   section_hidden: SectionKey[];
   section_variants: SectionVariants;
@@ -120,25 +97,21 @@ function WebsiteApp() {
     })();
   }, [clinic]);
 
+
+
   useEffect(() => {
     if (!clinic) return;
     const c = clinic as unknown as Record<string, unknown>;
-    const order =
-      Array.isArray(c.section_order) && (c.section_order as unknown[]).length
-        ? (c.section_order as SectionKey[])
-        : DEFAULT_SECTION_ORDER;
+    const order = Array.isArray(c.section_order) && (c.section_order as unknown[]).length
+      ? (c.section_order as SectionKey[])
+      : DEFAULT_SECTION_ORDER;
     const hidden = Array.isArray(c.section_hidden) ? (c.section_hidden as SectionKey[]) : [];
     setState({
       template: (c.template as string) ?? "classic",
       theme_color: (c.theme_color as string) ?? "#2563eb",
-      design_tokens: (c.design_tokens && typeof c.design_tokens === "object"
-        ? c.design_tokens
-        : {}) as Partial<SiteTokens>,
       section_order: order,
       section_hidden: hidden,
-      section_variants: (c.section_variants && typeof c.section_variants === "object"
-        ? c.section_variants
-        : {}) as SectionVariants,
+      section_variants: (c.section_variants && typeof c.section_variants === "object" ? c.section_variants : {}) as SectionVariants,
       hero_headline: (c.hero_headline as string) ?? "",
       hero_subheadline: (c.hero_subheadline as string) ?? "",
       about_text: (c.about_text as string) ?? "",
@@ -169,7 +142,6 @@ function WebsiteApp() {
         .update({
           template: activeState.template,
           theme_color: activeState.theme_color,
-          design_tokens: activeState.design_tokens,
           section_order: activeState.section_order,
           section_hidden: activeState.section_hidden,
           section_variants: activeState.section_variants,
@@ -219,7 +191,6 @@ function WebsiteApp() {
       .update({
         template: state.template,
         theme_color: state.theme_color,
-        design_tokens: state.design_tokens,
         section_order: state.section_order,
         section_hidden: state.section_hidden,
         section_variants: state.section_variants,
@@ -239,10 +210,7 @@ function WebsiteApp() {
       })
       .eq("id", clinic.id);
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     toast.success("Website saved — changes are live");
     setDirty(false);
     setUpdatedAt(new Date().toISOString());
@@ -275,18 +243,11 @@ function WebsiteApp() {
       .update({ is_published: next, published_at: next ? now : null })
       .eq("id", clinic.id);
     setPublishing(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+    if (error) { toast.error(error.message); return; }
     setIsPublished(next);
     setPublishedAt(next ? now : null);
     if (next) {
-      try {
-        await navigator.clipboard.writeText(publicUrl);
-      } catch {
-        /* ignore */
-      }
+      try { await navigator.clipboard.writeText(publicUrl); } catch { /* ignore */ }
       toast.success("Your website is now live", { description: publicUrl });
       // Trigger automated Google Search Console indexing pipeline
       triggerGscSubmission();
@@ -297,20 +258,17 @@ function WebsiteApp() {
 
   // Diff indicator: unpublished changes if not live, or if edits saved after last publish, or unsaved dirty edits.
   const hasSavedUnpublishedChanges =
-    isPublished && publishedAt && updatedAt
-      ? new Date(updatedAt).getTime() > new Date(publishedAt).getTime() + 2000
-      : false;
+    isPublished && publishedAt && updatedAt ? new Date(updatedAt).getTime() > new Date(publishedAt).getTime() + 2000 : false;
   const hasUnpublishedChanges = !isPublished || hasSavedUnpublishedChanges || dirty;
   const publishedLabel = publishedAt ? formatRelativeTime(publishedAt) : null;
+
 
   return (
     <div className="-m-4 md:-m-8 h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh)] flex flex-col bg-surface">
       {/* Top bar */}
       <div className="h-14 border-b bg-background flex items-center px-3 md:px-5 gap-3 shrink-0">
         <Link to="/dashboard" className="md:hidden">
-          <Button variant="ghost" size="icon">
-            <ChevronLeft className="size-5" />
-          </Button>
+          <Button variant="ghost" size="icon"><ChevronLeft className="size-5" /></Button>
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -319,21 +277,12 @@ function WebsiteApp() {
               {isPublished ? "Live" : "Draft"}
             </Badge>
           </div>
-          <div className="text-xs text-muted-foreground truncate">
-            {clinic.clinic_name} · /c/{clinic.slug}
-          </div>
+          <div className="text-xs text-muted-foreground truncate">{clinic.clinic_name} · /c/{clinic.slug}</div>
         </div>
         <a href={previewSrc} target="_blank" rel="noreferrer" className="hidden md:inline-flex">
-          <Button variant="outline" size="sm">
-            <ExternalLink className="size-4" /> Preview
-          </Button>
+          <Button variant="outline" size="sm"><ExternalLink className="size-4" /> Preview</Button>
         </a>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setPreviewBust((n) => n + 1)}
-          aria-label="Refresh preview"
-        >
+        <Button variant="ghost" size="sm" onClick={() => setPreviewBust((n) => n + 1)} aria-label="Refresh preview">
           <RefreshCcw className="size-4" />
         </Button>
         <Button onClick={save} disabled={saving || !dirty} size="sm" variant="outline">
@@ -347,12 +296,7 @@ function WebsiteApp() {
             disabled={publishing}
             onClick={() => togglePublish(false)}
           >
-            {publishing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <EyeOff className="size-4" />
-            )}{" "}
-            Unpublish
+            {publishing ? <Loader2 className="size-4 animate-spin" /> : <EyeOff className="size-4" />} Unpublish
           </Button>
         ) : (
           <Button
@@ -363,35 +307,22 @@ function WebsiteApp() {
               await togglePublish(true);
             }}
           >
-            {publishing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Rocket className="size-4" />
-            )}{" "}
-            Publish
+            {publishing ? <Loader2 className="size-4 animate-spin" /> : <Rocket className="size-4" />} Publish
           </Button>
         )}
       </div>
 
       {/* Publish status strip */}
-      <div
-        className={`shrink-0 border-b px-3 md:px-5 py-2 flex items-center gap-3 text-xs ${
-          !isPublished
-            ? "bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100"
-            : hasUnpublishedChanges
-              ? "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100"
-              : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100"
-        }`}
-      >
-        <span
-          className={`inline-block size-2 rounded-full ${
-            !isPublished
-              ? "bg-amber-500"
-              : hasUnpublishedChanges
-                ? "bg-blue-500 animate-pulse"
-                : "bg-emerald-500"
-          }`}
-        />
+      <div className={`shrink-0 border-b px-3 md:px-5 py-2 flex items-center gap-3 text-xs ${
+        !isPublished
+          ? "bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100"
+          : hasUnpublishedChanges
+            ? "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100"
+            : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100"
+      }`}>
+        <span className={`inline-block size-2 rounded-full ${
+          !isPublished ? "bg-amber-500" : hasUnpublishedChanges ? "bg-blue-500 animate-pulse" : "bg-emerald-500"
+        }`} />
         <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-3 gap-y-0.5">
           <span className="font-medium">
             {!isPublished
@@ -404,9 +335,7 @@ function WebsiteApp() {
             <span className="text-muted-foreground/90">Last published {publishedLabel}</span>
           )}
           {!isPublished && (
-            <span className="text-muted-foreground/90">
-              Publish to make your site visible at your public link.
-            </span>
+            <span className="text-muted-foreground/90">Publish to make your site visible at your public link.</span>
           )}
           {isPublished && hasUnpublishedChanges && (
             <span className="inline-flex items-center gap-1 rounded-full bg-background/70 border px-2 py-0.5 text-[10px] font-medium">
@@ -415,12 +344,7 @@ function WebsiteApp() {
           )}
         </div>
         {isPublished && (
-          <a
-            href={publicUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="underline underline-offset-2 hidden sm:inline"
-          >
+          <a href={publicUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2 hidden sm:inline">
             View live site
           </a>
         )}
@@ -434,15 +358,14 @@ function WebsiteApp() {
               await togglePublish(true);
             }}
           >
-            {publishing ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Rocket className="size-3" />
-            )}
+            {publishing ? <Loader2 className="size-3 animate-spin" /> : <Rocket className="size-3" />}
             {isPublished ? "Publish changes" : "Publish now"}
           </Button>
         )}
       </div>
+
+
+
 
       {/* Mobile/Tablet view switcher */}
       <div className="lg:hidden shrink-0 h-11 border-b bg-background flex items-center p-1.5 gap-1.5">
@@ -473,69 +396,74 @@ function WebsiteApp() {
       {/* Main area */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
         {/* Left panel — tabbed: Template | Design | Sections */}
-        <aside
-          className={`w-full lg:w-[400px] xl:w-[440px] border-b lg:border-b-0 lg:border-r bg-background flex flex-col overflow-hidden ${
-            activePanel === "editor" ? "flex" : "hidden lg:flex"
-          }`}
-        >
+        <aside className={`w-full lg:w-[400px] xl:w-[440px] border-b lg:border-b-0 lg:border-r bg-background flex flex-col overflow-hidden ${
+          activePanel === "editor" ? "flex" : "hidden lg:flex"
+        }`}>
           <Tabs defaultValue="template" className="flex flex-col h-full">
             <TabsList className="grid grid-cols-4 rounded-none border-b shrink-0 h-11">
-              <TabsTrigger
-                value="template"
-                className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-              >
+              <TabsTrigger value="template" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <LayoutTemplate className="size-3.5" /> Template
               </TabsTrigger>
-              <TabsTrigger
-                value="design"
-                className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-              >
+              <TabsTrigger value="design" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <Wand2 className="size-3.5" /> Design
               </TabsTrigger>
-              <TabsTrigger
-                value="sections"
-                className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-              >
+              <TabsTrigger value="sections" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <Settings2 className="size-3.5" /> Sections
               </TabsTrigger>
-              <TabsTrigger
-                value="settings"
-                className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-              >
+              <TabsTrigger value="settings" className="gap-1 text-[10px] sm:text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
                 <Globe className="size-3.5" /> SEO/Info
               </TabsTrigger>
             </TabsList>
 
             {/* Template tab */}
-            <TabsContent value="template" className="flex-1 overflow-y-auto p-4 mt-0">
-              <TemplateGallery
-                clinicId={clinic.id}
-                slug={clinic.slug}
-                previewToken={previewToken}
-                activeTemplate={state.template}
-                themeColor={state.theme_color}
-                onThemeColor={(hex) => patch({ theme_color: hex })}
-                onApply={(c, opts) => {
-                  patch({
-                    template: c.id,
-                    // A template switch resets per-section overrides so the new
-                    // design lands whole rather than half-inheriting the old one.
-                    section_variants: c.id === "custom" ? c.variants : {},
-                    design_tokens: c.id === "custom" ? c.tokens : {},
-                    ...(opts.applyCopy && c.copy
-                      ? {
-                          ...(c.copy.hero_headline ? { hero_headline: c.copy.hero_headline } : {}),
-                          ...(c.copy.hero_subheadline
-                            ? { hero_subheadline: c.copy.hero_subheadline }
-                            : {}),
-                          ...(c.copy.about_text ? { about_text: c.copy.about_text } : {}),
-                          ...(c.copy.services?.length ? { services: c.copy.services } : {}),
-                          ...(c.copy.faqs?.length ? { faqs: c.copy.faqs } : {}),
-                        }
-                      : {}),
-                  });
-                }}
-              />
+            <TabsContent value="template" className="flex-1 overflow-y-auto p-4 space-y-4 mt-0">
+              <div>
+                <p className="font-medium text-sm">Website template</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Pick a starting design. Each template sets sensible defaults for every section — fine-tune individual sections in the <strong>Design</strong> tab.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {Templates.map((t) => {
+                  const active = state.template === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => patch({ template: t.id, section_variants: {} })}
+                      className={`relative text-left rounded-2xl border-2 overflow-hidden transition ${active ? "border-primary shadow-lg" : "border-border hover:border-primary/50"}`}
+                    >
+                      <div className="aspect-[4/3]" style={{ background: t.swatch }} />
+                      <div className="p-3 bg-background">
+                        <p className="font-medium text-xs">{t.name}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{t.description}</p>
+                      </div>
+                      {active && (
+                        <span className="absolute top-2 right-2 size-6 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                          <Check className="size-3.5" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Accent color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={state.theme_color}
+                    onChange={(e) => patch({ theme_color: e.target.value })}
+                    className="h-9 w-12 rounded border bg-background cursor-pointer"
+                  />
+                  <Input
+                    value={state.theme_color}
+                    onChange={(e) => patch({ theme_color: e.target.value })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Design tab */}
@@ -569,9 +497,7 @@ function WebsiteApp() {
 
               <div className="space-y-4 border-b pb-5">
                 <div className="space-y-2">
-                  <Label htmlFor="seo_title" className="text-xs font-bold text-muted-foreground">
-                    SEO Title Tag
-                  </Label>
+                  <Label htmlFor="seo_title" className="text-xs font-bold text-muted-foreground">SEO Title Tag</Label>
                   <Input
                     id="seo_title"
                     value={state.seo_title || ""}
@@ -585,9 +511,7 @@ function WebsiteApp() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="seo_desc" className="text-xs font-bold text-muted-foreground">
-                    Meta Description
-                  </Label>
+                  <Label htmlFor="seo_desc" className="text-xs font-bold text-muted-foreground">Meta Description</Label>
                   <Textarea
                     id="seo_desc"
                     value={state.seo_description || ""}
@@ -597,8 +521,7 @@ function WebsiteApp() {
                     className="text-xs resize-none"
                   />
                   <p className="text-[10px] text-muted-foreground">
-                    Recommended length: 150-160 characters. Current:{" "}
-                    {state.seo_description?.length || 0}
+                    Recommended length: 150-160 characters. Current: {state.seo_description?.length || 0}
                   </p>
                 </div>
               </div>
@@ -612,9 +535,7 @@ function WebsiteApp() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="pub_phone" className="text-xs font-bold text-muted-foreground">
-                    Public Phone Number
-                  </Label>
+                  <Label htmlFor="pub_phone" className="text-xs font-bold text-muted-foreground">Public Phone Number</Label>
                   <Input
                     id="pub_phone"
                     value={state.public_phone || ""}
@@ -625,9 +546,7 @@ function WebsiteApp() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pub_email" className="text-xs font-bold text-muted-foreground">
-                    Public Email Address
-                  </Label>
+                  <Label htmlFor="pub_email" className="text-xs font-bold text-muted-foreground">Public Email Address</Label>
                   <Input
                     id="pub_email"
                     type="email"
@@ -639,9 +558,7 @@ function WebsiteApp() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pub_addr" className="text-xs font-bold text-muted-foreground">
-                    Public Clinic Address
-                  </Label>
+                  <Label htmlFor="pub_addr" className="text-xs font-bold text-muted-foreground">Public Clinic Address</Label>
                   <Textarea
                     id="pub_addr"
                     value={state.public_address || ""}
@@ -657,9 +574,7 @@ function WebsiteApp() {
         </aside>
 
         {/* Preview */}
-        <div
-          className={`flex-1 min-h-0 ${activePanel === "preview" ? "flex flex-col" : "hidden lg:flex lg:flex-col"}`}
-        >
+        <div className={`flex-1 min-h-0 ${activePanel === "preview" ? "flex flex-col" : "hidden lg:flex lg:flex-col"}`}>
           <PreviewPane previewSrc={previewSrc} setPreviewBust={setPreviewBust} />
         </div>
       </div>
@@ -668,12 +583,7 @@ function WebsiteApp() {
 }
 
 // ─── Design Panel ─────────────────────────────────────────────────────────────
-function DesignPanel({
-  template,
-  overrides,
-  onChange,
-  clinic,
-}: {
+function DesignPanel({ template, overrides, onChange, clinic }: {
   template: string;
   overrides: SectionVariants;
   onChange: (v: SectionVariants) => void;
@@ -695,18 +605,10 @@ function DesignPanel({
       <div className="flex items-start justify-between gap-3 px-4 py-3 border-b">
         <div>
           <p className="text-sm font-medium">Design — swap any section</p>
-          <p className="text-xs text-muted-foreground">
-            Each section can use a different layout. The starting point comes from your template.
-          </p>
+          <p className="text-xs text-muted-foreground">Each section can use a different layout. The starting point comes from your template.</p>
         </div>
         {Object.keys(overrides).length > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-xs shrink-0"
-            onClick={() => onChange({})}
-          >
+          <Button type="button" variant="ghost" size="sm" className="text-xs shrink-0" onClick={() => onChange({})}>
             Reset
           </Button>
         )}
@@ -719,10 +621,7 @@ function DesignPanel({
             <div className="px-4 py-3">
               <p className="text-sm font-medium">{sec.label}</p>
               <p className="text-[11px] text-muted-foreground">
-                Currently:{" "}
-                <span className="text-foreground font-medium">
-                  {sec.options.find((o) => o.id === activeId)?.label ?? activeId}
-                </span>
+                Currently: <span className="text-foreground font-medium">{sec.options.find((o) => o.id === activeId)?.label ?? activeId}</span>
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 px-4 pb-4">
@@ -737,10 +636,7 @@ function DesignPanel({
                     className={`group relative text-left rounded-xl border-2 overflow-hidden transition ${active ? "border-primary shadow-md" : "border-border hover:border-primary/50"}`}
                   >
                     <div className="h-28 bg-muted overflow-hidden relative">
-                      <div
-                        className="absolute top-0 left-0 origin-top-left pointer-events-none"
-                        style={{ transform: "scale(0.32)", width: "312.5%" }}
-                      >
+                      <div className="absolute top-0 left-0 origin-top-left pointer-events-none" style={{ transform: "scale(0.32)", width: "312.5%" }}>
                         <div className="bg-background">
                           <Preview clinic={clinic} pathname={`/c/${clinic.slug}`} />
                         </div>
@@ -748,11 +644,7 @@ function DesignPanel({
                     </div>
                     <div className="p-2 border-t bg-background">
                       <p className="text-[11px] font-medium">{opt.label}</p>
-                      {opt.description && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                          {opt.description}
-                        </p>
-                      )}
+                      {opt.description && <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{opt.description}</p>}
                     </div>
                     {active && (
                       <span className="absolute top-1.5 right-1.5 size-5 rounded-full bg-primary text-primary-foreground grid place-items-center">
@@ -771,11 +663,7 @@ function DesignPanel({
 }
 
 // ─── Sections Panel (reorder + toggle) ───────────────────────────────────────
-function SectionsPanel({
-  state,
-  patch,
-  clinic,
-}: {
+function SectionsPanel({ state, patch, clinic }: {
   state: EditorState;
   patch: (p: Partial<EditorState>) => void;
   clinic: SiteClinic;
@@ -784,10 +672,7 @@ function SectionsPanel({
   const [activeKey, setActiveKey] = useState<SectionKey | null>(null);
 
   const editableOrder = useMemo<SectionKey[]>(
-    () =>
-      (state.section_order ?? DEFAULT_SECTION_ORDER).filter(
-        (k): k is SectionKey => k !== "navbar" && k !== "footer",
-      ),
+    () => (state.section_order ?? DEFAULT_SECTION_ORDER).filter((k): k is SectionKey => k !== "navbar" && k !== "footer"),
     [state.section_order],
   );
 
@@ -848,21 +733,13 @@ function SectionsPanel({
               <div className="font-medium text-sm">{SECTION_LABELS[activeKey]}</div>
               <div className="text-[10px] text-muted-foreground">Section settings</div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => setActiveKey(null)}
-              aria-label="Close"
-            >
+            <Button variant="ghost" size="icon" className="size-8" onClick={() => setActiveKey(null)} aria-label="Close">
               ✕
             </Button>
           </div>
           <div className="flex-1 p-4 space-y-5">
             <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Layout style
-              </Label>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Layout style</Label>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 {activeMeta.options.map((o) => {
                   const current = state.section_variants[activeKey] ?? activeMeta.defaultId;
@@ -873,11 +750,7 @@ function SectionsPanel({
                       className={`text-left rounded-lg border p-2.5 transition ${current === o.id ? "border-primary ring-2 ring-primary/20" : "hover:border-foreground/30"}`}
                     >
                       <div className="text-xs font-medium">{o.label}</div>
-                      {o.description && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          {o.description}
-                        </div>
-                      )}
+                      {o.description && <div className="text-[10px] text-muted-foreground mt-0.5">{o.description}</div>}
                     </button>
                   );
                 })}
@@ -921,24 +794,14 @@ function SectionsPanel({
             {activeKey === "services" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">
-                    Services List
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Services List</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
                     className="h-7 text-[10px] font-bold"
                     onClick={() => {
-                      const newList = [
-                        ...(state.services || []),
-                        {
-                          name: "New Service",
-                          price: 500,
-                          description: "Consultation and checkup",
-                          duration: "30 mins",
-                        },
-                      ];
+                      const newList = [...(state.services || []), { name: "New Service", price: 500, description: "Consultation and checkup", duration: "30 mins" }];
                       patch({ services: newList });
                     }}
                   >
@@ -949,18 +812,14 @@ function SectionsPanel({
                   {(state.services || []).map((s: any, idx: number) => (
                     <Card key={idx} className="p-3 border-border/60 relative space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-muted-foreground">
-                          Service #{idx + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
+                        <span className="text-[10px] font-bold text-muted-foreground">Service #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
                           className="size-6 text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            const newList = (state.services || []).filter(
-                              (_: any, i: number) => i !== idx,
-                            );
+                            const newList = (state.services || []).filter((_: any, i: number) => i !== idx);
                             patch({ services: newList });
                           }}
                         >
@@ -969,12 +828,10 @@ function SectionsPanel({
                       </div>
                       <div className="space-y-2">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Service Name
-                          </label>
-                          <Input
+                          <label className="text-[10px] font-bold text-muted-foreground">Service Name</label>
+                          <Input 
                             placeholder="Service name"
-                            value={s.name || ""}
+                            value={s.name || ""} 
                             onChange={(e) => {
                               const newList = [...state.services];
                               newList[idx] = { ...newList[idx], name: e.target.value };
@@ -985,31 +842,24 @@ function SectionsPanel({
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground">
-                              Price (₹)
-                            </label>
-                            <Input
+                            <label className="text-[10px] font-bold text-muted-foreground">Price (₹)</label>
+                            <Input 
                               type="number"
                               placeholder="Price (₹)"
-                              value={s.price ?? ""}
+                              value={s.price ?? ""} 
                               onChange={(e) => {
                                 const newList = [...state.services];
-                                newList[idx] = {
-                                  ...newList[idx],
-                                  price: e.target.value === "" ? 0 : Number(e.target.value),
-                                };
+                                newList[idx] = { ...newList[idx], price: e.target.value === "" ? 0 : Number(e.target.value) };
                                 patch({ services: newList });
                               }}
                               className="h-8 text-xs"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground">
-                              Duration
-                            </label>
-                            <Input
+                            <label className="text-[10px] font-bold text-muted-foreground">Duration</label>
+                            <Input 
                               placeholder="e.g. 30 mins"
-                              value={s.duration || ""}
+                              value={s.duration || ""} 
                               onChange={(e) => {
                                 const newList = [...state.services];
                                 newList[idx] = { ...newList[idx], duration: e.target.value };
@@ -1020,12 +870,10 @@ function SectionsPanel({
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Description
-                          </label>
-                          <Textarea
+                          <label className="text-[10px] font-bold text-muted-foreground">Description</label>
+                          <Textarea 
                             placeholder="Description"
-                            value={s.description || ""}
+                            value={s.description || ""} 
                             onChange={(e) => {
                               const newList = [...state.services];
                               newList[idx] = { ...newList[idx], description: e.target.value };
@@ -1039,9 +887,7 @@ function SectionsPanel({
                     </Card>
                   ))}
                   {(state.services || []).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-6">
-                      No services added. Click Add Service to start.
-                    </p>
+                    <p className="text-xs text-muted-foreground text-center py-6">No services added. Click Add Service to start.</p>
                   )}
                 </div>
               </div>
@@ -1050,19 +896,14 @@ function SectionsPanel({
             {activeKey === "faq" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">
-                    Frequently Asked Questions
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Frequently Asked Questions</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
                     className="h-7 text-[10px] font-bold"
                     onClick={() => {
-                      const newList = [
-                        ...(state.faqs || []),
-                        { question: "New Question", answer: "FAQ answer details" },
-                      ];
+                      const newList = [...(state.faqs || []), { question: "New Question", answer: "FAQ answer details" }];
                       patch({ faqs: newList });
                     }}
                   >
@@ -1073,18 +914,14 @@ function SectionsPanel({
                   {(state.faqs || []).map((f: any, idx: number) => (
                     <Card key={idx} className="p-3 border-border/60 relative space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-muted-foreground">
-                          FAQ #{idx + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
+                        <span className="text-[10px] font-bold text-muted-foreground">FAQ #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
                           className="size-6 text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            const newList = (state.faqs || []).filter(
-                              (_: any, i: number) => i !== idx,
-                            );
+                            const newList = (state.faqs || []).filter((_: any, i: number) => i !== idx);
                             patch({ faqs: newList });
                           }}
                         >
@@ -1093,12 +930,10 @@ function SectionsPanel({
                       </div>
                       <div className="space-y-2">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Question
-                          </label>
-                          <Input
+                          <label className="text-[10px] font-bold text-muted-foreground">Question</label>
+                          <Input 
                             placeholder="Question text"
-                            value={f.question || ""}
+                            value={f.question || ""} 
                             onChange={(e) => {
                               const newList = [...state.faqs];
                               newList[idx] = { ...newList[idx], question: e.target.value };
@@ -1108,12 +943,10 @@ function SectionsPanel({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Answer
-                          </label>
-                          <Textarea
+                          <label className="text-[10px] font-bold text-muted-foreground">Answer</label>
+                          <Textarea 
                             placeholder="Answer details"
-                            value={f.answer || ""}
+                            value={f.answer || ""} 
                             onChange={(e) => {
                               const newList = [...state.faqs];
                               newList[idx] = { ...newList[idx], answer: e.target.value };
@@ -1127,9 +960,7 @@ function SectionsPanel({
                     </Card>
                   ))}
                   {(state.faqs || []).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-6">
-                      No FAQs added. Click Add FAQ to start.
-                    </p>
+                    <p className="text-xs text-muted-foreground text-center py-6">No FAQs added. Click Add FAQ to start.</p>
                   )}
                 </div>
               </div>
@@ -1138,24 +969,14 @@ function SectionsPanel({
             {activeKey === "team" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">
-                    Team Members
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Team Members</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
                     className="h-7 text-[10px] font-bold"
                     onClick={() => {
-                      const newList = [
-                        ...(state.team || []),
-                        {
-                          name: "Doctor Name",
-                          role: "Specialist",
-                          specialization: "Dermatology",
-                          bio: "Bio details here",
-                        },
-                      ];
+                      const newList = [...(state.team || []), { name: "Doctor Name", role: "Specialist", specialization: "Dermatology", bio: "Bio details here" }];
                       patch({ team: newList });
                     }}
                   >
@@ -1166,18 +987,14 @@ function SectionsPanel({
                   {(state.team || []).map((m: any, idx: number) => (
                     <Card key={idx} className="p-3 border-border/60 relative space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-muted-foreground">
-                          Member #{idx + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
+                        <span className="text-[10px] font-bold text-muted-foreground">Member #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
                           className="size-6 text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            const newList = (state.team || []).filter(
-                              (_: any, i: number) => i !== idx,
-                            );
+                            const newList = (state.team || []).filter((_: any, i: number) => i !== idx);
                             patch({ team: newList });
                           }}
                         >
@@ -1187,12 +1004,10 @@ function SectionsPanel({
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground">
-                              Full Name
-                            </label>
-                            <Input
+                            <label className="text-[10px] font-bold text-muted-foreground">Full Name</label>
+                            <Input 
                               placeholder="Name"
-                              value={m.name || ""}
+                              value={m.name || ""} 
                               onChange={(e) => {
                                 const newList = [...state.team];
                                 newList[idx] = { ...newList[idx], name: e.target.value };
@@ -1202,12 +1017,10 @@ function SectionsPanel({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground">
-                              Role
-                            </label>
-                            <Input
+                            <label className="text-[10px] font-bold text-muted-foreground">Role</label>
+                            <Input 
                               placeholder="e.g. Chief Surgeon"
-                              value={m.role || ""}
+                              value={m.role || ""} 
                               onChange={(e) => {
                                 const newList = [...state.team];
                                 newList[idx] = { ...newList[idx], role: e.target.value };
@@ -1218,12 +1031,10 @@ function SectionsPanel({
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Specialization
-                          </label>
-                          <Input
+                          <label className="text-[10px] font-bold text-muted-foreground">Specialization</label>
+                          <Input 
                             placeholder="e.g. Cosmetic Dermatology"
-                            value={m.specialization || ""}
+                            value={m.specialization || ""} 
                             onChange={(e) => {
                               const newList = [...state.team];
                               newList[idx] = { ...newList[idx], specialization: e.target.value };
@@ -1233,12 +1044,10 @@ function SectionsPanel({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Short Bio
-                          </label>
-                          <Textarea
+                          <label className="text-[10px] font-bold text-muted-foreground">Short Bio</label>
+                          <Textarea 
                             placeholder="Biography details"
-                            value={m.bio || ""}
+                            value={m.bio || ""} 
                             onChange={(e) => {
                               const newList = [...state.team];
                               newList[idx] = { ...newList[idx], bio: e.target.value };
@@ -1252,9 +1061,7 @@ function SectionsPanel({
                     </Card>
                   ))}
                   {(state.team || []).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-6">
-                      No team members added. Click Add Member to start.
-                    </p>
+                    <p className="text-xs text-muted-foreground text-center py-6">No team members added. Click Add Member to start.</p>
                   )}
                 </div>
               </div>
@@ -1263,24 +1070,14 @@ function SectionsPanel({
             {activeKey === "reviews" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">
-                    Patient Reviews
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-bold">Patient Reviews</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="xs" 
                     className="h-7 text-[10px] font-bold"
                     onClick={() => {
-                      const newList = [
-                        ...(state.testimonials || []),
-                        {
-                          author_name: "Patient Name",
-                          rating: 5,
-                          text: "Excellent clinical care.",
-                          subtitle: "Patient",
-                        },
-                      ];
+                      const newList = [...(state.testimonials || []), { author_name: "Patient Name", rating: 5, text: "Excellent clinical care.", subtitle: "Patient" }];
                       patch({ testimonials: newList });
                     }}
                   >
@@ -1291,18 +1088,14 @@ function SectionsPanel({
                   {(state.testimonials || []).map((t: any, idx: number) => (
                     <Card key={idx} className="p-3 border-border/60 relative space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-muted-foreground">
-                          Review #{idx + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
+                        <span className="text-[10px] font-bold text-muted-foreground">Review #{idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
                           className="size-6 text-destructive hover:bg-destructive/10"
                           onClick={() => {
-                            const newList = (state.testimonials || []).filter(
-                              (_: any, i: number) => i !== idx,
-                            );
+                            const newList = (state.testimonials || []).filter((_: any, i: number) => i !== idx);
                             patch({ testimonials: newList });
                           }}
                         >
@@ -1312,12 +1105,10 @@ function SectionsPanel({
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground">
-                              Author Name
-                            </label>
-                            <Input
+                            <label className="text-[10px] font-bold text-muted-foreground">Author Name</label>
+                            <Input 
                               placeholder="Name"
-                              value={t.author_name || ""}
+                              value={t.author_name || ""} 
                               onChange={(e) => {
                                 const newList = [...state.testimonials];
                                 newList[idx] = { ...newList[idx], author_name: e.target.value };
@@ -1327,12 +1118,10 @@ function SectionsPanel({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground">
-                              Subtitle / Tag
-                            </label>
-                            <Input
+                            <label className="text-[10px] font-bold text-muted-foreground">Subtitle / Tag</label>
+                            <Input 
                               placeholder="e.g. Skin treatment patient"
-                              value={t.subtitle || ""}
+                              value={t.subtitle || ""} 
                               onChange={(e) => {
                                 const newList = [...state.testimonials];
                                 newList[idx] = { ...newList[idx], subtitle: e.target.value };
@@ -1348,7 +1137,7 @@ function SectionsPanel({
                           </label>
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((stars) => (
-                              <button
+                              <button 
                                 key={stars}
                                 type="button"
                                 onClick={() => {
@@ -1358,20 +1147,16 @@ function SectionsPanel({
                                 }}
                                 className="p-0.5"
                               >
-                                <Star
-                                  className={`size-4 ${stars <= (t.rating || 5) ? "fill-amber-400 text-amber-400" : "text-border"}`}
-                                />
+                                <Star className={`size-4 ${stars <= (t.rating || 5) ? "fill-amber-400 text-amber-400" : "text-border"}`} />
                               </button>
                             ))}
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-muted-foreground">
-                            Review Text
-                          </label>
-                          <Textarea
+                          <label className="text-[10px] font-bold text-muted-foreground">Review Text</label>
+                          <Textarea 
                             placeholder="Patient review text"
-                            value={t.text || ""}
+                            value={t.text || ""} 
                             onChange={(e) => {
                               const newList = [...state.testimonials];
                               newList[idx] = { ...newList[idx], text: e.target.value };
@@ -1385,9 +1170,7 @@ function SectionsPanel({
                     </Card>
                   ))}
                   {(state.testimonials || []).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-6">
-                      No reviews added. Click Add Review to start.
-                    </p>
+                    <p className="text-xs text-muted-foreground text-center py-6">No reviews added. Click Add Review to start.</p>
                   )}
                 </div>
               </div>
@@ -1398,12 +1181,8 @@ function SectionsPanel({
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <Settings2 className="size-3.5 mt-0.5 shrink-0" />
                   <div>
-                    Detailed content for this section (gallery photos, working hours, contact info)
-                    is edited from the{" "}
-                    <Link to="/dashboard/settings" className="underline">
-                      Clinic settings
-                    </Link>{" "}
-                    page.
+                    Detailed content for this section (gallery photos, working hours, contact info) is edited from the{" "}
+                    <Link to="/dashboard/settings" className="underline">Clinic settings</Link> page.
                   </div>
                 </div>
               </Card>
@@ -1411,19 +1190,9 @@ function SectionsPanel({
           </div>
           <div className="border-t p-3 flex items-center justify-between gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => toggleHidden(activeKey)}>
-              {state.section_hidden.includes(activeKey) ? (
-                <>
-                  <Eye className="size-4" /> Show
-                </>
-              ) : (
-                <>
-                  <EyeOff className="size-4" /> Hide
-                </>
-              )}
+              {state.section_hidden.includes(activeKey) ? <><Eye className="size-4" /> Show</> : <><EyeOff className="size-4" /> Hide</>}
             </Button>
-            <Button size="sm" onClick={() => setActiveKey(null)}>
-              Done
-            </Button>
+            <Button size="sm" onClick={() => setActiveKey(null)}>Done</Button>
           </div>
         </div>
       )}
@@ -1432,13 +1201,7 @@ function SectionsPanel({
 }
 
 // ─── Preview pane ─────────────────────────────────────────────────────────────
-function PreviewPane({
-  previewSrc,
-  setPreviewBust,
-}: {
-  previewSrc: string;
-  setPreviewBust: React.Dispatch<React.SetStateAction<number>>;
-}) {
+function PreviewPane({ previewSrc, setPreviewBust }: { previewSrc: string; setPreviewBust: React.Dispatch<React.SetStateAction<number>> }) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   return (
     <div className="flex-1 min-w-0 bg-muted/40 flex flex-col overflow-hidden">
@@ -1447,30 +1210,14 @@ function PreviewPane({
         <span className="text-xs text-muted-foreground">Live preview</span>
         <div className="flex items-center gap-1">
           <div className="flex items-center gap-0.5 border rounded-lg p-0.5">
-            <Button
-              variant={device === "desktop" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2"
-              onClick={() => setDevice("desktop")}
-            >
+            <Button variant={device === "desktop" ? "secondary" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setDevice("desktop")}>
               <Monitor className="size-3.5" />
             </Button>
-            <Button
-              variant={device === "mobile" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2"
-              onClick={() => setDevice("mobile")}
-            >
+            <Button variant={device === "mobile" ? "secondary" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setDevice("mobile")}>
               <Smartphone className="size-3.5" />
             </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2"
-            onClick={() => setPreviewBust((n) => n + 1)}
-            aria-label="Refresh"
-          >
+          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setPreviewBust((n) => n + 1)} aria-label="Refresh">
             <RefreshCcw className="size-3.5" />
           </Button>
         </div>
@@ -1479,9 +1226,7 @@ function PreviewPane({
       <div className="flex-1 overflow-auto flex items-stretch justify-center p-0 lg:p-4">
         <div
           className={`bg-background shadow-xl transition-all ${
-            device === "mobile"
-              ? "w-[390px] max-w-full lg:rounded-2xl border lg:my-2 mx-auto"
-              : "w-full lg:max-w-[1200px] lg:rounded-xl lg:border"
+            device === "mobile" ? "w-[390px] max-w-full lg:rounded-2xl border lg:my-2 mx-auto" : "w-full lg:max-w-[1200px] lg:rounded-xl lg:border"
           }`}
         >
           <iframe
@@ -1499,23 +1244,12 @@ function PreviewPane({
 
 // ─── Sortable section row ─────────────────────────────────────────────────────
 function SortableSectionRow({
-  id,
-  label,
-  hidden,
-  active,
-  onToggle,
-  onOpen,
+  id, label, hidden, active, onToggle, onOpen,
 }: {
-  id: SectionKey;
-  label: string;
-  hidden: boolean;
-  active: boolean;
-  onToggle: () => void;
-  onOpen: () => void;
+  id: SectionKey; label: string; hidden: boolean; active: boolean;
+  onToggle: () => void; onOpen: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-  });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -1539,11 +1273,7 @@ function SortableSectionRow({
       </button>
       <button onClick={onOpen} className="flex-1 text-left text-sm font-medium truncate">
         {label}
-        {hidden && (
-          <Badge variant="outline" className="ml-2 text-[10px] py-0">
-            hidden
-          </Badge>
-        )}
+        {hidden && <Badge variant="outline" className="ml-2 text-[10px] py-0">hidden</Badge>}
       </button>
       <button
         onClick={onToggle}

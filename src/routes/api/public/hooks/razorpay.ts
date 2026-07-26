@@ -99,12 +99,7 @@ export const Route = createFileRoute("/api/public/hooks/razorpay")({
           const { error: dedupError } = await supabaseAdmin
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .from("webhook_events" as any)
-            .insert({
-              id: eventId,
-              provider: "razorpay",
-              event_type: evt.event,
-              payload: evt,
-            } as any);
+            .insert({ id: eventId, provider: "razorpay", event_type: evt.event, payload: evt } as any);
           if (dedupError) {
             if ((dedupError as { code?: string }).code === "23505") {
               return Response.json({ ok: true, deduped: true });
@@ -119,8 +114,7 @@ export const Route = createFileRoute("/api/public/hooks/razorpay")({
           // or by looking up the local record via gateway_subscription_id.
           let orgId: string | null =
             pay?.notes?.organization_id ?? sub?.notes?.organization_id ?? null;
-          const rzpSubId =
-            sub?.id ?? pay?.subscription_id ?? (pay?.notes as any)?.subscription_id ?? null;
+          const rzpSubId = sub?.id ?? pay?.subscription_id ?? (pay?.notes as any)?.subscription_id ?? null;
           if (!orgId && rzpSubId) {
             const { data: matched } = await supabaseAdmin
               .from("subscriptions")
@@ -159,16 +153,13 @@ export const Route = createFileRoute("/api/public/hooks/razorpay")({
                 // No matching local enum value — reminder alone is enough.
                 break;
               default:
-                if (sub.status === "active" || sub.status === "authenticated")
-                  patch.status = "active";
+                if (sub.status === "active" || sub.status === "authenticated") patch.status = "active";
             }
 
             // Always refresh the period window when Razorpay reports it. This
             // is how "next renewal date" stays correct after every renewal.
-            if (sub.current_start)
-              patch.current_period_start = new Date(sub.current_start * 1000).toISOString();
-            if (sub.current_end)
-              patch.current_period_end = new Date(sub.current_end * 1000).toISOString();
+            if (sub.current_start) patch.current_period_start = new Date(sub.current_start * 1000).toISOString();
+            if (sub.current_end) patch.current_period_end = new Date(sub.current_end * 1000).toISOString();
 
             if (Object.keys(patch).length > 0) {
               await supabaseAdmin
@@ -191,9 +182,7 @@ export const Route = createFileRoute("/api/public/hooks/razorpay")({
               if (c) {
                 await supabaseAdmin
                   .from("coupon_codes")
-                  .update({
-                    uses_count: ((c as { uses_count: number | null }).uses_count ?? 0) + 1,
-                  } as never)
+                  .update({ uses_count: ((c as { uses_count: number | null }).uses_count ?? 0) + 1 } as never)
                   .eq("id", (c as { id: string }).id);
               }
             }
@@ -214,43 +203,28 @@ export const Route = createFileRoute("/api/public/hooks/razorpay")({
               }
               if (evt.event === "subscription.pending") {
                 await addReminder(
-                  sbAny,
-                  orgId,
-                  "renewal_pending",
-                  "warning",
+                  sbAny, orgId, "renewal_pending", "warning",
                   "Renewal payment pending",
                   "Razorpay could not charge your saved payment method. We'll retry automatically over the next few days. Please ensure your card/UPI has funds.",
                 );
               }
               if (evt.event === "subscription.halted") {
                 await addReminder(
-                  sbAny,
-                  orgId,
-                  "autopay_halted",
-                  "critical",
+                  sbAny, orgId, "autopay_halted", "critical",
                   "Autopay cancelled — action required",
                   "Your autopay mandate was cancelled or all retries failed. Renew your subscription now to keep access without interruption.",
                 );
               }
-              if (
-                evt.event === "subscription.cancelled" ||
-                evt.event === "subscription.completed"
-              ) {
+              if (evt.event === "subscription.cancelled" || evt.event === "subscription.completed") {
                 await addReminder(
-                  sbAny,
-                  orgId,
-                  "subscription_cancelled",
-                  "warning",
+                  sbAny, orgId, "subscription_cancelled", "warning",
                   "Subscription cancelled",
                   `Access will continue until ${nextRenewal}. Reactivate anytime to keep your plan.`,
                 );
               }
               if (evt.event === "subscription.paused") {
                 await addReminder(
-                  sbAny,
-                  orgId,
-                  "subscription_paused",
-                  "warning",
+                  sbAny, orgId, "subscription_paused", "warning",
                   "Subscription paused",
                   "Your subscription is currently paused. Resume it to restore billing and access.",
                 );
@@ -318,10 +292,7 @@ export const Route = createFileRoute("/api/public/hooks/razorpay")({
                 gateway_order_id: pay.order_id ?? null,
               } as never);
               await addReminder(
-                sbAny,
-                orgId,
-                "payment_failed",
-                "critical",
+                sbAny, orgId, "payment_failed", "critical",
                 "Payment failed",
                 pay.error_description
                   ? `Reason: ${pay.error_description}. Update your payment method to avoid service interruption.`

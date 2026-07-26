@@ -5,73 +5,31 @@ import { useClinic } from "./dashboard";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AppGuard } from "@/components/app/AppGuard";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials, SkeletonRows } from "@/components/ui/skeleton-rows";
 import {
-  Search,
-  Phone,
-  Mail,
-  Calendar,
-  Clock,
-  Users,
-  UserCheck,
-  TrendingUp,
-  Activity,
-  ChevronRight,
-  MessageSquare,
+  Search, Phone, Mail, Calendar, Clock, Users, UserCheck,
+  TrendingUp, Activity, ChevronRight, MessageSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/patients")({
-  component: () => (
-    <AppGuard appKey="crm">
-      <PatientsPage />
-    </AppGuard>
-  ),
+  component: () => <AppGuard appKey="crm"><PatientsPage /></AppGuard>,
 });
 
 type Patient = {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  age: number | null;
-  gender: string | null;
-  created_at: string;
-  visitCount: number;
-  completedCount: number;
-  lastVisit: string | null;
+  id: string; name: string; phone: string; email: string;
+  age: number | null; gender: string | null; created_at: string;
+  visitCount: number; completedCount: number; lastVisit: string | null;
   firstSeen: string | null;
 };
-type Visit = {
-  id: string;
-  scheduled_at: string;
-  status: string;
-  problem: string;
-  appointment_type?: string;
-};
+type Visit = { id: string; scheduled_at: string; status: string; problem: string; appointment_type?: string };
 
 /** Small stat tile */
-function StatTile({
-  label,
-  value,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  sub?: string;
-}) {
+function StatTile({ label, value, icon: Icon, sub }: { label: string; value: string | number; icon: React.ElementType; sub?: string }) {
   return (
     <Card className="p-4 card-soft flex items-start gap-3">
       <div className="size-9 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
@@ -101,9 +59,7 @@ function PatientsPage() {
       setLoading(true);
       const { data: a } = await supabase
         .from("appointments")
-        .select(
-          "patient_name, patient_phone, patient_email, patient_age, patient_gender, scheduled_at, status",
-        )
+        .select("patient_name, patient_phone, patient_email, patient_age, patient_gender, scheduled_at, status")
         .eq("clinic_id", clinic.id)
         .order("scheduled_at", { ascending: false });
 
@@ -152,8 +108,7 @@ function PatientsPage() {
       const now = new Date();
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
-    const avgVisits =
-      total > 0 ? (rows.reduce((s, r) => s + r.visitCount, 0) / total).toFixed(1) : "0";
+    const avgVisits = total > 0 ? (rows.reduce((s, r) => s + r.visitCount, 0) / total).toFixed(1) : "0";
     return { total, returning, thisMonth, avgVisits };
   }, [rows]);
 
@@ -161,12 +116,7 @@ function PatientsPage() {
     let r = rows;
     if (search) {
       const q = search.toLowerCase();
-      r = r.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.phone.includes(q) ||
-          p.email?.toLowerCase().includes(q),
-      );
+      r = r.filter((p) => p.name.toLowerCase().includes(q) || p.phone.includes(q) || p.email?.toLowerCase().includes(q));
     }
     return [...r].sort((a, b) => {
       if (sortBy === "visits") return b.visitCount - a.visitCount;
@@ -221,12 +171,7 @@ function PatientsPage() {
       {!loading && rows.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatTile label="Total patients" value={stats.total} icon={Users} />
-          <StatTile
-            label="Returning patients"
-            value={stats.returning}
-            icon={UserCheck}
-            sub={`${Math.round((stats.returning / stats.total) * 100)}% of total`}
-          />
+          <StatTile label="Returning patients" value={stats.returning} icon={UserCheck} sub={`${Math.round((stats.returning / stats.total) * 100)}% of total`} />
           <StatTile label="Active this month" value={stats.thisMonth} icon={Activity} />
           <StatTile label="Avg visits / patient" value={stats.avgVisits} icon={TrendingUp} />
         </div>
@@ -241,9 +186,7 @@ function PatientsPage() {
               <Users className="size-6 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">
-              {search
-                ? `No patients match "${search}"`
-                : "No patients yet. Appointments will appear here."}
+              {search ? `No patients match "${search}"` : "No patients yet. Appointments will appear here."}
             </p>
           </div>
         ) : (
@@ -263,33 +206,17 @@ function PatientsPage() {
                         Returning
                       </span>
                     )}
-                    {r.gender && (
-                      <span className="text-[10px] text-muted-foreground capitalize">
-                        {r.gender}
-                      </span>
-                    )}
-                    {r.age && (
-                      <span className="text-[10px] text-muted-foreground">{r.age} yrs</span>
-                    )}
+                    {r.gender && <span className="text-[10px] text-muted-foreground capitalize">{r.gender}</span>}
+                    {r.age && <span className="text-[10px] text-muted-foreground">{r.age} yrs</span>}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <Phone className="size-3" />
-                      {r.phone}
-                    </span>
-                    {r.email && (
-                      <span className="hidden sm:flex items-center gap-1">
-                        <Mail className="size-3" />
-                        {r.email}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1"><Phone className="size-3" />{r.phone}</span>
+                    {r.email && <span className="hidden sm:flex items-center gap-1"><Mail className="size-3" />{r.email}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-semibold">
-                      {r.completedCount} visit{r.completedCount !== 1 ? "s" : ""}
-                    </p>
+                    <p className="text-sm font-semibold">{r.completedCount} visit{r.completedCount !== 1 ? "s" : ""}</p>
                     <p className="text-xs text-muted-foreground">
                       {r.lastVisit ? new Date(r.lastVisit).toLocaleDateString() : "—"}
                     </p>
@@ -312,21 +239,13 @@ function PatientsPage() {
                 <DialogTitle className="font-display text-xl">{open?.name}</DialogTitle>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
                   {open?.phone && (
-                    <a
-                      href={`tel:${open.phone}`}
-                      className="flex items-center gap-1 hover:text-foreground transition-colors"
-                    >
-                      <Phone className="size-3.5" />
-                      {open.phone}
+                    <a href={`tel:${open.phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <Phone className="size-3.5" />{open.phone}
                     </a>
                   )}
                   {open?.email && (
-                    <a
-                      href={`mailto:${open.email}`}
-                      className="flex items-center gap-1 hover:text-foreground transition-colors"
-                    >
-                      <Mail className="size-3.5" />
-                      {open.email}
+                    <a href={`mailto:${open.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <Mail className="size-3.5" />{open.email}
                     </a>
                   )}
                 </div>
@@ -352,12 +271,7 @@ function PatientsPage() {
               </div>
               <div className="text-center">
                 <p className="text-xl font-bold font-display">
-                  {open.firstSeen
-                    ? new Date(open.firstSeen).toLocaleDateString("en-IN", {
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "—"}
+                  {open.firstSeen ? new Date(open.firstSeen).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "—"}
                 </p>
                 <p className="text-[10px] text-muted-foreground">First seen</p>
               </div>
@@ -368,18 +282,12 @@ function PatientsPage() {
           <div className="flex gap-2">
             {open?.phone && (
               <Button size="sm" variant="outline" asChild className="flex-1">
-                <a href={`tel:${open.phone}`}>
-                  <Phone className="size-3.5 mr-1.5" /> Call
-                </a>
+                <a href={`tel:${open.phone}`}><Phone className="size-3.5 mr-1.5" /> Call</a>
               </Button>
             )}
             {open?.phone && (
               <Button size="sm" variant="outline" asChild className="flex-1">
-                <a
-                  href={`https://wa.me/91${open.phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href={`https://wa.me/91${open.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
                   <MessageSquare className="size-3.5 mr-1.5" /> WhatsApp
                 </a>
               </Button>
@@ -391,9 +299,7 @@ function PatientsPage() {
             <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
               <Calendar className="size-4 text-muted-foreground" />
               Visit history
-              <span className="ml-auto text-xs font-normal text-muted-foreground">
-                {visits.length} records
-              </span>
+              <span className="ml-auto text-xs font-normal text-muted-foreground">{visits.length} records</span>
             </h3>
             {visits.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No visits recorded.</p>
@@ -407,25 +313,16 @@ function PatientsPage() {
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
                         <Clock className="size-3.5" />
-                        {new Date(v.scheduled_at).toLocaleString("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
+                        {new Date(v.scheduled_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
                       </span>
                       <div className="flex items-center gap-2">
                         {v.appointment_type === "online" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400">
-                            Online
-                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400">Online</span>
                         )}
                         <StatusBadge status={v.status} />
                       </div>
                     </div>
-                    {v.problem && (
-                      <p className="text-muted-foreground text-xs mt-2 leading-relaxed border-t pt-2">
-                        {v.problem}
-                      </p>
-                    )}
+                    {v.problem && <p className="text-muted-foreground text-xs mt-2 leading-relaxed border-t pt-2">{v.problem}</p>}
                   </li>
                 ))}
               </ul>

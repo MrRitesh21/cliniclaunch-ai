@@ -12,38 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import {
-  Stethoscope,
-  LayoutDashboard,
-  Calendar,
-  Users,
-  Settings,
-  LogOut,
-  ExternalLink,
-  MessageSquare,
-  Blocks,
-  CreditCard,
-  Palette,
-  MessageCircle,
-  Star,
-  Megaphone,
-  Box,
-  QrCode,
-  Video,
-  BarChart3,
-  Receipt,
-  FileText,
-  FlaskConical,
-  Menu,
-  ChevronRight,
-  Crown,
-  Search,
-  Sun,
-  Moon,
-  Monitor,
-  Lock,
-  AlertTriangle,
-  Sparkles,
-  Download,
+  Stethoscope, LayoutDashboard, Calendar, Users, Settings, LogOut, ExternalLink,
+  MessageSquare, Blocks, CreditCard, Palette, MessageCircle, Star, Megaphone, Box,
+  QrCode, Video, BarChart3, Receipt, FileText, FlaskConical, Menu,
+  ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
@@ -62,8 +34,7 @@ function getImpersonationCookie() {
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   validateSearch: (search: Record<string, unknown>): { change_password?: boolean } => ({
-    change_password:
-      search.change_password === "true" || search.change_password === true ? true : undefined,
+    change_password: search.change_password === "true" || search.change_password === true ? true : undefined,
   }),
   component: DashboardLayout,
 });
@@ -78,19 +49,14 @@ function SubscriptionExpiredView() {
           <Lock className="size-8" />
         </div>
       </div>
-      <h2 className="font-display text-2xl font-bold tracking-tight mb-2 text-foreground">
-        Subscription Expired
-      </h2>
+      <h2 className="font-display text-2xl font-bold tracking-tight mb-2 text-foreground">Subscription Expired</h2>
       <p className="text-sm text-muted-foreground max-w-md mb-8 leading-relaxed">
-        Your access to ClinicX has been suspended because your subscription has expired. Please
-        renew your subscription to restore your clinic dashboard, booking website, and automation
-        apps.
+        Your access to ClinicX has been suspended because your subscription has expired. 
+        Please renew your subscription to restore your clinic dashboard, booking website, and automation apps.
       </p>
-
+      
       <div className="grid gap-4 w-full max-w-sm border rounded-xl p-5 bg-card/50 backdrop-blur-sm mb-8 text-left border-border">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-          Locked Features Include:
-        </h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Locked Features Include:</h3>
         <div className="space-y-3">
           <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
             <div className="size-2 rounded-full bg-destructive shrink-0" />
@@ -112,7 +78,7 @@ function SubscriptionExpiredView() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center">
-        <Button
+        <Button 
           onClick={() => navigate({ to: "/dashboard/billing" })}
           className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-md py-5"
         >
@@ -134,9 +100,7 @@ export function useClinic() {
 
     if (!user) {
       setClinic(null);
-      return () => {
-        active = false;
-      };
+      return () => { active = false; };
     }
 
     (async () => {
@@ -173,20 +137,12 @@ export function useClinic() {
 
       if (active) setClinic(clinicData);
     })();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [isReady, user]);
   return clinic;
 }
 
-type NavItem = {
-  to: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  exact?: boolean;
-  module?: string;
-};
+type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; module?: string };
 
 // Grouped nav sections
 const NAV_SECTIONS = [
@@ -194,12 +150,7 @@ const NAV_SECTIONS = [
     label: "Core",
     items: [
       { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-      {
-        to: "/dashboard/appointments",
-        label: "Appointments",
-        icon: Calendar,
-        module: "appointments",
-      },
+      { to: "/dashboard/appointments", label: "Appointments", icon: Calendar, module: "appointments" },
       { to: "/dashboard/qr", label: "QR & Walk-ins", icon: QrCode, module: "qr_appointment" },
       { to: "/dashboard/leads", label: "Leads", icon: MessageSquare },
       { to: "/dashboard/patients", label: "Patients", icon: Users, module: "crm" },
@@ -230,12 +181,7 @@ const NAV_SECTIONS = [
     items: [
       { to: "/dashboard/consult", label: "Consult", icon: Video, module: "consultation" },
       { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
-      {
-        to: "/dashboard/prescriptions",
-        label: "Prescriptions",
-        icon: FileText,
-        module: "prescriptions",
-      },
+      { to: "/dashboard/prescriptions", label: "Prescriptions", icon: FileText, module: "prescriptions" },
       { to: "/dashboard/lab", label: "Lab", icon: FlaskConical, module: "lab" },
     ] as NavItem[],
   },
@@ -253,13 +199,7 @@ const NAV_SECTIONS = [
 const ALL_NAV_FLAT: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items as unknown as NavItem[]);
 
 // Primary tabs shown in mobile bottom bar
-const MOBILE_PRIMARY = [
-  "/dashboard",
-  "/dashboard/appointments",
-  "/dashboard/patients",
-  "/dashboard/leads",
-  "/dashboard/modules",
-];
+const MOBILE_PRIMARY = ["/dashboard", "/dashboard/appointments", "/dashboard/patients", "/dashboard/leads", "/dashboard/modules"];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
@@ -312,9 +252,7 @@ function SidebarContent({
           <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
         </div>
         <div>
-          <span className="font-display text-sm font-semibold leading-tight block">
-            {platformName}
-          </span>
+          <span className="font-display text-sm font-semibold leading-tight block">{platformName}</span>
           <span className="text-[9px] text-muted-foreground leading-none">Practice Management</span>
         </div>
       </div>
@@ -331,11 +269,7 @@ function SidebarContent({
               </p>
               <div className="space-y-0.5">
                 {visible.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    item={item as NavItem}
-                    active={isActive(item.to, (item as NavItem).exact)}
-                  />
+                  <NavLink key={item.to} item={item as NavItem} active={isActive(item.to, (item as NavItem).exact)} />
                 ))}
               </div>
             </div>
@@ -360,21 +294,13 @@ function SidebarContent({
               </p>
               <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1 capitalize">
                 {role === "owner" ? (
-                  <>
-                    <Crown className="size-2.5" /> Owner
-                  </>
+                  <><Crown className="size-2.5" /> Owner</>
                 ) : role === "admin" ? (
-                  <>
-                    <Crown className="size-2.5" /> Admin
-                  </>
+                  <><Crown className="size-2.5" /> Admin</>
                 ) : role === "doctor" ? (
-                  <>
-                    <Crown className="size-2.5" /> Doctor
-                  </>
+                  <><Crown className="size-2.5" /> Doctor</>
                 ) : (
-                  <>
-                    <Users className="size-2.5" /> Staff
-                  </>
+                  <><Users className="size-2.5" /> Staff</>
                 )}
               </p>
             </div>
@@ -391,7 +317,7 @@ function SidebarContent({
             View public site
           </a>
         )}
-
+        
         {/* Theme Segment Selector */}
         <div className="flex items-center justify-between px-2.5 py-1.5 bg-muted/50 rounded-lg text-xs gap-1 my-1">
           <span className="text-muted-foreground font-medium pl-1">Theme</span>
@@ -452,12 +378,12 @@ function DashboardLayout() {
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const { change_password } = Route.useSearch();
-
+ 
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
     queryFn: () => checkMaintenanceStatus(),
   });
-
+ 
   const platformName = mStatus?.platform_name || "ClinicX";
 
   useEffect(() => {
@@ -480,9 +406,7 @@ function DashboardLayout() {
         if (data) setProfile(data);
       });
   }, [user]);
-  const publicClinicUrl = clinic?.slug
-    ? getPublicClinicUrl(clinic, typeof window !== "undefined" ? window.location.origin : "")
-    : "";
+  const publicClinicUrl = clinic?.slug ? getPublicClinicUrl(clinic, typeof window !== "undefined" ? window.location.origin : "") : "";
   const impersonatedDoctorId = typeof window !== "undefined" ? getImpersonationCookie() : null;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -493,30 +417,9 @@ function DashboardLayout() {
     // Default fallback permissions
     const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
       owner: ["*"],
-      admin: [
-        "overview",
-        "appointments",
-        "qr_appointment",
-        "leads",
-        "patients",
-        "website_builder",
-        "whatsapp",
-        "reviews",
-        "seo",
-        "doctors",
-        "staff",
-        "finance",
-      ],
+      admin: ["overview", "appointments", "qr_appointment", "leads", "patients", "website_builder", "whatsapp", "reviews", "seo", "doctors", "staff", "finance"],
       doctor: ["overview", "appointments", "qr_appointment", "patients"],
-      staff: [
-        "overview",
-        "appointments",
-        "qr_appointment",
-        "leads",
-        "patients",
-        "whatsapp",
-        "reviews",
-      ],
+      staff: ["overview", "appointments", "qr_appointment", "leads", "patients", "whatsapp", "reviews"],
     };
 
     let permissions = DEFAULT_ROLE_PERMISSIONS;
@@ -540,7 +443,7 @@ function DashboardLayout() {
         if (item.module && !installedModuleIds.includes(item.module)) {
           return false;
         }
-
+        
         // Owner always has all permissions
         if (userRole === "owner") return true;
 
@@ -558,30 +461,9 @@ function DashboardLayout() {
   const flatNav = useMemo(() => {
     const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
       owner: ["*"],
-      admin: [
-        "overview",
-        "appointments",
-        "qr_appointment",
-        "leads",
-        "patients",
-        "website_builder",
-        "whatsapp",
-        "reviews",
-        "seo",
-        "doctors",
-        "staff",
-        "finance",
-      ],
+      admin: ["overview", "appointments", "qr_appointment", "leads", "patients", "website_builder", "whatsapp", "reviews", "seo", "doctors", "staff", "finance"],
       doctor: ["overview", "appointments", "qr_appointment", "patients"],
-      staff: [
-        "overview",
-        "appointments",
-        "qr_appointment",
-        "leads",
-        "patients",
-        "whatsapp",
-        "reviews",
-      ],
+      staff: ["overview", "appointments", "qr_appointment", "leads", "patients", "whatsapp", "reviews"],
     };
 
     let permissions = DEFAULT_ROLE_PERMISSIONS;
@@ -612,12 +494,7 @@ function DashboardLayout() {
   }, [installedModuleIds, role]);
 
   // Show 4 primary items in the bottom tab bar, and make the 5th item "More"
-  const primaryMobileKeys = [
-    "/dashboard",
-    "/dashboard/appointments",
-    "/dashboard/patients",
-    "/dashboard/leads",
-  ];
+  const primaryMobileKeys = ["/dashboard", "/dashboard/appointments", "/dashboard/patients", "/dashboard/leads"];
   const primaryMobileNav = flatNav.filter((n) => primaryMobileKeys.includes(n.to));
   const moreMobileNav = flatNav.filter((n) => !primaryMobileKeys.includes(n.to));
   const totalTabsCount = Math.min(primaryMobileNav.length, 4) + 1;
@@ -627,7 +504,7 @@ function DashboardLayout() {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user?.email) {
           supabase
-            .from("organization_invites")
+            .from("organization_invites" as any)
             .select("token")
             .eq("email", user.email.toLowerCase())
             .is("accepted_at", null)
@@ -661,8 +538,7 @@ function DashboardLayout() {
     window.location.href = "/login";
   }
 
-  const isActive = (to: string, exact?: boolean) =>
-    exact ? pathname === to : pathname.startsWith(to);
+  const isActive = (to: string, exact?: boolean) => exact ? pathname === to : pathname.startsWith(to);
 
   const isDemoUser = user?.email?.toLowerCase() === "demo@digiwil.com";
 
@@ -679,8 +555,7 @@ function DashboardLayout() {
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="size-4 shrink-0 text-amber-300 animate-pulse" />
             <span className="truncate">
-              <strong>⚡ Live Demo Mode</strong> — Exploring Dr. Sarah Jenkins' workspace. Real
-              database active!
+              <strong>⚡ Live Demo Mode</strong> — Exploring Dr. Sarah Jenkins' workspace. Real database active!
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -705,14 +580,10 @@ function DashboardLayout() {
 
       {impersonatedDoctorId && clinic && (
         <div className="bg-rose-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-center sm:text-left z-50">
-          <span>
-            ⚠️ Admin Impersonation Mode: Viewing dashboard as Dr.{" "}
-            <strong>{clinic.doctor_name}</strong> ({clinic.clinic_name})
-          </span>
+          <span>⚠️ Admin Impersonation Mode: Viewing dashboard as Dr. <strong>{clinic.doctor_name}</strong> ({clinic.clinic_name})</span>
           <button
             onClick={() => {
-              document.cookie =
-                "impersonating_doctor_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+              document.cookie = "impersonating_doctor_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
               window.location.href = "/admin/doctors";
             }}
             className="underline font-bold hover:text-rose-100 flex items-center gap-1 self-center sm:self-auto"
@@ -737,7 +608,7 @@ function DashboardLayout() {
             platformName={platformName}
           />
         </aside>
-
+ 
         <main className="flex-1 min-w-0 flex flex-col md:pl-60">
           {/* Mobile top bar */}
           <div className="md:hidden h-14 border-b flex items-center justify-between px-4 bg-background/95 backdrop-blur sticky top-0 z-20">
@@ -784,7 +655,11 @@ function DashboardLayout() {
           </div>
 
           <div className="flex-1 p-4 md:p-8 max-w-6xl w-full pb-24 md:pb-8 page-enter">
-            {isSubscriptionExpired && !isBillingPage ? <SubscriptionExpiredView /> : <Outlet />}
+            {isSubscriptionExpired && !isBillingPage ? (
+              <SubscriptionExpiredView />
+            ) : (
+              <Outlet />
+            )}
           </div>
 
           {/* Mobile bottom tab bar — primary 5 tabs */}
@@ -792,7 +667,7 @@ function DashboardLayout() {
             className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur"
             style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom))" }}
           >
-            <div
+            <div 
               className="grid"
               style={{ gridTemplateColumns: `repeat(${totalTabsCount}, minmax(0, 1fr))` }}
             >
@@ -806,16 +681,14 @@ function DashboardLayout() {
                       active ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
-                    <div
-                      className={`grid place-items-center size-8 rounded-xl transition-all ${active ? "bg-primary/10 scale-110" : ""}`}
-                    >
+                    <div className={`grid place-items-center size-8 rounded-xl transition-all ${active ? "bg-primary/10 scale-110" : ""}`}>
                       <n.icon className="size-4.5" />
                     </div>
                     <span className="text-[10px] font-medium leading-none">{n.label}</span>
                   </Link>
                 );
               })}
-
+              
               {/* 5th Tab: More / Menu Trigger */}
               <button
                 type="button"
@@ -824,9 +697,7 @@ function DashboardLayout() {
                   mobileMenuOpen ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-                <div
-                  className={`grid place-items-center size-8 rounded-xl transition-all ${mobileMenuOpen ? "bg-primary/10 scale-110" : ""}`}
-                >
+                <div className={`grid place-items-center size-8 rounded-xl transition-all ${mobileMenuOpen ? "bg-primary/10 scale-110" : ""}`}>
                   <Menu className="size-4.5" />
                 </div>
                 <span className="text-[10px] font-medium leading-none">More</span>
@@ -930,12 +801,10 @@ function ProfileForm({
       {forceChangePassword && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 p-3.5 rounded-xl text-xs space-y-1">
           <p className="font-semibold flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
-            <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />{" "}
-            Password Update Required
+            <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" /> Password Update Required
           </p>
           <p className="text-muted-foreground leading-relaxed">
-            You logged in using a temporary password. Please create a new password below to secure
-            your account.
+            You logged in using a temporary password. Please create a new password below to secure your account.
           </p>
         </div>
       )}
@@ -946,12 +815,7 @@ function ProfileForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-role">Role</Label>
-          <Input
-            id="profile-role"
-            value={role || "Staff"}
-            disabled
-            className="bg-muted capitalize font-semibold"
-          />
+          <Input id="profile-role" value={role || "Staff"} disabled className="bg-muted capitalize font-semibold" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-name">Full Name</Label>

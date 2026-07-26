@@ -168,12 +168,5 @@ $$;
 -- SECURITY DEFINER + default PUBLIC execute would let anon re-run the seed via RPC.
 REVOKE ALL ON FUNCTION public.seed_demo_clinic() FROM PUBLIC, anon, authenticated;
 
--- Run the seed once as part of this migration. Tolerate failure: on fresh replays the
--- add_creator_as_owner trigger still aborts on NULL auth.uid() at this point in history;
--- 20260726090000 fixes the trigger and re-runs this idempotent seed.
-DO $do$
-BEGIN
-  PERFORM public.seed_demo_clinic();
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'seed_demo_clinic failed here (%), reseeded by 20260726090000', SQLERRM;
-END $do$;
+-- Run the seed once as part of this migration.
+SELECT public.seed_demo_clinic();

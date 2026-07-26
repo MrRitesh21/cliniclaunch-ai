@@ -68,9 +68,7 @@ function EmailCampaignsPage() {
           <Mail className="size-6 text-primary" />
           Email Campaigns
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Blast product news, pricing changes or system upgrades to doctor subgroups.
-        </p>
+        <p className="text-sm text-muted-foreground">Blast product news, pricing changes or system upgrades to doctor subgroups.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -80,21 +78,11 @@ function EmailCampaignsPage() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="campName">Campaign Name</Label>
-              <Input
-                id="campName"
-                value={name}
-                placeholder="July Feature Blast"
-                onChange={(e) => setName(e.target.value)}
-              />
+              <Input id="campName" value={name} placeholder="July Feature Blast" onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label htmlFor="campSubject">Email Subject Line</Label>
-              <Input
-                id="campSubject"
-                value={subject}
-                placeholder="July Features: Advanced EHR & QR Loyalty Card inside!"
-                onChange={(e) => setSubject(e.target.value)}
-              />
+              <Input id="campSubject" value={subject} placeholder="July Features: Advanced EHR & QR Loyalty Card inside!" onChange={(e) => setSubject(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label>Segment Recipients</Label>
@@ -127,31 +115,19 @@ function EmailCampaignsPage() {
                 disabled={!name || !subject || createMut.isPending}
                 onClick={() => createMut.mutate("draft")}
               >
-                {createMut.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Plus className="size-4 mr-1" />
-                )}
+                {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4 mr-1" />}
                 Save Draft
               </Button>
               <Button
                 className="bg-primary hover:bg-primary/90"
                 disabled={!name || !subject || createMut.isPending}
                 onClick={() => {
-                  if (
-                    confirm(
-                      "Are you sure you want to blast this newsletter to matching Segment recipients right now?",
-                    )
-                  ) {
+                  if (confirm("Are you sure you want to blast this newsletter to matching Segment recipients right now?")) {
                     createMut.mutate("sent");
                   }
                 }}
               >
-                {createMut.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Send className="size-4 mr-1" />
-                )}
+                {createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4 mr-1" />}
                 Blast Mailer
               </Button>
             </div>
@@ -164,32 +140,19 @@ function EmailCampaignsPage() {
             <h3 className="font-semibold text-foreground font-display">Campaign History</h3>
           </div>
           <div className="divide-y">
-            {campaigns.length === 0 && (
-              <p className="text-sm text-muted-foreground/70 py-6 text-center">
-                No newsletters created.
-              </p>
-            )}
+            {campaigns.length === 0 && <p className="text-sm text-muted-foreground/70 py-6 text-center">No newsletters created.</p>}
             {campaigns.map((c: any) => (
-              <div
-                key={c.id}
-                className="p-4 hover:bg-muted/50 flex items-start justify-between gap-4 text-sm"
-              >
+              <div key={c.id} className="p-4 hover:bg-muted/50 flex items-start justify-between gap-4 text-sm">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-foreground">{c.name}</span>
-                    <Badge
-                      variant={c.status === "sent" ? "default" : "secondary"}
-                      className="capitalize"
-                    >
+                    <Badge variant={c.status === "sent" ? "default" : "secondary"} className="capitalize">
                       {c.status}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="font-medium text-foreground/80">Subject:</span> {c.subject}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1"><span className="font-medium text-foreground/80">Subject:</span> {c.subject}</p>
                   <div className="text-[10px] text-muted-foreground/70 mt-2">
-                    Segment: <span className="uppercase">{c.target_segment}</span> · Recipients:{" "}
-                    {c.recipient_count} · Opens: {c.open_count}
+                    Segment: <span className="uppercase">{c.target_segment}</span> · Recipients: {c.recipient_count} · Opens: {c.open_count}
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground/70 whitespace-nowrap">

@@ -6,21 +6,20 @@ import { z } from "zod";
 // admin-auth.functions.ts). The legacy loginAdmin/checkAdminSession/logoutAdmin
 // server functions (custom SHA-256 + admin_sessions cookie) have been retired.
 
-export const getAdminStats = createServerFn({ method: "GET" }).handler(async () => {
-  const { getAdminStatsImpl } = await import("./admin.server");
-  return getAdminStatsImpl();
-});
+export const getAdminStats = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { getAdminStatsImpl } = await import("./admin.server");
+    return getAdminStatsImpl();
+  });
 
 export const listAdminDoctors = createServerFn({ method: "GET" })
   .inputValidator(
-    z
-      .object({
-        search: z.string().optional(),
-        plan: z.string().optional(),
-        status: z.string().optional(),
-        limit: z.number().optional(),
-      })
-      .optional(),
+    z.object({
+      search: z.string().optional(),
+      plan: z.string().optional(),
+      status: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional()
   )
   .handler(async ({ data: input }) => {
     const { listAdminDoctorsImpl } = await import("./admin.server");
@@ -47,7 +46,7 @@ export const updateDoctorProfile = createServerFn({ method: "POST" })
       planId: z.string().nullable().optional(),
       status: z.string().optional(),
       periodEnd: z.string().nullable().optional(),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { updateDoctorProfileImpl } = await import("./admin.server");
@@ -62,7 +61,7 @@ export const changeDoctorPlan = createServerFn({ method: "POST" })
       extendDays: z.number().optional(),
       grantFreeMonth: z.boolean().optional(),
       cancelSub: z.boolean().optional(),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { changeDoctorPlanImpl } = await import("./admin.server");
@@ -97,15 +96,17 @@ export const clearDoctorPatientsData = createServerFn({ method: "POST" })
     return clearDoctorPatientsDataImpl(input);
   });
 
-export const listAdminSubscriptions = createServerFn({ method: "GET" }).handler(async () => {
-  const { listAdminSubscriptionsImpl } = await import("./admin.server");
-  return listAdminSubscriptionsImpl();
-});
+export const listAdminSubscriptions = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listAdminSubscriptionsImpl } = await import("./admin.server");
+    return listAdminSubscriptionsImpl();
+  });
 
-export const getAdminPlans = createServerFn({ method: "GET" }).handler(async () => {
-  const { getAdminPlansImpl } = await import("./admin.server");
-  return getAdminPlansImpl();
-});
+export const getAdminPlans = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { getAdminPlansImpl } = await import("./admin.server");
+    return getAdminPlansImpl();
+  });
 
 export const updatePlanDetails = createServerFn({ method: "POST" })
   .inputValidator(
@@ -117,17 +118,18 @@ export const updatePlanDetails = createServerFn({ method: "POST" })
       moduleIds: z.array(z.string()).optional(),
       discountedMonthlyPrice: z.number().nullable().optional(),
       discountedYearlyPrice: z.number().nullable().optional(),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { updatePlanDetailsImpl } = await import("./admin.server");
     return updatePlanDetailsImpl(input);
   });
 
-export const listCoupons = createServerFn({ method: "GET" }).handler(async () => {
-  const { listCouponsImpl } = await import("./admin.server");
-  return listCouponsImpl();
-});
+export const listCoupons = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listCouponsImpl } = await import("./admin.server");
+    return listCouponsImpl();
+  });
 
 export const createCoupon = createServerFn({ method: "POST" })
   .inputValidator(
@@ -139,7 +141,7 @@ export const createCoupon = createServerFn({ method: "POST" })
       expiresAt: z.string().optional(),
       applicablePlan: z.string().optional(),
       razorpayOfferId: z.string().optional(),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { createCouponImpl } = await import("./admin.server");
@@ -153,15 +155,17 @@ export const toggleCouponActive = createServerFn({ method: "POST" })
     return toggleCouponActiveImpl(input);
   });
 
-export const listTransactions = createServerFn({ method: "GET" }).handler(async () => {
-  const { listTransactionsImpl } = await import("./admin.server");
-  return listTransactionsImpl();
-});
+export const listTransactions = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listTransactionsImpl } = await import("./admin.server");
+    return listTransactionsImpl();
+  });
 
-export const listFeatureFlags = createServerFn({ method: "GET" }).handler(async () => {
-  const { listFeatureFlagsImpl } = await import("./admin.server");
-  return listFeatureFlagsImpl();
-});
+export const listFeatureFlags = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listFeatureFlagsImpl } = await import("./admin.server");
+    return listFeatureFlagsImpl();
+  });
 
 export const toggleFeatureFlag = createServerFn({ method: "POST" })
   .inputValidator(z.object({ key: z.string(), enabled: z.boolean() }))
@@ -171,18 +175,17 @@ export const toggleFeatureFlag = createServerFn({ method: "POST" })
   });
 
 export const updateFeatureFlagOverrides = createServerFn({ method: "POST" })
-  .inputValidator(
-    z.object({ key: z.string(), plans: z.array(z.string()), doctorIds: z.array(z.string()) }),
-  )
+  .inputValidator(z.object({ key: z.string(), plans: z.array(z.string()), doctorIds: z.array(z.string()) }))
   .handler(async ({ data: input }) => {
     const { updateFeatureFlagOverridesImpl } = await import("./admin.server");
     return updateFeatureFlagOverridesImpl(input);
   });
 
-export const listAnnouncements = createServerFn({ method: "GET" }).handler(async () => {
-  const { listAnnouncementsImpl } = await import("./admin.server");
-  return listAnnouncementsImpl();
-});
+export const listAnnouncements = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listAnnouncementsImpl } = await import("./admin.server");
+    return listAnnouncementsImpl();
+  });
 
 export const createAnnouncement = createServerFn({ method: "POST" })
   .inputValidator(
@@ -191,7 +194,7 @@ export const createAnnouncement = createServerFn({ method: "POST" })
       body: z.string(),
       type: z.enum(["info", "warning", "success", "maintenance"]),
       targetPlans: z.array(z.string()),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { createAnnouncementImpl } = await import("./admin.server");
@@ -205,10 +208,11 @@ export const toggleAnnouncementActive = createServerFn({ method: "POST" })
     return toggleAnnouncementActiveImpl(input);
   });
 
-export const listEmailCampaigns = createServerFn({ method: "GET" }).handler(async () => {
-  const { listEmailCampaignsImpl } = await import("./admin.server");
-  return listEmailCampaignsImpl();
-});
+export const listEmailCampaigns = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listEmailCampaignsImpl } = await import("./admin.server");
+    return listEmailCampaignsImpl();
+  });
 
 export const createEmailCampaign = createServerFn({ method: "POST" })
   .inputValidator(
@@ -218,17 +222,18 @@ export const createEmailCampaign = createServerFn({ method: "POST" })
       bodyHtml: z.string(),
       targetSegment: z.string(),
       status: z.enum(["draft", "sent"]),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { createEmailCampaignImpl } = await import("./admin.server");
     return createEmailCampaignImpl(input);
   });
 
-export const getDatabaseStats = createServerFn({ method: "GET" }).handler(async () => {
-  const { getDatabaseStatsImpl } = await import("./admin.server");
-  return getDatabaseStatsImpl();
-});
+export const getDatabaseStats = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { getDatabaseStatsImpl } = await import("./admin.server");
+    return getDatabaseStatsImpl();
+  });
 
 export const runDatabaseCleanup = createServerFn({ method: "POST" })
   .inputValidator(z.object({ tool: z.enum(["unverified", "sessions", "archive"]) }))
@@ -237,10 +242,11 @@ export const runDatabaseCleanup = createServerFn({ method: "POST" })
     return runDatabaseCleanupImpl(input);
   });
 
-export const listSupportTickets = createServerFn({ method: "GET" }).handler(async () => {
-  const { listSupportTicketsImpl } = await import("./admin.server");
-  return listSupportTicketsImpl();
-});
+export const listSupportTickets = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listSupportTicketsImpl } = await import("./admin.server");
+    return listSupportTicketsImpl();
+  });
 
 export const getSupportTicket = createServerFn({ method: "GET" })
   .inputValidator(z.object({ id: z.string() }))
@@ -263,15 +269,17 @@ export const updateTicketStatus = createServerFn({ method: "POST" })
     return updateTicketStatusImpl(input);
   });
 
-export const listAuditLogs = createServerFn({ method: "GET" }).handler(async () => {
-  const { listAuditLogsImpl } = await import("./admin.server");
-  return listAuditLogsImpl();
-});
+export const listAuditLogs = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listAuditLogsImpl } = await import("./admin.server");
+    return listAuditLogsImpl();
+  });
 
-export const listAdminUsers = createServerFn({ method: "GET" }).handler(async () => {
-  const { listAdminUsersImpl } = await import("./admin.server");
-  return listAdminUsersImpl();
-});
+export const listAdminUsers = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { listAdminUsersImpl } = await import("./admin.server");
+    return listAdminUsersImpl();
+  });
 
 // Grants an admin role (super_admin | support) to an EXISTING ClinicX account,
 // identified by email. Admins are ordinary Supabase Auth users flagged in
@@ -290,10 +298,11 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     return deleteAdminUserImpl(input);
   });
 
-export const getSystemSettings = createServerFn({ method: "GET" }).handler(async () => {
-  const { getSystemSettingsImpl } = await import("./admin.server");
-  return getSystemSettingsImpl();
-});
+export const getSystemSettings = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { getSystemSettingsImpl } = await import("./admin.server");
+    return getSystemSettingsImpl();
+  });
 
 export const saveSystemSettings = createServerFn({ method: "POST" })
   .inputValidator(z.record(z.string(), z.string()))
@@ -303,12 +312,10 @@ export const saveSystemSettings = createServerFn({ method: "POST" })
   });
 
 export const testIntegration = createServerFn({ method: "POST" })
-  .inputValidator(
-    z.object({
-      provider: z.enum(["wati", "razorpay", "openai"]),
-      settings: z.record(z.string(), z.string()),
-    }),
-  )
+  .inputValidator(z.object({
+    provider: z.enum(["wati", "razorpay", "openai"]),
+    settings: z.record(z.string(), z.string()),
+  }))
   .handler(async ({ data: input }) => {
     const { testIntegrationImpl } = await import("./admin.server");
     return testIntegrationImpl(input);
@@ -337,9 +344,7 @@ export const toggleClinicPublish = createServerFn({ method: "POST" })
   });
 
 export const updateSubscriptionStatus = createServerFn({ method: "POST" })
-  .inputValidator(
-    z.object({ id: z.string(), action: z.enum(["cancel", "reactivate", "mark_expired"]) }),
-  )
+  .inputValidator(z.object({ id: z.string(), action: z.enum(["cancel", "reactivate", "mark_expired"]) }))
   .handler(async ({ data: input }) => {
     const { updateSubscriptionStatusImpl } = await import("./admin.server");
     return updateSubscriptionStatusImpl(input);
@@ -361,7 +366,7 @@ export const createPlan = createServerFn({ method: "POST" })
       yearlyPrice: z.number().int().min(0),
       features: z.array(z.string()).optional(),
       sortOrder: z.number().int().optional(),
-    }),
+    })
   )
   .handler(async ({ data: input }) => {
     const { createPlanImpl } = await import("./admin.server");
@@ -375,26 +380,27 @@ export const deletePlan = createServerFn({ method: "POST" })
     return deletePlanImpl(input);
   });
 
-export const checkMaintenanceStatus = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
-    .from("system_settings")
-    .select("key, value")
-    .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
-
-  const settings = {
-    maintenance_mode: "false",
-    maintenance_message: "We're upgrading the platform. Back in 2 hours.",
-    platform_name: "ClinicX",
-    support_email: "support@clinicos.in",
-  };
-
-  (data ?? []).forEach((row: any) => {
-    if (row.key === "maintenance_mode") settings.maintenance_mode = row.value;
-    if (row.key === "maintenance_message") settings.maintenance_message = row.value;
-    if (row.key === "platform_name") settings.platform_name = row.value;
-    if (row.key === "support_email") settings.support_email = row.value;
+export const checkMaintenanceStatus = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("system_settings")
+      .select("key, value")
+      .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
+    
+    const settings = {
+      maintenance_mode: "false",
+      maintenance_message: "We're upgrading the platform. Back in 2 hours.",
+      platform_name: "ClinicX",
+      support_email: "support@clinicos.in"
+    };
+    
+    (data ?? []).forEach((row: any) => {
+      if (row.key === "maintenance_mode") settings.maintenance_mode = row.value;
+      if (row.key === "maintenance_message") settings.maintenance_message = row.value;
+      if (row.key === "platform_name") settings.platform_name = row.value;
+      if (row.key === "support_email") settings.support_email = row.value;
+    });
+    
+    return settings;
   });
-
-  return settings;
-});

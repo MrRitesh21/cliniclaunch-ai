@@ -2,11 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  listFeatureFlags,
-  toggleFeatureFlag,
-  updateFeatureFlagOverrides,
-} from "@/lib/admin.functions";
+import { listFeatureFlags, toggleFeatureFlag, updateFeatureFlagOverrides } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,17 +22,15 @@ function FeatureFlagsPage() {
   const toggleFlagFn = useServerFn(toggleFeatureFlag);
   const updateOverridesFn = useServerFn(updateFeatureFlagOverrides);
 
-  const { data: flags = [], isLoading } = useQuery({
-    queryKey: ["admin-feature-flags"],
-    queryFn: () => getFlagsFn(),
-  });
+  const { data: flags = [], isLoading } = useQuery({ queryKey: ["admin-feature-flags"], queryFn: () => getFlagsFn() });
 
   const [editingFlagKey, setEditingFlagKey] = useState<string | null>(null);
   const [plansText, setPlansText] = useState("");
   const [doctorsText, setDoctorsText] = useState("");
 
   const toggleMut = useMutation({
-    mutationFn: (args: { key: string; enabled: boolean }) => toggleFlagFn({ data: args }),
+    mutationFn: (args: { key: string; enabled: boolean }) =>
+      toggleFlagFn({ data: args }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-feature-flags"] });
       toast.success("Flag status toggled globally");
@@ -49,14 +43,8 @@ function FeatureFlagsPage() {
       updateOverridesFn({
         data: {
           key: editingFlagKey!,
-          plans: plansText
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          doctorIds: doctorsText
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          plans: plansText.split(",").map((s) => s.trim()).filter(Boolean),
+          doctorIds: doctorsText.split(",").map((s) => s.trim()).filter(Boolean),
         },
       }),
     onSuccess: () => {
@@ -83,10 +71,7 @@ function FeatureFlagsPage() {
           <Flag className="size-6 text-primary" />
           Feature Flags
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Toggle capabilities globally or roll them out progressively to segments or specific
-          doctors.
-        </p>
+        <p className="text-sm text-muted-foreground">Toggle capabilities globally or roll them out progressively to segments or specific doctors.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
@@ -98,9 +83,7 @@ function FeatureFlagsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-base text-foreground">{f.name}</h3>
-                    <code className="text-xs bg-muted text-foreground/80 px-1.5 py-0.5 rounded font-mono">
-                      {f.key}
-                    </code>
+                    <code className="text-xs bg-muted text-foreground/80 px-1.5 py-0.5 rounded font-mono">{f.key}</code>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{f.description}</p>
                 </div>
@@ -129,9 +112,7 @@ function FeatureFlagsPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor={`docs-${f.key}`}>
-                        Enable for Specific Doctor IDs (comma separated)
-                      </Label>
+                      <Label htmlFor={`docs-${f.key}`}>Enable for Specific Doctor IDs (comma separated)</Label>
                       <Input
                         id={`docs-${f.key}`}
                         value={doctorsText}
@@ -148,9 +129,7 @@ function FeatureFlagsPage() {
                     >
                       Save Overrides
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingFlagKey(null)}>
-                      Cancel
-                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingFlagKey(null)}>Cancel</Button>
                   </div>
                 </Card>
               ) : (
@@ -161,9 +140,7 @@ function FeatureFlagsPage() {
                       <span>None</span>
                     ) : (
                       (f.enabled_for_plans ?? []).map((p: string) => (
-                        <Badge key={p} variant="secondary">
-                          {p}
-                        </Badge>
+                        <Badge key={p} variant="secondary">{p}</Badge>
                       ))
                     )}
                   </div>
@@ -172,9 +149,7 @@ function FeatureFlagsPage() {
                     {(f.enabled_for_doctor_ids ?? []).length === 0 ? (
                       <span>None</span>
                     ) : (
-                      <Badge variant="outline">
-                        {(f.enabled_for_doctor_ids ?? []).length} overridden
-                      </Badge>
+                      <Badge variant="outline">{(f.enabled_for_doctor_ids ?? []).length} overridden</Badge>
                     )}
                   </div>
                   <Button

@@ -18,9 +18,7 @@ async function getMyManagedClinic(supabase: SB, userId: string) {
   }
   const { data: clinic, error } = await supabase
     .from("clinics")
-    .select(
-      "id, organization_id, wa_status, wa_phone, wa_session_id, wa_linked_by, wa_connected_at",
-    )
+    .select("id, organization_id, wa_status, wa_phone, wa_session_id, wa_linked_by, wa_connected_at")
     .in("organization_id", orgIds)
     .limit(1)
     .maybeSingle();
@@ -51,16 +49,11 @@ async function assertAdmin(supabase: SB, userId: string) {
 export const startMyWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { baileysDelete, baileysCreateSession, baileysStatus, clinicSessionId } =
-      await import("./baileys.server");
+    const { baileysDelete, baileysCreateSession, baileysStatus, clinicSessionId } = await import("./baileys.server");
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
     const sid = clinicSessionId(clinic.id);
     // Purge any stale previous session credentials before initializing a new pairing session
-    try {
-      await baileysDelete(sid);
-    } catch {
-      /* ignore if already gone */
-    }
+    try { await baileysDelete(sid); } catch { /* ignore if already gone */ }
     await baileysCreateSession(sid);
     await context.supabase
       .from("clinics")
@@ -105,13 +98,7 @@ export const getMyWhatsappStatus = createServerFn({ method: "GET" })
     } else if (!status && clinic.wa_status !== "disconnected") {
       await context.supabase
         .from("clinics")
-        .update({
-          wa_status: "disconnected",
-          wa_phone: null,
-          wa_session_id: null,
-          wa_linked_by: null,
-          wa_connected_at: null,
-        })
+        .update({ wa_status: "disconnected", wa_phone: null, wa_session_id: null, wa_linked_by: null, wa_connected_at: null })
         .eq("id", clinic.id);
     }
     return { sessionId: sid, status, dbStatus: clinic.wa_status };
@@ -124,11 +111,7 @@ export const disconnectMyWhatsapp = createServerFn({ method: "POST" })
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
     const sid = clinicSessionId(clinic.id);
     // 1. Delete session auth files & logout from gateway server
-    try {
-      await baileysDelete(sid);
-    } catch {
-      /* already gone */
-    }
+    try { await baileysDelete(sid); } catch { /* already gone */ }
     // 2. Completely erase session details & phone number from database
     await context.supabase
       .from("clinics")
@@ -147,14 +130,10 @@ export const disconnectMyWhatsapp = createServerFn({ method: "POST" })
 
 export const sendTestWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z
-      .object({
-        phone: z.string().trim().min(5).max(20),
-        message: z.string().trim().min(1).max(2000),
-      })
-      .parse(i),
-  )
+  .inputValidator((i: unknown) => z.object({
+    phone: z.string().trim().min(5).max(20),
+    message: z.string().trim().min(1).max(2000),
+  }).parse(i))
   .handler(async ({ data, context }) => {
     const { baileysSend, baileysStatus, clinicSessionId } = await import("./baileys.server");
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
@@ -176,8 +155,7 @@ export const startAdminWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { baileysCreateSession, baileysStatus, PLATFORM_ADMIN_SESSION } =
-      await import("./baileys.server");
+    const { baileysCreateSession, baileysStatus, PLATFORM_ADMIN_SESSION } = await import("./baileys.server");
     await baileysCreateSession(PLATFORM_ADMIN_SESSION);
     const status = await baileysStatus(PLATFORM_ADMIN_SESSION);
     return { sessionId: PLATFORM_ADMIN_SESSION, status };
@@ -197,24 +175,16 @@ export const disconnectAdminWhatsapp = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { baileysDelete, PLATFORM_ADMIN_SESSION } = await import("./baileys.server");
-    try {
-      await baileysDelete(PLATFORM_ADMIN_SESSION);
-    } catch {
-      /* */
-    }
+    try { await baileysDelete(PLATFORM_ADMIN_SESSION); } catch { /* */ }
     return { ok: true };
   });
 
 export const sendAdminTestWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z
-      .object({
-        phone: z.string().trim().min(5).max(20),
-        message: z.string().trim().min(1).max(2000),
-      })
-      .parse(i),
-  )
+  .inputValidator((i: unknown) => z.object({
+    phone: z.string().trim().min(5).max(20),
+    message: z.string().trim().min(1).max(2000),
+  }).parse(i))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { baileysSend, baileysStatus, PLATFORM_ADMIN_SESSION } = await import("./baileys.server");

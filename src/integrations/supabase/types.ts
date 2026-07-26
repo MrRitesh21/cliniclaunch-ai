@@ -1,3317 +1,3331 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5";
-  };
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       admin_audit_logs: {
         Row: {
-          action: string;
-          admin_id: string | null;
-          created_at: string;
-          id: string;
-          ip_address: string | null;
-          metadata: Json | null;
-          target_id: string | null;
-          target_type: string | null;
-          user_agent: string | null;
-        };
+          action: string
+          admin_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
         Insert: {
-          action: string;
-          admin_id?: string | null;
-          created_at?: string;
-          id?: string;
-          ip_address?: string | null;
-          metadata?: Json | null;
-          target_id?: string | null;
-          target_type?: string | null;
-          user_agent?: string | null;
-        };
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
         Update: {
-          action?: string;
-          admin_id?: string | null;
-          created_at?: string;
-          id?: string;
-          ip_address?: string | null;
-          metadata?: Json | null;
-          target_id?: string | null;
-          target_type?: string | null;
-          user_agent?: string | null;
-        };
-        Relationships: [];
-      };
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       admin_login_failures: {
         Row: {
-          failed_attempts: number | null;
-          id: string;
-          ip_address: string;
-          locked_until: string | null;
-          updated_at: string | null;
-        };
+          failed_attempts: number | null
+          id: string
+          ip_address: string
+          locked_until: string | null
+          updated_at: string | null
+        }
         Insert: {
-          failed_attempts?: number | null;
-          id?: string;
-          ip_address: string;
-          locked_until?: string | null;
-          updated_at?: string | null;
-        };
+          failed_attempts?: number | null
+          id?: string
+          ip_address: string
+          locked_until?: string | null
+          updated_at?: string | null
+        }
         Update: {
-          failed_attempts?: number | null;
-          id?: string;
-          ip_address?: string;
-          locked_until?: string | null;
-          updated_at?: string | null;
-        };
-        Relationships: [];
-      };
+          failed_attempts?: number | null
+          id?: string
+          ip_address?: string
+          locked_until?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       admin_sessions: {
         Row: {
-          admin_id: string | null;
-          created_at: string | null;
-          expires_at: string | null;
-          id: string;
-          ip_address: string | null;
-          token: string;
-          user_agent: string | null;
-        };
+          admin_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          ip_address: string | null
+          token: string
+          user_agent: string | null
+        }
         Insert: {
-          admin_id?: string | null;
-          created_at?: string | null;
-          expires_at?: string | null;
-          id?: string;
-          ip_address?: string | null;
-          token: string;
-          user_agent?: string | null;
-        };
+          admin_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          token: string
+          user_agent?: string | null
+        }
         Update: {
-          admin_id?: string | null;
-          created_at?: string | null;
-          expires_at?: string | null;
-          id?: string;
-          ip_address?: string | null;
-          token?: string;
-          user_agent?: string | null;
-        };
+          admin_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          token?: string
+          user_agent?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "admin_sessions_admin_id_fkey";
-            columns: ["admin_id"];
-            isOneToOne: false;
-            referencedRelation: "admin_users";
-            referencedColumns: ["id"];
+            foreignKeyName: "admin_sessions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       admin_users: {
         Row: {
-          created_at: string | null;
-          email: string;
-          id: string;
-          last_login_at: string | null;
-          name: string | null;
-          password_hash: string;
-          role: string | null;
-        };
+          created_at: string | null
+          email: string
+          id: string
+          last_login_at: string | null
+          name: string | null
+          password_hash: string
+          role: string | null
+        }
         Insert: {
-          created_at?: string | null;
-          email: string;
-          id?: string;
-          last_login_at?: string | null;
-          name?: string | null;
-          password_hash: string;
-          role?: string | null;
-        };
+          created_at?: string | null
+          email: string
+          id?: string
+          last_login_at?: string | null
+          name?: string | null
+          password_hash: string
+          role?: string | null
+        }
         Update: {
-          created_at?: string | null;
-          email?: string;
-          id?: string;
-          last_login_at?: string | null;
-          name?: string | null;
-          password_hash?: string;
-          role?: string | null;
-        };
-        Relationships: [];
-      };
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string | null
+          password_hash?: string
+          role?: string | null
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
-          body: string;
-          created_at: string | null;
-          created_by: string | null;
-          id: string;
-          is_active: boolean | null;
-          show_from: string | null;
-          show_until: string | null;
-          target_plans: Json | null;
-          title: string;
-          type: string | null;
-        };
+          body: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          show_from: string | null
+          show_until: string | null
+          target_plans: Json | null
+          title: string
+          type: string | null
+        }
         Insert: {
-          body: string;
-          created_at?: string | null;
-          created_by?: string | null;
-          id?: string;
-          is_active?: boolean | null;
-          show_from?: string | null;
-          show_until?: string | null;
-          target_plans?: Json | null;
-          title: string;
-          type?: string | null;
-        };
+          body: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          show_from?: string | null
+          show_until?: string | null
+          target_plans?: Json | null
+          title: string
+          type?: string | null
+        }
         Update: {
-          body?: string;
-          created_at?: string | null;
-          created_by?: string | null;
-          id?: string;
-          is_active?: boolean | null;
-          show_from?: string | null;
-          show_until?: string | null;
-          target_plans?: Json | null;
-          title?: string;
-          type?: string | null;
-        };
+          body?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          show_from?: string | null
+          show_until?: string | null
+          target_plans?: Json | null
+          title?: string
+          type?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "announcements_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "admin_users";
-            referencedColumns: ["id"];
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       appointments: {
         Row: {
-          appointment_date: string | null;
-          appointment_time: string | null;
-          appointment_type: string | null;
-          clinic_id: string | null;
-          created_at: string;
-          doctor_id: string | null;
-          doctor_name: string | null;
-          duration_minutes: number;
-          id: string;
-          notes: string | null;
-          organization_id: string | null;
-          patient_age: number | null;
-          patient_email: string | null;
-          patient_gender: string | null;
-          patient_id: string | null;
-          patient_name: string;
-          patient_phone: string | null;
-          problem: string | null;
-          scheduled_at: string | null;
-          source: string | null;
-          status: Database["public"]["Enums"]["appointment_status"];
-          updated_at: string;
-        };
+          appointment_date: string | null
+          appointment_time: string | null
+          appointment_type: string | null
+          clinic_id: string | null
+          created_at: string
+          doctor_id: string | null
+          doctor_name: string | null
+          duration_minutes: number
+          id: string
+          notes: string | null
+          organization_id: string | null
+          patient_age: number | null
+          patient_email: string | null
+          patient_gender: string | null
+          patient_id: string | null
+          patient_name: string
+          patient_phone: string | null
+          problem: string | null
+          scheduled_at: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["appointment_status"]
+          updated_at: string
+        }
         Insert: {
-          appointment_date?: string | null;
-          appointment_time?: string | null;
-          appointment_type?: string | null;
-          clinic_id?: string | null;
-          created_at?: string;
-          doctor_id?: string | null;
-          doctor_name?: string | null;
-          duration_minutes?: number;
-          id?: string;
-          notes?: string | null;
-          organization_id?: string | null;
-          patient_age?: number | null;
-          patient_email?: string | null;
-          patient_gender?: string | null;
-          patient_id?: string | null;
-          patient_name: string;
-          patient_phone?: string | null;
-          problem?: string | null;
-          scheduled_at?: string | null;
-          source?: string | null;
-          status?: Database["public"]["Enums"]["appointment_status"];
-          updated_at?: string;
-        };
+          appointment_date?: string | null
+          appointment_time?: string | null
+          appointment_type?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          doctor_name?: string | null
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          patient_age?: number | null
+          patient_email?: string | null
+          patient_gender?: string | null
+          patient_id?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          problem?: string | null
+          scheduled_at?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
+        }
         Update: {
-          appointment_date?: string | null;
-          appointment_time?: string | null;
-          appointment_type?: string | null;
-          clinic_id?: string | null;
-          created_at?: string;
-          doctor_id?: string | null;
-          doctor_name?: string | null;
-          duration_minutes?: number;
-          id?: string;
-          notes?: string | null;
-          organization_id?: string | null;
-          patient_age?: number | null;
-          patient_email?: string | null;
-          patient_gender?: string | null;
-          patient_id?: string | null;
-          patient_name?: string;
-          patient_phone?: string | null;
-          problem?: string | null;
-          scheduled_at?: string | null;
-          source?: string | null;
-          status?: Database["public"]["Enums"]["appointment_status"];
-          updated_at?: string;
-        };
+          appointment_date?: string | null
+          appointment_time?: string | null
+          appointment_type?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          doctor_name?: string | null
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          patient_age?: number | null
+          patient_email?: string | null
+          patient_gender?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          problem?: string | null
+          scheduled_at?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "appointments_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "appointments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_doctor_id_fkey";
-            columns: ["doctor_id"];
-            isOneToOne: false;
-            referencedRelation: "doctors";
-            referencedColumns: ["id"];
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "appointments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_patient_id_fkey";
-            columns: ["patient_id"];
-            isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       audit_log: {
         Row: {
-          action: string;
-          actor_id: string | null;
-          created_at: string;
-          entity_id: string | null;
-          entity_type: string | null;
-          id: string;
-          metadata: Json | null;
-          organization_id: string | null;
-        };
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+        }
         Insert: {
-          action: string;
-          actor_id?: string | null;
-          created_at?: string;
-          entity_id?: string | null;
-          entity_type?: string | null;
-          id?: string;
-          metadata?: Json | null;
-          organization_id?: string | null;
-        };
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+        }
         Update: {
-          action?: string;
-          actor_id?: string | null;
-          created_at?: string;
-          entity_id?: string | null;
-          entity_type?: string | null;
-          id?: string;
-          metadata?: Json | null;
-          organization_id?: string | null;
-        };
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "audit_log_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       clinic_domain_secrets: {
         Row: {
-          clinic_id: string;
-          created_at: string;
-          domain_verification_token: string;
-          updated_at: string;
-        };
+          clinic_id: string
+          created_at: string
+          domain_verification_token: string
+          updated_at: string
+        }
         Insert: {
-          clinic_id: string;
-          created_at?: string;
-          domain_verification_token?: string;
-          updated_at?: string;
-        };
+          clinic_id: string
+          created_at?: string
+          domain_verification_token?: string
+          updated_at?: string
+        }
         Update: {
-          clinic_id?: string;
-          created_at?: string;
-          domain_verification_token?: string;
-          updated_at?: string;
-        };
+          clinic_id?: string
+          created_at?: string
+          domain_verification_token?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "clinic_domain_secrets_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: true;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "clinic_domain_secrets_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       clinics: {
         Row: {
-          about_text: string | null;
-          address: string | null;
-          avatar_url: string | null;
-          bio: string | null;
-          blog_enabled: boolean;
-          clinic_name: string;
-          consultation_fee: number;
-          created_at: string;
-          custom_domain: string | null;
-          design_tokens: Json;
-          doctor_name: string;
-          domain_last_check_at: string | null;
-          domain_last_error: string | null;
-          domain_status: string | null;
-          domain_verified_at: string | null;
-          email: string | null;
-          experience_years: number;
-          faqs: Json;
-          gallery: Json;
-          google_place_id: string | null;
-          google_rating: number | null;
-          google_rating_count: number | null;
-          google_reviews: Json;
-          google_reviews_synced_at: string | null;
-          gsc_site_url: string | null;
-          gsc_verified: boolean;
-          hero_headline: string | null;
-          hero_subheadline: string | null;
-          id: string;
-          is_published: boolean;
-          logo_url: string | null;
-          medical_registration_no: string | null;
-          organization_id: string;
-          owner_id: string | null;
-          personal_email: string | null;
-          personal_phone: string | null;
-          phone: string | null;
-          public_address: string | null;
-          public_email: string | null;
-          public_phone: string | null;
-          published_at: string | null;
-          qualification: string;
-          section_content: Json | null;
-          section_hidden: Json | null;
-          section_order: Json | null;
-          section_variants: Json | null;
-          seo_autopilot: Json;
-          seo_autopilot_last_run: string | null;
-          seo_config: Json | null;
-          seo_description: string | null;
-          seo_report_email: string | null;
-          seo_score: number | null;
-          seo_title: string | null;
-          services: Json;
-          slug: string;
-          specialization: string;
-          suspended_at: string | null;
-          suspended_reason: string | null;
-          team: Json;
-          template: string | null;
-          testimonials: Json;
-          theme_color: string | null;
-          updated_at: string;
-          wa_connected_at: string | null;
-          wa_linked_by: string | null;
-          wa_phone: string | null;
-          wa_session_id: string | null;
-          wa_status: string;
-          walkin_end_time: string;
-          walkin_max_per_slot: number;
-          walkin_slot_minutes: number;
-          walkin_start_time: string;
-          walkin_weekends_enabled: boolean;
-          working_hours: Json;
-        };
+          about_text: string | null
+          address: string | null
+          avatar_url: string | null
+          bio: string | null
+          blog_enabled: boolean
+          clinic_name: string
+          consultation_fee: number
+          created_at: string
+          custom_domain: string | null
+          doctor_name: string
+          domain_last_check_at: string | null
+          domain_last_error: string | null
+          domain_status: string | null
+          domain_verified_at: string | null
+          email: string | null
+          experience_years: number
+          faqs: Json
+          gallery: Json
+          google_place_id: string | null
+          google_rating: number | null
+          google_rating_count: number | null
+          google_reviews: Json
+          google_reviews_synced_at: string | null
+          gsc_site_url: string | null
+          gsc_verified: boolean
+          hero_headline: string | null
+          hero_subheadline: string | null
+          id: string
+          is_published: boolean
+          logo_url: string | null
+          medical_registration_no: string | null
+          organization_id: string
+          owner_id: string | null
+          personal_email: string | null
+          personal_phone: string | null
+          phone: string | null
+          public_address: string | null
+          public_email: string | null
+          public_phone: string | null
+          published_at: string | null
+          qualification: string
+          section_content: Json | null
+          section_hidden: Json | null
+          section_order: Json | null
+          section_variants: Json | null
+          seo_autopilot: Json
+          seo_autopilot_last_run: string | null
+          seo_config: Json | null
+          seo_description: string | null
+          seo_report_email: string | null
+          seo_score: number | null
+          seo_title: string | null
+          services: Json
+          slug: string
+          specialization: string
+          suspended_at: string | null
+          suspended_reason: string | null
+          team: Json
+          template: string | null
+          testimonials: Json
+          theme_color: string | null
+          updated_at: string
+          wa_connected_at: string | null
+          wa_linked_by: string | null
+          wa_phone: string | null
+          wa_session_id: string | null
+          wa_status: string
+          walkin_end_time: string
+          walkin_max_per_slot: number
+          walkin_slot_minutes: number
+          walkin_start_time: string
+          walkin_weekends_enabled: boolean
+          working_hours: Json
+        }
         Insert: {
-          about_text?: string | null;
-          address?: string | null;
-          avatar_url?: string | null;
-          bio?: string | null;
-          blog_enabled?: boolean;
-          clinic_name?: string;
-          consultation_fee?: number;
-          created_at?: string;
-          custom_domain?: string | null;
-          design_tokens?: Json;
-          doctor_name?: string;
-          domain_last_check_at?: string | null;
-          domain_last_error?: string | null;
-          domain_status?: string | null;
-          domain_verified_at?: string | null;
-          email?: string | null;
-          experience_years?: number;
-          faqs?: Json;
-          gallery?: Json;
-          google_place_id?: string | null;
-          google_rating?: number | null;
-          google_rating_count?: number | null;
-          google_reviews?: Json;
-          google_reviews_synced_at?: string | null;
-          gsc_site_url?: string | null;
-          gsc_verified?: boolean;
-          hero_headline?: string | null;
-          hero_subheadline?: string | null;
-          id?: string;
-          is_published?: boolean;
-          logo_url?: string | null;
-          organization_id: string;
-          owner_id?: string | null;
-          personal_email?: string | null;
-          medical_registration_no?: string | null;
-          personal_phone?: string | null;
-          phone?: string | null;
-          public_address?: string | null;
-          public_email?: string | null;
-          public_phone?: string | null;
-          published_at?: string | null;
-          qualification?: string;
-          section_content?: Json | null;
-          section_hidden?: Json | null;
-          section_order?: Json | null;
-          section_variants?: Json | null;
-          seo_autopilot?: Json;
-          seo_autopilot_last_run?: string | null;
-          seo_config?: Json | null;
-          seo_description?: string | null;
-          seo_report_email?: string | null;
-          seo_score?: number | null;
-          seo_title?: string | null;
-          services?: Json;
-          slug: string;
-          specialization?: string;
-          suspended_at?: string | null;
-          suspended_reason?: string | null;
-          team?: Json;
-          template?: string | null;
-          testimonials?: Json;
-          theme_color?: string | null;
-          updated_at?: string;
-          wa_connected_at?: string | null;
-          wa_linked_by?: string | null;
-          wa_phone?: string | null;
-          wa_session_id?: string | null;
-          wa_status?: string;
-          walkin_end_time?: string;
-          walkin_max_per_slot?: number;
-          walkin_slot_minutes?: number;
-          walkin_start_time?: string;
-          walkin_weekends_enabled?: boolean;
-          working_hours?: Json;
-        };
+          about_text?: string | null
+          address?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          blog_enabled?: boolean
+          clinic_name?: string
+          consultation_fee?: number
+          created_at?: string
+          custom_domain?: string | null
+          doctor_name?: string
+          domain_last_check_at?: string | null
+          domain_last_error?: string | null
+          domain_status?: string | null
+          domain_verified_at?: string | null
+          email?: string | null
+          experience_years?: number
+          faqs?: Json
+          gallery?: Json
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_rating_count?: number | null
+          google_reviews?: Json
+          google_reviews_synced_at?: string | null
+          gsc_site_url?: string | null
+          gsc_verified?: boolean
+          hero_headline?: string | null
+          hero_subheadline?: string | null
+          id?: string
+          is_published?: boolean
+          logo_url?: string | null
+          organization_id: string
+          owner_id?: string | null
+          personal_email?: string | null
+          medical_registration_no?: string | null
+          personal_phone?: string | null
+          phone?: string | null
+          public_address?: string | null
+          public_email?: string | null
+          public_phone?: string | null
+          published_at?: string | null
+          qualification?: string
+          section_content?: Json | null
+          section_hidden?: Json | null
+          section_order?: Json | null
+          section_variants?: Json | null
+          seo_autopilot?: Json
+          seo_autopilot_last_run?: string | null
+          seo_config?: Json | null
+          seo_description?: string | null
+          seo_report_email?: string | null
+          seo_score?: number | null
+          seo_title?: string | null
+          services?: Json
+          slug: string
+          specialization?: string
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          team?: Json
+          template?: string | null
+          testimonials?: Json
+          theme_color?: string | null
+          updated_at?: string
+          wa_connected_at?: string | null
+          wa_linked_by?: string | null
+          wa_phone?: string | null
+          wa_session_id?: string | null
+          wa_status?: string
+          walkin_end_time?: string
+          walkin_max_per_slot?: number
+          walkin_slot_minutes?: number
+          walkin_start_time?: string
+          walkin_weekends_enabled?: boolean
+          working_hours?: Json
+        }
         Update: {
-          about_text?: string | null;
-          address?: string | null;
-          avatar_url?: string | null;
-          bio?: string | null;
-          blog_enabled?: boolean;
-          clinic_name?: string;
-          consultation_fee?: number;
-          created_at?: string;
-          custom_domain?: string | null;
-          design_tokens?: Json;
-          doctor_name?: string;
-          domain_last_check_at?: string | null;
-          domain_last_error?: string | null;
-          domain_status?: string | null;
-          domain_verified_at?: string | null;
-          email?: string | null;
-          experience_years?: number;
-          faqs?: Json;
-          gallery?: Json;
-          google_place_id?: string | null;
-          google_rating?: number | null;
-          google_rating_count?: number | null;
-          google_reviews?: Json;
-          google_reviews_synced_at?: string | null;
-          gsc_site_url?: string | null;
-          gsc_verified?: boolean;
-          hero_headline?: string | null;
-          hero_subheadline?: string | null;
-          id?: string;
-          is_published?: boolean;
-          logo_url?: string | null;
-          organization_id?: string;
-          owner_id?: string | null;
-          personal_email?: string | null;
-          medical_registration_no?: string | null;
-          personal_phone?: string | null;
-          phone?: string | null;
-          public_address?: string | null;
-          public_email?: string | null;
-          public_phone?: string | null;
-          published_at?: string | null;
-          qualification?: string;
-          section_content?: Json | null;
-          section_hidden?: Json | null;
-          section_order?: Json | null;
-          section_variants?: Json | null;
-          seo_autopilot?: Json;
-          seo_autopilot_last_run?: string | null;
-          seo_config?: Json | null;
-          seo_description?: string | null;
-          seo_report_email?: string | null;
-          seo_score?: number | null;
-          seo_title?: string | null;
-          services?: Json;
-          slug?: string;
-          specialization?: string;
-          suspended_at?: string | null;
-          suspended_reason?: string | null;
-          team?: Json;
-          template?: string | null;
-          testimonials?: Json;
-          theme_color?: string | null;
-          updated_at?: string;
-          wa_connected_at?: string | null;
-          wa_linked_by?: string | null;
-          wa_phone?: string | null;
-          wa_session_id?: string | null;
-          wa_status?: string;
-          walkin_end_time?: string;
-          walkin_max_per_slot?: number;
-          walkin_slot_minutes?: number;
-          walkin_start_time?: string;
-          walkin_weekends_enabled?: boolean;
-          working_hours?: Json;
-        };
+          about_text?: string | null
+          address?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          blog_enabled?: boolean
+          clinic_name?: string
+          consultation_fee?: number
+          created_at?: string
+          custom_domain?: string | null
+          doctor_name?: string
+          domain_last_check_at?: string | null
+          domain_last_error?: string | null
+          domain_status?: string | null
+          domain_verified_at?: string | null
+          email?: string | null
+          experience_years?: number
+          faqs?: Json
+          gallery?: Json
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_rating_count?: number | null
+          google_reviews?: Json
+          google_reviews_synced_at?: string | null
+          gsc_site_url?: string | null
+          gsc_verified?: boolean
+          hero_headline?: string | null
+          hero_subheadline?: string | null
+          id?: string
+          is_published?: boolean
+          logo_url?: string | null
+          organization_id?: string
+          owner_id?: string | null
+          personal_email?: string | null
+          medical_registration_no?: string | null
+          personal_phone?: string | null
+          phone?: string | null
+          public_address?: string | null
+          public_email?: string | null
+          public_phone?: string | null
+          published_at?: string | null
+          qualification?: string
+          section_content?: Json | null
+          section_hidden?: Json | null
+          section_order?: Json | null
+          section_variants?: Json | null
+          seo_autopilot?: Json
+          seo_autopilot_last_run?: string | null
+          seo_config?: Json | null
+          seo_description?: string | null
+          seo_report_email?: string | null
+          seo_score?: number | null
+          seo_title?: string | null
+          services?: Json
+          slug?: string
+          specialization?: string
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          team?: Json
+          template?: string | null
+          testimonials?: Json
+          theme_color?: string | null
+          updated_at?: string
+          wa_connected_at?: string | null
+          wa_linked_by?: string | null
+          wa_phone?: string | null
+          wa_session_id?: string | null
+          wa_status?: string
+          walkin_end_time?: string
+          walkin_max_per_slot?: number
+          walkin_slot_minutes?: number
+          walkin_start_time?: string
+          walkin_weekends_enabled?: boolean
+          working_hours?: Json
+        }
         Relationships: [
           {
-            foreignKeyName: "clinics_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: true;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "clinics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       consultations: {
         Row: {
-          appointment_id: string | null;
-          bp: string | null;
-          chief_complaint: string | null;
-          clinic_id: string | null;
-          created_at: string;
-          created_by: string | null;
-          diagnosis: string | null;
-          examination: string | null;
-          follow_up_date: string | null;
-          height: string | null;
-          history: string | null;
-          id: string;
-          organization_id: string;
-          patient_id: string | null;
-          patient_name: string;
-          pulse: string | null;
-          temperature: string | null;
-          treatment_plan: string | null;
-          updated_at: string;
-          weight: string | null;
-        };
+          appointment_id: string | null
+          bp: string | null
+          chief_complaint: string | null
+          clinic_id: string | null
+          created_at: string
+          created_by: string | null
+          diagnosis: string | null
+          examination: string | null
+          follow_up_date: string | null
+          height: string | null
+          history: string | null
+          id: string
+          organization_id: string
+          patient_id: string | null
+          patient_name: string
+          pulse: string | null
+          temperature: string | null
+          treatment_plan: string | null
+          updated_at: string
+          weight: string | null
+        }
         Insert: {
-          appointment_id?: string | null;
-          bp?: string | null;
-          chief_complaint?: string | null;
-          clinic_id?: string | null;
-          created_at?: string;
-          created_by?: string | null;
-          diagnosis?: string | null;
-          examination?: string | null;
-          follow_up_date?: string | null;
-          height?: string | null;
-          history?: string | null;
-          id?: string;
-          organization_id: string;
-          patient_id?: string | null;
-          patient_name: string;
-          pulse?: string | null;
-          temperature?: string | null;
-          treatment_plan?: string | null;
-          updated_at?: string;
-          weight?: string | null;
-        };
+          appointment_id?: string | null
+          bp?: string | null
+          chief_complaint?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          diagnosis?: string | null
+          examination?: string | null
+          follow_up_date?: string | null
+          height?: string | null
+          history?: string | null
+          id?: string
+          organization_id: string
+          patient_id?: string | null
+          patient_name: string
+          pulse?: string | null
+          temperature?: string | null
+          treatment_plan?: string | null
+          updated_at?: string
+          weight?: string | null
+        }
         Update: {
-          appointment_id?: string | null;
-          bp?: string | null;
-          chief_complaint?: string | null;
-          clinic_id?: string | null;
-          created_at?: string;
-          created_by?: string | null;
-          diagnosis?: string | null;
-          examination?: string | null;
-          follow_up_date?: string | null;
-          height?: string | null;
-          history?: string | null;
-          id?: string;
-          organization_id?: string;
-          patient_id?: string | null;
-          patient_name?: string;
-          pulse?: string | null;
-          temperature?: string | null;
-          treatment_plan?: string | null;
-          updated_at?: string;
-          weight?: string | null;
-        };
+          appointment_id?: string | null
+          bp?: string | null
+          chief_complaint?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          diagnosis?: string | null
+          examination?: string | null
+          follow_up_date?: string | null
+          height?: string | null
+          history?: string | null
+          id?: string
+          organization_id?: string
+          patient_id?: string | null
+          patient_name?: string
+          pulse?: string | null
+          temperature?: string | null
+          treatment_plan?: string | null
+          updated_at?: string
+          weight?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "consultations_appointment_id_fkey";
-            columns: ["appointment_id"];
-            isOneToOne: false;
-            referencedRelation: "appointments";
-            referencedColumns: ["id"];
+            foreignKeyName: "consultations_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "consultations_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "consultations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "consultations_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "consultations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "consultations_patient_id_fkey";
-            columns: ["patient_id"];
-            isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            foreignKeyName: "consultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       coupon_codes: {
         Row: {
-          applicable_plan: string | null;
-          code: string;
-          created_at: string | null;
-          created_by: string | null;
-          discount_type: string | null;
-          discount_value: number | null;
-          expires_at: string | null;
-          id: string;
-          is_active: boolean | null;
-          max_uses: number | null;
-          razorpay_offer_id: string | null;
-          uses_count: number | null;
-        };
+          applicable_plan: string | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          discount_type: string | null
+          discount_value: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          razorpay_offer_id: string | null
+          uses_count: number | null
+        }
         Insert: {
-          applicable_plan?: string | null;
-          code: string;
-          created_at?: string | null;
-          created_by?: string | null;
-          discount_type?: string | null;
-          discount_value?: number | null;
-          expires_at?: string | null;
-          id?: string;
-          is_active?: boolean | null;
-          max_uses?: number | null;
-          razorpay_offer_id?: string | null;
-          uses_count?: number | null;
-        };
+          applicable_plan?: string | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          razorpay_offer_id?: string | null
+          uses_count?: number | null
+        }
         Update: {
-          applicable_plan?: string | null;
-          code?: string;
-          created_at?: string | null;
-          created_by?: string | null;
-          discount_type?: string | null;
-          discount_value?: number | null;
-          expires_at?: string | null;
-          id?: string;
-          is_active?: boolean | null;
-          max_uses?: number | null;
-          razorpay_offer_id?: string | null;
-          uses_count?: number | null;
-        };
+          applicable_plan?: string | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          razorpay_offer_id?: string | null
+          uses_count?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "coupon_codes_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "admin_users";
-            referencedColumns: ["id"];
+            foreignKeyName: "coupon_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       coupons: {
         Row: {
-          code: string;
-          created_at: string;
-          description: string | null;
-          discount_amount: number | null;
-          discount_percent: number | null;
-          is_active: boolean | null;
-          max_redemptions: number | null;
-          redemption_count: number | null;
-          valid_until: string | null;
-        };
+          code: string
+          created_at: string
+          description: string | null
+          discount_amount: number | null
+          discount_percent: number | null
+          is_active: boolean | null
+          max_redemptions: number | null
+          redemption_count: number | null
+          valid_until: string | null
+        }
         Insert: {
-          code: string;
-          created_at?: string;
-          description?: string | null;
-          discount_amount?: number | null;
-          discount_percent?: number | null;
-          is_active?: boolean | null;
-          max_redemptions?: number | null;
-          redemption_count?: number | null;
-          valid_until?: string | null;
-        };
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          is_active?: boolean | null
+          max_redemptions?: number | null
+          redemption_count?: number | null
+          valid_until?: string | null
+        }
         Update: {
-          code?: string;
-          created_at?: string;
-          description?: string | null;
-          discount_amount?: number | null;
-          discount_percent?: number | null;
-          is_active?: boolean | null;
-          max_redemptions?: number | null;
-          redemption_count?: number | null;
-          valid_until?: string | null;
-        };
-        Relationships: [];
-      };
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          is_active?: boolean | null
+          max_redemptions?: number | null
+          redemption_count?: number | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       doctors: {
         Row: {
-          avatar_url: string | null;
-          bio: string | null;
-          clinic_id: string | null;
-          consultation_fee: number | null;
-          created_at: string;
-          experience_years: number | null;
-          id: string;
-          is_active: boolean;
-          name: string;
-          organization_id: string;
-          qualification: string | null;
-          sort_order: number;
-          specialization: string | null;
-          updated_at: string;
-          user_id: string | null;
-        };
+          avatar_url: string | null
+          bio: string | null
+          clinic_id: string | null
+          consultation_fee: number | null
+          created_at: string
+          experience_years: number | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          qualification: string | null
+          sort_order: number
+          specialization: string | null
+          updated_at: string
+          user_id: string | null
+        }
         Insert: {
-          avatar_url?: string | null;
-          bio?: string | null;
-          clinic_id?: string | null;
-          consultation_fee?: number | null;
-          created_at?: string;
-          experience_years?: number | null;
-          id?: string;
-          is_active?: boolean;
-          name: string;
-          organization_id: string;
-          qualification?: string | null;
-          sort_order?: number;
-          specialization?: string | null;
-          updated_at?: string;
-          user_id?: string | null;
-        };
+          avatar_url?: string | null
+          bio?: string | null
+          clinic_id?: string | null
+          consultation_fee?: number | null
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          qualification?: string | null
+          sort_order?: number
+          specialization?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
         Update: {
-          avatar_url?: string | null;
-          bio?: string | null;
-          clinic_id?: string | null;
-          consultation_fee?: number | null;
-          created_at?: string;
-          experience_years?: number | null;
-          id?: string;
-          is_active?: boolean;
-          name?: string;
-          organization_id?: string;
-          qualification?: string | null;
-          sort_order?: number;
-          specialization?: string | null;
-          updated_at?: string;
-          user_id?: string | null;
-        };
+          avatar_url?: string | null
+          bio?: string | null
+          clinic_id?: string | null
+          consultation_fee?: number | null
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          qualification?: string | null
+          sort_order?: number
+          specialization?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "doctors_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "doctors_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "doctors_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "doctors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       email_campaigns: {
         Row: {
-          body_html: string;
-          created_at: string | null;
-          created_by: string | null;
-          id: string;
-          name: string;
-          open_count: number | null;
-          recipient_count: number | null;
-          scheduled_at: string | null;
-          sent_at: string | null;
-          status: string | null;
-          subject: string;
-          target_segment: string | null;
-        };
+          body_html: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          open_count: number | null
+          recipient_count: number | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          target_segment: string | null
+        }
         Insert: {
-          body_html: string;
-          created_at?: string | null;
-          created_by?: string | null;
-          id?: string;
-          name: string;
-          open_count?: number | null;
-          recipient_count?: number | null;
-          scheduled_at?: string | null;
-          sent_at?: string | null;
-          status?: string | null;
-          subject: string;
-          target_segment?: string | null;
-        };
+          body_html: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          open_count?: number | null
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          target_segment?: string | null
+        }
         Update: {
-          body_html?: string;
-          created_at?: string | null;
-          created_by?: string | null;
-          id?: string;
-          name?: string;
-          open_count?: number | null;
-          recipient_count?: number | null;
-          scheduled_at?: string | null;
-          sent_at?: string | null;
-          status?: string | null;
-          subject?: string;
-          target_segment?: string | null;
-        };
+          body_html?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          open_count?: number | null
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          target_segment?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "email_campaigns_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "admin_users";
-            referencedColumns: ["id"];
+            foreignKeyName: "email_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       feature_flags: {
         Row: {
-          created_at: string | null;
-          description: string | null;
-          enabled_for_doctor_ids: Json | null;
-          enabled_for_plans: Json | null;
-          id: string;
-          is_enabled_globally: boolean | null;
-          key: string;
-          name: string;
-          updated_at: string | null;
-        };
+          created_at: string | null
+          description: string | null
+          enabled_for_doctor_ids: Json | null
+          enabled_for_plans: Json | null
+          id: string
+          is_enabled_globally: boolean | null
+          key: string
+          name: string
+          updated_at: string | null
+        }
         Insert: {
-          created_at?: string | null;
-          description?: string | null;
-          enabled_for_doctor_ids?: Json | null;
-          enabled_for_plans?: Json | null;
-          id?: string;
-          is_enabled_globally?: boolean | null;
-          key: string;
-          name: string;
-          updated_at?: string | null;
-        };
+          created_at?: string | null
+          description?: string | null
+          enabled_for_doctor_ids?: Json | null
+          enabled_for_plans?: Json | null
+          id?: string
+          is_enabled_globally?: boolean | null
+          key: string
+          name: string
+          updated_at?: string | null
+        }
         Update: {
-          created_at?: string | null;
-          description?: string | null;
-          enabled_for_doctor_ids?: Json | null;
-          enabled_for_plans?: Json | null;
-          id?: string;
-          is_enabled_globally?: boolean | null;
-          key?: string;
-          name?: string;
-          updated_at?: string | null;
-        };
-        Relationships: [];
-      };
+          created_at?: string | null
+          description?: string | null
+          enabled_for_doctor_ids?: Json | null
+          enabled_for_plans?: Json | null
+          id?: string
+          is_enabled_globally?: boolean | null
+          key?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
-          created_at: string;
-          id: string;
-          low_stock_threshold: number;
-          name: string;
-          notes: string | null;
-          organization_id: string;
-          quantity: number;
-          sku: string | null;
-          unit: string;
-          unit_cost: number | null;
-          updated_at: string;
-        };
+          created_at: string
+          id: string
+          low_stock_threshold: number
+          name: string
+          notes: string | null
+          organization_id: string
+          quantity: number
+          sku: string | null
+          unit: string
+          unit_cost: number | null
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          id?: string;
-          low_stock_threshold?: number;
-          name: string;
-          notes?: string | null;
-          organization_id: string;
-          quantity?: number;
-          sku?: string | null;
-          unit?: string;
-          unit_cost?: number | null;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          low_stock_threshold?: number
+          name: string
+          notes?: string | null
+          organization_id: string
+          quantity?: number
+          sku?: string | null
+          unit?: string
+          unit_cost?: number | null
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          id?: string;
-          low_stock_threshold?: number;
-          name?: string;
-          notes?: string | null;
-          organization_id?: string;
-          quantity?: number;
-          sku?: string | null;
-          unit?: string;
-          unit_cost?: number | null;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          low_stock_threshold?: number
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          quantity?: number
+          sku?: string | null
+          unit?: string
+          unit_cost?: number | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "inventory_items_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "inventory_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       inventory_movements: {
         Row: {
-          created_at: string;
-          created_by: string | null;
-          id: string;
-          item_id: string;
-          movement_type: string;
-          note: string | null;
-          organization_id: string;
-          quantity: number;
-        };
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          movement_type: string
+          note: string | null
+          organization_id: string
+          quantity: number
+        }
         Insert: {
-          created_at?: string;
-          created_by?: string | null;
-          id?: string;
-          item_id: string;
-          movement_type: string;
-          note?: string | null;
-          organization_id: string;
-          quantity: number;
-        };
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          movement_type: string
+          note?: string | null
+          organization_id: string
+          quantity: number
+        }
         Update: {
-          created_at?: string;
-          created_by?: string | null;
-          id?: string;
-          item_id?: string;
-          movement_type?: string;
-          note?: string | null;
-          organization_id?: string;
-          quantity?: number;
-        };
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          movement_type?: string
+          note?: string | null
+          organization_id?: string
+          quantity?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "inventory_movements_item_id_fkey";
-            columns: ["item_id"];
-            isOneToOne: false;
-            referencedRelation: "inventory_items";
-            referencedColumns: ["id"];
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "inventory_movements_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "inventory_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       invoices: {
         Row: {
-          amount: number;
-          created_at: string;
-          currency: string;
-          id: string;
-          invoice_number: string;
-          organization_id: string;
-          paid_at: string | null;
-          pdf_url: string | null;
-          razorpay_invoice_id: string | null;
-          status: string;
-          subscription_id: string | null;
-        };
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string
+          organization_id: string
+          paid_at: string | null
+          pdf_url: string | null
+          razorpay_invoice_id: string | null
+          status: string
+          subscription_id: string | null
+        }
         Insert: {
-          amount: number;
-          created_at?: string;
-          currency?: string;
-          id?: string;
-          invoice_number: string;
-          organization_id: string;
-          paid_at?: string | null;
-          pdf_url?: string | null;
-          razorpay_invoice_id?: string | null;
-          status?: string;
-          subscription_id?: string | null;
-        };
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number: string
+          organization_id: string
+          paid_at?: string | null
+          pdf_url?: string | null
+          razorpay_invoice_id?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
         Update: {
-          amount?: number;
-          created_at?: string;
-          currency?: string;
-          id?: string;
-          invoice_number?: string;
-          organization_id?: string;
-          paid_at?: string | null;
-          pdf_url?: string | null;
-          razorpay_invoice_id?: string | null;
-          status?: string;
-          subscription_id?: string | null;
-        };
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string
+          organization_id?: string
+          paid_at?: string | null
+          pdf_url?: string | null
+          razorpay_invoice_id?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "invoices_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_subscription_id_fkey";
-            columns: ["subscription_id"];
-            isOneToOne: false;
-            referencedRelation: "subscriptions";
-            referencedColumns: ["id"];
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       lab_orders: {
         Row: {
-          created_at: string;
-          id: string;
-          notes: string | null;
-          ordered_by: string | null;
-          organization_id: string;
-          patient_id: string | null;
-          patient_name: string;
-          result_text: string | null;
-          result_url: string | null;
-          status: string;
-          test_id: string | null;
-          test_name: string;
-          updated_at: string;
-        };
+          created_at: string
+          id: string
+          notes: string | null
+          ordered_by: string | null
+          organization_id: string
+          patient_id: string | null
+          patient_name: string
+          result_text: string | null
+          result_url: string | null
+          status: string
+          test_id: string | null
+          test_name: string
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          id?: string;
-          notes?: string | null;
-          ordered_by?: string | null;
-          organization_id: string;
-          patient_id?: string | null;
-          patient_name: string;
-          result_text?: string | null;
-          result_url?: string | null;
-          status?: string;
-          test_id?: string | null;
-          test_name: string;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          notes?: string | null
+          ordered_by?: string | null
+          organization_id: string
+          patient_id?: string | null
+          patient_name: string
+          result_text?: string | null
+          result_url?: string | null
+          status?: string
+          test_id?: string | null
+          test_name: string
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          id?: string;
-          notes?: string | null;
-          ordered_by?: string | null;
-          organization_id?: string;
-          patient_id?: string | null;
-          patient_name?: string;
-          result_text?: string | null;
-          result_url?: string | null;
-          status?: string;
-          test_id?: string | null;
-          test_name?: string;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          notes?: string | null
+          ordered_by?: string | null
+          organization_id?: string
+          patient_id?: string | null
+          patient_name?: string
+          result_text?: string | null
+          result_url?: string | null
+          status?: string
+          test_id?: string | null
+          test_name?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "lab_orders_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "lab_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lab_orders_patient_id_fkey";
-            columns: ["patient_id"];
-            isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            foreignKeyName: "lab_orders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lab_orders_test_id_fkey";
-            columns: ["test_id"];
-            isOneToOne: false;
-            referencedRelation: "lab_tests";
-            referencedColumns: ["id"];
+            foreignKeyName: "lab_orders_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "lab_tests"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       lab_tests: {
         Row: {
-          active: boolean;
-          created_at: string;
-          id: string;
-          name: string;
-          organization_id: string;
-          price: number;
-          sample_type: string | null;
-          updated_at: string;
-        };
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          price: number
+          sample_type: string | null
+          updated_at: string
+        }
         Insert: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          name: string;
-          organization_id: string;
-          price?: number;
-          sample_type?: string | null;
-          updated_at?: string;
-        };
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          price?: number
+          sample_type?: string | null
+          updated_at?: string
+        }
         Update: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          name?: string;
-          organization_id?: string;
-          price?: number;
-          sample_type?: string | null;
-          updated_at?: string;
-        };
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          price?: number
+          sample_type?: string | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "lab_tests_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "lab_tests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       leads: {
         Row: {
-          clinic_id: string | null;
-          created_at: string;
-          email: string | null;
-          id: string;
-          message: string | null;
-          name: string;
-          organization_id: string | null;
-          phone: string | null;
-          source: string | null;
-          status: string | null;
-        };
+          clinic_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string | null
+          name: string
+          organization_id: string | null
+          phone: string | null
+          source: string | null
+          status: string | null
+        }
         Insert: {
-          clinic_id?: string | null;
-          created_at?: string;
-          email?: string | null;
-          id?: string;
-          message?: string | null;
-          name: string;
-          organization_id?: string | null;
-          phone?: string | null;
-          source?: string | null;
-          status?: string | null;
-        };
+          clinic_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          name: string
+          organization_id?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string | null
+        }
         Update: {
-          clinic_id?: string | null;
-          created_at?: string;
-          email?: string | null;
-          id?: string;
-          message?: string | null;
-          name?: string;
-          organization_id?: string | null;
-          phone?: string | null;
-          source?: string | null;
-          status?: string | null;
-        };
+          clinic_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          name?: string
+          organization_id?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "leads_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "leads_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "leads_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       loyalty_cards: {
         Row: {
-          created_at: string;
-          customer_email: string | null;
-          customer_name: string;
-          customer_phone: string | null;
-          id: string;
-          organization_id: string;
-          program_id: string;
-          qr_token: string;
-          redeemed_count: number;
-          stamps: number;
-          updated_at: string;
-        };
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          organization_id: string
+          program_id: string
+          qr_token: string
+          redeemed_count: number
+          stamps: number
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          customer_email?: string | null;
-          customer_name: string;
-          customer_phone?: string | null;
-          id?: string;
-          organization_id: string;
-          program_id: string;
-          qr_token?: string;
-          redeemed_count?: number;
-          stamps?: number;
-          updated_at?: string;
-        };
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          organization_id: string
+          program_id: string
+          qr_token?: string
+          redeemed_count?: number
+          stamps?: number
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          customer_email?: string | null;
-          customer_name?: string;
-          customer_phone?: string | null;
-          id?: string;
-          organization_id?: string;
-          program_id?: string;
-          qr_token?: string;
-          redeemed_count?: number;
-          stamps?: number;
-          updated_at?: string;
-        };
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          organization_id?: string
+          program_id?: string
+          qr_token?: string
+          redeemed_count?: number
+          stamps?: number
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "loyalty_cards_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "loyalty_cards_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "loyalty_cards_program_id_fkey";
-            columns: ["program_id"];
-            isOneToOne: false;
-            referencedRelation: "loyalty_programs";
-            referencedColumns: ["id"];
+            foreignKeyName: "loyalty_cards_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       loyalty_events: {
         Row: {
-          added_by: string | null;
-          card_id: string;
-          created_at: string;
-          event_type: string;
-          id: string;
-          note: string | null;
-          organization_id: string;
-        };
+          added_by: string | null
+          card_id: string
+          created_at: string
+          event_type: string
+          id: string
+          note: string | null
+          organization_id: string
+        }
         Insert: {
-          added_by?: string | null;
-          card_id: string;
-          created_at?: string;
-          event_type: string;
-          id?: string;
-          note?: string | null;
-          organization_id: string;
-        };
+          added_by?: string | null
+          card_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          note?: string | null
+          organization_id: string
+        }
         Update: {
-          added_by?: string | null;
-          card_id?: string;
-          created_at?: string;
-          event_type?: string;
-          id?: string;
-          note?: string | null;
-          organization_id?: string;
-        };
+          added_by?: string | null
+          card_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+          organization_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "loyalty_events_card_id_fkey";
-            columns: ["card_id"];
-            isOneToOne: false;
-            referencedRelation: "loyalty_cards";
-            referencedColumns: ["id"];
+            foreignKeyName: "loyalty_events_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_cards"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "loyalty_events_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "loyalty_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       loyalty_programs: {
         Row: {
-          active: boolean;
-          created_at: string;
-          id: string;
-          name: string;
-          organization_id: string;
-          reward_description: string;
-          stamps_required: number;
-          updated_at: string;
-        };
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          reward_description: string
+          stamps_required: number
+          updated_at: string
+        }
         Insert: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          name?: string;
-          organization_id: string;
-          reward_description?: string;
-          stamps_required?: number;
-          updated_at?: string;
-        };
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id: string
+          reward_description?: string
+          stamps_required?: number
+          updated_at?: string
+        }
         Update: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          name?: string;
-          organization_id?: string;
-          reward_description?: string;
-          stamps_required?: number;
-          updated_at?: string;
-        };
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          reward_description?: string
+          stamps_required?: number
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "loyalty_programs_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: true;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "loyalty_programs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       marketing_campaigns: {
         Row: {
-          audience_filter: Json;
-          body: string;
-          channel: string;
-          created_at: string;
-          created_by: string | null;
-          delivered_count: number;
-          id: string;
-          name: string;
-          organization_id: string;
-          recipient_count: number;
-          scheduled_at: string | null;
-          sent_at: string | null;
-          status: string;
-          subject: string | null;
-          updated_at: string;
-        };
+          audience_filter: Json
+          body: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          delivered_count: number
+          id: string
+          name: string
+          organization_id: string
+          recipient_count: number
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
         Insert: {
-          audience_filter?: Json;
-          body?: string;
-          channel: string;
-          created_at?: string;
-          created_by?: string | null;
-          delivered_count?: number;
-          id?: string;
-          name: string;
-          organization_id: string;
-          recipient_count?: number;
-          scheduled_at?: string | null;
-          sent_at?: string | null;
-          status?: string;
-          subject?: string | null;
-          updated_at?: string;
-        };
+          audience_filter?: Json
+          body?: string
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          delivered_count?: number
+          id?: string
+          name: string
+          organization_id: string
+          recipient_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
         Update: {
-          audience_filter?: Json;
-          body?: string;
-          channel?: string;
-          created_at?: string;
-          created_by?: string | null;
-          delivered_count?: number;
-          id?: string;
-          name?: string;
-          organization_id?: string;
-          recipient_count?: number;
-          scheduled_at?: string | null;
-          sent_at?: string | null;
-          status?: string;
-          subject?: string | null;
-          updated_at?: string;
-        };
+          audience_filter?: Json
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_count?: number
+          id?: string
+          name?: string
+          organization_id?: string
+          recipient_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "marketing_campaigns_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "marketing_campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       marketing_recipients: {
         Row: {
-          campaign_id: string;
-          created_at: string;
-          email: string | null;
-          error: string | null;
-          id: string;
-          name: string | null;
-          organization_id: string;
-          patient_id: string | null;
-          phone: string | null;
-          sent_at: string | null;
-          status: string;
-        };
+          campaign_id: string
+          created_at: string
+          email: string | null
+          error: string | null
+          id: string
+          name: string | null
+          organization_id: string
+          patient_id: string | null
+          phone: string | null
+          sent_at: string | null
+          status: string
+        }
         Insert: {
-          campaign_id: string;
-          created_at?: string;
-          email?: string | null;
-          error?: string | null;
-          id?: string;
-          name?: string | null;
-          organization_id: string;
-          patient_id?: string | null;
-          phone?: string | null;
-          sent_at?: string | null;
-          status?: string;
-        };
+          campaign_id: string
+          created_at?: string
+          email?: string | null
+          error?: string | null
+          id?: string
+          name?: string | null
+          organization_id: string
+          patient_id?: string | null
+          phone?: string | null
+          sent_at?: string | null
+          status?: string
+        }
         Update: {
-          campaign_id?: string;
-          created_at?: string;
-          email?: string | null;
-          error?: string | null;
-          id?: string;
-          name?: string | null;
-          organization_id?: string;
-          patient_id?: string | null;
-          phone?: string | null;
-          sent_at?: string | null;
-          status?: string;
-        };
+          campaign_id?: string
+          created_at?: string
+          email?: string | null
+          error?: string | null
+          id?: string
+          name?: string | null
+          organization_id?: string
+          patient_id?: string | null
+          phone?: string | null
+          sent_at?: string | null
+          status?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "marketing_recipients_campaign_id_fkey";
-            columns: ["campaign_id"];
-            isOneToOne: false;
-            referencedRelation: "marketing_campaigns";
-            referencedColumns: ["id"];
+            foreignKeyName: "marketing_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "marketing_recipients_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "marketing_recipients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "marketing_recipients_patient_id_fkey";
-            columns: ["patient_id"];
-            isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            foreignKeyName: "marketing_recipients_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       medications: {
         Row: {
-          created_at: string;
-          default_dose: string | null;
-          default_instructions: string | null;
-          form: string | null;
-          id: string;
-          name: string;
-          organization_id: string;
-          strength: string | null;
-          updated_at: string;
-        };
+          created_at: string
+          default_dose: string | null
+          default_instructions: string | null
+          form: string | null
+          id: string
+          name: string
+          organization_id: string
+          strength: string | null
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          default_dose?: string | null;
-          default_instructions?: string | null;
-          form?: string | null;
-          id?: string;
-          name: string;
-          organization_id: string;
-          strength?: string | null;
-          updated_at?: string;
-        };
+          created_at?: string
+          default_dose?: string | null
+          default_instructions?: string | null
+          form?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          strength?: string | null
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          default_dose?: string | null;
-          default_instructions?: string | null;
-          form?: string | null;
-          id?: string;
-          name?: string;
-          organization_id?: string;
-          strength?: string | null;
-          updated_at?: string;
-        };
+          created_at?: string
+          default_dose?: string | null
+          default_instructions?: string | null
+          form?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          strength?: string | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "medications_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "medications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       module_value_benchmarks: {
         Row: {
-          competitor_monthly_cost: number;
-          competitor_name: string | null;
-          created_at: string;
-          description: string | null;
-          module_key: string;
-          per_unit_label: string | null;
-          per_unit_value: number;
-          updated_at: string;
-        };
+          competitor_monthly_cost: number
+          competitor_name: string | null
+          created_at: string
+          description: string | null
+          module_key: string
+          per_unit_label: string | null
+          per_unit_value: number
+          updated_at: string
+        }
         Insert: {
-          competitor_monthly_cost?: number;
-          competitor_name?: string | null;
-          created_at?: string;
-          description?: string | null;
-          module_key: string;
-          per_unit_label?: string | null;
-          per_unit_value?: number;
-          updated_at?: string;
-        };
+          competitor_monthly_cost?: number
+          competitor_name?: string | null
+          created_at?: string
+          description?: string | null
+          module_key: string
+          per_unit_label?: string | null
+          per_unit_value?: number
+          updated_at?: string
+        }
         Update: {
-          competitor_monthly_cost?: number;
-          competitor_name?: string | null;
-          created_at?: string;
-          description?: string | null;
-          module_key?: string;
-          per_unit_label?: string | null;
-          per_unit_value?: number;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
+          competitor_monthly_cost?: number
+          competitor_name?: string | null
+          created_at?: string
+          description?: string | null
+          module_key?: string
+          per_unit_label?: string | null
+          per_unit_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       modules: {
         Row: {
-          category: string;
-          created_at: string;
-          description: string;
-          icon: string;
-          id: string;
-          is_available: boolean | null;
-          is_core: boolean | null;
-          min_plan: string | null;
-          name: string;
-          sort_order: number | null;
-        };
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_available: boolean | null
+          is_core: boolean | null
+          min_plan: string | null
+          name: string
+          sort_order: number | null
+        }
         Insert: {
-          category: string;
-          created_at?: string;
-          description: string;
-          icon: string;
-          id: string;
-          is_available?: boolean | null;
-          is_core?: boolean | null;
-          min_plan?: string | null;
-          name: string;
-          sort_order?: number | null;
-        };
+          category: string
+          created_at?: string
+          description: string
+          icon: string
+          id: string
+          is_available?: boolean | null
+          is_core?: boolean | null
+          min_plan?: string | null
+          name: string
+          sort_order?: number | null
+        }
         Update: {
-          category?: string;
-          created_at?: string;
-          description?: string;
-          icon?: string;
-          id?: string;
-          is_available?: boolean | null;
-          is_core?: boolean | null;
-          min_plan?: string | null;
-          name?: string;
-          sort_order?: number | null;
-        };
-        Relationships: [];
-      };
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_available?: boolean | null
+          is_core?: boolean | null
+          min_plan?: string | null
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       organization_invites: {
         Row: {
-          accepted_at: string | null;
-          created_at: string;
-          email: string;
-          expires_at: string;
-          id: string;
-          invited_by: string | null;
-          organization_id: string;
-          role: Database["public"]["Enums"]["org_role"];
-          token: string;
-        };
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          token: string
+        }
         Insert: {
-          accepted_at?: string | null;
-          created_at?: string;
-          email: string;
-          expires_at?: string;
-          id?: string;
-          invited_by?: string | null;
-          organization_id: string;
-          role?: Database["public"]["Enums"]["org_role"];
-          token?: string;
-        };
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          token?: string
+        }
         Update: {
-          accepted_at?: string | null;
-          created_at?: string;
-          email?: string;
-          expires_at?: string;
-          id?: string;
-          invited_by?: string | null;
-          organization_id?: string;
-          role?: Database["public"]["Enums"]["org_role"];
-          token?: string;
-        };
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          token?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "organization_invites_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       organization_members: {
         Row: {
-          id: string;
-          invited_by: string | null;
-          joined_at: string;
-          organization_id: string;
-          role: Database["public"]["Enums"]["org_role"];
-          user_id: string;
-        };
+          id: string
+          invited_by: string | null
+          joined_at: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          invited_by?: string | null;
-          joined_at?: string;
-          organization_id: string;
-          role?: Database["public"]["Enums"]["org_role"];
-          user_id: string;
-        };
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
         Update: {
-          id?: string;
-          invited_by?: string | null;
-          joined_at?: string;
-          organization_id?: string;
-          role?: Database["public"]["Enums"]["org_role"];
-          user_id?: string;
-        };
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "organization_members_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       organization_modules: {
         Row: {
-          id: string;
-          installed_at: string;
-          installed_by: string | null;
-          module_id: string;
-          organization_id: string;
-        };
+          id: string
+          installed_at: string
+          installed_by: string | null
+          module_id: string
+          organization_id: string
+        }
         Insert: {
-          id?: string;
-          installed_at?: string;
-          installed_by?: string | null;
-          module_id: string;
-          organization_id: string;
-        };
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          module_id: string
+          organization_id: string
+        }
         Update: {
-          id?: string;
-          installed_at?: string;
-          installed_by?: string | null;
-          module_id?: string;
-          organization_id?: string;
-        };
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          module_id?: string
+          organization_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "organization_modules_module_id_fkey";
-            columns: ["module_id"];
-            isOneToOne: false;
-            referencedRelation: "modules";
-            referencedColumns: ["id"];
+            foreignKeyName: "organization_modules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "organization_modules_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "organization_modules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       organization_onboarding: {
         Row: {
-          business_type_set: boolean | null;
-          completed: boolean | null;
-          completed_at: string | null;
-          created_at: string;
-          current_step: number;
-          modules_selected: boolean | null;
-          organization_id: string;
-          plan_selected: boolean | null;
-          updated_at: string;
-        };
+          business_type_set: boolean | null
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          modules_selected: boolean | null
+          organization_id: string
+          plan_selected: boolean | null
+          updated_at: string
+        }
         Insert: {
-          business_type_set?: boolean | null;
-          completed?: boolean | null;
-          completed_at?: string | null;
-          created_at?: string;
-          current_step?: number;
-          modules_selected?: boolean | null;
-          organization_id: string;
-          plan_selected?: boolean | null;
-          updated_at?: string;
-        };
+          business_type_set?: boolean | null
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          modules_selected?: boolean | null
+          organization_id: string
+          plan_selected?: boolean | null
+          updated_at?: string
+        }
         Update: {
-          business_type_set?: boolean | null;
-          completed?: boolean | null;
-          completed_at?: string | null;
-          created_at?: string;
-          current_step?: number;
-          modules_selected?: boolean | null;
-          organization_id?: string;
-          plan_selected?: boolean | null;
-          updated_at?: string;
-        };
+          business_type_set?: boolean | null
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          modules_selected?: boolean | null
+          organization_id?: string
+          plan_selected?: boolean | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "organization_onboarding_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: true;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "organization_onboarding_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       organizations: {
         Row: {
-          business_type: Database["public"]["Enums"]["business_type"];
-          created_at: string;
-          custom_domain: string | null;
-          custom_domain_status: Database["public"]["Enums"]["domain_status"] | null;
-          custom_domain_verified_at: string | null;
-          description: string | null;
-          google_business_name: string | null;
-          google_business_profile_connected_at: string | null;
-          google_business_profile_url: string | null;
-          google_place_id: string | null;
-          google_rating: number | null;
-          google_reviews_count: number | null;
-          google_sync_status: string | null;
-          id: string;
-          logo_url: string | null;
-          name: string;
-          primary_color: string | null;
-          public_address: string | null;
-          public_email: string | null;
-          public_phone: string | null;
-          reputation_target_monthly_reviews: number | null;
-          reputation_target_rating: number | null;
-          reputation_target_reviews: number | null;
-          slug: string;
-          tagline: string | null;
-          updated_at: string;
-        };
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string
+          custom_domain: string | null
+          custom_domain_status:
+            | Database["public"]["Enums"]["domain_status"]
+            | null
+          custom_domain_verified_at: string | null
+          description: string | null
+          google_business_name: string | null
+          google_business_profile_connected_at: string | null
+          google_business_profile_url: string | null
+          google_place_id: string | null
+          google_rating: number | null
+          google_reviews_count: number | null
+          google_sync_status: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          primary_color: string | null
+          public_address: string | null
+          public_email: string | null
+          public_phone: string | null
+          reputation_target_monthly_reviews: number | null
+          reputation_target_rating: number | null
+          reputation_target_reviews: number | null
+          slug: string
+          tagline: string | null
+          updated_at: string
+        }
         Insert: {
-          business_type?: Database["public"]["Enums"]["business_type"];
-          created_at?: string;
-          custom_domain?: string | null;
-          custom_domain_status?: Database["public"]["Enums"]["domain_status"] | null;
-          custom_domain_verified_at?: string | null;
-          description?: string | null;
-          google_business_name?: string | null;
-          google_business_profile_connected_at?: string | null;
-          google_business_profile_url?: string | null;
-          google_place_id?: string | null;
-          google_rating?: number | null;
-          google_reviews_count?: number | null;
-          google_sync_status?: string | null;
-          id?: string;
-          logo_url?: string | null;
-          name: string;
-          primary_color?: string | null;
-          public_address?: string | null;
-          public_email?: string | null;
-          public_phone?: string | null;
-          reputation_target_monthly_reviews?: number | null;
-          reputation_target_rating?: number | null;
-          reputation_target_reviews?: number | null;
-          slug: string;
-          tagline?: string | null;
-          updated_at?: string;
-        };
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          custom_domain?: string | null
+          custom_domain_status?:
+            | Database["public"]["Enums"]["domain_status"]
+            | null
+          custom_domain_verified_at?: string | null
+          description?: string | null
+          google_business_name?: string | null
+          google_business_profile_connected_at?: string | null
+          google_business_profile_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
+          google_sync_status?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          primary_color?: string | null
+          public_address?: string | null
+          public_email?: string | null
+          public_phone?: string | null
+          reputation_target_monthly_reviews?: number | null
+          reputation_target_rating?: number | null
+          reputation_target_reviews?: number | null
+          slug: string
+          tagline?: string | null
+          updated_at?: string
+        }
         Update: {
-          business_type?: Database["public"]["Enums"]["business_type"];
-          created_at?: string;
-          custom_domain?: string | null;
-          custom_domain_status?: Database["public"]["Enums"]["domain_status"] | null;
-          custom_domain_verified_at?: string | null;
-          description?: string | null;
-          google_business_name?: string | null;
-          google_business_profile_connected_at?: string | null;
-          google_business_profile_url?: string | null;
-          google_place_id?: string | null;
-          google_rating?: number | null;
-          google_reviews_count?: number | null;
-          google_sync_status?: string | null;
-          id?: string;
-          logo_url?: string | null;
-          name?: string;
-          primary_color?: string | null;
-          public_address?: string | null;
-          public_email?: string | null;
-          public_phone?: string | null;
-          reputation_target_monthly_reviews?: number | null;
-          reputation_target_rating?: number | null;
-          reputation_target_reviews?: number | null;
-          slug?: string;
-          tagline?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          custom_domain?: string | null
+          custom_domain_status?:
+            | Database["public"]["Enums"]["domain_status"]
+            | null
+          custom_domain_verified_at?: string | null
+          description?: string | null
+          google_business_name?: string | null
+          google_business_profile_connected_at?: string | null
+          google_business_profile_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
+          google_sync_status?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          primary_color?: string | null
+          public_address?: string | null
+          public_email?: string | null
+          public_phone?: string | null
+          reputation_target_monthly_reviews?: number | null
+          reputation_target_rating?: number | null
+          reputation_target_reviews?: number | null
+          slug?: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patient_invoice_items: {
         Row: {
-          amount: number;
-          description: string;
-          id: string;
-          invoice_id: string;
-          position: number;
-          quantity: number;
-          unit_price: number;
-        };
+          amount: number
+          description: string
+          id: string
+          invoice_id: string
+          position: number
+          quantity: number
+          unit_price: number
+        }
         Insert: {
-          amount?: number;
-          description: string;
-          id?: string;
-          invoice_id: string;
-          position?: number;
-          quantity?: number;
-          unit_price?: number;
-        };
+          amount?: number
+          description: string
+          id?: string
+          invoice_id: string
+          position?: number
+          quantity?: number
+          unit_price?: number
+        }
         Update: {
-          amount?: number;
-          description?: string;
-          id?: string;
-          invoice_id?: string;
-          position?: number;
-          quantity?: number;
-          unit_price?: number;
-        };
+          amount?: number
+          description?: string
+          id?: string
+          invoice_id?: string
+          position?: number
+          quantity?: number
+          unit_price?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "patient_invoice_items_invoice_id_fkey";
-            columns: ["invoice_id"];
-            isOneToOne: false;
-            referencedRelation: "patient_invoices";
-            referencedColumns: ["id"];
+            foreignKeyName: "patient_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "patient_invoices"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       patient_invoices: {
         Row: {
-          amount_paid: number;
-          clinic_id: string | null;
-          created_at: string;
-          created_by: string | null;
-          discount: number;
-          due_date: string | null;
-          id: string;
-          invoice_number: string;
-          issue_date: string;
-          notes: string | null;
-          organization_id: string;
-          patient_id: string | null;
-          patient_name: string;
-          status: string;
-          subtotal: number;
-          tax_percent: number;
-          total: number;
-          updated_at: string;
-        };
+          amount_paid: number
+          clinic_id: string | null
+          created_at: string
+          created_by: string | null
+          discount: number
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          notes: string | null
+          organization_id: string
+          patient_id: string | null
+          patient_name: string
+          status: string
+          subtotal: number
+          tax_percent: number
+          total: number
+          updated_at: string
+        }
         Insert: {
-          amount_paid?: number;
-          clinic_id?: string | null;
-          created_at?: string;
-          created_by?: string | null;
-          discount?: number;
-          due_date?: string | null;
-          id?: string;
-          invoice_number: string;
-          issue_date?: string;
-          notes?: string | null;
-          organization_id: string;
-          patient_id?: string | null;
-          patient_name: string;
-          status?: string;
-          subtotal?: number;
-          tax_percent?: number;
-          total?: number;
-          updated_at?: string;
-        };
+          amount_paid?: number
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount?: number
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          notes?: string | null
+          organization_id: string
+          patient_id?: string | null
+          patient_name: string
+          status?: string
+          subtotal?: number
+          tax_percent?: number
+          total?: number
+          updated_at?: string
+        }
         Update: {
-          amount_paid?: number;
-          clinic_id?: string | null;
-          created_at?: string;
-          created_by?: string | null;
-          discount?: number;
-          due_date?: string | null;
-          id?: string;
-          invoice_number?: string;
-          issue_date?: string;
-          notes?: string | null;
-          organization_id?: string;
-          patient_id?: string | null;
-          patient_name?: string;
-          status?: string;
-          subtotal?: number;
-          tax_percent?: number;
-          total?: number;
-          updated_at?: string;
-        };
+          amount_paid?: number
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          organization_id?: string
+          patient_id?: string | null
+          patient_name?: string
+          status?: string
+          subtotal?: number
+          tax_percent?: number
+          total?: number
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "patient_invoices_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "patient_invoices_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "patient_invoices_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "patient_invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "patient_invoices_patient_id_fkey";
-            columns: ["patient_id"];
-            isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            foreignKeyName: "patient_invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       patient_payments: {
         Row: {
-          amount: number;
-          created_by: string | null;
-          id: string;
-          invoice_id: string;
-          method: string;
-          note: string | null;
-          organization_id: string;
-          paid_at: string;
-        };
+          amount: number
+          created_by: string | null
+          id: string
+          invoice_id: string
+          method: string
+          note: string | null
+          organization_id: string
+          paid_at: string
+        }
         Insert: {
-          amount: number;
-          created_by?: string | null;
-          id?: string;
-          invoice_id: string;
-          method?: string;
-          note?: string | null;
-          organization_id: string;
-          paid_at?: string;
-        };
+          amount: number
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          method?: string
+          note?: string | null
+          organization_id: string
+          paid_at?: string
+        }
         Update: {
-          amount?: number;
-          created_by?: string | null;
-          id?: string;
-          invoice_id?: string;
-          method?: string;
-          note?: string | null;
-          organization_id?: string;
-          paid_at?: string;
-        };
+          amount?: number
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          method?: string
+          note?: string | null
+          organization_id?: string
+          paid_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "patient_payments_invoice_id_fkey";
-            columns: ["invoice_id"];
-            isOneToOne: false;
-            referencedRelation: "patient_invoices";
-            referencedColumns: ["id"];
+            foreignKeyName: "patient_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "patient_invoices"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "patient_payments_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "patient_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       patients: {
         Row: {
-          age: number | null;
-          clinic_id: string | null;
-          created_at: string;
-          date_of_birth: string | null;
-          email: string | null;
-          gender: string | null;
-          id: string;
-          name: string;
-          notes: string | null;
-          organization_id: string | null;
-          phone: string | null;
-          tags: string[] | null;
-          updated_at: string;
-        };
+          age: number | null
+          clinic_id: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          gender: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string | null
+          phone: string | null
+          tags: string[] | null
+          updated_at: string
+        }
         Insert: {
-          age?: number | null;
-          clinic_id?: string | null;
-          created_at?: string;
-          date_of_birth?: string | null;
-          email?: string | null;
-          gender?: string | null;
-          id?: string;
-          name: string;
-          notes?: string | null;
-          organization_id?: string | null;
-          phone?: string | null;
-          tags?: string[] | null;
-          updated_at?: string;
-        };
+          age?: number | null
+          clinic_id?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
         Update: {
-          age?: number | null;
-          clinic_id?: string | null;
-          created_at?: string;
-          date_of_birth?: string | null;
-          email?: string | null;
-          gender?: string | null;
-          id?: string;
-          name?: string;
-          notes?: string | null;
-          organization_id?: string | null;
-          phone?: string | null;
-          tags?: string[] | null;
-          updated_at?: string;
-        };
+          age?: number | null
+          clinic_id?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "patients_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "patients_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "patients_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "patients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       plans: {
         Row: {
-          created_at: string;
-          currency: string;
-          discounted_monthly_price: number | null;
-          discounted_yearly_price: number | null;
-          features: Json;
-          id: string;
-          is_popular: boolean | null;
-          module_ids: string[];
-          monthly_price: number;
-          name: string;
-          patient_limit: number | null;
-          sort_order: number | null;
-          staff_limit: number | null;
-          tagline: string | null;
-          yearly_price: number;
-        };
+          created_at: string
+          currency: string
+          discounted_monthly_price: number | null
+          discounted_yearly_price: number | null
+          features: Json
+          id: string
+          is_popular: boolean | null
+          module_ids: string[]
+          monthly_price: number
+          name: string
+          patient_limit: number | null
+          sort_order: number | null
+          staff_limit: number | null
+          tagline: string | null
+          yearly_price: number
+        }
         Insert: {
-          created_at?: string;
-          currency?: string;
-          discounted_monthly_price?: number | null;
-          discounted_yearly_price?: number | null;
-          features?: Json;
-          id: string;
-          is_popular?: boolean | null;
-          module_ids?: string[];
-          monthly_price: number;
-          name: string;
-          patient_limit?: number | null;
-          sort_order?: number | null;
-          staff_limit?: number | null;
-          tagline?: string | null;
-          yearly_price: number;
-        };
+          created_at?: string
+          currency?: string
+          discounted_monthly_price?: number | null
+          discounted_yearly_price?: number | null
+          features?: Json
+          id: string
+          is_popular?: boolean | null
+          module_ids?: string[]
+          monthly_price: number
+          name: string
+          patient_limit?: number | null
+          sort_order?: number | null
+          staff_limit?: number | null
+          tagline?: string | null
+          yearly_price: number
+        }
         Update: {
-          created_at?: string;
-          currency?: string;
-          discounted_monthly_price?: number | null;
-          discounted_yearly_price?: number | null;
-          features?: Json;
-          id?: string;
-          is_popular?: boolean | null;
-          module_ids?: string[];
-          monthly_price?: number;
-          name?: string;
-          patient_limit?: number | null;
-          sort_order?: number | null;
-          staff_limit?: number | null;
-          tagline?: string | null;
-          yearly_price?: number;
-        };
-        Relationships: [];
-      };
+          created_at?: string
+          currency?: string
+          discounted_monthly_price?: number | null
+          discounted_yearly_price?: number | null
+          features?: Json
+          id?: string
+          is_popular?: boolean | null
+          module_ids?: string[]
+          monthly_price?: number
+          name?: string
+          patient_limit?: number | null
+          sort_order?: number | null
+          staff_limit?: number | null
+          tagline?: string | null
+          yearly_price?: number
+        }
+        Relationships: []
+      }
       prescription_items: {
         Row: {
-          created_at: string;
-          dose: string | null;
-          drug_name: string;
-          duration: string | null;
-          frequency: string | null;
-          id: string;
-          instructions: string | null;
-          medication_id: string | null;
-          organization_id: string;
-          position: number;
-          prescription_id: string;
-        };
+          created_at: string
+          dose: string | null
+          drug_name: string
+          duration: string | null
+          frequency: string | null
+          id: string
+          instructions: string | null
+          medication_id: string | null
+          organization_id: string
+          position: number
+          prescription_id: string
+        }
         Insert: {
-          created_at?: string;
-          dose?: string | null;
-          drug_name: string;
-          duration?: string | null;
-          frequency?: string | null;
-          id?: string;
-          instructions?: string | null;
-          medication_id?: string | null;
-          organization_id: string;
-          position?: number;
-          prescription_id: string;
-        };
+          created_at?: string
+          dose?: string | null
+          drug_name: string
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_id?: string | null
+          organization_id: string
+          position?: number
+          prescription_id: string
+        }
         Update: {
-          created_at?: string;
-          dose?: string | null;
-          drug_name?: string;
-          duration?: string | null;
-          frequency?: string | null;
-          id?: string;
-          instructions?: string | null;
-          medication_id?: string | null;
-          organization_id?: string;
-          position?: number;
-          prescription_id?: string;
-        };
+          created_at?: string
+          dose?: string | null
+          drug_name?: string
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_id?: string | null
+          organization_id?: string
+          position?: number
+          prescription_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "prescription_items_medication_id_fkey";
-            columns: ["medication_id"];
-            isOneToOne: false;
-            referencedRelation: "medications";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescription_items_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prescription_items_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescription_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prescription_items_prescription_id_fkey";
-            columns: ["prescription_id"];
-            isOneToOne: false;
-            referencedRelation: "prescriptions";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescription_items_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       prescriptions: {
         Row: {
-          appointment_id: string | null;
-          consultation_id: string | null;
-          created_at: string;
-          id: string;
-          issued_by: string | null;
-          notes: string | null;
-          organization_id: string;
-          patient_id: string | null;
-          patient_name: string;
-          updated_at: string;
-        };
+          appointment_id: string | null
+          consultation_id: string | null
+          created_at: string
+          id: string
+          issued_by: string | null
+          notes: string | null
+          organization_id: string
+          patient_id: string | null
+          patient_name: string
+          updated_at: string
+        }
         Insert: {
-          appointment_id?: string | null;
-          consultation_id?: string | null;
-          created_at?: string;
-          id?: string;
-          issued_by?: string | null;
-          notes?: string | null;
-          organization_id: string;
-          patient_id?: string | null;
-          patient_name: string;
-          updated_at?: string;
-        };
+          appointment_id?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          issued_by?: string | null
+          notes?: string | null
+          organization_id: string
+          patient_id?: string | null
+          patient_name: string
+          updated_at?: string
+        }
         Update: {
-          appointment_id?: string | null;
-          consultation_id?: string | null;
-          created_at?: string;
-          id?: string;
-          issued_by?: string | null;
-          notes?: string | null;
-          organization_id?: string;
-          patient_id?: string | null;
-          patient_name?: string;
-          updated_at?: string;
-        };
+          appointment_id?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          issued_by?: string | null
+          notes?: string | null
+          organization_id?: string
+          patient_id?: string | null
+          patient_name?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "prescriptions_appointment_id_fkey";
-            columns: ["appointment_id"];
-            isOneToOne: false;
-            referencedRelation: "appointments";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescriptions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prescriptions_consultation_id_fkey";
-            columns: ["consultation_id"];
-            isOneToOne: false;
-            referencedRelation: "consultations";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescriptions_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prescriptions_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prescriptions_patient_id_fkey";
-            columns: ["patient_id"];
-            isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            foreignKeyName: "prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       profiles: {
         Row: {
-          created_at: string;
-          full_name: string | null;
-          id: string;
-          impersonation_allowed: boolean | null;
-          last_login_at: string | null;
-          role: string;
-          suspended_at: string | null;
-          suspended_reason: string | null;
-          updated_at: string;
-        };
+          created_at: string
+          full_name: string | null
+          id: string
+          impersonation_allowed: boolean | null
+          last_login_at: string | null
+          role: string
+          suspended_at: string | null
+          suspended_reason: string | null
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          full_name?: string | null;
-          id: string;
-          impersonation_allowed?: boolean | null;
-          last_login_at?: string | null;
-          role?: string;
-          suspended_at?: string | null;
-          suspended_reason?: string | null;
-          updated_at?: string;
-        };
+          created_at?: string
+          full_name?: string | null
+          id: string
+          impersonation_allowed?: boolean | null
+          last_login_at?: string | null
+          role?: string
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          full_name?: string | null;
-          id?: string;
-          impersonation_allowed?: boolean | null;
-          last_login_at?: string | null;
-          role?: string;
-          suspended_at?: string | null;
-          suspended_reason?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          impersonation_allowed?: boolean | null
+          last_login_at?: string | null
+          role?: string
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       review_qr_codes: {
         Row: {
-          created_at: string;
-          id: string;
-          name: string;
-          organization_id: string;
-          reviews_submitted: number;
-          scans: number;
-          updated_at: string;
-        };
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          reviews_submitted: number
+          scans: number
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          id?: string;
-          name: string;
-          organization_id: string;
-          reviews_submitted?: number;
-          scans?: number;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          reviews_submitted?: number
+          scans?: number
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          id?: string;
-          name?: string;
-          organization_id?: string;
-          reviews_submitted?: number;
-          scans?: number;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          reviews_submitted?: number
+          scans?: number
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "review_qr_codes_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "review_qr_codes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       reviews: {
         Row: {
-          assigned_staff_id: string | null;
-          category: string | null;
-          clinic_id: string | null;
-          comment: string | null;
-          created_at: string;
-          id: string;
-          internal_notes: string | null;
-          organization_id: string;
-          private_status: string | null;
-          rating: number;
-          reply: string | null;
-          resolution_date: string | null;
-          reviewer_email: string | null;
-          reviewer_name: string;
-          reviewer_phone: string | null;
-          source: string;
-          status: string;
-          updated_at: string;
-        };
+          assigned_staff_id: string | null
+          category: string | null
+          clinic_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          internal_notes: string | null
+          organization_id: string
+          private_status: string | null
+          rating: number
+          reply: string | null
+          resolution_date: string | null
+          reviewer_email: string | null
+          reviewer_name: string
+          reviewer_phone: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
         Insert: {
-          assigned_staff_id?: string | null;
-          category?: string | null;
-          clinic_id?: string | null;
-          comment?: string | null;
-          created_at?: string;
-          id?: string;
-          internal_notes?: string | null;
-          organization_id: string;
-          private_status?: string | null;
-          rating: number;
-          reply?: string | null;
-          resolution_date?: string | null;
-          reviewer_email?: string | null;
-          reviewer_name: string;
-          reviewer_phone?: string | null;
-          source?: string;
-          status?: string;
-          updated_at?: string;
-        };
+          assigned_staff_id?: string | null
+          category?: string | null
+          clinic_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          internal_notes?: string | null
+          organization_id: string
+          private_status?: string | null
+          rating: number
+          reply?: string | null
+          resolution_date?: string | null
+          reviewer_email?: string | null
+          reviewer_name: string
+          reviewer_phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
         Update: {
-          assigned_staff_id?: string | null;
-          category?: string | null;
-          clinic_id?: string | null;
-          comment?: string | null;
-          created_at?: string;
-          id?: string;
-          internal_notes?: string | null;
-          organization_id?: string;
-          private_status?: string | null;
-          rating?: number;
-          reply?: string | null;
-          resolution_date?: string | null;
-          reviewer_email?: string | null;
-          reviewer_name?: string;
-          reviewer_phone?: string | null;
-          source?: string;
-          status?: string;
-          updated_at?: string;
-        };
+          assigned_staff_id?: string | null
+          category?: string | null
+          clinic_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          internal_notes?: string | null
+          organization_id?: string
+          private_status?: string | null
+          rating?: number
+          reply?: string | null
+          resolution_date?: string | null
+          reviewer_email?: string | null
+          reviewer_name?: string
+          reviewer_phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "reviews_assigned_staff_id_fkey";
-            columns: ["assigned_staff_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
+            foreignKeyName: "reviews_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "reviews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       seo_ai_content: {
         Row: {
-          clinic_id: string;
-          created_at: string;
-          generated_by: string;
-          id: string;
-          kind: string;
-          payload: Json;
-          published: boolean;
-          title: string | null;
-          updated_at: string;
-        };
+          clinic_id: string
+          created_at: string
+          generated_by: string
+          id: string
+          kind: string
+          payload: Json
+          published: boolean
+          title: string | null
+          updated_at: string
+        }
         Insert: {
-          clinic_id: string;
-          created_at?: string;
-          generated_by?: string;
-          id?: string;
-          kind: string;
-          payload: Json;
-          published?: boolean;
-          title?: string | null;
-          updated_at?: string;
-        };
+          clinic_id: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          kind: string
+          payload: Json
+          published?: boolean
+          title?: string | null
+          updated_at?: string
+        }
         Update: {
-          clinic_id?: string;
-          created_at?: string;
-          generated_by?: string;
-          id?: string;
-          kind?: string;
-          payload?: Json;
-          published?: boolean;
-          title?: string | null;
-          updated_at?: string;
-        };
+          clinic_id?: string
+          created_at?: string
+          generated_by?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          published?: boolean
+          title?: string | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "seo_ai_content_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_ai_content_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       seo_audits: {
         Row: {
-          category: string;
-          clinic_id: string;
-          created_at: string;
-          findings: Json;
-          id: string;
-          score: number;
-        };
+          category: string
+          clinic_id: string
+          created_at: string
+          findings: Json
+          id: string
+          score: number
+        }
         Insert: {
-          category: string;
-          clinic_id: string;
-          created_at?: string;
-          findings?: Json;
-          id?: string;
-          score?: number;
-        };
+          category: string
+          clinic_id: string
+          created_at?: string
+          findings?: Json
+          id?: string
+          score?: number
+        }
         Update: {
-          category?: string;
-          clinic_id?: string;
-          created_at?: string;
-          findings?: Json;
-          id?: string;
-          score?: number;
-        };
+          category?: string
+          clinic_id?: string
+          created_at?: string
+          findings?: Json
+          id?: string
+          score?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "seo_audits_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_audits_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       seo_citations: {
         Row: {
-          checked_at: string;
-          clinic_id: string;
-          engine: string;
-          id: string;
-          mentioned: boolean;
-          position: number | null;
-          query: string;
-          raw_response: string | null;
-          snippet: string | null;
-        };
+          checked_at: string
+          clinic_id: string
+          engine: string
+          id: string
+          mentioned: boolean
+          position: number | null
+          query: string
+          raw_response: string | null
+          snippet: string | null
+        }
         Insert: {
-          checked_at?: string;
-          clinic_id: string;
-          engine: string;
-          id?: string;
-          mentioned?: boolean;
-          position?: number | null;
-          query: string;
-          raw_response?: string | null;
-          snippet?: string | null;
-        };
+          checked_at?: string
+          clinic_id: string
+          engine: string
+          id?: string
+          mentioned?: boolean
+          position?: number | null
+          query: string
+          raw_response?: string | null
+          snippet?: string | null
+        }
         Update: {
-          checked_at?: string;
-          clinic_id?: string;
-          engine?: string;
-          id?: string;
-          mentioned?: boolean;
-          position?: number | null;
-          query?: string;
-          raw_response?: string | null;
-          snippet?: string | null;
-        };
+          checked_at?: string
+          clinic_id?: string
+          engine?: string
+          id?: string
+          mentioned?: boolean
+          position?: number | null
+          query?: string
+          raw_response?: string | null
+          snippet?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "seo_citations_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_citations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       seo_keywords: {
         Row: {
-          clinic_id: string;
-          created_at: string;
-          current_position: number | null;
-          difficulty: string | null;
-          id: string;
-          keyword: string;
-          last_checked_at: string | null;
-          location: string | null;
-          search_volume: number | null;
-          status: string;
-          target_position: number | null;
-        };
+          clinic_id: string
+          created_at: string
+          current_position: number | null
+          difficulty: string | null
+          id: string
+          keyword: string
+          last_checked_at: string | null
+          location: string | null
+          search_volume: number | null
+          status: string
+          target_position: number | null
+        }
         Insert: {
-          clinic_id: string;
-          created_at?: string;
-          current_position?: number | null;
-          difficulty?: string | null;
-          id?: string;
-          keyword: string;
-          last_checked_at?: string | null;
-          location?: string | null;
-          search_volume?: number | null;
-          status?: string;
-          target_position?: number | null;
-        };
+          clinic_id: string
+          created_at?: string
+          current_position?: number | null
+          difficulty?: string | null
+          id?: string
+          keyword: string
+          last_checked_at?: string | null
+          location?: string | null
+          search_volume?: number | null
+          status?: string
+          target_position?: number | null
+        }
         Update: {
-          clinic_id?: string;
-          created_at?: string;
-          current_position?: number | null;
-          difficulty?: string | null;
-          id?: string;
-          keyword?: string;
-          last_checked_at?: string | null;
-          location?: string | null;
-          search_volume?: number | null;
-          status?: string;
-          target_position?: number | null;
-        };
+          clinic_id?: string
+          created_at?: string
+          current_position?: number | null
+          difficulty?: string | null
+          id?: string
+          keyword?: string
+          last_checked_at?: string | null
+          location?: string | null
+          search_volume?: number | null
+          status?: string
+          target_position?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "seo_keywords_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_keywords_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       seo_rank_history: {
         Row: {
-          checked_at: string;
-          clinic_id: string;
-          id: string;
-          keyword_id: string;
-          position: number | null;
-          source: string;
-        };
+          checked_at: string
+          clinic_id: string
+          id: string
+          keyword_id: string
+          position: number | null
+          source: string
+        }
         Insert: {
-          checked_at?: string;
-          clinic_id: string;
-          id?: string;
-          keyword_id: string;
-          position?: number | null;
-          source?: string;
-        };
+          checked_at?: string
+          clinic_id: string
+          id?: string
+          keyword_id: string
+          position?: number | null
+          source?: string
+        }
         Update: {
-          checked_at?: string;
-          clinic_id?: string;
-          id?: string;
-          keyword_id?: string;
-          position?: number | null;
-          source?: string;
-        };
+          checked_at?: string
+          clinic_id?: string
+          id?: string
+          keyword_id?: string
+          position?: number | null
+          source?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "seo_rank_history_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_rank_history_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "seo_rank_history_keyword_id_fkey";
-            columns: ["keyword_id"];
-            isOneToOne: false;
-            referencedRelation: "seo_keywords";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_rank_history_keyword_id_fkey"
+            columns: ["keyword_id"]
+            isOneToOne: false
+            referencedRelation: "seo_keywords"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       seo_tasks: {
         Row: {
-          category: string;
-          clinic_id: string;
-          completed_at: string | null;
-          created_at: string;
-          description: string | null;
-          id: string;
-          is_completed: boolean;
-          task_key: string;
-          title: string;
-        };
+          category: string
+          clinic_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean
+          task_key: string
+          title: string
+        }
         Insert: {
-          category: string;
-          clinic_id: string;
-          completed_at?: string | null;
-          created_at?: string;
-          description?: string | null;
-          id?: string;
-          is_completed?: boolean;
-          task_key: string;
-          title: string;
-        };
+          category: string
+          clinic_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          task_key: string
+          title: string
+        }
         Update: {
-          category?: string;
-          clinic_id?: string;
-          completed_at?: string | null;
-          created_at?: string;
-          description?: string | null;
-          id?: string;
-          is_completed?: boolean;
-          task_key?: string;
-          title?: string;
-        };
+          category?: string
+          clinic_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          task_key?: string
+          title?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "seo_tasks_clinic_id_fkey";
-            columns: ["clinic_id"];
-            isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            foreignKeyName: "seo_tasks_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       subscription_plans: {
         Row: {
-          display_order: number | null;
-          features: Json | null;
-          id: string;
-          is_active: boolean | null;
-          max_appointments_per_month: number | null;
-          max_branches: number | null;
-          max_patients: number | null;
-          name: string;
-          price_monthly: number | null;
-          price_yearly: number | null;
-          razorpay_plan_id_monthly: string | null;
-          razorpay_plan_id_yearly: string | null;
-          slug: string;
-        };
+          display_order: number | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_appointments_per_month: number | null
+          max_branches: number | null
+          max_patients: number | null
+          name: string
+          price_monthly: number | null
+          price_yearly: number | null
+          razorpay_plan_id_monthly: string | null
+          razorpay_plan_id_yearly: string | null
+          slug: string
+        }
         Insert: {
-          display_order?: number | null;
-          features?: Json | null;
-          id?: string;
-          is_active?: boolean | null;
-          max_appointments_per_month?: number | null;
-          max_branches?: number | null;
-          max_patients?: number | null;
-          name: string;
-          price_monthly?: number | null;
-          price_yearly?: number | null;
-          razorpay_plan_id_monthly?: string | null;
-          razorpay_plan_id_yearly?: string | null;
-          slug: string;
-        };
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_appointments_per_month?: number | null
+          max_branches?: number | null
+          max_patients?: number | null
+          name: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          razorpay_plan_id_monthly?: string | null
+          razorpay_plan_id_yearly?: string | null
+          slug: string
+        }
         Update: {
-          display_order?: number | null;
-          features?: Json | null;
-          id?: string;
-          is_active?: boolean | null;
-          max_appointments_per_month?: number | null;
-          max_branches?: number | null;
-          max_patients?: number | null;
-          name?: string;
-          price_monthly?: number | null;
-          price_yearly?: number | null;
-          razorpay_plan_id_monthly?: string | null;
-          razorpay_plan_id_yearly?: string | null;
-          slug?: string;
-        };
-        Relationships: [];
-      };
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_appointments_per_month?: number | null
+          max_branches?: number | null
+          max_patients?: number | null
+          name?: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          razorpay_plan_id_monthly?: string | null
+          razorpay_plan_id_yearly?: string | null
+          slug?: string
+        }
+        Relationships: []
+      }
       subscription_reminders: {
         Row: {
-          body: string | null;
-          created_at: string;
-          dismissed_at: string | null;
-          id: string;
-          kind: string;
-          organization_id: string;
-          severity: string;
-          title: string;
-        };
+          body: string | null
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          kind: string
+          organization_id: string
+          severity: string
+          title: string
+        }
         Insert: {
-          body?: string | null;
-          created_at?: string;
-          dismissed_at?: string | null;
-          id?: string;
-          kind: string;
-          organization_id: string;
-          severity?: string;
-          title: string;
-        };
+          body?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          kind: string
+          organization_id: string
+          severity?: string
+          title: string
+        }
         Update: {
-          body?: string | null;
-          created_at?: string;
-          dismissed_at?: string | null;
-          id?: string;
-          kind?: string;
-          organization_id?: string;
-          severity?: string;
-          title?: string;
-        };
+          body?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          kind?: string
+          organization_id?: string
+          severity?: string
+          title?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "subscription_reminders_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "subscription_reminders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       subscriptions: {
         Row: {
-          billing_cycle: Database["public"]["Enums"]["billing_cycle"];
-          cancel_at_period_end: boolean | null;
-          created_at: string;
-          current_period_end: string | null;
-          current_period_start: string;
-          gateway: string | null;
-          gateway_customer_id: string | null;
-          gateway_subscription_id: string | null;
-          id: string;
-          metadata: Json;
-          organization_id: string;
-          plan_id: string;
-          razorpay_customer_id: string | null;
-          razorpay_subscription_id: string | null;
-          status: Database["public"]["Enums"]["subscription_status"];
-          trial_ends_at: string | null;
-          updated_at: string;
-        };
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          gateway: string | null
+          gateway_customer_id: string | null
+          gateway_subscription_id: string | null
+          id: string
+          metadata: Json
+          organization_id: string
+          plan_id: string
+          razorpay_customer_id: string | null
+          razorpay_subscription_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          updated_at: string
+        }
         Insert: {
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"];
-          cancel_at_period_end?: boolean | null;
-          created_at?: string;
-          current_period_end?: string | null;
-          current_period_start?: string;
-          gateway?: string | null;
-          gateway_customer_id?: string | null;
-          gateway_subscription_id?: string | null;
-          id?: string;
-          metadata?: Json;
-          organization_id: string;
-          plan_id: string;
-          razorpay_customer_id?: string | null;
-          razorpay_subscription_id?: string | null;
-          status?: Database["public"]["Enums"]["subscription_status"];
-          trial_ends_at?: string | null;
-          updated_at?: string;
-        };
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          gateway?: string | null
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          metadata?: Json
+          organization_id: string
+          plan_id: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
         Update: {
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"];
-          cancel_at_period_end?: boolean | null;
-          created_at?: string;
-          current_period_end?: string | null;
-          current_period_start?: string;
-          gateway?: string | null;
-          gateway_customer_id?: string | null;
-          gateway_subscription_id?: string | null;
-          id?: string;
-          metadata?: Json;
-          organization_id?: string;
-          plan_id?: string;
-          razorpay_customer_id?: string | null;
-          razorpay_subscription_id?: string | null;
-          status?: Database["public"]["Enums"]["subscription_status"];
-          trial_ends_at?: string | null;
-          updated_at?: string;
-        };
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          gateway?: string | null
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          plan_id?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "subscriptions_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: true;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "subscriptions_plan_id_fkey";
-            columns: ["plan_id"];
-            isOneToOne: false;
-            referencedRelation: "plans";
-            referencedColumns: ["id"];
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       support_tickets: {
         Row: {
-          assigned_to: string | null;
-          body: string;
-          created_at: string | null;
-          doctor_email: string | null;
-          doctor_id: string | null;
-          id: string;
-          priority: string | null;
-          status: string | null;
-          subject: string;
-          updated_at: string | null;
-        };
+          assigned_to: string | null
+          body: string
+          created_at: string | null
+          doctor_email: string | null
+          doctor_id: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
         Insert: {
-          assigned_to?: string | null;
-          body: string;
-          created_at?: string | null;
-          doctor_email?: string | null;
-          doctor_id?: string | null;
-          id?: string;
-          priority?: string | null;
-          status?: string | null;
-          subject: string;
-          updated_at?: string | null;
-        };
+          assigned_to?: string | null
+          body: string
+          created_at?: string | null
+          doctor_email?: string | null
+          doctor_id?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
         Update: {
-          assigned_to?: string | null;
-          body?: string;
-          created_at?: string | null;
-          doctor_email?: string | null;
-          doctor_id?: string | null;
-          id?: string;
-          priority?: string | null;
-          status?: string | null;
-          subject?: string;
-          updated_at?: string | null;
-        };
+          assigned_to?: string | null
+          body?: string
+          created_at?: string | null
+          doctor_email?: string | null
+          doctor_id?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "support_tickets_assigned_to_fkey";
-            columns: ["assigned_to"];
-            isOneToOne: false;
-            referencedRelation: "admin_users";
-            referencedColumns: ["id"];
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       system_settings: {
         Row: {
-          description: string | null;
-          key: string;
-          updated_at: string | null;
-          updated_by: string | null;
-          value: string | null;
-        };
+          description: string | null
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: string | null
+        }
         Insert: {
-          description?: string | null;
-          key: string;
-          updated_at?: string | null;
-          updated_by?: string | null;
-          value?: string | null;
-        };
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: string | null
+        }
         Update: {
-          description?: string | null;
-          key?: string;
-          updated_at?: string | null;
-          updated_by?: string | null;
-          value?: string | null;
-        };
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "system_settings_updated_by_fkey";
-            columns: ["updated_by"];
-            isOneToOne: false;
-            referencedRelation: "admin_users";
-            referencedColumns: ["id"];
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       ticket_replies: {
         Row: {
-          body: string;
-          created_at: string | null;
-          id: string;
-          sender_id: string | null;
-          sender_type: string | null;
-          ticket_id: string | null;
-        };
+          body: string
+          created_at: string | null
+          id: string
+          sender_id: string | null
+          sender_type: string | null
+          ticket_id: string | null
+        }
         Insert: {
-          body: string;
-          created_at?: string | null;
-          id?: string;
-          sender_id?: string | null;
-          sender_type?: string | null;
-          ticket_id?: string | null;
-        };
+          body: string
+          created_at?: string | null
+          id?: string
+          sender_id?: string | null
+          sender_type?: string | null
+          ticket_id?: string | null
+        }
         Update: {
-          body?: string;
-          created_at?: string | null;
-          id?: string;
-          sender_id?: string | null;
-          sender_type?: string | null;
-          ticket_id?: string | null;
-        };
+          body?: string
+          created_at?: string | null
+          id?: string
+          sender_id?: string | null
+          sender_type?: string | null
+          ticket_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "ticket_replies_ticket_id_fkey";
-            columns: ["ticket_id"];
-            isOneToOne: false;
-            referencedRelation: "support_tickets";
-            referencedColumns: ["id"];
+            foreignKeyName: "ticket_replies_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       transactions: {
         Row: {
-          amount: number | null;
-          billing_cycle: string | null;
-          created_at: string | null;
-          currency: string | null;
-          doctor_id: string | null;
-          gateway: string | null;
-          gateway_order_id: string | null;
-          gateway_payment_id: string | null;
-          id: string;
-          organization_id: string | null;
-          plan: string | null;
-          razorpay_order_id: string | null;
-          razorpay_payment_id: string | null;
-          refund_amount: number | null;
-          refund_id: string | null;
-          status: string | null;
-        };
+          amount: number | null
+          billing_cycle: string | null
+          created_at: string | null
+          currency: string | null
+          doctor_id: string | null
+          gateway: string | null
+          gateway_order_id: string | null
+          gateway_payment_id: string | null
+          id: string
+          organization_id: string | null
+          plan: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          refund_amount: number | null
+          refund_id: string | null
+          status: string | null
+        }
         Insert: {
-          amount?: number | null;
-          billing_cycle?: string | null;
-          created_at?: string | null;
-          currency?: string | null;
-          doctor_id?: string | null;
-          gateway?: string | null;
-          gateway_order_id?: string | null;
-          gateway_payment_id?: string | null;
-          id?: string;
-          organization_id?: string | null;
-          plan?: string | null;
-          razorpay_order_id?: string | null;
-          razorpay_payment_id?: string | null;
-          refund_amount?: number | null;
-          refund_id?: string | null;
-          status?: string | null;
-        };
+          amount?: number | null
+          billing_cycle?: string | null
+          created_at?: string | null
+          currency?: string | null
+          doctor_id?: string | null
+          gateway?: string | null
+          gateway_order_id?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          organization_id?: string | null
+          plan?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          refund_amount?: number | null
+          refund_id?: string | null
+          status?: string | null
+        }
         Update: {
-          amount?: number | null;
-          billing_cycle?: string | null;
-          created_at?: string | null;
-          currency?: string | null;
-          doctor_id?: string | null;
-          gateway?: string | null;
-          gateway_order_id?: string | null;
-          gateway_payment_id?: string | null;
-          id?: string;
-          organization_id?: string | null;
-          plan?: string | null;
-          razorpay_order_id?: string | null;
-          razorpay_payment_id?: string | null;
-          refund_amount?: number | null;
-          refund_id?: string | null;
-          status?: string | null;
-        };
+          amount?: number | null
+          billing_cycle?: string | null
+          created_at?: string | null
+          currency?: string | null
+          doctor_id?: string | null
+          gateway?: string | null
+          gateway_order_id?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          organization_id?: string | null
+          plan?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          refund_amount?: number | null
+          refund_id?: string | null
+          status?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "transactions_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       user_roles: {
         Row: {
-          created_at: string;
-          id: string;
-          role: Database["public"]["Enums"]["app_role"];
-          user_id: string;
-        };
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
         Insert: {
-          created_at?: string;
-          id?: string;
-          role: Database["public"]["Enums"]["app_role"];
-          user_id: string;
-        };
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
         Update: {
-          created_at?: string;
-          id?: string;
-          role?: Database["public"]["Enums"]["app_role"];
-          user_id?: string;
-        };
-        Relationships: [];
-      };
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       value_events: {
         Row: {
-          created_at: string;
-          description: string | null;
-          event_type: string;
-          id: string;
-          module_key: string;
-          organization_id: string;
-          related_id: string | null;
-          value_amount: number;
-          value_type: string;
-        };
+          created_at: string
+          description: string | null
+          event_type: string
+          id: string
+          module_key: string
+          organization_id: string
+          related_id: string | null
+          value_amount: number
+          value_type: string
+        }
         Insert: {
-          created_at?: string;
-          description?: string | null;
-          event_type: string;
-          id?: string;
-          module_key: string;
-          organization_id: string;
-          related_id?: string | null;
-          value_amount?: number;
-          value_type: string;
-        };
+          created_at?: string
+          description?: string | null
+          event_type: string
+          id?: string
+          module_key: string
+          organization_id: string
+          related_id?: string | null
+          value_amount?: number
+          value_type: string
+        }
         Update: {
-          created_at?: string;
-          description?: string | null;
-          event_type?: string;
-          id?: string;
-          module_key?: string;
-          organization_id?: string;
-          related_id?: string | null;
-          value_amount?: number;
-          value_type?: string;
-        };
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          module_key?: string
+          organization_id?: string
+          related_id?: string | null
+          value_amount?: number
+          value_type?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "value_events_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "value_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       webhook_events: {
         Row: {
-          event_type: string | null;
-          id: string;
-          payload: Json | null;
-          provider: string;
-          received_at: string;
-        };
+          event_type: string | null
+          id: string
+          payload: Json | null
+          provider: string
+          received_at: string
+        }
         Insert: {
-          event_type?: string | null;
-          id: string;
-          payload?: Json | null;
-          provider?: string;
-          received_at?: string;
-        };
+          event_type?: string | null
+          id: string
+          payload?: Json | null
+          provider?: string
+          received_at?: string
+        }
         Update: {
-          event_type?: string | null;
-          id?: string;
-          payload?: Json | null;
-          provider?: string;
-          received_at?: string;
-        };
-        Relationships: [];
-      };
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          provider?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_logs: {
         Row: {
-          appointment_id: string | null;
-          automation_key: string | null;
-          created_at: string;
-          error: string | null;
-          id: string;
-          message: string;
-          metadata: Json;
-          organization_id: string;
-          patient_name: string | null;
-          patient_phone: string;
-          scheduled_for: string | null;
-          sent_at: string | null;
-          status: string;
-          template_key: string;
-          wa_link: string | null;
-        };
+          appointment_id: string | null
+          automation_key: string | null
+          created_at: string
+          error: string | null
+          id: string
+          message: string
+          metadata: Json
+          organization_id: string
+          patient_name: string | null
+          patient_phone: string
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          template_key: string
+          wa_link: string | null
+        }
         Insert: {
-          appointment_id?: string | null;
-          automation_key?: string | null;
-          created_at?: string;
-          error?: string | null;
-          id?: string;
-          message: string;
-          metadata?: Json;
-          organization_id: string;
-          patient_name?: string | null;
-          patient_phone: string;
-          scheduled_for?: string | null;
-          sent_at?: string | null;
-          status?: string;
-          template_key: string;
-          wa_link?: string | null;
-        };
+          appointment_id?: string | null
+          automation_key?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          message: string
+          metadata?: Json
+          organization_id: string
+          patient_name?: string | null
+          patient_phone: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          template_key: string
+          wa_link?: string | null
+        }
         Update: {
-          appointment_id?: string | null;
-          automation_key?: string | null;
-          created_at?: string;
-          error?: string | null;
-          id?: string;
-          message?: string;
-          metadata?: Json;
-          organization_id?: string;
-          patient_name?: string | null;
-          patient_phone?: string;
-          scheduled_for?: string | null;
-          sent_at?: string | null;
-          status?: string;
-          template_key?: string;
-          wa_link?: string | null;
-        };
+          appointment_id?: string | null
+          automation_key?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          message?: string
+          metadata?: Json
+          organization_id?: string
+          patient_name?: string | null
+          patient_phone?: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          template_key?: string
+          wa_link?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "whatsapp_logs_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "whatsapp_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       whatsapp_templates: {
         Row: {
-          body: string;
-          created_at: string;
-          id: string;
-          is_active: boolean;
-          name: string;
-          organization_id: string;
-          template_key: string;
-          updated_at: string;
-        };
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          template_key: string
+          updated_at: string
+        }
         Insert: {
-          body: string;
-          created_at?: string;
-          id?: string;
-          is_active?: boolean;
-          name: string;
-          organization_id: string;
-          template_key: string;
-          updated_at?: string;
-        };
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          template_key: string
+          updated_at?: string
+        }
         Update: {
-          body?: string;
-          created_at?: string;
-          id?: string;
-          is_active?: boolean;
-          name?: string;
-          organization_id?: string;
-          template_key?: string;
-          updated_at?: string;
-        };
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          template_key?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "whatsapp_templates_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
+            foreignKeyName: "whatsapp_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-    };
+        ]
+      }
+    }
     Views: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     Functions: {
-      expire_lapsed_subscriptions: { Args: never; Returns: number };
+      expire_lapsed_subscriptions: { Args: never; Returns: number }
       get_invite_by_token: {
-        Args: { _token: string };
+        Args: { _token: string }
         Returns: {
-          accepted_at: string;
-          email: string;
-          expires_at: string;
-          id: string;
-          organization_id: string;
-          organization_name: string;
-          role: Database["public"]["Enums"]["org_role"];
-        }[];
-      };
+          accepted_at: string
+          email: string
+          expires_at: string
+          id: string
+          organization_id: string
+          organization_name: string
+          role: Database["public"]["Enums"]["org_role"]
+        }[]
+      }
       has_org_role: {
         Args: {
-          _org_id: string;
-          _roles: Database["public"]["Enums"]["org_role"][];
-          _user_id: string;
-        };
-        Returns: boolean;
-      };
+          _org_id: string
+          _roles: Database["public"]["Enums"]["org_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"];
-          _user_id: string;
-        };
-        Returns: boolean;
-      };
-      is_admin: { Args: { _user_id: string }; Returns: boolean };
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_org_member: {
-        Args: { _org_id: string; _user_id: string };
-        Returns: boolean;
-      };
-      user_org_ids: { Args: { _user_id: string }; Returns: string[] };
-    };
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+    }
     Enums: {
-      app_role: "super_admin" | "support";
-      appointment_status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
-      billing_cycle: "monthly" | "yearly";
+      app_role: "super_admin" | "support"
+      appointment_status:
+        | "pending"
+        | "confirmed"
+        | "completed"
+        | "cancelled"
+        | "no_show"
+      billing_cycle: "monthly" | "yearly"
       business_type:
         | "doctor"
         | "clinic"
@@ -3319,133 +3333,150 @@ export type Database = {
         | "diagnostic_center"
         | "therapist"
         | "dentist"
-        | "physiotherapist";
-      domain_status: "pending" | "verifying" | "verified" | "active" | "failed";
-      org_role: "owner" | "admin" | "doctor" | "staff";
-      subscription_status: "trialing" | "active" | "past_due" | "cancelled" | "expired";
-    };
+        | "physiotherapist"
+      domain_status: "pending" | "verifying" | "verified" | "active" | "failed"
+      org_role: "owner" | "admin" | "doctor" | "staff"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "cancelled"
+        | "expired"
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-};
+      [_ in never]: never
+    }
+  }
+}
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R;
+      Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R;
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
       }
       ? R
       : never
-    : never;
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I;
+      Insert: infer I
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I;
+        Insert: infer I
       }
       ? I
       : never
-    : never;
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U;
+      Update: infer U
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U;
+        Update: infer U
       }
       ? U
       : never
-    : never;
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never;
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals;
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
+  schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never;
+    : never
 
 export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "support"],
-      appointment_status: ["pending", "confirmed", "completed", "cancelled", "no_show"],
+      appointment_status: [
+        "pending",
+        "confirmed",
+        "completed",
+        "cancelled",
+        "no_show",
+      ],
       billing_cycle: ["monthly", "yearly"],
       business_type: [
         "doctor",
@@ -3458,7 +3489,13 @@ export const Constants = {
       ],
       domain_status: ["pending", "verifying", "verified", "active", "failed"],
       org_role: ["owner", "admin", "doctor", "staff"],
-      subscription_status: ["trialing", "active", "past_due", "cancelled", "expired"],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "cancelled",
+        "expired",
+      ],
     },
   },
-} as const;
+} as const

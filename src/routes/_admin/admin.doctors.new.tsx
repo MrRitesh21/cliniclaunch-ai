@@ -23,16 +23,16 @@ function NewSignupsPage() {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const rows = useMemo(() => {
-    return ((data ?? []) as any[]).filter((r) => new Date(r.joined) >= sevenDaysAgo);
+    return ((data ?? []) as any[]).filter(
+      (r) => new Date(r.joined) >= sevenDaysAgo
+    );
   }, [data]);
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-foreground font-display">New Signups (7d)</h1>
-        <p className="text-sm text-muted-foreground">
-          Doctors who registered in the last 7 days. Total: {rows.length}
-        </p>
+        <p className="text-sm text-muted-foreground">Doctors who registered in the last 7 days. Total: {rows.length}</p>
       </div>
 
       <Card className="overflow-hidden">
@@ -50,18 +50,10 @@ function NewSignupsPage() {
             </thead>
             <tbody className="divide-y">
               {isLoading && (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
-                    Loading…
-                  </td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">Loading…</td></tr>
               )}
               {!isLoading && rows.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
-                    No new signups in the last 7 days.
-                  </td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No new signups in the last 7 days.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/50">

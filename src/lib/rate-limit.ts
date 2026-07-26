@@ -31,7 +31,7 @@ if (typeof setInterval !== "undefined") {
 
 export function checkRateLimit(
   identifier: string,
-  options: RateLimitOptions = {},
+  options: RateLimitOptions = {}
 ): { allowed: boolean; remaining: number; resetMs: number } {
   const windowMs = options.windowMs || 60000;
   const maxRequests = options.maxRequests || 60;
@@ -63,11 +63,15 @@ export function checkRateLimit(
 /**
  * Express / TanStack Server Route Middleware helper
  */
-export function rateLimitMiddleware(reqIdentifier: string, maxRequests = 60, windowMs = 60000) {
+export function rateLimitMiddleware(
+  reqIdentifier: string,
+  maxRequests = 60,
+  windowMs = 60000
+) {
   const result = checkRateLimit(reqIdentifier, { maxRequests, windowMs });
   if (!result.allowed) {
     throw new Error(
-      `Rate limit exceeded. Too many requests from ${reqIdentifier}. Try again in ${Math.ceil(result.resetMs / 1000)}s.`,
+      `Rate limit exceeded. Too many requests from ${reqIdentifier}. Try again in ${Math.ceil(result.resetMs / 1000)}s.`
     );
   }
   return result;

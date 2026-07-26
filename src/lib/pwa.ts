@@ -15,12 +15,9 @@ export function registerPWA() {
   const isPreview =
     host.startsWith("id-preview--") ||
     host.startsWith("preview--") ||
-    host === "lovableproject.com" ||
-    host.endsWith(".lovableproject.com") ||
-    host === "lovableproject-dev.com" ||
-    host.endsWith(".lovableproject-dev.com") ||
-    host === "beta.lovable.dev" ||
-    host.endsWith(".beta.lovable.dev");
+    host === "lovableproject.com" || host.endsWith(".lovableproject.com") ||
+    host === "lovableproject-dev.com" || host.endsWith(".lovableproject-dev.com") ||
+    host === "beta.lovable.dev" || host.endsWith(".beta.lovable.dev");
 
   if (isPreview) return cleanup();
   if (new URL(window.location.href).searchParams.get("sw") === "off") return cleanup();
@@ -56,10 +53,7 @@ export function usePWAInstall() {
     if (typeof window === "undefined") return;
 
     // Check if already running in standalone mode (installed)
-    if (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone
-    ) {
+    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
       setIsInstalled(true);
       return;
     }

@@ -6,10 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 function serverClient() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error("Supabase env vars missing");
   return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
@@ -29,15 +26,7 @@ async function scheduleWhatsAppAutomation(opts: {
   templateKey: "followup" | "review_request";
   scheduledFor: Date;
 }) {
-  const {
-    sb,
-    organizationId,
-    appointmentId,
-    patientName,
-    patientPhone,
-    templateKey,
-    scheduledFor,
-  } = opts;
+  const { sb, organizationId, appointmentId, patientName, patientPhone, templateKey, scheduledFor } = opts;
   const { data: existing } = await sb
     .from("whatsapp_logs")
     .select("id")
@@ -72,21 +61,17 @@ export async function adminClient() {
 
 export const getClinicBySlug = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) =>
-    z
-      .object({
-        slug: z.string().min(1).max(100),
-        preview_token: z.string().min(8).max(128).optional(),
-      })
-      .parse(input),
+    z.object({
+      slug: z.string().min(1).max(100),
+      preview_token: z.string().min(8).max(128).optional(),
+    }).parse(input),
   )
   .handler(async ({ data }) => {
     const sb = await adminClient();
     // Project only public-safe columns. NEVER expose personal_phone / personal_email.
     const { data: clinic, error } = await sb
       .from("clinics")
-      .select(
-        "id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, design_tokens, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no",
-      )
+      .select("id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no")
       .eq("slug", data.slug)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -95,21 +80,16 @@ export const getClinicBySlug = createServerFn({ method: "GET" })
     // Publish gate: unpublished clinics are hidden from the public web.
     // The owner previews from the dashboard by passing the clinic's private
     // domain_verification_token as `preview_token`.
-    //
-    // We validate the token even for published clinics: `__preview_ok` is what
-    // authorises the ?tpl / ?tokens render overrides, so it must never be true
-    // for an anonymous visitor who could otherwise re-skin a live public site.
-    let previewOk = false;
-    if (data.preview_token) {
+    if (!clinic.is_published) {
+      if (!data.preview_token) return { __unpublished: true, slug: clinic.slug } as any;
       const { data: secret } = await sb
         .from("clinic_domain_secrets")
         .select("domain_verification_token")
         .eq("clinic_id", clinic.id)
         .maybeSingle();
-      previewOk = !!secret && secret.domain_verification_token === data.preview_token;
-    }
-    if (!clinic.is_published && !previewOk) {
-      return { __unpublished: true, slug: clinic.slug } as any;
+      if (!secret || secret.domain_verification_token !== data.preview_token) {
+        return { __unpublished: true, slug: clinic.slug } as any;
+      }
     }
 
     // Fetch the clinic's organization's installed modules so the public site
@@ -131,8 +111,10 @@ export const getClinicBySlug = createServerFn({ method: "GET" })
       .eq("status", "approved")
       .order("created_at", { ascending: false });
 
-    return { ...clinic, installed_modules, db_reviews: dbReviews ?? [], __preview_ok: previewOk };
+    return { ...clinic, installed_modules, db_reviews: dbReviews ?? [] };
   });
+
+
 
 /**
  * Onboarding helper: returns an available organization slug derived from `base`,
@@ -146,11 +128,7 @@ export const resolveAvailableOrgSlug = createServerFn({ method: "GET" })
     let slug = data.base;
     let i = 1;
     while (i < 1000) {
-      const { data: ex } = await sb
-        .from("organizations")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
+      const { data: ex } = await sb.from("organizations").select("id").eq("slug", slug).maybeSingle();
       if (!ex) break;
       i++;
       slug = `${data.base}-${i}`;
@@ -169,13 +147,11 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const sb = await adminClient();
     const [{ data: org }, { data: clinic }] = await Promise.all([
-      sb
-        .from("organizations")
+      sb.from("organizations")
         .select("id, name, logo_url, google_business_profile_url")
         .eq("slug", data.slug)
         .maybeSingle(),
-      sb
-        .from("clinics")
+      sb.from("clinics")
         .select("doctor_name, specialization, clinic_name, public_address")
         .eq("slug", data.slug)
         .maybeSingle(),
@@ -193,9 +169,7 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     const sb = await adminClient();
     const { data: clinic } = await sb
       .from("clinics")
-      .select(
-        "id, slug, doctor_name, specialization, qualification, clinic_name, bio, public_phone, phone, public_email, email, public_address, address, avatar_url, logo_url, gallery, custom_domain, working_hours, consultation_fee",
-      )
+      .select("id, slug, doctor_name, specialization, qualification, clinic_name, bio, public_phone, phone, public_email, email, public_address, address, avatar_url, logo_url, gallery, custom_domain, working_hours, consultation_fee")
       .eq("slug", data.slug)
       .maybeSingle();
     if (!clinic) return { faqJsonLd: null, physicianJsonLd: null, localBusinessJsonLd: null };
@@ -216,13 +190,12 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     const phone = clinic.public_phone || clinic.phone || null;
     const email = clinic.public_email || clinic.email || null;
     const address = clinic.public_address || clinic.address || null;
-    const image =
-      clinic.avatar_url ||
-      clinic.logo_url ||
-      (Array.isArray(clinic.gallery) ? (clinic.gallery as string[])[0] : undefined) ||
-      null;
+    const image = clinic.avatar_url || clinic.logo_url ||
+      (Array.isArray(clinic.gallery) ? (clinic.gallery as string[])[0] : undefined) || null;
 
-    const url = clinic.custom_domain ? `https://${clinic.custom_domain}` : `/c/${clinic.slug}`;
+    const url = clinic.custom_domain
+      ? `https://${clinic.custom_domain}`
+      : `/c/${clinic.slug}`;
 
     // Structure the address fields for PostalAddress schema
     let addressObject: any = undefined;
@@ -243,30 +216,21 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     // Structure the opening hours for OpeningHoursSpecification schema
     let openingHours: any[] | undefined = undefined;
     try {
-      const wh =
-        typeof clinic.working_hours === "string"
-          ? JSON.parse(clinic.working_hours)
-          : (clinic.working_hours as any);
+      const wh = typeof clinic.working_hours === "string" 
+        ? JSON.parse(clinic.working_hours) 
+        : (clinic.working_hours as any);
       if (wh && typeof wh === "object" && wh.start && wh.end && Array.isArray(wh.days)) {
         const dayMap: Record<number, string> = {
-          1: "Monday",
-          2: "Tuesday",
-          3: "Wednesday",
-          4: "Thursday",
-          5: "Friday",
-          6: "Saturday",
-          0: "Sunday",
+          1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 0: "Sunday"
         };
         const days = wh.days.map((d: number) => dayMap[d]).filter(Boolean);
         if (days.length) {
-          openingHours = [
-            {
-              "@type": "OpeningHoursSpecification",
-              dayOfWeek: days,
-              opens: wh.start,
-              closes: wh.end,
-            },
-          ];
+          openingHours = [{
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: days,
+            opens: wh.start,
+            closes: wh.end
+          }];
         }
       }
     } catch (e) {
@@ -314,17 +278,18 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     };
   });
 
+
+
+
+
+
 export const getBookedSlots = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        clinic_id: z.string().uuid(),
-        from: z.string(),
-        to: z.string(),
-        doctor_id: z.string().uuid().nullable().optional(),
-      })
-      .parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({
+    clinic_id: z.string().uuid(),
+    from: z.string(),
+    to: z.string(),
+    doctor_id: z.string().uuid().nullable().optional(),
+  }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
     // Only return scheduled times — never patient PII.
@@ -371,16 +336,12 @@ export const createBooking = createServerFn({ method: "POST" })
     if (data.source === "walkin") {
       const { data: rules } = await sb
         .from("clinics")
-        .select(
-          "walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes",
-        )
+        .select("walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes")
         .eq("id", data.clinic_id)
         .maybeSingle();
       const r = rules as {
-        walkin_max_per_slot?: number;
-        walkin_start_time?: string;
-        walkin_end_time?: string;
-        walkin_weekends_enabled?: boolean;
+        walkin_max_per_slot?: number; walkin_start_time?: string;
+        walkin_end_time?: string; walkin_weekends_enabled?: boolean;
         walkin_slot_minutes?: number;
       } | null;
       if (r) {
@@ -390,15 +351,9 @@ export const createBooking = createServerFn({ method: "POST" })
           throw new Error("Walk-ins are not available on weekends.");
         }
         const mins = at.getHours() * 60 + at.getMinutes();
-        const toMins = (t?: string) => {
-          if (!t) return 0;
-          const [h, m] = t.split(":").map(Number);
-          return h * 60 + (m || 0);
-        };
+        const toMins = (t?: string) => { if (!t) return 0; const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
         if (mins < toMins(r.walkin_start_time) || mins >= toMins(r.walkin_end_time)) {
-          throw new Error(
-            `Walk-ins only between ${r.walkin_start_time?.slice(0, 5)} and ${r.walkin_end_time?.slice(0, 5)}.`,
-          );
+          throw new Error(`Walk-ins only between ${r.walkin_start_time?.slice(0,5)} and ${r.walkin_end_time?.slice(0,5)}.`);
         }
         const max = r.walkin_max_per_slot ?? 3;
         let cq = sb
@@ -449,18 +404,7 @@ export const createBooking = createServerFn({ method: "POST" })
       } as never)
       .select("id, scheduled_at")
       .single();
-    if (error) {
-      // The checks above are advisory only; appointments_slot_uq and the
-      // walk-in cap trigger are what actually decide a race.
-      if (error.code === "23505") {
-        throw new Error(
-          error.message.includes("walkin_slot_full")
-            ? "That slot just filled up. Please pick the next one."
-            : "This time slot was just taken. Please pick another.",
-        );
-      }
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     // Patient directory upsert (best-effort — must not fail the booking)
     const { error: patientErr } = await sb.from("patients").upsert(
@@ -486,28 +430,18 @@ export const createBooking = createServerFn({ method: "POST" })
         .select("personal_phone, phone, doctor_name, clinic_name")
         .eq("id", data.clinic_id)
         .maybeSingle();
-      const c = clinic as {
-        personal_phone?: string | null;
-        phone?: string | null;
-        doctor_name?: string | null;
-        clinic_name?: string | null;
-      } | null;
+      const c = clinic as { personal_phone?: string | null; phone?: string | null; doctor_name?: string | null; clinic_name?: string | null } | null;
       const doctorPhone = c?.personal_phone || c?.phone || null;
       const dt = new Date(data.scheduled_at);
       const date = dt.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
-      const time = dt.toLocaleTimeString("en-US", {
-        timeZone: "Asia/Kolkata",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const time = dt.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
 
       const isWalkin = data.source === "walkin";
       const doctorTemplate = isWalkin ? "walkin_doctor_alert" : "appointment_alert";
 
       if (doctorPhone) {
         await notifyClinicEvent({
-          sb,
-          clinicId: data.clinic_id,
+          sb, clinicId: data.clinic_id,
           templateKey: doctorTemplate,
           recipientPhone: doctorPhone,
           recipientName: c?.doctor_name ?? null,
@@ -515,8 +449,7 @@ export const createBooking = createServerFn({ method: "POST" })
           variables: {
             patient_name: data.patient_name,
             patient_phone: data.patient_phone,
-            date,
-            time,
+            date, time,
             appointment_type: data.appointment_type,
             problem: data.problem,
           },
@@ -525,8 +458,7 @@ export const createBooking = createServerFn({ method: "POST" })
 
       if (isWalkin && data.patient_phone) {
         await notifyClinicEvent({
-          sb,
-          clinicId: data.clinic_id,
+          sb, clinicId: data.clinic_id,
           templateKey: "walkin_confirmation",
           recipientPhone: data.patient_phone,
           recipientName: data.patient_name,
@@ -535,14 +467,12 @@ export const createBooking = createServerFn({ method: "POST" })
             patient_name: data.patient_name,
             clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
             doctor_name: c?.doctor_name ?? "",
-            time,
-            date,
+            time, date,
           },
         });
       } else if (data.patient_phone) {
         await notifyClinicEvent({
-          sb,
-          clinicId: data.clinic_id,
+          sb, clinicId: data.clinic_id,
           templateKey: "appointment_received",
           recipientPhone: data.patient_phone,
           recipientName: data.patient_name,
@@ -551,14 +481,11 @@ export const createBooking = createServerFn({ method: "POST" })
             patient_name: data.patient_name,
             clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
             doctor_name: c?.doctor_name ?? "your doctor",
-            time,
-            date,
+            time, date,
           },
         });
       }
-    } catch {
-      /* swallow */
-    }
+    } catch { /* swallow */ }
 
     return appt;
   });
@@ -580,14 +507,10 @@ export const getConsultAppointment = createServerFn({ method: "GET" })
 
 export const updateAppointmentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        id: z.string().uuid(),
-        status: z.enum(["pending", "confirmed", "completed", "cancelled", "no_show"]),
-      })
-      .parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({
+    id: z.string().uuid(),
+    status: z.enum(["pending", "confirmed", "completed", "cancelled", "no_show"]),
+  }).parse(input))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const { data: appt, error } = await sb
@@ -596,32 +519,24 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select("*, clinics(id, organization_id, doctor_name, slug)")
       .single();
-    // Reviving a cancelled appointment collides with appointments_slot_uq when
-    // the slot was rebooked in the meantime.
-    if (error?.code === "23505") {
-      throw new Error("That slot has already been rebooked. Reschedule this appointment instead.");
-    }
     if (error) throw new Error(error.message);
 
     const clinic = (appt as any).clinics;
     if (clinic) {
       const { notifyClinicEvent } = await import("./notify.server");
-      const scheduledAt =
-        typeof appt.scheduled_at === "string" ? appt.scheduled_at : new Date().toISOString();
+      const scheduledAt = typeof appt.scheduled_at === "string" ? appt.scheduled_at : new Date().toISOString();
       const when = new Date(scheduledAt);
       const date = when.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
-      const time = when.toLocaleTimeString("en-US", {
-        timeZone: "Asia/Kolkata",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
+      const time = when.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
+      
       let triggerKey: string | null = null;
       if (data.status === "confirmed") triggerKey = "appointment_confirmed";
 
       if (triggerKey && appt.patient_phone) {
         const origin = appOrigin();
-        const consultUrl = appt.appointment_type === "online" ? `${origin}/consult/${appt.id}` : "";
+        const consultUrl = appt.appointment_type === "online"
+          ? `${origin}/consult/${appt.id}`
+          : "";
         const consultInfo = consultUrl
           ? `Join your video consultation here: ${consultUrl}\n\n`
           : "";
@@ -636,13 +551,13 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
           variables: {
             patient_name: appt.patient_name,
             doctor_name: clinic.doctor_name ?? "your doctor",
-            date,
-            time,
+            date, time,
             clinic_link: clinic.slug ? `${origin}/c/${clinic.slug}` : "",
             consult_info: consultInfo,
             consult_link: consultUrl,
           },
         });
+
       }
 
       if (data.status === "completed" && appt.patient_phone && clinic.organization_id) {
@@ -673,13 +588,11 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 export const createAndInviteStaff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z
-      .object({
-        email: z.string().email(),
-        role: z.enum(["doctor", "staff", "admin", "owner"]),
-        fullName: z.string().min(1),
-      })
-      .parse(input),
+    z.object({
+      email: z.string().email(),
+      role: z.enum(["doctor", "staff", "admin", "owner"]),
+      fullName: z.string().min(1),
+    }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const userClient = context.supabase;
@@ -715,8 +628,7 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
     const clinicName = clinic?.clinic_name || clinic?.doctor_name || "our clinic";
 
     // 3. Generate a temporary password
-    const tempPassword =
-      "Temp@" + Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 10);
+    const tempPassword = "Temp@" + Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 10);
 
     // 4. Create user in Supabase Auth Admin
     let userId: string;
@@ -742,17 +654,15 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
       ) {
         const { data: listData, error: listError } = await sb.auth.admin.listUsers({
           page: 1,
-          perPage: 1000,
+          perPage: 1000
         });
         if (listError) throw new Error(listError.message);
 
         const existingUser = listData.users.find(
-          (u: any) => u.email?.toLowerCase() === data.email.trim().toLowerCase(),
+          (u: any) => u.email?.toLowerCase() === data.email.trim().toLowerCase()
         );
         if (!existingUser) {
-          throw new Error(
-            `User exists but could not be retrieved from list: ${createError.message}`,
-          );
+          throw new Error(`User exists but could not be retrieved from list: ${createError.message}`);
         }
         userId = existingUser.id;
       } else {
@@ -778,7 +688,7 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
 
     // Check if there is already a pending invite
     const { data: existingInvite } = await sb
-      .from("organization_invites")
+      .from("organization_invites" as any)
       .select("id, token")
       .eq("organization_id", orgId)
       .eq("email", data.email.trim().toLowerCase())
@@ -791,18 +701,14 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
       inviteToken = existingInvite.token;
     } else {
       // 6. Track invite history as pending
-      const { data: invRow, error: invErr } = await sb
-        .from("organization_invites")
-        .insert({
-          organization_id: orgId,
-          email: data.email.trim().toLowerCase(),
-          role: data.role,
-          invited_by: context.userId,
-          accepted_at: null,
-          expires_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
-        })
-        .select("token")
-        .single();
+      const { data: invRow, error: invErr } = await sb.from("organization_invites" as any).insert({
+        organization_id: orgId,
+        email: data.email.trim().toLowerCase(),
+        role: data.role,
+        invited_by: context.userId,
+        accepted_at: null,
+        expires_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+      }).select("token").single();
 
       if (invErr || !invRow) {
         throw new Error(invErr?.message ?? "Failed to create organization invite");
@@ -892,9 +798,7 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
         console.error("Failed to send invitation email via Lovable Gateway:", emailErr);
       }
     } else {
-      console.warn(
-        "Neither RESEND_API_KEY nor LOVABLE_API_KEY are configured. Skipping email sending.",
-      );
+      console.warn("Neither RESEND_API_KEY nor LOVABLE_API_KEY are configured. Skipping email sending.");
     }
 
     return {
@@ -902,6 +806,7 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
       isNewUser,
       email: data.email.trim().toLowerCase(),
       tempPassword: isNewUser ? tempPassword : null,
-      token: inviteToken,
+      token: inviteToken
     };
   });
+

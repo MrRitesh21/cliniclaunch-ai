@@ -17,19 +17,10 @@ const MOCK_CONVERSATIONS = [
     timestamp: "10 mins ago",
     status: "active",
     messages: [
-      {
-        sender: "doctor",
-        text: "Hello! I am attempting to download a PDF report of my patient list.",
-      },
-      {
-        sender: "support",
-        text: "Hi Dr. Vikram, yes you can download the report by navigating to Patients -> Export CSV/PDF.",
-      },
+      { sender: "doctor", text: "Hello! I am attempting to download a PDF report of my patient list." },
+      { sender: "support", text: "Hi Dr. Vikram, yes you can download the report by navigating to Patients -> Export CSV/PDF." },
       { sender: "doctor", text: "Excellent. Is there any limit to the patients PDF export?" },
-      {
-        sender: "support",
-        text: "No, you can export all records. Let me know if you face any issues!",
-      },
+      { sender: "support", text: "No, you can export all records. Let me know if you face any issues!" },
     ],
   },
   {
@@ -41,10 +32,7 @@ const MOCK_CONVERSATIONS = [
     status: "closed",
     messages: [
       { sender: "doctor", text: "Hi, how do I configure my brand colors in the booking app?" },
-      {
-        sender: "support",
-        text: "Hi Dr. Rao! You can customize brand styles under Website -> Design Options.",
-      },
+      { sender: "support", text: "Hi Dr. Rao! You can customize brand styles under Website -> Design Options." },
       { sender: "doctor", text: "No problem, thank you!" },
     ],
   },
@@ -57,10 +45,7 @@ const MOCK_CONVERSATIONS = [
     status: "active",
     messages: [
       { sender: "doctor", text: "Can we integrate SMS alongside WhatsApp alerts?" },
-      {
-        sender: "support",
-        text: "Currently we support WhatsApp templates automatically, but we can set up custom SMS triggers. Let me check the details.",
-      },
+      { sender: "support", text: "Currently we support WhatsApp templates automatically, but we can set up custom SMS triggers. Let me check the details." },
     ],
   },
 ];
@@ -76,9 +61,7 @@ function LiveChatLogPage() {
           <MessageSquare className="size-6 text-primary" />
           Live Chat Log
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Transcripts and live monitoring of support chats between agents and doctors.
-        </p>
+        <p className="text-sm text-muted-foreground">Transcripts and live monitoring of support chats between agents and doctors.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -94,7 +77,9 @@ function LiveChatLogPage() {
             >
               <div className="flex justify-between items-start w-full">
                 <span className="font-semibold text-foreground truncate">{c.doctorName}</span>
-                <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
+                <Badge variant={c.status === "active" ? "default" : "secondary"}>
+                  {c.status}
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground truncate w-full">{c.lastMessage}</p>
               <div className="flex justify-between items-center w-full text-[10px] text-muted-foreground/70 mt-1">
@@ -114,10 +99,7 @@ function LiveChatLogPage() {
               <p className="text-xs text-muted-foreground">{conversation.clinicName}</p>
             </div>
             <div className="flex gap-2">
-              <Badge
-                variant={conversation.status === "active" ? "default" : "secondary"}
-                className="capitalize"
-              >
+              <Badge variant={conversation.status === "active" ? "default" : "secondary"} className="capitalize">
                 {conversation.status} Chat
               </Badge>
             </div>
@@ -149,8 +131,7 @@ function LiveChatLogPage() {
           <div className="border-t pt-4 text-center">
             <span className="text-xs text-muted-foreground/70 flex items-center justify-center gap-1">
               <CheckCircle className="size-3.5 text-emerald-500" />
-              Live chat log loaded correctly. Full agent controls are managed via Zendesk / Crisp
-              webhook integrations.
+              Live chat log loaded correctly. Full agent controls are managed via Zendesk / Crisp webhook integrations.
             </span>
           </div>
         </Card>

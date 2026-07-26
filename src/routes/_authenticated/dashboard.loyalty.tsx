@@ -14,14 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -128,7 +121,9 @@ function LoyaltyPage() {
             Punch-card style rewards for your patients.
           </p>
         </div>
-        {program && <AddCardDialog programId={program.id} orgId={orgId!} onCreated={loadCards} />}
+        {program && (
+          <AddCardDialog programId={program.id} orgId={orgId!} onCreated={loadCards} />
+        )}
       </div>
 
       {!program ? (
@@ -142,26 +137,10 @@ function LoyaltyPage() {
 
           <TabsContent value="cards" className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatsCard
-                title="Active cards"
-                value={stats.totalCards}
-                icon={<Users className="size-4" />}
-              />
-              <StatsCard
-                title="Stamps issued"
-                value={stats.totalStamps}
-                icon={<Stamp className="size-4" />}
-              />
-              <StatsCard
-                title="Ready to redeem"
-                value={stats.readyToRedeem}
-                icon={<Award className="size-4" />}
-              />
-              <StatsCard
-                title="Rewards given"
-                value={stats.totalRedeemed}
-                icon={<Gift className="size-4" />}
-              />
+              <StatsCard title="Active cards" value={stats.totalCards} icon={<Users className="size-4" />} />
+              <StatsCard title="Stamps issued" value={stats.totalStamps} icon={<Stamp className="size-4" />} />
+              <StatsCard title="Ready to redeem" value={stats.readyToRedeem} icon={<Award className="size-4" />} />
+              <StatsCard title="Rewards given" value={stats.totalRedeemed} icon={<Gift className="size-4" />} />
             </div>
 
             <div className="relative max-w-sm">
@@ -189,7 +168,12 @@ function LoyaltyPage() {
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((card) => (
-                  <CardItem key={card.id} card={card} program={program} onChanged={loadCards} />
+                  <CardItem
+                    key={card.id}
+                    card={card}
+                    program={program}
+                    onChanged={loadCards}
+                  />
                 ))}
               </div>
             )}
@@ -229,10 +213,7 @@ function ProgramSetup({
       active,
     };
     const { error } = existing
-      ? await supabase
-          .from("loyalty_programs" as any)
-          .update(payload)
-          .eq("id", existing.id)
+      ? await supabase.from("loyalty_programs" as any).update(payload).eq("id", existing.id)
       : await supabase.from("loyalty_programs" as any).insert(payload);
     setSaving(false);
     if (error) {
@@ -329,18 +310,14 @@ function AddCardDialog({
     }
     toast.success("Card created");
     setOpen(false);
-    setName("");
-    setPhone("");
-    setEmail("");
+    setName(""); setPhone(""); setEmail("");
     onCreated();
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="size-4 mr-1" /> New card
-        </Button>
+        <Button><Plus className="size-4 mr-1" /> New card</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -361,12 +338,8 @@ function AddCardDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={create} disabled={saving}>
-            {saving ? "Creating…" : "Create card"}
-          </Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={create} disabled={saving}>{saving ? "Creating…" : "Create card"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -432,10 +405,7 @@ function CardItem({
   async function removeCard() {
     if (!confirm(`Delete card for ${card.customer_name}?`)) return;
     setBusy(true);
-    const { error } = await supabase
-      .from("loyalty_cards" as any)
-      .delete()
-      .eq("id", card.id);
+    const { error } = await supabase.from("loyalty_cards" as any).delete().eq("id", card.id);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Card deleted");
@@ -464,9 +434,7 @@ function CardItem({
 
       <div>
         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-          <span>
-            {card.stamps} / {required} stamps
-          </span>
+          <span>{card.stamps} / {required} stamps</span>
           <span>{card.redeemed_count} redeemed</span>
         </div>
         <Progress value={pct} />
@@ -477,8 +445,7 @@ function CardItem({
           <div
             key={i}
             className={`aspect-square rounded-full border grid place-items-center text-xs ${
-              i < card.stamps % (required || 1) ||
-              (card.stamps > 0 && card.stamps >= required && i < required)
+              i < card.stamps % (required || 1) || (card.stamps > 0 && card.stamps >= required && i < required)
                 ? "bg-primary text-primary-foreground border-primary"
                 : "border-muted text-muted-foreground"
             }`}
@@ -514,8 +481,7 @@ function CardItem({
             </div>
             <div className="text-xs text-muted-foreground font-mono">{card.qr_token}</div>
             <div className="text-sm text-center">
-              Reward: <strong>{program.reward_description}</strong>
-              <br />
+              Reward: <strong>{program.reward_description}</strong><br />
               {card.stamps} / {required} stamps collected
             </div>
           </div>

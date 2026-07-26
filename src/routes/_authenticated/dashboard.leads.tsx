@@ -26,7 +26,7 @@ type Lead = {
 };
 
 const PIPELINE_COLUMNS: { key: string; label: string; emptyText: string }[] = [
-  { key: "new", label: "New", emptyText: "No new leads" },
+  { key: "new",       label: "New",       emptyText: "No new leads" },
   { key: "contacted", label: "Contacted", emptyText: "No contacted leads" },
   { key: "converted", label: "Converted", emptyText: "No conversions yet" },
 ];
@@ -47,17 +47,11 @@ function LeadsPage() {
 
   async function load() {
     if (!clinic?.id) return;
-    const { data } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("clinic_id", clinic.id)
-      .order("created_at", { ascending: false });
+    const { data } = await supabase.from("leads").select("*").eq("clinic_id", clinic.id).order("created_at", { ascending: false });
     setLeads((data as Lead[]) ?? []);
   }
 
-  useEffect(() => {
-    load();
-  }, [clinic?.id]);
+  useEffect(() => { load(); }, [clinic?.id]);
 
   async function setStatus(id: string, status: string) {
     const { error } = await supabase.from("leads").update({ status }).eq("id", id);
@@ -80,9 +74,7 @@ function LeadsPage() {
         <div className="grid md:grid-cols-3 gap-4">
           {PIPELINE_COLUMNS.map((col) => (
             <div key={col.key} className="pipeline-col p-4 space-y-3 min-h-[200px]">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {col.label}
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{col.label}</p>
             </div>
           ))}
         </div>
@@ -91,7 +83,7 @@ function LeadsPage() {
   }
 
   const totalLeads = leads.length;
-  const newLeads = leads.filter((l) => l.status === "new").length;
+  const newLeads = leads.filter(l => l.status === "new").length;
 
   return (
     <div className="space-y-6">
@@ -106,9 +98,7 @@ function LeadsPage() {
             <MessageSquare className="size-6 text-muted-foreground" />
           </div>
           <p className="font-medium mb-1">No leads yet</p>
-          <p className="text-sm text-muted-foreground">
-            Share your clinic link to start collecting leads.
-          </p>
+          <p className="text-sm text-muted-foreground">Share your clinic link to start collecting leads.</p>
         </Card>
       ) : (
         <div className="grid md:grid-cols-3 gap-4 items-start">
@@ -119,9 +109,7 @@ function LeadsPage() {
               <div
                 key={col.key}
                 className={`pipeline-col p-3 space-y-2.5 min-h-[450px] rounded-xl transition-all duration-200 border border-transparent ${
-                  isOver
-                    ? "bg-primary/5 border-dashed border-primary/30 shadow-inner scale-[1.01]"
-                    : "bg-muted/40"
+                  isOver ? "bg-primary/5 border-dashed border-primary/30 shadow-inner scale-[1.01]" : "bg-muted/40"
                 }`}
                 onDragOver={(e) => e.preventDefault()}
                 onDragEnter={() => setDraggedOverCol(col.key)}
@@ -133,12 +121,8 @@ function LeadsPage() {
                 }}
               >
                 <div className="flex items-center justify-between px-1 py-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {col.label}
-                  </p>
-                  <span className="text-xs bg-muted rounded-full px-2 py-0.5 font-medium">
-                    {colLeads.length}
-                  </span>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{col.label}</p>
+                  <span className="text-xs bg-muted rounded-full px-2 py-0.5 font-medium">{colLeads.length}</span>
                 </div>
                 {colLeads.length === 0 ? (
                   <div className="text-xs text-muted-foreground/60 text-center py-10 border border-dashed border-muted-foreground/15 rounded-lg">
@@ -158,11 +142,7 @@ function LeadsPage() {
   );
 }
 
-function LeadCard({
-  lead: l,
-  onStatus,
-  onDelete,
-}: {
+function LeadCard({ lead: l, onStatus, onDelete }: {
   lead: Lead;
   onStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
@@ -182,9 +162,7 @@ function LeadCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="font-medium text-sm truncate">{l.name}</p>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground capitalize">
-                {l.source}
-              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground capitalize">{l.source}</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
               <Clock className="size-3" />
@@ -202,20 +180,12 @@ function LeadCard({
 
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {l.phone && (
-            <a
-              href={`tel:${l.phone}`}
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <a href={`tel:${l.phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
               <Phone className="size-3" /> {l.phone}
             </a>
           )}
           {l.email && (
-            <a
-              href={`mailto:${l.email}`}
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <a href={`mailto:${l.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
               <Mail className="size-3" /> {l.email}
             </a>
           )}
@@ -229,21 +199,12 @@ function LeadCard({
 
         <div className="flex gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
           {l.status !== "contacted" && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs px-2.5 flex-1"
-              onClick={() => onStatus(l.id, "contacted")}
-            >
+            <Button size="sm" variant="outline" className="h-7 text-xs px-2.5 flex-1" onClick={() => onStatus(l.id, "contacted")}>
               Mark contacted
             </Button>
           )}
           {l.status !== "converted" && (
-            <Button
-              size="sm"
-              className="h-7 text-xs px-2.5 flex-1 gap-1"
-              onClick={() => onStatus(l.id, "converted")}
-            >
+            <Button size="sm" className="h-7 text-xs px-2.5 flex-1 gap-1" onClick={() => onStatus(l.id, "converted")}>
               <CheckCircle2 className="size-3" /> Convert
             </Button>
           )}

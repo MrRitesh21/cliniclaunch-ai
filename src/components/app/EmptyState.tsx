@@ -20,17 +20,14 @@ export function EmptyState({
         </div>
       )}
       <h3 className="font-display text-lg mb-1">{title}</h3>
-      {description && (
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">{description}</p>
-      )}
-      {action &&
-        (action.href ? (
-          <Button asChild>
-            <a href={action.href}>{action.label}</a>
-          </Button>
+      {description && <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">{description}</p>}
+      {action && (
+        action.href ? (
+          <Button asChild><a href={action.href}>{action.label}</a></Button>
         ) : (
           <Button onClick={action.onClick}>{action.label}</Button>
-        ))}
+        )
+      )}
     </Card>
   );
 }

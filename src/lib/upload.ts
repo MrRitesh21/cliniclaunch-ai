@@ -1,9 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function uploadClinicMedia(
-  file: File,
-  folder: "avatar" | "logo" | "gallery" | "doctor",
-): Promise<string> {
+export async function uploadClinicMedia(file: File, folder: "avatar" | "logo" | "gallery" | "doctor"): Promise<string> {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error("Not signed in");
   if (file.size > 5 * 1024 * 1024) throw new Error("Max file size is 5MB");

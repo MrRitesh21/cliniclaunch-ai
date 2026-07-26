@@ -8,24 +8,14 @@ import { Loader2, ArrowDownRight, ArrowUpRight, IndianRupee } from "lucide-react
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_admin/admin/transactions")({
   component: TransactionsPage,
 });
 
 function inr(rupees: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(rupees);
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(rupees);
 }
 
 function TransactionsPage() {
@@ -61,11 +51,7 @@ function TransactionsPage() {
       (t.status || "").toLowerCase().includes(query);
 
     if (statusFilter === "all") return matchesSearch;
-    return (
-      matchesSearch &&
-      (t.status === statusFilter ||
-        (statusFilter === "captured" && (t.status === "success" || t.status === "captured")))
-    );
+    return matchesSearch && (t.status === statusFilter || (statusFilter === "captured" && (t.status === "success" || t.status === "captured")));
   });
 
   // Sort transactions
@@ -88,9 +74,7 @@ function TransactionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-display">Transactions</h1>
-          <p className="text-sm text-muted-foreground">
-            Invoice payments, gateways logs, and cash flow details.
-          </p>
+          <p className="text-sm text-muted-foreground">Invoice payments, gateways logs, and cash flow details.</p>
         </div>
       </div>
 
@@ -98,27 +82,21 @@ function TransactionsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-emerald-500">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Gross Sales Volume
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Gross Sales Volume</span>
             <div className="text-2xl font-extrabold text-emerald-600 mt-1">{inr(totalRevenue)}</div>
           </div>
           <ArrowUpRight className="size-5 text-emerald-500" />
         </Card>
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-indigo-500">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Average Ticket Value
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Average Ticket Value</span>
             <div className="text-2xl font-extrabold text-indigo-600 mt-1">{inr(avgValue)}</div>
           </div>
           <IndianRupee className="size-5 text-indigo-500" />
         </Card>
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-rose-500">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Total Actions
-            </span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total Actions</span>
             <div className="text-2xl font-extrabold text-rose-600 mt-1">{sorted.length} items</div>
           </div>
           <ArrowDownRight className="size-5 text-rose-500" />
@@ -138,16 +116,10 @@ function TransactionsPage() {
             className="w-full bg-background"
           />
         </div>
-
+        
         <div className="flex flex-wrap items-center gap-3">
           <div className="w-44">
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => {
-                setStatusFilter(val);
-                setPage(1);
-              }}
-            >
+            <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
               <SelectTrigger className="bg-background text-xs h-9">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
@@ -199,11 +171,7 @@ function TransactionsPage() {
             </thead>
             <tbody className="divide-y">
               {paginated.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
-                    No payment transactions recorded.
-                  </td>
-                </tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No payment transactions recorded.</td></tr>
               )}
               {paginated.map((t: any) => (
                 <tr key={t.id} className="hover:bg-muted/50">
@@ -214,7 +182,9 @@ function TransactionsPage() {
                   <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                     {t.razorpayId}
                   </td>
-                  <td className="px-4 py-3 font-bold text-foreground">{inr(t.amount)}</td>
+                  <td className="px-4 py-3 font-bold text-foreground">
+                    {inr(t.amount)}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-semibold text-foreground">{t.plan}</div>
                     <div className="text-xs text-muted-foreground/70 capitalize">{t.cycle}</div>
@@ -223,15 +193,7 @@ function TransactionsPage() {
                     {new Date(t.date).toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
-                      variant={
-                        t.status === "captured" || t.status === "success"
-                          ? "default"
-                          : t.status === "refunded"
-                            ? "secondary"
-                            : "destructive"
-                      }
-                    >
+                    <Badge variant={(t.status === "captured" || t.status === "success") ? "default" : t.status === "refunded" ? "secondary" : "destructive"}>
                       {t.status === "captured" ? "success" : t.status}
                     </Badge>
                   </td>
@@ -265,16 +227,9 @@ function TransactionsPage() {
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Showing{" "}
-                  <span className="font-semibold text-foreground">
-                    {Math.min(filtered.length, (page - 1) * pageSize + 1)}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-semibold text-foreground">
-                    {Math.min(filtered.length, page * pageSize)}
-                  </span>{" "}
-                  of <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
-                  results
+                  Showing <span className="font-semibold text-foreground">{Math.min(filtered.length, (page - 1) * pageSize + 1)}</span> to{" "}
+                  <span className="font-semibold text-foreground">{Math.min(filtered.length, page * pageSize)}</span> of{" "}
+                  <span className="font-semibold text-foreground">{filtered.length}</span> results
                 </p>
               </div>
               <div className="flex gap-2">

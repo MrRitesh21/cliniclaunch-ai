@@ -20,10 +20,7 @@ function SystemSettingsPage() {
   const getSettingsFn = useServerFn(getSystemSettings);
   const saveSettingsFn = useServerFn(saveSystemSettings);
 
-  const { data: settings = {}, isLoading } = useQuery({
-    queryKey: ["admin-system-settings"],
-    queryFn: () => getSettingsFn(),
-  });
+  const { data: settings = {}, isLoading } = useQuery({ queryKey: ["admin-system-settings"], queryFn: () => getSettingsFn() });
 
   const [form, setForm] = useState<Record<string, string>>({});
 
@@ -78,9 +75,7 @@ function SystemSettingsPage() {
           <Settings2 className="size-6 text-primary" />
           System Settings
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Configure global platform variables, WhatsApp WATI settings, Razorpay keys and AI tokens.
-        </p>
+        <p className="text-sm text-muted-foreground">Configure global platform variables, WhatsApp WATI settings, Razorpay keys and AI tokens.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -193,11 +188,7 @@ function SystemSettingsPage() {
                 disabled={testing === "wati"}
                 onClick={() => runTest("wati")}
               >
-                {testing === "wati" ? (
-                  <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                ) : (
-                  <PlugZap className="size-3.5 mr-1.5" />
-                )}
+                {testing === "wati" ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <PlugZap className="size-3.5 mr-1.5" />}
                 Test WATI connection
               </Button>
             </div>
@@ -240,11 +231,7 @@ function SystemSettingsPage() {
                   disabled={testing === "razorpay"}
                   onClick={() => runTest("razorpay")}
                 >
-                  {testing === "razorpay" ? (
-                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <PlugZap className="size-3.5 mr-1.5" />
-                  )}
+                  {testing === "razorpay" ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <PlugZap className="size-3.5 mr-1.5" />}
                   Test Razorpay
                 </Button>
                 <Button
@@ -253,11 +240,7 @@ function SystemSettingsPage() {
                   disabled={testing === "openai"}
                   onClick={() => runTest("openai")}
                 >
-                  {testing === "openai" ? (
-                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <PlugZap className="size-3.5 mr-1.5" />
-                  )}
+                  {testing === "openai" ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <PlugZap className="size-3.5 mr-1.5" />}
                   Test OpenAI
                 </Button>
               </div>

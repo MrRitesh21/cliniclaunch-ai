@@ -19,10 +19,7 @@ export type LeadInput = z.infer<typeof leadSchema>;
 export const submitLeadServer = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => leadSchema.parse(i))
   .handler(async ({ data }) => {
-    const rateCheck = checkRateLimit(`lead:${data.clinic_id}:${data.phone}`, {
-      maxRequests: 5,
-      windowMs: 60000,
-    });
+    const rateCheck = checkRateLimit(`lead:${data.clinic_id}:${data.phone}`, { maxRequests: 5, windowMs: 60000 });
     if (!rateCheck.allowed) {
       throw new Error("Too many request attempts. Please try again in 1 minute.");
     }
@@ -46,11 +43,7 @@ export const submitLeadServer = createServerFn({ method: "POST" })
         .select("personal_phone, phone, doctor_name, clinic_name")
         .eq("id", data.clinic_id)
         .maybeSingle();
-      const c = clinic as {
-        personal_phone?: string | null;
-        phone?: string | null;
-        clinic_name?: string | null;
-      } | null;
+      const c = clinic as { personal_phone?: string | null; phone?: string | null; clinic_name?: string | null } | null;
       const doctorPhone = c?.personal_phone || c?.phone || null;
       if (doctorPhone) {
         await notifyClinicEvent({
@@ -67,9 +60,7 @@ export const submitLeadServer = createServerFn({ method: "POST" })
           },
         });
       }
-    } catch {
-      /* swallow */
-    }
+    } catch { /* swallow */ }
     return { ok: true };
   });
 

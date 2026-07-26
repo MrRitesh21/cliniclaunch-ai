@@ -27,8 +27,7 @@ export const getAdminMe = createServerFn({ method: "GET" })
     return {
       id: userId,
       email: (claims as { email?: string }).email ?? "",
-      name:
-        (claims as { user_metadata?: { full_name?: string } }).user_metadata?.full_name ?? "Admin",
+      name: ((claims as { user_metadata?: { full_name?: string } }).user_metadata?.full_name) ?? "Admin",
       role: (isSuper ? "super_admin" : "support") as "super_admin" | "support",
       lastLogin: null as string | null,
     };

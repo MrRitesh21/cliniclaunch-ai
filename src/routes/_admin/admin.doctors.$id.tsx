@@ -62,9 +62,7 @@ function DoctorDetailPage() {
     queryFn: () => getDetailsFn({ data: { id } }),
   });
 
-  const [activeTab, setActiveTab] = useState<
-    "profile" | "subscription" | "patients" | "appointments" | "danger" | "audit"
-  >("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "subscription" | "patients" | "appointments" | "danger" | "audit">("profile");
 
   // Profile Form States
   const [docName, setDocName] = useState("");
@@ -114,12 +112,8 @@ function DoctorDetailPage() {
   });
 
   const changePlanMut = useMutation({
-    mutationFn: (args: {
-      planId: string;
-      extendDays?: number;
-      grantFreeMonth?: boolean;
-      cancelSub?: boolean;
-    }) => changePlanFn({ data: { clinicId: id, ...args } }),
+    mutationFn: (args: { planId: string; extendDays?: number; grantFreeMonth?: boolean; cancelSub?: boolean }) =>
+      changePlanFn({ data: { clinicId: id, ...args } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-details", id] });
       toast.success("Subscription updated successfully");
@@ -251,32 +245,21 @@ function DoctorDetailPage() {
       </div>
 
       {/* Header Profile Summary */}
-      <Card
-        className={`p-4 sm:p-6 border-l-4 ${isSuspended ? "border-l-red-500" : "border-l-indigo-600"}`}
-      >
+      <Card className={`p-4 sm:p-6 border-l-4 ${isSuspended ? "border-l-red-500" : "border-l-indigo-600"}`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div
-              className={`size-12 rounded-full flex items-center justify-center font-display font-bold text-lg ${isSuspended ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"}`}
-            >
+            <div className={`size-12 rounded-full flex items-center justify-center font-display font-bold text-lg ${isSuspended ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"}`}>
               {clinic.doctor_name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">
-                  {clinic.doctor_name}
-                </h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground font-display">{clinic.doctor_name}</h1>
                 <Badge variant={isSuspended ? "destructive" : "default"}>{planName}</Badge>
-                <Badge
-                  variant={clinic.is_published ? "default" : "secondary"}
-                  className={clinic.is_published ? "bg-emerald-600" : ""}
-                >
+                <Badge variant={clinic.is_published ? "default" : "secondary"} className={clinic.is_published ? "bg-emerald-600" : ""}>
                   {clinic.is_published ? "Live" : "Draft"}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {clinic.clinic_name} · {clinic.specialization} · {clinic.address || "No City"}
-              </p>
+              <p className="text-sm text-muted-foreground">{clinic.clinic_name} · {clinic.specialization} · {clinic.address || "No City"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -300,11 +283,7 @@ function DoctorDetailPage() {
               disabled={impersonateMut.isPending}
               onClick={() => impersonateMut.mutate()}
             >
-              {impersonateMut.isPending ? (
-                <Loader2 className="size-4 animate-spin mr-1.5" />
-              ) : (
-                <LogIn className="size-4 mr-1.5" />
-              )}
+              {impersonateMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <LogIn className="size-4 mr-1.5" />}
               Impersonate
             </Button>
           </div>
@@ -345,19 +324,11 @@ function DoctorDetailPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="clinicName">Clinic Name</Label>
-                <Input
-                  id="clinicName"
-                  value={clinicName}
-                  onChange={(e) => setClinicName(e.target.value)}
-                />
+                <Input id="clinicName" value={clinicName} onChange={(e) => setClinicName(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="specialty">Specialization</Label>
-                <Input
-                  id="specialty"
-                  value={specialty}
-                  onChange={(e) => setSpecialty(e.target.value)}
-                />
+                <Input id="specialty" value={specialty} onChange={(e) => setSpecialty(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="city">City / Address</Label>
@@ -365,12 +336,7 @@ function DoctorDetailPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">Phone</Label>
@@ -382,9 +348,7 @@ function DoctorDetailPage() {
               disabled={updateProfileMut.isPending}
               onClick={() => updateProfileMut.mutate()}
             >
-              {updateProfileMut.isPending ? (
-                <Loader2 className="size-4 animate-spin mr-1.5" />
-              ) : null}
+              {updateProfileMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : null}
               Save Changes
             </Button>
           </Card>
@@ -394,22 +358,16 @@ function DoctorDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Subscription Manager */}
             <Card className="p-4 sm:p-6 space-y-4">
-              <h3 className="text-lg font-semibold text-foreground font-display">
-                Manage Subscription
-              </h3>
+              <h3 className="text-lg font-semibold text-foreground font-display">Manage Subscription</h3>
               <div className="space-y-3">
                 <div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Current Status:{" "}
-                  </span>
+                  <span className="text-sm font-medium text-muted-foreground">Current Status: </span>
                   <Badge className="capitalize">{subscription?.status ?? "Free"}</Badge>
                 </div>
                 <div>
                   <span className="text-sm font-medium text-muted-foreground">Period Ends: </span>
                   <span className="text-sm text-foreground">
-                    {subscription?.current_period_end
-                      ? new Date(subscription.current_period_end).toLocaleDateString()
-                      : "No active sub"}
+                    {subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : "No active sub"}
                   </span>
                 </div>
               </div>
@@ -453,32 +411,20 @@ function DoctorDetailPage() {
                       variant="outline"
                       className="mt-2 w-full"
                       disabled={!extendDays || changePlanMut.isPending}
-                      onClick={() =>
-                        changePlanMut.mutate({
-                          planId: subscription?.plan_id || "free_plan",
-                          extendDays,
-                        })
-                      }
+                      onClick={() => changePlanMut.mutate({ planId: subscription?.plan_id || "free_plan", extendDays })}
                     >
                       Extend
                     </Button>
                   </div>
                   <div>
                     <Label>Grant Free Month</Label>
-                    <p className="text-xs text-muted-foreground/70 mt-1 mb-2">
-                      Adds 30 free days to account
-                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1 mb-2">Adds 30 free days to account</p>
                     <Button
                       size="sm"
                       variant="outline"
                       className="w-full"
                       disabled={changePlanMut.isPending}
-                      onClick={() =>
-                        changePlanMut.mutate({
-                          planId: subscription?.plan_id || "free_plan",
-                          grantFreeMonth: true,
-                        })
-                      }
+                      onClick={() => changePlanMut.mutate({ planId: subscription?.plan_id || "free_plan", grantFreeMonth: true })}
                     >
                       Grant 30 Days
                     </Button>
@@ -505,9 +451,7 @@ function DoctorDetailPage() {
             {/* Refund Issuer */}
             <Card className="p-4 sm:p-6 space-y-4 h-fit">
               <h3 className="text-lg font-semibold text-foreground font-display">Issue Refund</h3>
-              <p className="text-xs text-muted-foreground/70">
-                Issues partial or full cashback refund for any transactions.
-              </p>
+              <p className="text-xs text-muted-foreground/70">Issues partial or full cashback refund for any transactions.</p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="refundAmount">Refund Amount (INR)</Label>
@@ -558,22 +502,14 @@ function DoctorDetailPage() {
                 </thead>
                 <tbody className="divide-y">
                   {patients.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-muted-foreground/70">
-                        No patients registered.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={4} className="p-6 text-center text-muted-foreground/70">No patients registered.</td></tr>
                   )}
                   {patients.map((p: any) => (
                     <tr key={p.id} className="hover:bg-muted/50">
-                      <td className="px-4 py-2 font-medium text-foreground">
-                        {p.first_name} {p.last_name}
-                      </td>
+                      <td className="px-4 py-2 font-medium text-foreground">{p.first_name} {p.last_name}</td>
                       <td className="px-4 py-2 text-muted-foreground">{p.email || "—"}</td>
                       <td className="px-4 py-2 text-muted-foreground">{p.phone || "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground text-xs text-center">
-                        {new Date(p.created_at).toLocaleDateString()}
-                      </td>
+                      <td className="px-4 py-2 text-muted-foreground text-xs text-center">{new Date(p.created_at).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -599,11 +535,7 @@ function DoctorDetailPage() {
                 </thead>
                 <tbody className="divide-y">
                   {appointments.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-muted-foreground/70">
-                        No appointments scheduled.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={4} className="p-6 text-center text-muted-foreground/70">No appointments scheduled.</td></tr>
                   )}
                   {appointments.map((a: any) => (
                     <tr key={a.id} className="hover:bg-muted/50">
@@ -613,19 +545,9 @@ function DoctorDetailPage() {
                       <td className="px-4 py-2 text-muted-foreground">
                         {a.patient_name || "Guest patient"}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground capitalize">
-                        {a.consultation_type || "In-person"}
-                      </td>
+                      <td className="px-4 py-2 text-muted-foreground capitalize">{a.consultation_type || "In-person"}</td>
                       <td className="px-4 py-2">
-                        <Badge
-                          variant={
-                            a.status === "completed"
-                              ? "default"
-                              : a.status === "cancelled"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                        >
+                        <Badge variant={a.status === "completed" ? "default" : a.status === "cancelled" ? "destructive" : "secondary"}>
                           {a.status}
                         </Badge>
                       </td>
@@ -646,9 +568,8 @@ function DoctorDetailPage() {
                 Access controls
               </h3>
               <p className="text-xs text-muted-foreground">
-                Impersonate opens a one-time magic-link session for this doctor in a new tab
-                (audit-logged). Reset generates a new password and copies it to your clipboard —
-                share it with the doctor over a secure channel.
+                Impersonate opens a one-time magic-link session for this doctor in a new tab (audit-logged).
+                Reset generates a new password and copies it to your clipboard — share it with the doctor over a secure channel.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -656,31 +577,19 @@ function DoctorDetailPage() {
                   disabled={impersonateMut.isPending}
                   onClick={() => impersonateMut.mutate()}
                 >
-                  {impersonateMut.isPending ? (
-                    <Loader2 className="size-4 animate-spin mr-1.5" />
-                  ) : (
-                    <LogIn className="size-4 mr-1.5" />
-                  )}
+                  {impersonateMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <LogIn className="size-4 mr-1.5" />}
                   Impersonate doctor
                 </Button>
                 <Button
                   variant="outline"
                   disabled={resetPasswordMut.isPending}
                   onClick={() => {
-                    if (
-                      confirm(
-                        `Reset password for ${clinic.doctor_name}? The new password will be copied to your clipboard.`,
-                      )
-                    ) {
+                    if (confirm(`Reset password for ${clinic.doctor_name}? The new password will be copied to your clipboard.`)) {
                       resetPasswordMut.mutate();
                     }
                   }}
                 >
-                  {resetPasswordMut.isPending ? (
-                    <Loader2 className="size-4 animate-spin mr-1.5" />
-                  ) : (
-                    <Copy className="size-4 mr-1.5" />
-                  )}
+                  {resetPasswordMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <Copy className="size-4 mr-1.5" />}
                   Reset password
                 </Button>
                 <Button
@@ -694,15 +603,14 @@ function DoctorDetailPage() {
               </div>
             </Card>
 
+
             {/* Lockout & Suspension */}
             <Card className="p-4 sm:p-6 space-y-4 border-l-4 border-l-orange-500">
               <h3 className="text-lg font-semibold text-foreground font-display flex items-center gap-2">
                 <ShieldAlert className="size-5 text-orange-500" />
                 Suspension controls
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Suspends doctor logins instantly across ClinicX. Doctor will see lock warning.
-              </p>
+              <p className="text-xs text-muted-foreground">Suspends doctor logins instantly across ClinicX. Doctor will see lock warning.</p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="suspendReason">Suspension Reason</Label>
@@ -737,21 +645,14 @@ function DoctorDetailPage() {
                 <Trash2 className="size-5" />
                 Danger Zone
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Permanently destroy medical files and credentials. This bypasses RLS and is
-                non-reversible.
-              </p>
+              <p className="text-xs text-muted-foreground">Permanently destroy medical files and credentials. This bypasses RLS and is non-reversible.</p>
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   variant="outline"
                   className="text-amber-600 border-amber-200 hover:bg-amber-50"
                   disabled={clearPatientsMut.isPending}
                   onClick={() => {
-                    if (
-                      confirm(
-                        "GDPR Request: Are you sure you want to delete ALL patient and visit records for this doctor? This is permanent.",
-                      )
-                    ) {
+                    if (confirm("GDPR Request: Are you sure you want to delete ALL patient and visit records for this doctor? This is permanent.")) {
                       clearPatientsMut.mutate();
                     }
                   }}
@@ -762,12 +663,7 @@ function DoctorDetailPage() {
                   variant="destructive"
                   disabled={deleteDoctorMut.isPending}
                   onClick={() => {
-                    if (
-                      confirm(
-                        "CRITICAL: This will delete the doctor, their clinic profile, and all subscription configurations. This cannot be undone! Type the doctor's name to confirm: " +
-                          clinic.doctor_name,
-                      )
-                    ) {
+                    if (confirm("CRITICAL: This will delete the doctor, their clinic profile, and all subscription configurations. This cannot be undone! Type the doctor's name to confirm: " + clinic.doctor_name)) {
                       deleteDoctorMut.mutate();
                     }
                   }}
@@ -781,31 +677,16 @@ function DoctorDetailPage() {
 
         {activeTab === "audit" && (
           <Card className="p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-foreground font-display mb-3">
-              Admin Activity Logs
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground font-display mb-3">Admin Activity Logs</h3>
             <div className="space-y-3">
-              {auditLogs.length === 0 && (
-                <p className="text-sm text-muted-foreground/70 py-4 text-center">
-                  No actions logged for this doctor.
-                </p>
-              )}
+              {auditLogs.length === 0 && <p className="text-sm text-muted-foreground/70 py-4 text-center">No actions logged for this doctor.</p>}
               {auditLogs.map((log: any) => (
-                <div
-                  key={log.id}
-                  className="flex justify-between items-start text-sm border-b pb-2"
-                >
+                <div key={log.id} className="flex justify-between items-start text-sm border-b pb-2">
                   <div>
-                    <span className="font-semibold text-foreground capitalize">
-                      {log.action.replace(/_/g, " ")}
-                    </span>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      IP: {log.ip_address || "—"} · Browser: {log.user_agent || "—"}
-                    </p>
+                    <span className="font-semibold text-foreground capitalize">{log.action.replace(/_/g, " ")}</span>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">IP: {log.ip_address || "—"} · Browser: {log.user_agent || "—"}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground/70">
-                    {new Date(log.created_at).toLocaleString()}
-                  </span>
+                  <span className="text-xs text-muted-foreground/70">{new Date(log.created_at).toLocaleString()}</span>
                 </div>
               ))}
             </div>

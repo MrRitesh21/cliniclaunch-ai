@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  BarChart3,
-  Users,
-  CalendarCheck,
-  Receipt,
-  Star,
-  Package,
-  FlaskConical,
-} from "lucide-react";
+import { BarChart3, Users, CalendarCheck, Receipt, Star, Package, FlaskConical } from "lucide-react";
 import { AppGuard } from "@/components/app/AppGuard";
 import { StatsCard } from "@/components/app/StatsCard";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -17,11 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
-  component: () => (
-    <AppGuard appKey="analytics">
-      <AnalyticsPage />
-    </AppGuard>
-  ),
+  component: () => (<AppGuard appKey="analytics"><AnalyticsPage /></AppGuard>),
 });
 
 type DailyPoint = { date: string; appts: number; revenue: number };
@@ -31,15 +19,10 @@ function AnalyticsPage() {
   const orgId = org?.id;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
-    patients: number;
-    appointments: number;
-    consultations: number;
-    revenue: number;
-    outstanding: number;
-    reviews: number;
-    avgRating: number;
-    lowStock: number;
-    pendingLabs: number;
+    patients: number; appointments: number; consultations: number;
+    revenue: number; outstanding: number;
+    reviews: number; avgRating: number;
+    lowStock: number; pendingLabs: number;
     weekly: DailyPoint[];
     statusBreakdown: { status: string; count: number }[];
     topServices: { description: string; revenue: number }[];
@@ -51,43 +34,17 @@ function AnalyticsPage() {
     (async () => {
       setLoading(true);
       try {
-        const since = new Date();
-        since.setDate(since.getDate() - 30);
+        const since = new Date(); since.setDate(since.getDate() - 30);
         const sinceISO = since.toISOString();
 
         const [pats, apts, cons, invs, revs, items, labs] = await Promise.all([
-          supabase
-            .from("patients")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", orgId),
-          supabase
-            .from("appointments")
-            .select("id, scheduled_at, status")
-            .eq("organization_id", orgId)
-            .gte("scheduled_at", sinceISO),
-          supabase
-            .from("consultations" as any)
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", orgId)
-            .gte("created_at", sinceISO),
-          supabase
-            .from("patient_invoices" as any)
-            .select("id, issue_date, total, amount_paid, status")
-            .eq("organization_id", orgId)
-            .gte("issue_date", sinceISO.slice(0, 10)),
-          supabase
-            .from("reviews" as any)
-            .select("rating, status")
-            .eq("organization_id", orgId),
-          supabase
-            .from("inventory_items" as any)
-            .select("id, quantity, reorder_level")
-            .eq("organization_id", orgId),
-          supabase
-            .from("lab_orders" as any)
-            .select("id, status")
-            .eq("organization_id", orgId)
-            .in("status", ["pending", "collected", "in_lab"]),
+          supabase.from("patients").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+          supabase.from("appointments").select("id, scheduled_at, status").eq("organization_id", orgId).gte("scheduled_at", sinceISO),
+          supabase.from("consultations" as any).select("id", { count: "exact", head: true }).eq("organization_id", orgId).gte("created_at", sinceISO),
+          supabase.from("patient_invoices" as any).select("id, issue_date, total, amount_paid, status").eq("organization_id", orgId).gte("issue_date", sinceISO.slice(0, 10)),
+          supabase.from("reviews" as any).select("rating, status").eq("organization_id", orgId),
+          supabase.from("inventory_items" as any).select("id, quantity, reorder_level").eq("organization_id", orgId),
+          supabase.from("lab_orders" as any).select("id, status").eq("organization_id", orgId).in("status", ["pending", "collected", "in_lab"]),
         ]);
 
         const apptRows = (apts.data as any[]) ?? [];
@@ -99,8 +56,7 @@ function AnalyticsPage() {
         // last 7 days buckets
         const buckets: Record<string, DailyPoint> = {};
         for (let i = 6; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
+          const d = new Date(); d.setDate(d.getDate() - i);
           const key = d.toISOString().slice(0, 10);
           buckets[key] = { date: key, appts: 0, revenue: 0 };
         }
@@ -109,36 +65,22 @@ function AnalyticsPage() {
           if (buckets[k]) buckets[k].appts++;
         });
         invRows.forEach((iv) => {
-          if (buckets[iv.issue_date] && iv.status !== "void")
-            buckets[iv.issue_date].revenue += Number(iv.amount_paid ?? 0);
+          if (buckets[iv.issue_date] && iv.status !== "void") buckets[iv.issue_date].revenue += Number(iv.amount_paid ?? 0);
         });
 
         // appt status breakdown
         const statusMap: Record<string, number> = {};
-        apptRows.forEach((a) => {
-          statusMap[a.status ?? "unknown"] = (statusMap[a.status ?? "unknown"] ?? 0) + 1;
-        });
-        const statusBreakdown = Object.entries(statusMap).map(([status, count]) => ({
-          status,
-          count,
-        }));
+        apptRows.forEach((a) => { statusMap[a.status ?? "unknown"] = (statusMap[a.status ?? "unknown"] ?? 0) + 1; });
+        const statusBreakdown = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
 
         // top services from invoice items
         const invIds = invRows.map((i) => i.id);
         let topServices: { description: string; revenue: number }[] = [];
         if (invIds.length) {
-          const { data: lineItems } = await supabase
-            .from("patient_invoice_items" as any)
-            .select("description, amount")
-            .in("invoice_id", invIds);
+          const { data: lineItems } = await supabase.from("patient_invoice_items" as any).select("description, amount").in("invoice_id", invIds);
           const agg: Record<string, number> = {};
-          ((lineItems as any[]) ?? []).forEach((li) => {
-            agg[li.description] = (agg[li.description] ?? 0) + Number(li.amount);
-          });
-          topServices = Object.entries(agg)
-            .map(([description, revenue]) => ({ description, revenue }))
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 5);
+          ((lineItems as any[]) ?? []).forEach((li) => { agg[li.description] = (agg[li.description] ?? 0) + Number(li.amount); });
+          topServices = Object.entries(agg).map(([description, revenue]) => ({ description, revenue })).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
         }
 
         if (!active) return;
@@ -147,18 +89,11 @@ function AnalyticsPage() {
           patients: pats.count ?? 0,
           appointments: apptRows.length,
           consultations: cons.count ?? 0,
-          revenue: invRows
-            .filter((i) => i.status !== "void")
-            .reduce((s, i) => s + Number(i.amount_paid ?? 0), 0),
-          outstanding: invRows
-            .filter((i) => i.status !== "void" && i.status !== "paid" && i.status !== "draft")
-            .reduce((s, i) => s + (Number(i.total) - Number(i.amount_paid)), 0),
+          revenue: invRows.filter((i) => i.status !== "void").reduce((s, i) => s + Number(i.amount_paid ?? 0), 0),
+          outstanding: invRows.filter((i) => i.status !== "void" && i.status !== "paid" && i.status !== "draft").reduce((s, i) => s + (Number(i.total) - Number(i.amount_paid)), 0),
           reviews: approved.length,
-          avgRating: approved.length
-            ? approved.reduce((s, r) => s + r.rating, 0) / approved.length
-            : 0,
-          lowStock: itemRows.filter((it) => Number(it.quantity) <= Number(it.reorder_level ?? 0))
-            .length,
+          avgRating: approved.length ? approved.reduce((s, r) => s + r.rating, 0) / approved.length : 0,
+          lowStock: itemRows.filter((it) => Number(it.quantity) <= Number(it.reorder_level ?? 0)).length,
           pendingLabs: (labs.data as any[])?.length ?? 0,
           weekly: Object.values(buckets),
           statusBreakdown,
@@ -185,47 +120,23 @@ function AnalyticsPage() {
         <p className="text-sm text-muted-foreground">30-day overview across all modules.</p>
       </div>
 
-      {loading || !data ? (
-        <Skeleton className="h-64 w-full" />
-      ) : (
+      {loading || !data ? <Skeleton className="h-64 w-full" /> : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatsCard title="Patients" value={data.patients} icon={<Users className="size-4" />} />
-            <StatsCard
-              title="Appointments (30d)"
-              value={data.appointments}
-              icon={<CalendarCheck className="size-4" />}
-            />
-            <StatsCard
-              title="Revenue (30d)"
-              value={`₹${data.revenue.toLocaleString()}`}
-              icon={<Receipt className="size-4" />}
-            />
+            <StatsCard title="Appointments (30d)" value={data.appointments} icon={<CalendarCheck className="size-4" />} />
+            <StatsCard title="Revenue (30d)" value={`₹${data.revenue.toLocaleString()}`} icon={<Receipt className="size-4" />} />
             <StatsCard title="Outstanding" value={`₹${data.outstanding.toLocaleString()}`} />
             <StatsCard title="Consultations" value={data.consultations} />
-            <StatsCard
-              title="Reviews · ⭐"
-              value={`${data.avgRating.toFixed(1)} (${data.reviews})`}
-              icon={<Star className="size-4" />}
-            />
-            <StatsCard
-              title="Low Stock Items"
-              value={data.lowStock}
-              icon={<Package className="size-4" />}
-            />
-            <StatsCard
-              title="Pending Lab Orders"
-              value={data.pendingLabs}
-              icon={<FlaskConical className="size-4" />}
-            />
+            <StatsCard title="Reviews · ⭐" value={`${data.avgRating.toFixed(1)} (${data.reviews})`} icon={<Star className="size-4" />} />
+            <StatsCard title="Low Stock Items" value={data.lowStock} icon={<Package className="size-4" />} />
+            <StatsCard title="Pending Lab Orders" value={data.pendingLabs} icon={<FlaskConical className="size-4" />} />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             {/* Appointments chart */}
             <Card className="p-4 space-y-3">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="size-4" /> Daily Appointments (Last 7 Days)
-              </h2>
+              <h2 className="text-sm font-semibold flex items-center gap-2"><BarChart3 className="size-4" /> Daily Appointments (Last 7 Days)</h2>
               <div className="flex items-end gap-2 h-40 pt-4">
                 {data.weekly.map((d) => {
                   const h = Math.round((d.appts / maxAppts) * 100);
@@ -233,14 +144,9 @@ function AnalyticsPage() {
                     <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
                       <span className="text-[10px] text-muted-foreground font-mono">{d.appts}</span>
                       <div className="w-full bg-primary/20 rounded-t min-h-[4px] flex items-end">
-                        <div
-                          className="w-full bg-primary rounded-t transition-all"
-                          style={{ height: `${h}%` }}
-                        />
+                        <div className="w-full bg-primary rounded-t transition-all" style={{ height: `${h}%` }} />
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {d.date.slice(5)}
-                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{d.date.slice(5)}</span>
                     </div>
                   );
                 })}
@@ -249,26 +155,17 @@ function AnalyticsPage() {
 
             {/* Revenue chart */}
             <Card className="p-4 space-y-3">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Receipt className="size-4" /> Daily Revenue Collection (Last 7 Days)
-              </h2>
+              <h2 className="text-sm font-semibold flex items-center gap-2"><Receipt className="size-4" /> Daily Revenue Collection (Last 7 Days)</h2>
               <div className="flex items-end gap-2 h-40 pt-4">
                 {data.weekly.map((d) => {
                   const h = Math.round((d.revenue / maxRev) * 100);
                   return (
                     <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        ₹{d.revenue}
-                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono">₹{d.revenue}</span>
                       <div className="w-full bg-emerald-500/20 rounded-t min-h-[4px] flex items-end">
-                        <div
-                          className="w-full bg-emerald-600 rounded-t transition-all"
-                          style={{ height: `${h}%` }}
-                        />
+                        <div className="w-full bg-emerald-600 rounded-t transition-all" style={{ height: `${h}%` }} />
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {d.date.slice(5)}
-                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{d.date.slice(5)}</span>
                     </div>
                   );
                 })}
@@ -283,9 +180,7 @@ function AnalyticsPage() {
               <div className="space-y-2">
                 {data.statusBreakdown.map((s) => (
                   <div key={s.status} className="flex items-center justify-between text-sm">
-                    <span className="capitalize text-muted-foreground">
-                      {s.status.replace("_", " ")}
-                    </span>
+                    <span className="capitalize text-muted-foreground">{s.status.replace("_", " ")}</span>
                     <span className="font-mono font-medium">{s.count}</span>
                   </div>
                 ))}
@@ -296,16 +191,12 @@ function AnalyticsPage() {
             <Card className="p-4 space-y-3">
               <h2 className="text-sm font-semibold">Top Services by Revenue</h2>
               {data.topServices.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No invoices recorded in last 30 days.
-                </p>
+                <p className="text-xs text-muted-foreground">No invoices recorded in last 30 days.</p>
               ) : (
                 <div className="space-y-2">
                   {data.topServices.map((ts) => (
                     <div key={ts.description} className="flex items-center justify-between text-sm">
-                      <span className="truncate max-w-[200px] text-muted-foreground">
-                        {ts.description}
-                      </span>
+                      <span className="truncate max-w-[200px] text-muted-foreground">{ts.description}</span>
                       <span className="font-mono font-medium">₹{ts.revenue.toLocaleString()}</span>
                     </div>
                   ))}

@@ -8,27 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
-  QrCode,
-  Printer,
-  Download,
-  Copy,
-  ExternalLink,
-  Check,
-  X,
-  CheckCircle2,
-  RefreshCw,
-  Users,
-  Clock,
+  QrCode, Printer, Download, Copy, ExternalLink,
+  Check, X, CheckCircle2, RefreshCw, Users, Clock,
 } from "lucide-react";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -38,11 +23,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/qr")({
   validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
   }),
-  component: () => (
-    <AppGuard appKey="qr_appointment">
-      <QRAndWalkinsPage />
-    </AppGuard>
-  ),
+  component: () => <AppGuard appKey="qr_appointment"><QRAndWalkinsPage /></AppGuard>,
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -107,9 +88,7 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
   const [mode, setMode] = useState<QRMode>("walkin");
   const [headline, setHeadline] = useState("Scan to check in");
   const [subline, setSubline] = useState("Book your visit in 30 seconds");
-  const [posterTemplate, setPosterTemplate] = useState<
-    "minimal" | "modern" | "medical" | "friendly"
-  >("minimal");
+  const [posterTemplate, setPosterTemplate] = useState<"minimal" | "modern" | "medical" | "friendly">("minimal");
   const printRef = useRef<HTMLDivElement>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -142,7 +121,7 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
     const qrSvgHtml = document.getElementById("clinic-qr-svg")?.outerHTML || "";
     const logoHtml = clinic.logo_url ? `<img src="${clinic.logo_url}" class="logo" />` : "";
     const clinicName = clinic.clinic_name ?? clinic.doctor_name ?? "";
-
+    
     let style = "";
     let bodyHtml = "";
 
@@ -261,23 +240,12 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
 
     const w = window.open("", "_blank", "width=600,height=800");
     if (!w) return toast.error("Pop-up blocked — allow pop-ups to print");
-    w.document
-      .write(`<!doctype html><html><head><title>Clinic QR — ${clinic.doctor_name ?? ""}</title>
+    w.document.write(`<!doctype html><html><head><title>Clinic QR — ${clinic.doctor_name ?? ""}</title>
       <style>${style}</style></head><body>${bodyHtml}</body></html>`);
     w.document.close();
     w.focus();
-    setTimeout(() => {
-      w.print();
-    }, 400);
-  }, [
-    clinic.clinic_name,
-    clinic.doctor_name,
-    clinic.logo_url,
-    headline,
-    subline,
-    url,
-    posterTemplate,
-  ]);
+    setTimeout(() => { w.print(); }, 400);
+  }, [clinic.clinic_name, clinic.doctor_name, clinic.logo_url, headline, subline, url, posterTemplate]);
 
   return (
     <div className="space-y-4">
@@ -295,9 +263,7 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
         >
           <Clock className="size-3.5" />
           Walk-in (today only)
-          <Badge variant="secondary" className="text-[10px]">
-            Fastest
-          </Badge>
+          <Badge variant="secondary" className="text-[10px]">Fastest</Badge>
         </button>
       </div>
       <p className="text-sm text-muted-foreground -mt-1">
@@ -344,21 +310,11 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="qr-headline">Poster headline</Label>
-            <Input
-              id="qr-headline"
-              value={headline}
-              maxLength={60}
-              onChange={(e) => setHeadline(e.target.value)}
-            />
+            <Input id="qr-headline" value={headline} maxLength={60} onChange={(e) => setHeadline(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="qr-subline">Subheading</Label>
-            <Input
-              id="qr-subline"
-              value={subline}
-              maxLength={100}
-              onChange={(e) => setSubline(e.target.value)}
-            />
+            <Input id="qr-subline" value={subline} maxLength={100} onChange={(e) => setSubline(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Link</Label>
@@ -375,12 +331,8 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={print}>
-              <Printer className="size-4" /> Print poster
-            </Button>
-            <Button variant="outline" onClick={downloadSvg}>
-              <Download className="size-4" /> Download SVG
-            </Button>
+            <Button onClick={print}><Printer className="size-4" /> Print poster</Button>
+            <Button variant="outline" onClick={downloadSvg}><Download className="size-4" /> Download SVG</Button>
           </div>
           <div className="rounded-xl border bg-muted/40 p-4 text-sm">
             <p className="font-medium mb-2">How it works</p>
@@ -401,17 +353,11 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
                 {clinic.logo_url ? (
                   <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain mb-2" />
                 ) : null}
-                <p className="text-sm font-medium text-muted-foreground">
-                  {clinic.clinic_name ?? clinic.doctor_name}
-                </p>
-                <h1 className="font-display text-2xl font-bold text-slate-900 mt-1 leading-tight">
-                  {headline}
-                </h1>
+                <p className="text-sm font-medium text-muted-foreground">{clinic.clinic_name ?? clinic.doctor_name}</p>
+                <h1 className="font-display text-2xl font-bold text-slate-900 mt-1 leading-tight">{headline}</h1>
                 <p className="text-sm text-slate-500 mt-1">{subline}</p>
                 <div className="qr flex justify-center my-6">
-                  {url ? (
-                    <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin />
-                  ) : null}
+                  {url ? <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin /> : null}
                 </div>
                 <p className="url text-[10px] font-mono text-slate-400 break-all">{url}</p>
               </div>
@@ -420,23 +366,13 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
             {posterTemplate === "modern" && (
               <div className="border border-indigo-500/30 rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-indigo-950 text-white text-center shadow-2xl">
                 {clinic.logo_url ? (
-                  <img
-                    src={clinic.logo_url}
-                    alt=""
-                    className="h-10 mx-auto object-contain mb-2 brightness-0 invert"
-                  />
+                  <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain mb-2 brightness-0 invert" />
                 ) : null}
-                <p className="text-sm font-medium text-indigo-300/80">
-                  {clinic.clinic_name ?? clinic.doctor_name}
-                </p>
-                <h1 className="font-display text-2xl font-extrabold text-white mt-1 leading-tight">
-                  {headline}
-                </h1>
+                <p className="text-sm font-medium text-indigo-300/80">{clinic.clinic_name ?? clinic.doctor_name}</p>
+                <h1 className="font-display text-2xl font-extrabold text-white mt-1 leading-tight">{headline}</h1>
                 <p className="text-sm text-indigo-200/70 mt-1">{subline}</p>
                 <div className="qr flex justify-center my-6 bg-white p-3 rounded-xl inline-block mx-auto shadow-inner">
-                  {url ? (
-                    <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin />
-                  ) : null}
+                  {url ? <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin /> : null}
                 </div>
                 <p className="url text-[10px] font-mono text-indigo-300/60 break-all">{url}</p>
               </div>
@@ -446,29 +382,15 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
               <div className="border-2 border-slate-900 rounded-2xl overflow-hidden bg-background text-center flex flex-col shadow-md">
                 <div className="bg-slate-900 py-5 px-4 text-white">
                   {clinic.logo_url ? (
-                    <img
-                      src={clinic.logo_url}
-                      alt=""
-                      className="h-9 mx-auto object-contain mb-2 brightness-0 invert"
-                    />
+                    <img src={clinic.logo_url} alt="" className="h-9 mx-auto object-contain mb-2 brightness-0 invert" />
                   ) : null}
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    {clinic.clinic_name ?? clinic.doctor_name}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">{clinic.clinic_name ?? clinic.doctor_name}</p>
                   <h1 className="font-display text-xl font-bold mt-1 leading-tight">{headline}</h1>
                 </div>
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <p className="text-sm text-slate-600 font-medium">{subline}</p>
                   <div className="qr flex justify-center my-6">
-                    {url ? (
-                      <QRCodeSVG
-                        id="clinic-qr-svg"
-                        value={url}
-                        size={180}
-                        level="M"
-                        includeMargin
-                      />
-                    ) : null}
+                    {url ? <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin /> : null}
                   </div>
                   <p className="url text-[10px] font-mono text-slate-500 break-all">{url}</p>
                 </div>
@@ -480,17 +402,11 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
                 {clinic.logo_url ? (
                   <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain mb-2" />
                 ) : null}
-                <p className="text-sm font-semibold text-orange-600/90">
-                  {clinic.clinic_name ?? clinic.doctor_name}
-                </p>
-                <h1 className="font-display text-2xl font-bold text-orange-950 mt-1 leading-tight">
-                  {headline}
-                </h1>
+                <p className="text-sm font-semibold text-orange-600/90">{clinic.clinic_name ?? clinic.doctor_name}</p>
+                <h1 className="font-display text-2xl font-bold text-orange-950 mt-1 leading-tight">{headline}</h1>
                 <p className="text-sm text-orange-800/80 mt-1">{subline}</p>
                 <div className="qr flex justify-center my-6 border-2 border-orange-200/50 p-2 rounded-2xl bg-white">
-                  {url ? (
-                    <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin />
-                  ) : null}
+                  {url ? <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin /> : null}
                 </div>
                 <p className="url text-[10px] font-mono text-orange-600/70 break-all">{url}</p>
               </div>
@@ -511,10 +427,8 @@ function WalkinsTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClini
   const load = useCallback(async () => {
     if (!clinic?.id) return;
     setLoading(true);
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
     type S = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
     let q = supabase
       .from("appointments")
@@ -530,29 +444,16 @@ function WalkinsTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClini
     setLoading(false);
   }, [clinic?.id, filter]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   // Realtime: refresh when a new walkin lands
   useEffect(() => {
     if (!clinic?.id) return;
     const channel = supabase
       .channel(`walkins-${clinic.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "appointments",
-          filter: `clinic_id=eq.${clinic.id}`,
-        },
-        () => load(),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `clinic_id=eq.${clinic.id}` }, () => load())
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [clinic?.id, load]);
 
   async function setStatus(id: string, status: "confirmed" | "completed" | "cancelled") {
@@ -588,9 +489,7 @@ function WalkinsTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClini
         </div>
         <div className="flex items-center gap-2">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="pending">Waiting</SelectItem>
@@ -631,18 +530,13 @@ function WalkinsTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClini
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t hover:bg-muted/30 transition-colors">
                     <td className="p-4 whitespace-nowrap font-medium">
-                      {new Date(r.scheduled_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {new Date(r.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </td>
                     <td className="p-4">
                       <div className="font-medium">{r.patient_name}</div>
                       <div className="text-xs text-muted-foreground">{r.patient_phone}</div>
                     </td>
-                    <td className="p-4 max-w-xs truncate text-muted-foreground">
-                      {r.problem || "—"}
-                    </td>
+                    <td className="p-4 max-w-xs truncate text-muted-foreground">{r.problem || "—"}</td>
                     <td className="p-4">
                       <StatusBadge status={r.status} />
                     </td>
@@ -654,20 +548,12 @@ function WalkinsTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClini
                           </Button>
                         )}
                         {(r.status === "pending" || r.status === "confirmed") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setStatus(r.id, "completed")}
-                          >
+                          <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "completed")}>
                             <CheckCircle2 className="size-3.5" /> Complete
                           </Button>
                         )}
                         {r.status !== "cancelled" && r.status !== "completed" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setStatus(r.id, "cancelled")}
-                          >
+                          <Button size="sm" variant="ghost" onClick={() => setStatus(r.id, "cancelled")}>
                             <X className="size-3.5" /> Cancel
                           </Button>
                         )}
@@ -694,9 +580,7 @@ function StatusBadge({ status }: { status: string }) {
     no_show: "bg-muted text-muted-foreground",
   };
   return (
-    <span
-      className={`text-xs px-2 py-1 rounded-md border capitalize font-medium ${map[status] ?? "bg-muted text-muted-foreground"}`}
-    >
+    <span className={`text-xs px-2 py-1 rounded-md border capitalize font-medium ${map[status] ?? "bg-muted text-muted-foreground"}`}>
       {status === "pending" ? "waiting" : status}
     </span>
   );

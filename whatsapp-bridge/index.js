@@ -7,17 +7,11 @@ import pino from "pino";
 import qrcode from "qrcode-terminal";
 import pkg from "@whiskeysockets/baileys";
 
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-  fetchLatestBaileysVersion,
-} = pkg;
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = pkg;
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
 const CLINIC_ID = process.env.CLINIC_ID || "default";
-const WEBHOOK_URL =
-  process.env.CLINICOS_WEBHOOK_URL || "https://clinicos.digiwil.com/api/public/hooks/whatsapp";
+const WEBHOOK_URL = process.env.CLINICOS_WEBHOOK_URL || "https://clinicos.digiwil.com/api/public/hooks/whatsapp";
 const AUTH_BASE_DIR = process.env.AUTH_DIR || "/data/auth";
 const PORT = parseInt(process.env.PORT || "8080", 10);
 
@@ -26,16 +20,21 @@ const logger = pino({ level: "info" });
 const startedAt = Date.now();
 
 // ─── Multi-Session Store ───────────────────────────────────────────────────────
-/** @typedef {{ id: string, sock: any, status: "disconnected"|"qr"|"connected", phone: string|null, qr: string|null }} SessionState */
+type SessionState = {
+  id: string;
+  sock: any;
+  status: "disconnected" | "qr" | "connected";
+  phone: string | null;
+  qr: string | null;
+};
 
-/** @type {Map<string, SessionState>} */
-const sessions = new Map();
+const sessions = new Map<string, SessionState>();
 
-function sign(body) {
+function sign(body: string) {
   return "sha256=" + crypto.createHmac("sha256", BRIDGE_SECRET).update(body).digest("hex");
 }
 
-function verify(req, raw) {
+function verify(req: express.Request, raw: string) {
   const sig = req.headers["x-bridge-signature"];
   if (!sig) return true; // allow unauthenticated local health calls if signature header omitted
   const expected = sign(raw);
@@ -44,7 +43,7 @@ function verify(req, raw) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-async function postWebhook(payload) {
+async function postWebhook(payload: Record<string, any>) {
   const body = JSON.stringify(payload);
   try {
     const res = await fetch(WEBHOOK_URL, {
@@ -58,15 +57,14 @@ async function postWebhook(payload) {
   }
 }
 
-function normalizeJid(jid) {
+function normalizeJid(jid: string | null | undefined): string {
   const num = (jid || "").split("@")[0].split(":")[0];
   return num ? "+" + num : "";
 }
 
 // ─── Session Factory ─────────────────────────────────────────────────────────
 
-/** @returns {Promise<SessionState>} */
-async function getOrCreateSession(sessionId) {
+async function getOrCreateSession(sessionId: string): Promise<SessionState> {
   const existing = sessions.get(sessionId);
   if (existing && (existing.status === "connected" || existing.status === "qr")) {
     return existing;
@@ -75,8 +73,7 @@ async function getOrCreateSession(sessionId) {
   const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));
   fs.mkdirSync(sessionDir, { recursive: true });
 
-  /** @type {SessionState} */
-  const stateObj = {
+  const stateObj: SessionState = {
     id: sessionId,
     sock: null,
     status: "disconnected",
@@ -111,17 +108,12 @@ async function getOrCreateSession(sessionId) {
       stateObj.qr = null;
       stateObj.phone = normalizeJid(sock.user?.id);
       logger.info({ sessionId, phone: stateObj.phone }, "✓ WhatsApp Connected");
-      postWebhook({
-        event: "status",
-        status: "connected",
-        session_id: sessionId,
-        phone: stateObj.phone,
-      });
+      postWebhook({ event: "status", status: "connected", session_id: sessionId, phone: stateObj.phone });
     }
     if (connection === "close") {
       stateObj.status = "disconnected";
       stateObj.qr = null;
-      const code = lastDisconnect?.error?.output?.statusCode;
+      const code = (lastDisconnect?.error as any)?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
       logger.warn({ sessionId, code }, "WhatsApp Connection Closed");
       postWebhook({ event: "status", status: "disconnected", session_id: sessionId });
@@ -192,11 +184,7 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.raw({ type: "*/*", limit: "2mb" }));
 
 app.get("/health", (_req, res) => {
-  res.json({
-    ok: true,
-    sessions_active: sessions.size,
-    uptime_s: Math.floor((Date.now() - startedAt) / 1000),
-  });
+  res.json({ ok: true, sessions_active: sessions.size, uptime_s: Math.floor((Date.now() - startedAt) / 1000) });
 });
 
 // Create/start a specific session
@@ -228,9 +216,7 @@ app.delete("/api/sessions/:sessionId", async (req, res) => {
   const sid = req.params.sessionId;
   const sess = sessions.get(sid);
   if (sess?.sock) {
-    try {
-      await sess.sock.logout();
-    } catch {}
+    try { await sess.sock.logout(); } catch {}
   }
   sessions.delete(sid);
   const sessionDir = path.join(AUTH_BASE_DIR, sid.replace(/[^a-zA-Z0-9_-]/g, "_"));
@@ -255,7 +241,7 @@ app.post("/api/sessions/:sessionId/send", async (req, res) => {
     const jid = String(toPhone).replace(/^\+/, "").replace(/\D/g, "") + "@s.whatsapp.net";
     const sent = await sess.sock.sendMessage(jid, { text: String(message) });
     res.json({ success: true, id: sent?.key?.id || null });
-  } catch (err) {
+  } catch (err: any) {
     logger.error({ sid, err: String(err) }, "send via session failed");
     res.status(500).json({ success: false, error: String(err) });
   }
@@ -263,13 +249,9 @@ app.post("/api/sessions/:sessionId/send", async (req, res) => {
 
 // Legacy single-session /send endpoint
 app.post("/send", async (req, res) => {
-  let body = req.body;
+  let body: any = req.body;
   if (Buffer.isBuffer(body)) {
-    try {
-      body = JSON.parse(body.toString("utf8"));
-    } catch {
-      body = {};
-    }
+    try { body = JSON.parse(body.toString("utf8")); } catch { body = {}; }
   }
   const { to, text, sessionId } = body || {};
   const sid = sessionId || defaultSessionId;
@@ -281,7 +263,7 @@ app.post("/send", async (req, res) => {
     const jid = String(to).replace(/^\+/, "").replace(/\D/g, "") + "@s.whatsapp.net";
     const sent = await sess.sock.sendMessage(jid, { text: String(text) });
     res.json({ id: sent?.key?.id || null });
-  } catch (err) {
+  } catch (err: any) {
     res.status(500).json({ error: String(err) });
   }
 });
