@@ -733,8 +733,10 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
 
     // 7. Send invitation email
     const appUrl = appOrigin();
+    // Never put the temp password in the URL — URLs leak via browser history,
+    // access logs, and link previews. It is delivered only in the email body.
     const inviteUrl = isNewUser
-      ? `${appUrl}/invite/${inviteToken}?pw=${encodeURIComponent(tempPassword)}`
+      ? `${appUrl}/invite/${inviteToken}?np=1`
       : `${appUrl}/invite/${inviteToken}`;
     const subject = `Welcome to ${clinicName} — ClinicX`;
 

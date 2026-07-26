@@ -11,10 +11,9 @@ import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; pw?: string; tab?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; tab?: string } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     email: typeof search.email === "string" ? search.email : undefined,
-    pw: typeof search.pw === "string" ? search.pw : undefined,
     tab: typeof search.tab === "string" ? search.tab : undefined,
   }),
   head: () => ({
@@ -28,7 +27,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { redirect, email: searchEmail, pw: searchPw, tab: searchTab } = Route.useSearch();
+  const { redirect, email: searchEmail, tab: searchTab } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   
   const { data: mStatus } = useQuery({
@@ -51,8 +50,7 @@ function LoginPage() {
 
   useEffect(() => {
     if (searchEmail) setEmail(searchEmail);
-    if (searchPw) setPassword(searchPw);
-  }, [searchEmail, searchPw]);
+  }, [searchEmail]);
 
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
