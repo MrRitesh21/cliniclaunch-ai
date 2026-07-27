@@ -114,7 +114,7 @@ function BookPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [appointmentType, setAppointmentType] = useState<"online" | "offline">("offline");
   const [selectedDay, setSelectedDay] = useState<Date | null>(days[0] ?? null);
-  const [bookedAt, setBookedAt] = useState<Set<string>>(new Set());
+  const [bookedAt, setBookedAt] = useState<Set<number>>(new Set());
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", age: "", gender: "", problem: "" });
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
@@ -192,7 +192,7 @@ function BookPage() {
     const to = new Date(selectedDay); to.setHours(23, 59, 59, 999);
     const dbDoctorId = selectedDoctorId === "owner" ? null : selectedDoctorId;
     getBookedSlots({ data: { clinic_id: clinic.id, from: from.toISOString(), to: to.toISOString(), doctor_id: dbDoctorId } })
-      .then((rows) => setBookedAt(new Set((rows ?? []).filter((r): r is string => typeof r === "string"))));
+      .then((rows) => setBookedAt(new Set((rows ?? []).filter((r): r is string => typeof r === "string").map((r) => new Date(r).getTime()))));
   }, [selectedDay, clinic.id, selectedDoctorId]);
 
   const slots = useMemo(() => {
@@ -550,7 +550,7 @@ function BookPage() {
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
                   {slots.map((s) => {
                     const iso = s.toISOString();
-                    const taken = bookedAt.has(iso);
+                    const taken = bookedAt.has(s.getTime());
                     const active = selectedSlot?.toISOString() === iso;
                     return (
                       <button

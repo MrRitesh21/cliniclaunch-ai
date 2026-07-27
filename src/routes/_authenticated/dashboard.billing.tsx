@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Check, Crown, Loader2, Receipt, Tag, AlertTriangle, ShieldAlert, Sparkles, Building, MessageSquareWarning, ArrowRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { ValueReceiptCard } from "@/components/value/ValueReceiptCard";
+import { PlanCompareTable } from "@/components/billing/PlanCompareTable";
 import { useServerFn } from "@tanstack/react-start";
 import { startRazorpaySubscription, cancelRazorpaySubscription, validateCoupon, activateRazorpaySubscription, syncRazorpaySubscription, listBillingReminders, dismissBillingReminder } from "@/lib/razorpay.functions";
 
@@ -44,6 +45,7 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 type Plan = Database["public"]["Tables"]["plans"]["Row"];
+type Module = Database["public"]["Tables"]["modules"]["Row"];
 type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
 
@@ -57,6 +59,7 @@ function BillingPage() {
   const clinic = useClinic();
   const { org, isSubscriptionExpired, refresh } = useOrganization();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
   const [sub, setSub] = useState<Subscription | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [cycle, setCycle] = useState<"monthly" | "yearly">("yearly");
@@ -122,13 +125,15 @@ function BillingPage() {
     if (!org) return;
     let active = true;
     (async () => {
-      const [{ data: p }, { data: s }, { data: inv }] = await Promise.all([
+      const [{ data: p }, { data: m }, { data: s }, { data: inv }] = await Promise.all([
         supabase.from("plans").select("*").order("sort_order"),
+        supabase.from("modules").select("*").order("sort_order"),
         supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle(),
         supabase.from("invoices").select("*").eq("organization_id", org.id).order("created_at", { ascending: false }),
       ]);
       if (!active) return;
       setPlans((p ?? []) as Plan[]);
+      setModules((m ?? []) as Module[]);
       setSub((s ?? null) as Subscription | null);
       setInvoices((inv ?? []) as Invoice[]);
       void refreshReminders(org.id);
@@ -144,7 +149,6 @@ function BillingPage() {
         }
         cycleInitialized.current = true;
       }
-      if (active) setLoading(false);
     })();
     return () => {
       active = false;
@@ -601,6 +605,24 @@ function BillingPage() {
           })}
         </div>
       </div>
+
+      {/* Full feature comparison */}
+      {modules.length > 0 && (
+        <div>
+          <h2 className="font-display text-xl mb-1">Compare plans in detail</h2>
+          <p className="text-xs text-muted-foreground mb-4">Every module included in each plan, side by side.</p>
+          <PlanCompareTable
+            plans={plans}
+            modules={modules}
+            currentPlanId={sub?.plan_id}
+            billingCycle={cycle}
+            onSelectPlan={(planId) => {
+              const p = plans.find((x) => x.id === planId);
+              if (p) setPendingPlan(p);
+            }}
+          />
+        </div>
+      )}
 
       {org?.id && <ValueReceiptCard organizationId={org.id} />}
 
