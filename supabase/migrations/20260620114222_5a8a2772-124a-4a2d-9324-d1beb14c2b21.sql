@@ -1,0 +1,1 @@
+ALTER TABLE public.clinics ADD COLUMN IF NOT EXISTS domain_verification_token TEXT NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex');

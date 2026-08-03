@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "clinicos-mcp",
+      "version": "0.1.0",
+      "title": "ClinicX MCP"
+    },
+    "tools": [
+      {
+        "name": "echo",
+        "title": "Echo",
+        "description": "Echo the input text back to the caller. Useful to verify the MCP connection is working.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Text to echo back."
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_clinic_by_slug",
+        "title": "Get clinic by slug",
+        "description": "Look up a published clinic's public profile by its slug (the last path segment of its public URL, e.g. `/c/<slug>`). Returns clinic name, doctor, specialization, address, phone, and publish status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The clinic's public slug."
+            }
+          },
+          "required": [
+            "slug"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

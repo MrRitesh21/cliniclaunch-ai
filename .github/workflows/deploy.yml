@@ -1,0 +1,173 @@
+name: Deploy ClinicX
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate app and database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build app
+        run: npm run build
+
+      - name: Set up Supabase CLI
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_DB_PASSWORD != '' && env.SUPABASE_PROJECT_ID != '' }}
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase project
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_DB_PASSWORD != '' && env.SUPABASE_PROJECT_ID != '' }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Check Supabase migration drift
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_DB_PASSWORD != '' && env.SUPABASE_PROJECT_ID != '' }}
+        run: supabase db diff --linked --schema public,auth,storage --use-migra --fail-on-diff
+
+      - name: Warn when Supabase drift check is skipped
+        if: ${{ env.SUPABASE_ACCESS_TOKEN == '' || env.SUPABASE_DB_PASSWORD == '' || env.SUPABASE_PROJECT_ID == '' }}
+        run: echo 'Supabase drift check skipped because required GitHub secrets are missing.'
+
+  migrate_production:
+    name: Apply Supabase migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_DB_PASSWORD != '' && env.SUPABASE_PROJECT_ID != '' }}
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase project
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_DB_PASSWORD != '' && env.SUPABASE_PROJECT_ID != '' }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Push migrations
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_DB_PASSWORD != '' && env.SUPABASE_PROJECT_ID != '' }}
+        run: supabase db push --linked
+
+      - name: Warn when migration push is skipped
+        if: ${{ env.SUPABASE_ACCESS_TOKEN == '' || env.SUPABASE_DB_PASSWORD == '' || env.SUPABASE_PROJECT_ID == '' }}
+        run: echo 'Supabase migration push skipped because required GitHub secrets are missing.'
+
+  deploy_preview:
+    name: Deploy Vercel preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: validate
+    if: github.event_name == 'pull_request'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Vercel CLI
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: npm install --global --ignore-scripts vercel@latest
+
+      - name: Pull Vercel environment
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build preview deployment
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy preview to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel deploy --prebuilt --token="$VERCEL_TOKEN"
+
+      - name: Warn when Vercel deploy is skipped
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: echo 'Vercel preview deploy skipped because VERCEL_TOKEN secret is missing.'
+
+  deploy_production:
+    name: Deploy Vercel production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - validate
+      - migrate_production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Vercel CLI
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: npm install --global --ignore-scripts vercel@latest
+
+      - name: Pull Vercel environment
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build production deployment
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy production to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Warn when Vercel deploy is skipped
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: echo 'Vercel production deploy skipped because VERCEL_TOKEN secret is missing.'

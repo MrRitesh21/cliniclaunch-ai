@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Block internal / auth-only areas
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /_authenticated/
+Disallow: /_admin/
+Disallow: /auth
+Disallow: /login
+Disallow: /consult/
+Disallow: /invite/
+
+Sitemap: https://clinics.digiwil.com/sitemap.xml
