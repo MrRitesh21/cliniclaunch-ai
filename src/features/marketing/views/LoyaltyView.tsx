@@ -92,7 +92,7 @@ export function LoyaltyView() {
           ) : (
             <div className="space-y-2.5">
               {["Platinum", "Gold", "Silver", "Bronze"].map((tier) => {
-                const count = (data.tierCounts as Record<string, number>)[tier] ?? 0;
+                const count = data.tierCounts.find((t) => t.tier === tier)?.count ?? 0;
                 const pct = k.members ? Math.round((count / k.members) * 100) : 0;
                 return (
                   <div key={tier} className="space-y-1">
