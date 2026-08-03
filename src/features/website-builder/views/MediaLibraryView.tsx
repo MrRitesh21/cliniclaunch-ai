@@ -90,7 +90,7 @@ export function MediaLibraryView() {
 
   async function patchClinic(patch: Record<string, unknown>) {
     if (!clinicId) throw new Error("Clinic not loaded yet");
-    const { error } = await supabase.from("clinics").update(patch).eq("id", clinicId);
+    const { error } = await supabase.from("clinics").update(patch as never).eq("id", clinicId);
     if (error) throw new Error(error.message);
   }
 
