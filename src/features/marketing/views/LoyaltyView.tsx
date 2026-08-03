@@ -1,79 +1,172 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useMarketing } from "../context/MarketingContext";
+import { getLoyaltyOverview } from "@/lib/marketing-studio.functions";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Award, Crown, Gift, Wallet, TrendingUp, Users, CheckCircle2, ArrowRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Award, Gift, Users, Repeat } from "lucide-react";
+
+const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+
+const TIER_STYLES: Record<string, string> = {
+  Platinum: "bg-slate-800 text-white",
+  Gold: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  Silver: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+  Bronze: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
+};
 
 export function LoyaltyView() {
+  const { organizationId } = useMarketing();
+  const fetchLoyalty = useServerFn(getLoyaltyOverview);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["marketing-loyalty", organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: () => fetchLoyalty({ data: { organizationId: organizationId! } }),
+  });
+
+  if (isLoading || !data) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-14 w-full" />
+        <div className="grid sm:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  const k = data.kpis;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Patient Loyalty & Rewards Program</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Patient Loyalty</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Reward repeat clinic visits, treatment compliance, and family referrals with health wallet points.
+          Points are awarded automatically — 1 point per ₹100 of billed revenue. Tiers upgrade at 200 / 500 / 1000 points.
         </p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <Card className="p-4 space-y-1 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
-          <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Total Rewards Issued</span>
-          <p className="text-2xl font-bold font-display text-amber-900 dark:text-amber-200">28,400 pts</p>
-          <span className="text-[10px] text-amber-600">₹28,400 equivalent value</span>
+        <Card className="p-4 space-y-1">
+          <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <Users className="size-3.5" /> Members
+          </span>
+          <p className="text-2xl font-bold font-display">{k.members}</p>
+        </Card>
+        <Card className="p-4 space-y-1">
+          <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <Award className="size-3.5" /> Points outstanding
+          </span>
+          <p className="text-2xl font-bold font-display text-amber-600">{k.totalPoints.toLocaleString("en-IN")}</p>
+          <span className="text-[10px] text-muted-foreground">≈ {inr(k.pointsValue)} of reward liability</span>
+        </Card>
+        <Card className="p-4 space-y-1">
+          <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <Gift className="size-3.5" /> Gold & Platinum
+          </span>
+          <p className="text-2xl font-bold font-display text-emerald-600">{k.goldPlus}</p>
+          <span className="text-[10px] text-muted-foreground">Your highest-value patients</span>
+        </Card>
+        <Card className="p-4 space-y-1">
+          <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <Repeat className="size-3.5" /> Member repeat rate
+          </span>
+          <p className="text-2xl font-bold font-display text-blue-600">{k.repeatRate}%</p>
+          <span className="text-[10px] text-muted-foreground">{inr(k.membersRevenue)} member revenue</span>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="p-5 space-y-3">
+          <h3 className="font-bold text-sm">Tier distribution</h3>
+          {k.members === 0 ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              No members yet. Points are created the moment you bill a patient.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {["Platinum", "Gold", "Silver", "Bronze"].map((tier) => {
+                const count = data.tierCounts.find((t) => t.tier === tier)?.count ?? 0;
+                const pct = k.members ? Math.round((count / k.members) * 100) : 0;
+                return (
+                  <div key={tier} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{tier}</span>
+                      <span className="text-muted-foreground">
+                        {count} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
-        <Card className="p-4 space-y-1 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border-blue-500/20">
-          <span className="text-xs text-blue-700 dark:text-blue-400 font-medium">Active Gold Members</span>
-          <p className="text-2xl font-bold font-display text-blue-900 dark:text-blue-200">142 Patients</p>
-          <span className="text-[10px] text-blue-600">Visited ≥3 times in 6 months</span>
-        </Card>
-
-        <Card className="p-4 space-y-1 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20">
-          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Redeemed Revenue</span>
-          <p className="text-2xl font-bold font-display text-emerald-900 dark:text-emerald-200">₹62,400</p>
-          <span className="text-[10px] text-emerald-600">From repeat consultation fees</span>
-        </Card>
-
-        <Card className="p-4 space-y-1 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border-purple-500/20">
-          <span className="text-xs text-purple-700 dark:text-purple-400 font-medium">Retention Impact</span>
-          <p className="text-2xl font-bold font-display text-purple-900 dark:text-purple-200">+34%</p>
-          <span className="text-[10px] text-purple-600">Repeat OPD booking rate</span>
+        <Card className="p-5 space-y-3 lg:col-span-2">
+          <h3 className="font-bold text-sm">Top loyal patients</h3>
+          {data.top.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">No loyalty activity recorded yet.</p>
+          ) : (
+            <div className="divide-y text-xs">
+              {data.top.map((p) => (
+                <div key={p.patientId} className="py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <Badge variant="secondary" className={`text-[10px] shrink-0 ${TIER_STYLES[p.tier] ?? ""}`}>
+                      {p.tier}
+                    </Badge>
+                    <span className="font-semibold truncate">{p.name}</span>
+                  </div>
+                  <div className="flex gap-5 text-right shrink-0">
+                    <div>
+                      <span className="block text-[10px] text-muted-foreground">Visits</span>
+                      <span className="font-medium">{p.visits}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-muted-foreground">Points</span>
+                      <span className="font-medium text-amber-600">{p.points}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-muted-foreground">Revenue</span>
+                      <span className="font-bold text-emerald-600">{inr(p.revenue)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* Tiers Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-5 space-y-3 border-slate-400/30">
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="text-xs font-bold text-slate-600">Silver Tier</Badge>
-            <Award className="size-5 text-slate-400" />
+      {data.programs.length > 0 && (
+        <Card className="p-5 space-y-3">
+          <h3 className="font-bold text-sm">Reward programmes</h3>
+          <div className="divide-y text-xs">
+            {data.programs.map((p: any) => (
+              <div key={p.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{p.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {p.stamps_required} visits → {p.reward_description}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-[10px]">
+                  {p.active ? "active" : "paused"}
+                </Badge>
+              </div>
+            ))}
           </div>
-          <h3 className="font-bold text-base">Basic Health Member</h3>
-          <p className="text-xs text-muted-foreground">Earn 5% cashback points on every OPD consultation & lab test.</p>
-          <div className="pt-2 border-t text-xs font-semibold text-foreground">1-2 visits / year</div>
         </Card>
-
-        <Card className="p-5 space-y-3 border-amber-500/40 bg-amber-500/5">
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">Gold Tier</Badge>
-            <Crown className="size-5 text-amber-500" />
-          </div>
-          <h3 className="font-bold text-base">VIP Care Member</h3>
-          <p className="text-xs text-muted-foreground">Earn 10% cashback points + priority WhatsApp appointment booking.</p>
-          <div className="pt-2 border-t text-xs font-semibold text-amber-600">3-5 visits / year</div>
-        </Card>
-
-        <Card className="p-5 space-y-3 border-purple-500/40 bg-purple-500/5">
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300">Platinum Tier</Badge>
-            <Crown className="size-5 text-purple-500" />
-          </div>
-          <h3 className="font-bold text-base">Family Health Shield</h3>
-          <p className="text-xs text-muted-foreground">15% cashback points + free annual preventive blood screening.</p>
-          <div className="pt-2 border-t text-xs font-semibold text-purple-600">6+ visits or Family Plan</div>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }

@@ -86,10 +86,11 @@ export function MediaLibraryView() {
     return matchesFolder && matchesSearch;
   });
 
-  async function saveGallery(urls: string[]) {
-    const id = (clinic as Record<string, unknown> | null)?.id as string | undefined;
-    if (!id) return;
-    const { error } = await supabase.from("clinics").update({ gallery: urls }).eq("id", id);
+  const clinicId = (clinic as Record<string, unknown> | null)?.id as string | undefined;
+
+  async function patchClinic(patch: Record<string, unknown>) {
+    if (!clinicId) throw new Error("Clinic not loaded yet");
+    const { error } = await supabase.from("clinics").update(patch as never).eq("id", clinicId);
     if (error) throw new Error(error.message);
   }
 
@@ -111,7 +112,7 @@ export function MediaLibraryView() {
         createdAt: new Date().toISOString().slice(0, 10),
       };
       const next = [newItem, ...items];
-      await saveGallery(galleryUrls(next));
+      await patchClinic({ gallery: galleryUrls(next) });
       setItems(next);
       toast.success("Media asset uploaded to your clinic gallery");
     } catch (e: any) {
@@ -128,16 +129,51 @@ export function MediaLibraryView() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
+  /** Strips the image field from a team/service entry without deleting the entry itself. */
+  function stripImage(entry: unknown) {
+    if (typeof entry === "string") return null;
+    if (!entry || typeof entry !== "object") return entry;
+    const next = { ...(entry as Record<string, unknown>) };
+    for (const key of ["url", "src", "image", "photo", "image_url", "photo_url"]) delete next[key];
+    return next;
+  }
+
+  /** Removes an asset from whichever clinic field it actually lives in. */
   async function handleDelete(item: MediaItem) {
-    if (item.folder !== "gallery") {
-      toast.error("Remove this asset from its own section (Brand, Doctors or Services).");
+    const c = (clinic ?? {}) as Record<string, unknown>;
+    let patch: Record<string, unknown> | null = null;
+
+    if (item.folder === "gallery") {
+      patch = { gallery: galleryUrls(items.filter((i) => i.id !== item.id)) };
+    } else if (item.id === "brand-logo") {
+      patch = { logo_url: null };
+    } else if (item.id === "brand-avatar") {
+      patch = { avatar_url: null };
+    } else if (item.id.startsWith("team-")) {
+      const idx = Number(item.id.slice(5));
+      const team = Array.isArray(c.team) ? [...(c.team as unknown[])] : [];
+      if (team[idx] !== undefined) {
+        team[idx] = stripImage(team[idx]);
+        patch = { team: team.filter((m) => m !== null) };
+      }
+    } else if (item.id.startsWith("service-")) {
+      const idx = Number(item.id.slice(8));
+      const services = Array.isArray(c.services) ? [...(c.services as unknown[])] : [];
+      if (services[idx] !== undefined) {
+        services[idx] = stripImage(services[idx]);
+        patch = { services: services.filter((s) => s !== null) };
+      }
+    }
+
+    if (!patch) {
+      toast.error("Could not locate this asset on your clinic record.");
       return;
     }
-    const next = items.filter((i) => i.id !== item.id);
+
     try {
-      await saveGallery(galleryUrls(next));
-      setItems(next);
-      toast.success("Asset removed from gallery");
+      await patchClinic(patch);
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      toast.success("Asset removed");
     } catch (e: any) {
       toast.error(e?.message || "Could not remove asset");
     }

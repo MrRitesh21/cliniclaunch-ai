@@ -2265,6 +2265,62 @@ export type Database = {
           },
         ]
       }
+      marketing_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          max_usage: number
+          min_spend: number
+          organization_id: string
+          title: string
+          updated_at: string
+          usage_count: number
+          valid_until: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_usage?: number
+          min_spend?: number
+          organization_id: string
+          title?: string
+          updated_at?: string
+          usage_count?: number
+          valid_until?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_usage?: number
+          min_spend?: number
+          organization_id?: string
+          title?: string
+          updated_at?: string
+          usage_count?: number
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_coupons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_recipients: {
         Row: {
           campaign_id: string
@@ -2626,6 +2682,7 @@ export type Database = {
           google_sync_status: string | null
           id: string
           logo_url: string | null
+          marketing_settings: Json
           name: string
           primary_color: string | null
           public_address: string | null
@@ -2656,6 +2713,7 @@ export type Database = {
           google_sync_status?: string | null
           id?: string
           logo_url?: string | null
+          marketing_settings?: Json
           name: string
           primary_color?: string | null
           public_address?: string | null
@@ -2686,6 +2744,7 @@ export type Database = {
           google_sync_status?: string | null
           id?: string
           logo_url?: string | null
+          marketing_settings?: Json
           name?: string
           primary_color?: string | null
           public_address?: string | null
