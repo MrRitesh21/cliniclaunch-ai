@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { redisCache } from "@/lib/redis";
+import { currentLoad } from "@/lib/scale.server";
 
 // Uptime / launch-readiness probe.
-// Returns 200 with a boolean map of which env-gated features are configured.
+// Returns 200 with a boolean map of which env-gated features are configured,
+// plus live dependency latency and instance load for external monitors
+// (Better Uptime / Cloudflare health checks / autoscaler signals).
 // Never exposes secret values — only whether each key is present.
 export const Route = createFileRoute("/api/public/healthz")({
   server: {
@@ -35,12 +38,47 @@ export const Route = createFileRoute("/api/public/healthz")({
           queue_bullmq: redisActive,
         };
 
+        // Dependency latency — the numbers that actually predict an outage.
+        const timed = async (fn: () => Promise<unknown>) => {
+          const t = performance.now();
+          try {
+            await fn();
+            return Math.round(performance.now() - t);
+          } catch {
+            return null;
+          }
+        };
+
+        const [redisLatencyMs, dbLatencyMs] = await Promise.all([
+          redisActive ? timed(() => redisCache.set("healthz:ping", 1, 10)) : Promise.resolve(null),
+          supabaseUrl && supabasePublishable
+            ? timed(async () => {
+                const res = await fetch(`${supabaseUrl}/rest/v1/plans?select=id&limit=1`, {
+                  headers: { apikey: supabasePublishable, Authorization: `Bearer ${supabasePublishable}` },
+                  signal: AbortSignal.timeout(3000),
+                });
+                if (!res.ok) throw new Error(String(res.status));
+              })
+            : Promise.resolve(null),
+        ]);
+
+        const load = currentLoad();
+        const saturation = load.max > 0 ? load.inFlight / load.max : 0;
+
+        // Degraded (not down) when the DB is slow or we're near the shed ceiling,
+        // so a load balancer can drain this instance before it starts erroring.
+        const degraded =
+          saturation > 0.85 || (dbLatencyMs !== null && dbLatencyMs > 1500) || dbLatencyMs === null;
+
         const ok = features.supabase; // minimum for the app to serve
         return new Response(
           JSON.stringify({
             ok,
+            status: !ok ? "down" : degraded ? "degraded" : "healthy",
             uptime_ms: Math.round(process.uptime?.() * 1000) || null,
             timestamp: new Date().toISOString(),
+            latency: { redis_ms: redisLatencyMs, database_ms: dbLatencyMs },
+            load: { in_flight: load.inFlight, max_in_flight: load.max, saturation: Number(saturation.toFixed(3)) },
             features,
           }),
           {
