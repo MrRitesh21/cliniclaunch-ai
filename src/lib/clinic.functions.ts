@@ -449,7 +449,16 @@ const bookingSchema = z.object({
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => bookingSchema.parse(input))
   .handler(async ({ data }) => {
+    // Per-identity write budget: stops one phone number (or a bot cycling
+    // slots) from filling a clinic's calendar or burning WhatsApp sends.
+    const { limitAction } = await import("./scale.server");
+    const withinBudget = await limitAction(`booking:${data.clinic_id}:${data.patient_phone}`, 5, 900);
+    if (!withinBudget) {
+      throw new Error("You've made several booking requests already. Please call the clinic instead.");
+    }
+
     const sb = await adminClient();
+
 
     // Walk-in rule enforcement
     if (data.source === "walkin") {
