@@ -60,6 +60,9 @@ function applySecurityHeaders(res: Response, durationMs = 0): Response {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const startTime = performance.now();
+    let released = false;
+    let release: (() => void) | null = null;
+
     try {
       const url = new URL(request.url);
 
@@ -77,27 +80,54 @@ export default {
         );
       }
 
-      // 2. Rate Limit Public API & Booking Routes to protect server capacity & costs
-      if (url.pathname.startsWith("/api/") || url.pathname.includes("/book")) {
-        const { rateLimiter } = await import("./lib/rate-limiter");
-        const clientIp = request.headers.get("x-forwarded-for") ?? "client-anon";
-        const limit = rateLimiter.check(clientIp, 40, 60000);
-        
-        if (!limit.allowed) {
+      const scale = await import("./lib/scale.server");
+      const infra = scale.isInfraPath(url.pathname);
+
+      // 2. Distributed (Redis-backed) tiered rate limiting.
+      //    Shared across every isolate/container, unlike the old per-process map.
+      if (!infra) {
+        const verdict = await scale.checkRequestLimit(request, url.pathname);
+        if (!verdict.allowed) {
           return applySecurityHeaders(
-            new Response(JSON.stringify({ error: "Too many requests. Please try again shortly." }), {
-              status: 429,
-              headers: {
-                "content-type": "application/json",
-                "retry-after": Math.ceil(limit.resetMs / 1000).toString(),
+            new Response(
+              JSON.stringify({ error: "Too many requests. Please try again shortly." }),
+              {
+                status: 429,
+                headers: {
+                  "content-type": "application/json",
+                  "retry-after": String(verdict.retryAfter),
+                  "x-ratelimit-limit": String(verdict.limit),
+                  "x-ratelimit-remaining": String(verdict.remaining),
+                  "cache-control": "no-store",
+                },
               },
-            }),
+            ),
             performance.now() - startTime
           );
         }
+
+        // 3. Load shedding: refuse work past the per-instance concurrency
+        //    ceiling instead of OOM-killing the container.
+        if (!scale.beginRequest()) {
+          return applySecurityHeaders(
+            new Response(
+              JSON.stringify({ error: "Server is at capacity. Please retry in a moment." }),
+              {
+                status: 503,
+                headers: {
+                  "content-type": "application/json",
+                  "retry-after": "2",
+                  "cache-control": "no-store",
+                },
+              },
+            ),
+            performance.now() - startTime
+          );
+        }
+        release = scale.endRequest;
       }
 
-      // 3. Validate server env safely on initial request
+      // 4. Validate server env safely on initial request
       if (!envChecked) {
         try {
           const { validateServerEnv } = await import("./lib/env.server");
@@ -112,33 +142,43 @@ export default {
       const rawResponse = await handler.fetch(request, env, ctx);
       const durationMs = performance.now() - startTime;
 
-      // 4. Attach optimal edge caching headers for Cloudflare CDN & static builds
-      if (url.pathname.startsWith("/assets/") || url.pathname.match(/\.(png|jpg|jpeg|svg|webp|js|css|woff2)$/i)) {
-        const headers = new Headers(rawResponse.headers);
-        headers.set("cache-control", "public, max-age=31536000, immutable");
-        return applySecurityHeaders(new Response(rawResponse.body, { status: rawResponse.status, headers }), durationMs);
-      }
-
-      // Public Clinic Landing Pages: Micro-cached at Cloudflare edge to survive extreme traffic spikes
-      if (url.pathname.startsWith("/c/")) {
-        const headers = new Headers(rawResponse.headers);
-        headers.set("cache-control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-        headers.set("cdn-cache-control", "max-age=300");
-        headers.set("cloudflare-cdn-cache-control", "max-age=600");
-        return applySecurityHeaders(new Response(rawResponse.body, { status: rawResponse.status, headers }), durationMs);
-      }
-
       const normalized = await normalizeCatastrophicSsrResponse(rawResponse);
+
+      // 5. Edge cache policy — lets Cloudflare absorb public traffic so
+      //    Supabase only ever sees cache misses.
+      const policy = normalized.status < 400 || normalized.status === 404
+        ? scale.edgeCachePolicy(request, url)
+        : null;
+
+      if (policy) {
+        const headers = new Headers(normalized.headers);
+        headers.set("cache-control", policy.cacheControl);
+        if (policy.cdnCacheControl) {
+          headers.set("cdn-cache-control", policy.cdnCacheControl);
+          headers.set("cloudflare-cdn-cache-control", policy.cdnCacheControl);
+        }
+        if (policy.vary) headers.set("vary", policy.vary);
+        return applySecurityHeaders(
+          new Response(normalized.body, { status: normalized.status, statusText: normalized.statusText, headers }),
+          durationMs
+        );
+      }
+
       return applySecurityHeaders(normalized, durationMs);
     } catch (error) {
       console.error(error);
       return applySecurityHeaders(
         new Response(renderErrorPage(), {
           status: 500,
-          headers: { "content-type": "text/html; charset=utf-8" },
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
         }),
         performance.now() - startTime
       );
+    } finally {
+      if (release && !released) {
+        released = true;
+        release();
+      }
     }
   },
 };
