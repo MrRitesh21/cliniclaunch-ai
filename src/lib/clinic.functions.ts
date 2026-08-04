@@ -399,6 +399,15 @@ export const getBookedSlots = createServerFn({ method: "GET" })
     doctor_id: z.string().uuid().nullable().optional(),
   }).parse(input))
   .handler(async ({ data }) => {
+    // Availability is the single hottest read on the public site. A 20s Redis
+    // cache collapses thousands of concurrent viewers of the same clinic/day
+    // into one Supabase query, and createBooking busts the key immediately so
+    // a fresh booking is never invisible to the next visitor.
+    const cacheKey = `slots:${data.clinic_id}:${data.doctor_id ?? "none"}:${data.from}:${data.to}`;
+    const { redisCache } = await import("./redis");
+    const cached = await redisCache.get<string[]>(cacheKey);
+    if (cached) return cached;
+
     const sb = await adminClient();
     // Only return scheduled times — never patient PII.
     // Slots are per-doctor: filter by doctor_id when provided so different
@@ -418,7 +427,9 @@ export const getBookedSlots = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => r.scheduled_at);
+    const slots = (rows ?? []).map((r) => r.scheduled_at);
+    await redisCache.set(cacheKey, slots, 20);
+    return slots;
   });
 
 const bookingSchema = z.object({
@@ -438,7 +449,16 @@ const bookingSchema = z.object({
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => bookingSchema.parse(input))
   .handler(async ({ data }) => {
+    // Per-identity write budget: stops one phone number (or a bot cycling
+    // slots) from filling a clinic's calendar or burning WhatsApp sends.
+    const { limitAction } = await import("./scale.server");
+    const withinBudget = await limitAction(`booking:${data.clinic_id}:${data.patient_phone}`, 5, 900);
+    if (!withinBudget) {
+      throw new Error("You've made several booking requests already. Please call the clinic instead.");
+    }
+
     const sb = await adminClient();
+
 
     // Walk-in rule enforcement
     if (data.source === "walkin") {
@@ -532,6 +552,16 @@ export const createBooking = createServerFn({ method: "POST" })
       }
       throw new Error(error.message || "Failed to create appointment. Please try again.");
     }
+    // Bust cached availability for this clinic so the next visitor sees the
+    // slot as taken instead of waiting out the 20s TTL.
+    try {
+      const { redisCache } = await import("./redis");
+      await redisCache.flushPattern(`slots:${data.clinic_id}:*`);
+    } catch {
+      // Cache invalidation is best-effort; a stale read self-heals in 20s and
+      // the DB uniqueness check still rejects a double booking.
+    }
+
     // Queue Token Auto-Sync for today's offline/walk-in appointments
     try {
       if (orgId && (data.appointment_type === "offline" || data.source === "walkin")) {
