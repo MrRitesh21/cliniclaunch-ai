@@ -552,6 +552,16 @@ export const createBooking = createServerFn({ method: "POST" })
       }
       throw new Error(error.message || "Failed to create appointment. Please try again.");
     }
+    // Bust cached availability for this clinic so the next visitor sees the
+    // slot as taken instead of waiting out the 20s TTL.
+    try {
+      const { redisCache } = await import("./redis");
+      await redisCache.flushPattern(`slots:${data.clinic_id}:*`);
+    } catch {
+      // Cache invalidation is best-effort; a stale read self-heals in 20s and
+      // the DB uniqueness check still rejects a double booking.
+    }
+
     // Queue Token Auto-Sync for today's offline/walk-in appointments
     try {
       if (orgId && (data.appointment_type === "offline" || data.source === "walkin")) {
