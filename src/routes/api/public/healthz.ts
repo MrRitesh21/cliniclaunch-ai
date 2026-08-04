@@ -10,7 +10,13 @@ export const Route = createFileRoute("/api/public/healthz")({
   server: {
     handlers: {
       GET: async () => {
+        // Server-only modules are imported inside the handler so ioredis and
+        // the *.server.ts helpers never enter the client bundle graph.
+        const { redisCache } = await import("@/lib/redis");
+        const { currentLoad } = await import("@/lib/scale.server");
+
         const has = (name: string) => Boolean(process.env[name]);
+
         const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
         const supabasePublishable =
           process.env.SUPABASE_PUBLISHABLE_KEY ||
