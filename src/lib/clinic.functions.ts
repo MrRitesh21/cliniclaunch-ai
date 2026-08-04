@@ -399,6 +399,15 @@ export const getBookedSlots = createServerFn({ method: "GET" })
     doctor_id: z.string().uuid().nullable().optional(),
   }).parse(input))
   .handler(async ({ data }) => {
+    // Availability is the single hottest read on the public site. A 20s Redis
+    // cache collapses thousands of concurrent viewers of the same clinic/day
+    // into one Supabase query, and createBooking busts the key immediately so
+    // a fresh booking is never invisible to the next visitor.
+    const cacheKey = `slots:${data.clinic_id}:${data.doctor_id ?? "none"}:${data.from}:${data.to}`;
+    const { redisCache } = await import("./redis");
+    const cached = await redisCache.get<string[]>(cacheKey);
+    if (cached) return cached;
+
     const sb = await adminClient();
     // Only return scheduled times — never patient PII.
     // Slots are per-doctor: filter by doctor_id when provided so different
@@ -418,7 +427,9 @@ export const getBookedSlots = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => r.scheduled_at);
+    const slots = (rows ?? []).map((r) => r.scheduled_at);
+    await redisCache.set(cacheKey, slots, 20);
+    return slots;
   });
 
 const bookingSchema = z.object({
