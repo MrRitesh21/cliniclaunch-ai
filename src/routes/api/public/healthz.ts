@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { redisCache } from "@/lib/redis";
-import { currentLoad } from "@/lib/scale.server";
+
 
 // Uptime / launch-readiness probe.
 // Returns 200 with a boolean map of which env-gated features are configured,
