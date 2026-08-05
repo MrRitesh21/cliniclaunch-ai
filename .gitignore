@@ -40,3 +40,4 @@ __pycache__/
 supabase/.branches/
 supabase/.temp/
 
+.ideavo/project
