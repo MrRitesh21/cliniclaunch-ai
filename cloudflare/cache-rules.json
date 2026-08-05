@@ -1,0 +1,112 @@
+{
+  "_comment": "Cloudflare Cache Rules for ClinicX. Apply with: node scripts/apply-cloudflare-cache-rules.mjs. Phase: http_request_cache_settings. Rules are evaluated top-down; the first match wins, so order matters.",
+  "rules": [
+    {
+      "description": "Never cache dashboards, admin, auth, consults or API",
+      "expression": "(starts_with(http.request.uri.path, \"/dashboard\") or starts_with(http.request.uri.path, \"/admin\") or starts_with(http.request.uri.path, \"/auth\") or starts_with(http.request.uri.path, \"/login\") or starts_with(http.request.uri.path, \"/register\") or starts_with(http.request.uri.path, \"/signup\") or starts_with(http.request.uri.path, \"/onboarding\") or starts_with(http.request.uri.path, \"/invite\") or starts_with(http.request.uri.path, \"/consult\") or starts_with(http.request.uri.path, \"/api/\") or starts_with(http.request.uri.path, \"/_serverFn\"))",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": false
+      }
+    },
+    {
+      "description": "Never cache editor/template preview renders (per-editor state)",
+      "expression": "(http.request.uri.query contains \"preview\" or http.request.uri.query contains \"tpl=\" or http.request.uri.query contains \"tc=\")",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": false
+      }
+    },
+    {
+      "description": "Booking + walk-in pages: very short edge TTL, serve stale while revalidating",
+      "expression": "(http.request.method in {\"GET\" \"HEAD\"} and starts_with(http.request.uri.path, \"/c/\") and (ends_with(http.request.uri.path, \"/book\") or ends_with(http.request.uri.path, \"/walkin\")))",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "override_origin",
+          "default": 15,
+          "status_code_ttl": [
+            { "status_code": 404, "value": 10 }
+          ]
+        },
+        "browser_ttl": { "mode": "override_origin", "default": 0 },
+        "serve_stale": { "disable_stale_while_updating": false },
+        "cache_key": {
+          "ignore_query_strings_order": true,
+          "cache_by_device_type": false,
+          "custom_key": {
+            "query_string": { "include": ["doctor", "date", "d"] }
+          }
+        }
+      }
+    },
+    {
+      "description": "Public clinic websites: cache hard at the edge, serve stale while revalidating",
+      "expression": "(http.request.method in {\"GET\" \"HEAD\"} and starts_with(http.request.uri.path, \"/c/\"))",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "override_origin",
+          "default": 600,
+          "status_code_ttl": [
+            { "status_code": 404, "value": 60 }
+          ]
+        },
+        "browser_ttl": { "mode": "override_origin", "default": 60 },
+        "serve_stale": { "disable_stale_while_updating": false },
+        "cache_key": {
+          "ignore_query_strings_order": true,
+          "cache_by_device_type": false,
+          "custom_key": {
+            "query_string": { "exclude": "*" }
+          }
+        }
+      }
+    },
+    {
+      "description": "Marketing / SEO pages: 1h edge TTL, serve stale while revalidating",
+      "expression": "(http.request.method in {\"GET\" \"HEAD\"} and (http.request.uri.path eq \"/\" or starts_with(http.request.uri.path, \"/compare/\") or starts_with(http.request.uri.path, \"/clinic-software/\") or starts_with(http.request.uri.path, \"/for/\") or http.request.uri.path in {\"/about\" \"/features\" \"/services\" \"/faq\" \"/how-it-works\" \"/contact\" \"/privacy\" \"/terms\" \"/refund-policy\" \"/shipping-policy\"}))",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "override_origin",
+          "default": 3600,
+          "status_code_ttl": [
+            { "status_code": 404, "value": 60 }
+          ]
+        },
+        "browser_ttl": { "mode": "override_origin", "default": 300 },
+        "serve_stale": { "disable_stale_while_updating": false },
+        "cache_key": {
+          "ignore_query_strings_order": true,
+          "custom_key": { "query_string": { "exclude": "*" } }
+        }
+      }
+    },
+    {
+      "description": "sitemap.xml / robots.txt",
+      "expression": "(http.request.uri.path in {\"/sitemap.xml\" \"/robots.txt\"})",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": { "mode": "override_origin", "default": 21600 },
+        "browser_ttl": { "mode": "override_origin", "default": 3600 },
+        "serve_stale": { "disable_stale_while_updating": false }
+      }
+    },
+    {
+      "description": "Hashed build assets and static media: immutable",
+      "expression": "(starts_with(http.request.uri.path, \"/assets/\") or http.request.uri.path matches \"\\\\.(js|css|png|jpg|jpeg|svg|webp|avif|ico|woff2?|map)$\")",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": { "mode": "override_origin", "default": 31536000 },
+        "browser_ttl": { "mode": "override_origin", "default": 31536000 },
+        "serve_stale": { "disable_stale_while_updating": false }
+      }
+    }
+  ]
+}
