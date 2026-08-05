@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
+import { guardAuthAttempt } from "@/lib/limits.functions";
+
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; tab?: string } => ({
@@ -76,6 +78,12 @@ function LoginPage() {
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    try {
+      await guardAuthAttempt({ data: { email } });
+    } catch (err) {
+      setLoading(false);
+      return toast.error((err as Error).message);
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -86,6 +94,12 @@ function LoginPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    try {
+      await guardAuthAttempt({ data: { email } });
+    } catch (err) {
+      setLoading(false);
+      return toast.error((err as Error).message);
+    }
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
@@ -93,6 +107,7 @@ function LoginPage() {
         data: { full_name: fullName },
       },
     });
+
     setLoading(false);
     if (error) return toast.error(error.message);
     if (data?.session) {

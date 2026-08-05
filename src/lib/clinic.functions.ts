@@ -449,13 +449,13 @@ const bookingSchema = z.object({
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => bookingSchema.parse(input))
   .handler(async ({ data }) => {
-    // Per-identity write budget: stops one phone number (or a bot cycling
-    // slots) from filling a clinic's calendar or burning WhatsApp sends.
-    const { limitAction } = await import("./scale.server");
-    const withinBudget = await limitAction(`booking:${data.clinic_id}:${data.patient_phone}`, 5, 900);
-    if (!withinBudget) {
-      throw new Error("You've made several booking requests already. Please call the clinic instead.");
-    }
+    // Redis-backed write budget, shared across every isolate/container.
+    // Per-IP stops one host hammering the endpoint; per-phone stops one number
+    // (or a bot cycling hosts) filling a calendar or burning WhatsApp sends.
+    const { enforcePolicy, callerIp } = await import("./scale.server");
+    await enforcePolicy("booking_ip", `${data.clinic_id}:${await callerIp()}`);
+    await enforcePolicy("booking_phone", `${data.clinic_id}:${data.patient_phone}`);
+
 
     const sb = await adminClient();
 
@@ -685,6 +685,11 @@ export const createBooking = createServerFn({ method: "POST" })
 export const getConsultAppointment = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    // Public endpoint: per-IP Redis budget so the consult id space can't be
+    // enumerated from a single host.
+    const { enforcePolicy, callerIp } = await import("./scale.server");
+    await enforcePolicy("consult_ip", await callerIp());
+
     const sb = await adminClient();
     const { data: appt, error } = await sb
       .from("appointments")

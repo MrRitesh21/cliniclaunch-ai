@@ -2,7 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { adminClient } from "./clinic.functions";
-import { checkRateLimit } from "./rate-limit";
 
 export const leadSchema = z.object({
   clinic_id: z.string().uuid(),
@@ -19,10 +18,10 @@ export type LeadInput = z.infer<typeof leadSchema>;
 export const submitLeadServer = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => leadSchema.parse(i))
   .handler(async ({ data }) => {
-    const rateCheck = checkRateLimit(`lead:${data.clinic_id}:${data.phone}`, { maxRequests: 5, windowMs: 60000 });
-    if (!rateCheck.allowed) {
-      throw new Error("Too many request attempts. Please try again in 1 minute.");
-    }
+    // Redis-backed budgets (per-IP and per-phone), shared across instances.
+    const { enforcePolicy, callerIp } = await import("./scale.server");
+    await enforcePolicy("lead_ip", `${data.clinic_id}:${await callerIp()}`);
+    await enforcePolicy("lead_phone", `${data.clinic_id}:${data.phone}`);
 
     const sb = await adminClient();
     const { error } = await sb.from("leads").insert({
