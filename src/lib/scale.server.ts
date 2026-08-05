@@ -186,16 +186,16 @@ export const LIMIT_POLICIES = {
 export type LimitPolicyName = keyof typeof LIMIT_POLICIES;
 
 /** Client IP for the current server-function / route request. */
-export function requestIp(request?: Request): string {
+export async function callerIp(request?: Request): Promise<string> {
   if (request) return clientKey(request);
   try {
-    // getRequest() is only available inside a server handler.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return "anon";
+    const { getRequest } = await import("@tanstack/react-start/server");
+    return clientKey(getRequest());
   } catch {
     return "anon";
   }
 }
+
 
 /**
  * Redis-backed check for a named policy. Returns the verdict; never throws.
