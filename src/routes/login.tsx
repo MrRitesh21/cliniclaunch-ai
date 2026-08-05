@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
+import { guardAuthAttempt } from "@/lib/limits.functions";
+
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string; tab?: string } => ({
