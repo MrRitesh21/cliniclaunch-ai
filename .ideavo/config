@@ -17,7 +17,7 @@
   "projectDependencies": [
     {
       "name": "Install Dependencies",
-      "command": "npm ci"
+      "command": "npm ci --legacy-peer-deps"
     },
     {
       "name": "Install WhatsApp Bridge Deps",
@@ -86,6 +86,10 @@
     {
       "name": "default",
       "path": ".env"
+    },
+    {
+      "name": "whatsapp-bridge",
+      "path": "whatsapp-bridge/.env"
     }
   ]
 }
