@@ -164,6 +164,62 @@ export async function limitAction(
 }
 
 /* ------------------------------------------------------------------ */
+/* Named endpoint policies (Redis-backed, shared across instances)     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Every sensitive endpoint declares its budget here instead of hard-coding
+ * numbers at the call site, so the limits are auditable in one place.
+ * `ip` budgets stop a single host hammering the endpoint; `id` budgets stop a
+ * single phone number / email cycling hosts.
+ */
+export const LIMIT_POLICIES = {
+  booking_ip: { limit: 20, windowSeconds: 900, message: "Too many booking attempts from this network. Please try again in a few minutes." },
+  booking_phone: { limit: 5, windowSeconds: 900, message: "You've made several booking requests already. Please call the clinic instead." },
+  consult_ip: { limit: 60, windowSeconds: 300, message: "Too many consult requests. Please wait a moment and refresh." },
+  auth_ip: { limit: 15, windowSeconds: 600, message: "Too many sign-in attempts from this network. Please try again in a few minutes." },
+  auth_identity: { limit: 8, windowSeconds: 600, message: "Too many attempts for this account. Please wait 10 minutes or reset your password." },
+  lead_ip: { limit: 15, windowSeconds: 600, message: "Too many requests from this network. Please try again shortly." },
+  lead_phone: { limit: 5, windowSeconds: 600, message: "Too many request attempts. Please try again in a few minutes." },
+} as const;
+
+export type LimitPolicyName = keyof typeof LIMIT_POLICIES;
+
+/** Client IP for the current server-function / route request. */
+export function requestIp(request?: Request): string {
+  if (request) return clientKey(request);
+  try {
+    // getRequest() is only available inside a server handler.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return "anon";
+  } catch {
+    return "anon";
+  }
+}
+
+/**
+ * Redis-backed check for a named policy. Returns the verdict; never throws.
+ */
+export async function checkPolicy(
+  policy: LimitPolicyName,
+  key: string,
+): Promise<{ allowed: boolean; remaining: number; message: string }> {
+  const p = LIMIT_POLICIES[policy];
+  const allowed = await limitAction(`${policy}:${key}`, p.limit, p.windowSeconds);
+  return { allowed, remaining: 0, message: p.message };
+}
+
+/**
+ * Enforce a named policy inside a server function — throws a user-facing error
+ * with the policy's message when the budget is exhausted.
+ */
+export async function enforcePolicy(policy: LimitPolicyName, key: string): Promise<void> {
+  const verdict = await checkPolicy(policy, key);
+  if (!verdict.allowed) throw new Error(verdict.message);
+}
+
+
+/* ------------------------------------------------------------------ */
 /* Edge cache policy                                                   */
 /* ------------------------------------------------------------------ */
 
