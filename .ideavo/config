@@ -1,0 +1,91 @@
+{
+  "systemSetup": [
+    {
+      "name": "Install Docker",
+      "command": "curl -fsSL https://get.docker.com | sh"
+    },
+    {
+      "name": "Install Supabase CLI",
+      "command": "npm i -g supabase"
+    },
+    {
+      "name": "Install Vercel CLI",
+      "command": "npm i -g vercel"
+    }
+  ],
+  "templateName": "custom",
+  "projectDependencies": [
+    {
+      "name": "Install Dependencies",
+      "command": "npm ci"
+    },
+    {
+      "name": "Install WhatsApp Bridge Deps",
+      "command": "npm install --prefix whatsapp-bridge"
+    }
+  ],
+  "codeChecks": [
+    {
+      "name": "Lint",
+      "command": "npm run lint"
+    },
+    {
+      "name": "Typecheck",
+      "command": "npx tsc --noEmit"
+    },
+    {
+      "name": "Verify Local Env",
+      "command": "npm run check:local-env"
+    }
+  ],
+  "buildSteps": [
+    {
+      "name": "Build Project",
+      "command": "npm run build"
+    }
+  ],
+  "runStep": [
+    {
+      "name": "Run Dev Server",
+      "command": "__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=e2b.app,.e2b.app npm run dev -- --port 8080 --host 0.0.0.0 --strictPort",
+      "port": "8080"
+    }
+  ],
+  "deploySteps": [
+    {
+      "name": "Deploy Docker Prod Stack",
+      "command": "docker compose -f docker-compose.prod.yml up -d --build"
+    },
+    {
+      "name": "Deploy Vercel Preview",
+      "command": "vercel build && vercel deploy --prebuilt"
+    },
+    {
+      "name": "Deploy Vercel Production",
+      "command": "vercel build --prod && vercel deploy --prebuilt --prod"
+    },
+    {
+      "name": "Push Supabase Migrations",
+      "command": "supabase db push --linked"
+    }
+  ],
+  "cleanupFiles": [
+    "node_modules",
+    "dist",
+    ".output",
+    ".vinxi",
+    ".tanstack",
+    ".nitro",
+    ".vercel",
+    ".wrangler",
+    ".dev.vars",
+    "whatsapp-bridge/node_modules"
+  ],
+  "packageManager": "npm",
+  "envPaths": [
+    {
+      "name": "default",
+      "path": ".env"
+    }
+  ]
+}
