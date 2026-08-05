@@ -18,6 +18,7 @@ function isPlatformHost(host: string): boolean {
     h.endsWith(".lovable.app") ||
     h.endsWith(".lovable.dev") ||
     h.endsWith(".vercel.app") ||
+    h.includes("digiwil.com") ||
     h.startsWith("localhost") ||
     h.startsWith("127.0.0.1") ||
     h.startsWith("0.0.0.0")
@@ -75,17 +76,22 @@ export const resolveHostToClinic = createServerFn({ method: "GET" }).handler(asy
   host = host.split(":")[0];
   if (isPlatformHost(host)) return null;
 
-  const sb = await adminClient();
-  const candidates = Array.from(new Set([host.toLowerCase(), host.toLowerCase().replace(/^www\./, "")]));
-  const { data, error } = await sb
-    .from("clinics")
-    .select("slug, custom_domain, domain_status")
-    .in("custom_domain", candidates)
-    .eq("domain_status", "verified")
-    .limit(1)
-    .maybeSingle();
-  if (error || !data) return null;
-  return { slug: data.slug as string };
+  try {
+    const sb = await adminClient();
+    const candidates = Array.from(new Set([host.toLowerCase(), host.toLowerCase().replace(/^www\./, "")]));
+    const { data, error } = await sb
+      .from("clinics")
+      .select("slug, custom_domain, domain_status")
+      .in("custom_domain", candidates)
+      .eq("domain_status", "verified")
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return { slug: data.slug as string };
+  } catch (err) {
+    console.error("[resolveHostToClinic] Error resolving host:", err);
+    return null;
+  }
 });
 
 /** Authenticated: verify the signed-in user's clinic custom domain via DNS. */

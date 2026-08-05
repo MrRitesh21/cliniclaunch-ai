@@ -382,25 +382,34 @@ export const deletePlan = createServerFn({ method: "POST" })
 
 export const checkMaintenanceStatus = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
-      .from("system_settings")
-      .select("key, value")
-      .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
-    
     const settings = {
       maintenance_mode: "false",
       maintenance_message: "We're upgrading the platform. Back in 2 hours.",
       platform_name: "ClinicX",
       support_email: "support@clinicos.in"
     };
-    
-    (data ?? []).forEach((row: any) => {
-      if (row.key === "maintenance_mode") settings.maintenance_mode = row.value;
-      if (row.key === "maintenance_message") settings.maintenance_message = row.value;
-      if (row.key === "platform_name") settings.platform_name = row.value;
-      if (row.key === "support_email") settings.support_email = row.value;
-    });
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin
+        .from("system_settings")
+        .select("key, value")
+        .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
+      
+      if (error) {
+        console.error("[checkMaintenanceStatus] Error fetching system settings:", error.message);
+        return settings;
+      }
+
+      (data ?? []).forEach((row: any) => {
+        if (row.key === "maintenance_mode") settings.maintenance_mode = row.value;
+        if (row.key === "maintenance_message") settings.maintenance_message = row.value;
+        if (row.key === "platform_name") settings.platform_name = row.value;
+        if (row.key === "support_email") settings.support_email = row.value;
+      });
+    } catch (err) {
+      console.error("[checkMaintenanceStatus] Failed to load maintenance status:", err);
+    }
     
     return settings;
   });
