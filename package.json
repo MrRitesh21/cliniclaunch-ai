@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node scripts/check-local-env.mjs && vite dev",
     "check:local-env": "node scripts/check-local-env.mjs",
+    "cf:cache-rules": "node scripts/apply-cloudflare-cache-rules.mjs",
+    "cf:cache-rules:dry": "node scripts/apply-cloudflare-cache-rules.mjs --dry-run",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
