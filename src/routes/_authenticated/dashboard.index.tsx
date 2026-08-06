@@ -220,10 +220,10 @@ function Overview() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Doctor Header & Operational Cockpit */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
