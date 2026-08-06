@@ -179,8 +179,13 @@ function RootContent() {
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
     queryFn: () => checkMaintenanceStatus(),
-    refetchInterval: 15000, // Check status every 15 seconds
+    // Maintenance flags change rarely: poll every 10 min, and only while the tab
+    // is visible. The old 15s interval was ~5,700 queries/day per open tab.
+    staleTime: 10 * 60 * 1000,
+    refetchInterval: () => (typeof document !== "undefined" && document.visibilityState === "visible" ? 10 * 60 * 1000 : false),
+    refetchIntervalInBackground: false,
   });
+
 
   const platformName = mStatus?.platform_name || "ClinicX";
 
