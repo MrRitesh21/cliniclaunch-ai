@@ -54,18 +54,28 @@ export const Route = createFileRoute("/api/public/healthz")({
           }
         };
 
+        // The DB probe result is cached for 30s so a monitor polling every few
+        // seconds (or several monitors at once) can't turn the health check
+        // itself into a steady stream of database queries.
+        const probeDb = async () => {
+          const cachedProbe = redisActive ? await redisCache.get<number | null>("healthz:db") : null;
+          if (typeof cachedProbe === "number") return cachedProbe;
+          const ms = await timed(async () => {
+            const res = await fetch(`${supabaseUrl}/rest/v1/plans?select=id&limit=1`, {
+              headers: { apikey: supabasePublishable!, Authorization: `Bearer ${supabasePublishable}` },
+              signal: AbortSignal.timeout(3000),
+            });
+            if (!res.ok) throw new Error(String(res.status));
+          });
+          if (redisActive && ms !== null) await redisCache.set("healthz:db", ms, 30);
+          return ms;
+        };
+
         const [redisLatencyMs, dbLatencyMs] = await Promise.all([
           redisActive ? timed(() => redisCache.set("healthz:ping", 1, 10)) : Promise.resolve(null),
-          supabaseUrl && supabasePublishable
-            ? timed(async () => {
-                const res = await fetch(`${supabaseUrl}/rest/v1/plans?select=id&limit=1`, {
-                  headers: { apikey: supabasePublishable, Authorization: `Bearer ${supabasePublishable}` },
-                  signal: AbortSignal.timeout(3000),
-                });
-                if (!res.ok) throw new Error(String(res.status));
-              })
-            : Promise.resolve(null),
+          supabaseUrl && supabasePublishable ? probeDb() : Promise.resolve(null),
         ]);
+
 
         const load = currentLoad();
         const saturation = load.max > 0 ? load.inFlight / load.max : 0;
