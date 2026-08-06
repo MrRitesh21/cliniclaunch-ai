@@ -57,20 +57,19 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
-      {/* Top Conversion Bar */}
-      <div className="bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground text-xs py-2 px-4 border-b border-primary/20 relative z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 font-sans">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider shrink-0">Offer</span>
-            <span className="truncate font-medium">14-Day Free Trial (₹1 setup) — Launch your clinic website & WhatsApp automation in 5 minutes!</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-3 shrink-0 font-mono">
-            <Link to="/demo" className="font-bold underline hover:text-amber-200 flex items-center gap-1 text-xs">
-              ⚡ Explore Live Demo &rarr;
-            </Link>
-          </div>
+      {/* Top announcement bar */}
+      <div className="border-b border-border/60 bg-surface text-[11px] py-2 px-4 relative z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 font-sans text-muted-foreground">
+          <span className="hidden sm:inline-flex items-center gap-1.5 font-medium text-foreground">
+            <span className="size-1.5 rounded-full bg-success" /> New
+          </span>
+          <span className="truncate">14-day free trial — clinic website and WhatsApp automation live in 5 minutes.</span>
+          <Link to="/demo" className="hidden sm:inline-flex items-center gap-1 font-medium text-primary hover:underline shrink-0">
+            See the demo <ArrowRight className="size-3" />
+          </Link>
         </div>
       </div>
+
 
       {/* Main Header */}
       <header className="border-b border-border/40 bg-background/90 backdrop-blur-xl sticky top-0 left-0 right-0 z-40 w-full transition-all">
