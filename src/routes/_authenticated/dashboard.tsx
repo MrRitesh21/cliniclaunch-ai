@@ -641,7 +641,7 @@ function DashboardLayout() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-surface">
       {isDemoUser && (
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md z-50">
+        <div className={`bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}>
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="size-4 shrink-0 text-amber-300 animate-pulse" />
             <span className="truncate">
