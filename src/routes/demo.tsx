@@ -206,18 +206,16 @@ function DemoPage() {
     try {
       const messageContent = `Clinic Name: ${meetClinicName || "Not specified"}\nPreferred Date/Time: ${meetPreferredTime || "Not specified"}\nMessage: ${meetMessage || "None"}`;
       
-      const { error } = await supabase.from("leads").insert({
-        name: meetName,
-        phone: meetPhone,
-        email: meetEmail,
-        message: messageContent,
-        source: "demo_booking",
-        status: "new"
+      const { submitDemoLeadServer } = await import("@/lib/leads");
+      await submitDemoLeadServer({
+        data: {
+          name: meetName,
+          phone: meetPhone,
+          email: meetEmail,
+          message: messageContent,
+        },
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
 
       setMeetSubmitSuccess(true);
       toast.success("Demo requested successfully!");
