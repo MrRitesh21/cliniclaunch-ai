@@ -161,3 +161,32 @@ npx autocannon -c 200 -d 60 "https://<domain>/c/<slug>/book"
 Watch during the run: `/api/public/healthz` → `latency.database_ms` and
 `load.saturation`. If `database_ms` climbs past ~1500ms you have hit the
 connection ceiling and it is time for the next tier — not more code.
+
+## Database usage reduction (traffic diet)
+
+Applied in code:
+
+| Change | Before | After |
+| --- | --- | --- |
+| `useOrganization` shared store (dedupe + 5 min TTL) | ~5 queries × every mounted consumer × every navigation | 1 fetch per user per 5 min |
+| React Query defaults (`staleTime` 5 min, no refocus/remount refetch) | refetch on every mount + tab focus | cache-first |
+| Router `defaultPreloadStaleTime` | `0` (preload always refetched) | `60s` |
+| Maintenance-status poll | 15s, background too | 10 min, visible tab only |
+| Queue board poll | 15s | 60s, visible tab only |
+| WhatsApp connect poll | 3s, forever | 6s, visible tab only, stops after 3 min |
+| Slot availability Redis cache | 20s | 60s (busted on every booking) |
+| `/api/public/healthz` DB probe | one query per probe | cached 30s in Redis |
+
+### Connection pooling (PgBouncer)
+
+The app itself never opens a Postgres connection — all reads/writes go through
+PostgREST (`supabase-js`), which is already pooled on Supabase's side, so
+PgBouncer cannot reduce app traffic. It still matters for anything that
+connects directly (psql, migrations, BI tools, scripts, future workers):
+
+- Use the **transaction pooler** (PgBouncer) URI, port `6543`, not the direct
+  `5432` connection: `postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:6543/postgres`
+- Transaction mode ⇒ no `PREPARE`, no session-level `SET`, no `LISTEN/NOTIFY`.
+  Add `?pgbouncer=true&prepared_statements=false` for clients that prepare by default.
+- Keep per-process pool sizes small (`max: 2–5`); free tier allows ~15 direct connections.
+- Use direct `5432` only for migrations and `pg_dump`.
