@@ -75,7 +75,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <header className="border-b border-border/40 bg-background/90 backdrop-blur-xl sticky top-0 left-0 right-0 z-40 w-full transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="size-9 rounded-xl bg-muted p-1.5 grid place-items-center shadow-sm border border-border/10 overflow-hidden group-hover:scale-105 transition-transform">
+            <div
+              style={{ backgroundColor: "#ffffff" }}
+              className="size-9 rounded-xl p-1.5 grid place-items-center shadow-sm border border-border/10 overflow-hidden group-hover:scale-105 transition-transform"
+            >
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <span className="font-display text-2xl font-bold tracking-tight text-foreground">ClinicX</span>
