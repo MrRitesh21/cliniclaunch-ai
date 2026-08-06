@@ -14,7 +14,11 @@ const MARKETING_NAV = [
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  useEffect(() => setMounted(true), []);
+
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -40,6 +44,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   };
 
   const themeIcon = () => {
+    if (!mounted) return <Monitor className="size-4 text-muted-foreground" />;
     switch (theme) {
       case "light": return <Sun className="size-4 text-amber-500" />;
       case "dark": return <Moon className="size-4 text-blue-400" />;
@@ -48,12 +53,14 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   };
 
   const themeLabel = () => {
+    if (!mounted) return "System theme";
     switch (theme) {
       case "light": return "Light mode";
       case "dark": return "Dark mode";
       default: return "System theme";
     }
   };
+
 
   return (
     <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">

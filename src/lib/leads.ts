@@ -63,11 +63,41 @@ export const submitLeadServer = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Demo/marketing lead (no clinic context) — must go through the server because
+// anonymous inserts into `leads` are restricted to real clinics by RLS.
+export const demoLeadSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  phone: z.string().trim().min(5).max(20),
+  email: z.string().trim().email().max(200),
+  message: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+export const submitDemoLeadServer = createServerFn({ method: "POST" })
+  .inputValidator((i: unknown) => demoLeadSchema.parse(i))
+  .handler(async ({ data }) => {
+    const { enforcePolicy, callerIp } = await import("./scale.server");
+    await enforcePolicy("lead_ip", `demo:${await callerIp()}`);
+    await enforcePolicy("lead_phone", `demo:${data.phone}`);
+
+    const sb = await adminClient();
+    const { error } = await sb.from("leads").insert({
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      message: data.message || null,
+      source: "demo_booking",
+      status: "new",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // Client wrapper kept for backwards compatibility.
 export async function submitLead(input: LeadInput) {
   const parsed = leadSchema.parse(input);
   await submitLeadServer({ data: parsed });
 }
+
 
 // Re-export for any direct consumers that imported supabase from this module
 export { supabase };
