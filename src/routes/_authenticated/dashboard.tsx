@@ -669,7 +669,7 @@ function DashboardLayout() {
       )}
 
       {impersonatedDoctorId && clinic && (
-        <div className="bg-rose-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-center sm:text-left z-50">
+        <div className={`bg-rose-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-center sm:text-left z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}>
           <span>⚠️ Admin Impersonation Mode: Viewing dashboard as Dr. <strong>{clinic.doctor_name}</strong> ({clinic.clinic_name})</span>
           <button
             onClick={() => {
