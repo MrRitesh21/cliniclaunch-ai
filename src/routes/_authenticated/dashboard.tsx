@@ -752,7 +752,7 @@ function DashboardLayout() {
             </div>
           </div>
 
-          <div className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8"} page-enter`}>
+          <div className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-4 sm:px-5 lg:px-6 pt-4 pb-24 md:pb-6"} page-enter`}>
             {isSubscriptionExpired && pathname !== "/dashboard/billing" ? (
               <SubscriptionExpiredView />
             ) : (
