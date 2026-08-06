@@ -428,7 +428,10 @@ export const getBookedSlots = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const slots = (rows ?? []).map((r) => r.scheduled_at);
-    await redisCache.set(cacheKey, slots, 20);
+    // 60s is safe because createBooking busts this key on every write, so the
+    // only staleness window is a booking made by another instance mid-window.
+    await redisCache.set(cacheKey, slots, 60);
+
     return slots;
   });
 

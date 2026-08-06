@@ -74,13 +74,22 @@ function QueuePage() {
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [orgId]);
 
   // The waiting-room board and the front desk are usually two different
-  // screens, so poll rather than relying on one tab's local state.
+  // screens, so refresh periodically — but only while the tab is visible, and
+  // at 60s instead of 15s (4x fewer queries per open board).
   useEffect(() => {
     if (!orgId) return;
-    const id = setInterval(() => { void load(); }, 15000);
-    return () => clearInterval(id);
+    const tick = () => {
+      if (typeof document === "undefined" || document.visibilityState === "visible") void load();
+    };
+    const id = setInterval(tick, 60000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
     /* eslint-disable-next-line */
   }, [orgId]);
+
 
   const waiting = useMemo(() => tokens.filter((t) => t.status === "waiting"), [tokens]);
   const serving = useMemo(() => tokens.find((t) => t.status === "serving") ?? null, [tokens]);

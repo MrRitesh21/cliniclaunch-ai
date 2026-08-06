@@ -45,13 +45,20 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Poll while pending / has QR
+  // Poll while pending / has QR — slower (6s), visibility-gated, and it gives up
+  // after 3 minutes so an abandoned tab can't poll the bridge forever.
   useEffect(() => {
     if (!status) return;
     if (status.ready) return;
-    const t = setInterval(refresh, 3000);
+    const startedAt = Date.now();
+    const t = setInterval(() => {
+      if (Date.now() - startedAt > 3 * 60 * 1000) return clearInterval(t);
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      void refresh();
+    }, 6000);
     return () => clearInterval(t);
   }, [status, refresh]);
+
 
   async function handleStartQr() {
     setBusy(true);
