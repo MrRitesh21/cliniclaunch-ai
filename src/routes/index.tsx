@@ -365,10 +365,9 @@ function LandingContent() {
               </ul>
             </div>
             <div className={i % 2 === 1 ? "lg:order-1" : ""}>
-              <div className="aspect-[4/3] rounded-2xl border border-border bg-surface grid place-items-center shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)]">
-                <d.icon className="size-14 text-primary/25" strokeWidth={1.25} />
-              </div>
+              <DeepDiveVisual kind={d.eyebrow} />
             </div>
+
           </div>
         ))}
       </section>
