@@ -248,6 +248,97 @@ const FAQS = [
   },
 ];
 
+function DeepDiveVisual({ kind }: { kind: string }) {
+  const shell =
+    "aspect-[4/3] rounded-2xl border border-border bg-surface p-5 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)] overflow-hidden";
+
+  if (kind === "WhatsApp automation") {
+    const msgs = [
+      { me: false, t: "Hi doctor, can I get an appointment tomorrow?" },
+      { me: true, t: "Confirmed — Tue 11:30 AM with Dr. Mehta." },
+      { me: true, t: "Online visit? Join here: clinicx.in/consult/8f2a" },
+      { me: false, t: "Thank you!" },
+    ];
+    return (
+      <div className={shell}>
+        <div className="flex items-center gap-2 border-b border-border/70 pb-3">
+          <div className="size-7 rounded-full bg-success/15 grid place-items-center">
+            <MessageSquare className="size-3.5 text-success" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold leading-none">ClinicX Automation</p>
+            <p className="text-[10px] text-muted-foreground mt-1">online</p>
+          </div>
+        </div>
+        <div className="mt-4 space-y-2.5">
+          {msgs.map((m) => (
+            <div key={m.t} className={m.me ? "flex justify-end" : "flex justify-start"}>
+              <p
+                className={`max-w-[80%] rounded-2xl px-3 py-2 text-[11px] leading-snug ${
+                  m.me ? "bg-success/15 text-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
+                }`}
+              >
+                {m.t}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === "Finance") {
+    const rows = [
+      { l: "Consultations", v: "₹1,42,000", up: true },
+      { l: "Pharmacy", v: "₹38,500", up: true },
+      { l: "Rent & utilities", v: "-₹45,000", up: false },
+      { l: "Staff salaries", v: "-₹62,000", up: false },
+    ];
+    return (
+      <div className={shell}>
+        <div className="flex items-baseline justify-between">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Net profit · this month</p>
+        </div>
+        <p className="mt-2 font-display text-2xl font-semibold tabular-nums">₹73,500</p>
+        <div className="mt-4 divide-y divide-border/70 border-t border-border/70">
+          {rows.map((r) => (
+            <div key={r.l} className="flex items-center justify-between py-2.5">
+              <span className="text-[11px] text-muted-foreground">{r.l}</span>
+              <span className={`text-[11px] font-medium tabular-nums ${r.up ? "text-success" : "text-foreground"}`}>{r.v}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <FileText className="size-3" /> GST invoice ready · exportable
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={shell + " flex flex-col"}>
+      <div className="flex items-center gap-1.5 border-b border-border/70 pb-3">
+        <span className="size-2 rounded-full bg-muted-foreground/25" />
+        <span className="size-2 rounded-full bg-muted-foreground/25" />
+        <span className="ml-2 font-mono text-[10px] text-muted-foreground">drmehta.in</span>
+      </div>
+      <div className="mt-4 flex-1 space-y-3">
+        <div className="h-16 rounded-lg bg-primary/10" />
+        <div className="h-2 w-2/3 rounded bg-muted" />
+        <div className="h-2 w-1/2 rounded bg-muted" />
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className="h-10 rounded-lg bg-muted" />
+          <div className="h-10 rounded-lg bg-muted" />
+          <div className="h-10 rounded-lg bg-muted" />
+        </div>
+      </div>
+      <div className="mt-4 rounded-lg bg-primary px-3 py-2 text-center text-[11px] font-semibold text-primary-foreground">
+        Book appointment
+      </div>
+    </div>
+  );
+}
+
 function Landing() {
   const { clinic } = Route.useLoaderData();
   if (clinic) return <ClinicDomainView clinic={clinic} />;
