@@ -1,0 +1,102 @@
+{
+  "uid": "clinicx-dependencies",
+  "title": "ClinicX — Redis, Database & Process",
+  "tags": ["clinicx", "dependencies"],
+  "timezone": "browser",
+  "editable": false,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Redis",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] } },
+      "targets": [{ "expr": "clinicx_redis_up", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Database",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] } },
+      "targets": [{ "expr": "clinicx_database_up", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Supabase Auth",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] } },
+      "targets": [{ "expr": "clinicx_supabase_up", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Redis latency",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{ "expr": "clinicx_redis_latency_seconds", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "DB p95",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le) (rate(clinicx_database_query_duration_seconds_bucket[5m])))", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Prometheus series",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "targets": [{ "expr": "prometheus_tsdb_head_series", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Database query duration (p50/p95/p99)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(clinicx_database_query_duration_seconds_bucket[5m])))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(clinicx_database_query_duration_seconds_bucket[5m])))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(clinicx_database_query_duration_seconds_bucket[5m])))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Database connections",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [{ "expr": "clinicx_database_connections", "legendFormat": "{{state}}", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis latency trend",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{ "expr": "clinicx_redis_latency_seconds", "legendFormat": "redis", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Node process — handles, requests, GC",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "clinicx_nodejs_active_handles_total", "legendFormat": "handles", "refId": "A" },
+        { "expr": "clinicx_nodejs_active_requests_total", "legendFormat": "requests", "refId": "B" },
+        { "expr": "rate(clinicx_nodejs_gc_duration_seconds_sum[5m])", "legendFormat": "gc s/s", "refId": "C" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Errors by kind",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 19 },
+      "targets": [{ "expr": "sum by (kind) (rate(clinicx_errors_total[5m]))", "legendFormat": "{{kind}}", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Telemetry ingest (Workers runtime)",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 19 },
+      "targets": [
+        { "expr": "sum by (source) (rate(clinicx_ingest_batches_total[5m]))", "legendFormat": "accepted {{source}}", "refId": "A" },
+        { "expr": "sum by (reason) (rate(clinicx_ingest_rejected_total[5m]))", "legendFormat": "rejected {{reason}}", "refId": "B" }
+      ]
+    }
+  ]
+}
