@@ -44,7 +44,7 @@ export const Route = createFileRoute("/")({
     if (match?.slug) {
       try {
         const clinic = await getClinicBySlug({ data: { slug: match.slug } });
-        return { clinic, clinicSlug: match.slug };
+        return { clinic, clinicSlug: match.slug, plans: [] as any[] };
       } catch (e) {
         console.error("Failed to load clinic for custom domain:", e);
         throw redirect({
@@ -54,8 +54,12 @@ export const Route = createFileRoute("/")({
         });
       }
     }
-    return { clinic: null, clinicSlug: null };
+    // Fetch pricing during SSR so the pricing grid is never blank on first paint.
+    const plans = await getPublicPlans().catch(() => [] as any[]);
+    return { clinic: null, clinicSlug: null, plans };
   },
+  staleTime: 5 * 60 * 1000,
+
   head: ({ loaderData }) => {
     const c = loaderData?.clinic;
     if (c) {
@@ -340,19 +344,25 @@ function DeepDiveVisual({ kind }: { kind: string }) {
 }
 
 function Landing() {
-  const { clinic } = Route.useLoaderData();
+  const { clinic, plans } = Route.useLoaderData();
   if (clinic) return <ClinicDomainView clinic={clinic} />;
   return (
     <MarketingShell>
-      <LandingContent />
+      <LandingContent initialPlans={plans ?? []} />
     </MarketingShell>
   );
 }
 
-function LandingContent() {
+function LandingContent({ initialPlans }: { initialPlans: any[] }) {
   const [yearly, setYearly] = useState(false);
   const fetchPlans = useServerFn(getPublicPlans);
-  const { data: plans = [] } = useQuery({ queryKey: ["public-plans"], queryFn: () => fetchPlans({}) });
+  const { data: plans = [] } = useQuery({
+    queryKey: ["public-plans"],
+    queryFn: () => fetchPlans({}),
+    initialData: initialPlans.length ? initialPlans : undefined,
+    staleTime: 5 * 60 * 1000,
+  });
+
 
   return (
     <>
@@ -532,7 +542,22 @@ function LandingContent() {
           </div>
 
           <div className="mt-12 grid gap-6 lg:grid-cols-4 sm:grid-cols-2">
+            {plans.length === 0 &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="flex flex-col rounded-2xl border border-border bg-surface p-6 shadow-none">
+                  <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                  <div className="mt-3 h-3 w-32 rounded bg-muted animate-pulse" />
+                  <div className="mt-6 h-8 w-28 rounded bg-muted animate-pulse" />
+                  <div className="mt-6 space-y-2.5 flex-1">
+                    {Array.from({ length: 5 }).map((__, j) => (
+                      <div key={j} className="h-3 w-full rounded bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                  <div className="mt-7 h-9 w-full rounded-xl bg-muted animate-pulse" />
+                </Card>
+              ))}
             {plans.map((p: any) => {
+
               const price = yearly
                 ? (p.discounted_yearly_price ?? p.yearly_price)
                 : (p.discounted_monthly_price ?? p.monthly_price);
