@@ -25,7 +25,8 @@ services:
       # Referenced from prometheus.yml so no secret is committed.
       METRICS_TOKEN: ${METRICS_TOKEN}
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./generated/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./generated/metrics_token:/etc/prometheus/metrics_token:ro
       - ./prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     expose:
@@ -55,7 +56,7 @@ services:
       - --cluster.listen-address=
     env_file: .env
     volumes:
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./generated/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./alertmanager/templates:/etc/alertmanager/templates:ro
       - alertmanager-data:/alertmanager
     expose:

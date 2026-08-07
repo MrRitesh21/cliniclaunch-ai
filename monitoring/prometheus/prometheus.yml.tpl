@@ -32,7 +32,7 @@ scrape_configs:
       # Prometheus sends this as `Authorization: Bearer <token>`; the service
       # also accepts X-Metrics-Token. Use whichever your edge allows.
       type: Bearer
-      credentials_file: /etc/prometheus/rules/../metrics_token
+      credentials_file: /etc/prometheus/metrics_token
     # Only keep the series the dashboards and alerts actually use. Everything
     # else is dropped before it reaches the TSDB — this is the single biggest
     # memory lever available.
