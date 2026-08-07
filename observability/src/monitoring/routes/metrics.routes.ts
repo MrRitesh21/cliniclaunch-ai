@@ -22,8 +22,14 @@ export function metricsRouter(): Router {
     }
 
     if (env.METRICS_TOKEN) {
+      // Accept either X-Metrics-Token or `Authorization: Bearer <token>`
+      // (Prometheus's `authorization` block sends the latter).
       const header = req.headers[Header.metricsToken];
-      const provided = Array.isArray(header) ? header[0] : header;
+      const raw = Array.isArray(header) ? header[0] : header;
+      const bearer = req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.slice("Bearer ".length)
+        : undefined;
+      const provided = raw ?? bearer;
       if (!provided || !timingSafeEqualStr(provided, env.METRICS_TOKEN)) {
         res.status(HTTP_STATUS.unauthorized).end();
         return;
