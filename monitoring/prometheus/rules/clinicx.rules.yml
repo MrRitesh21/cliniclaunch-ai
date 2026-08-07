@@ -1,0 +1,208 @@
+groups:
+  # ---------------------------------------------------------------------------
+  # Availability
+  # ---------------------------------------------------------------------------
+  - name: clinicx-availability
+    interval: 30s
+    rules:
+      - alert: ApiDown
+        expr: up{job="clinicx-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "API is down"
+          description: "Prometheus cannot scrape {{ $labels.instance }} for 2 minutes. The backend is unreachable or crashed."
+          runbook: "docs/TROUBLESHOOTING.md#apidown"
+
+      - alert: NoRequests
+        expr: sum(rate(clinicx_http_requests_total[10m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "No requests for 10 minutes"
+          description: "The service is up but has served zero requests in the last 10 minutes — check Cloudflare, DNS or a stuck upstream."
+
+      - alert: ApplicationRestarted
+        expr: increase(clinicx_process_restarts_total[10m]) > 0 or clinicx_uptime_seconds < 180
+        for: 1m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "Application restarted"
+          description: "Uptime is {{ $value | printf \"%.0f\" }}s or the restart counter advanced. Expected after a deploy; investigate if unplanned (OOM kill is the usual cause on a 512 MB box)."
+
+  # ---------------------------------------------------------------------------
+  # Saturation
+  # ---------------------------------------------------------------------------
+  - name: clinicx-resources
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (clinicx_nodejs_heap_size_used_bytes / clinicx_nodejs_heap_size_total_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "Heap usage above 80%"
+          description: "Heap is at {{ $value | printf \"%.1f\" }}% for 5 minutes. A 512 MB instance OOM-kills shortly after this."
+
+      - alert: HighCpuUsage
+        expr: rate(clinicx_process_cpu_seconds_total[5m]) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "CPU above 85%"
+          description: "Process CPU is {{ $value | printf \"%.1f\" }}% over 5 minutes."
+
+      - alert: EventLoopBlocked
+        expr: clinicx_nodejs_eventloop_lag_p99_seconds > 0.25
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "Event loop lag p99 above 250ms"
+          description: "Synchronous work is blocking the loop; every request pays for it."
+
+  # ---------------------------------------------------------------------------
+  # Latency and errors
+  # ---------------------------------------------------------------------------
+  - name: clinicx-traffic
+    interval: 30s
+    rules:
+      # Recording rules: the dashboards read these instead of recomputing
+      # histogram_quantile on every panel refresh, which keeps Grafana queries
+      # cheap on a small Prometheus.
+      - record: clinicx:http_latency_seconds:p50
+        expr: histogram_quantile(0.50, sum by (le) (rate(clinicx_http_request_duration_seconds_bucket[5m])))
+      - record: clinicx:http_latency_seconds:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(clinicx_http_request_duration_seconds_bucket[5m])))
+      - record: clinicx:http_latency_seconds:p99
+        expr: histogram_quantile(0.99, sum by (le) (rate(clinicx_http_request_duration_seconds_bucket[5m])))
+      - record: clinicx:http_requests:rate5m
+        expr: sum(rate(clinicx_http_requests_total[5m]))
+      - record: clinicx:http_error_ratio:5xx5m
+        expr: |
+          sum(rate(clinicx_http_requests_total{status_class="5xx"}[5m]))
+            /
+          clamp_min(sum(rate(clinicx_http_requests_total[5m])), 0.001)
+      - record: clinicx:http_error_ratio:4xx5m
+        expr: |
+          sum(rate(clinicx_http_requests_total{status_class="4xx"}[5m]))
+            /
+          clamp_min(sum(rate(clinicx_http_requests_total[5m])), 0.001)
+
+      - alert: HighLatency
+        expr: clinicx:http_latency_seconds:p95 > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "p95 latency above 1000ms"
+          description: "p95 is {{ $value | printf \"%.3f\" }}s over 5 minutes."
+
+      - alert: HighErrorRate
+        expr: clinicx:http_error_ratio:5xx5m > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "5xx error rate above 5%"
+          description: "{{ $value | humanizePercentage }} of requests are failing with 5xx."
+
+      - alert: SlowRequestSurge
+        expr: |
+          sum(rate(clinicx_http_slow_requests_total[5m]))
+            /
+          clamp_min(sum(rate(clinicx_http_requests_total[5m])), 0.001) > 0.25
+        for: 10m
+        labels:
+          severity: info
+          component: backend
+        annotations:
+          summary: "Over 25% of requests are slow"
+          description: "More than a quarter of requests exceed the slow-request threshold."
+
+  # ---------------------------------------------------------------------------
+  # Dependencies
+  # ---------------------------------------------------------------------------
+  - name: clinicx-dependencies
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: clinicx_redis_up == 0
+        for: 3m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Cache and rate limiting have failed over to local state. Throughput and limit accuracy degrade."
+
+      - alert: DatabaseDown
+        expr: clinicx_database_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database is down"
+          description: "The readiness query against PostgreSQL/Supabase has failed for 2 minutes."
+
+      - alert: SupabaseAuthDown
+        expr: clinicx_supabase_up == 0
+        for: 3m
+        labels:
+          severity: critical
+          component: supabase
+        annotations:
+          summary: "Supabase Auth is unhealthy"
+          description: "Nobody can sign in while this is firing."
+
+      - alert: DatabaseSlow
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(clinicx_database_query_duration_seconds_bucket[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database p95 query time above 1s"
+          description: "p95 query duration is {{ $value | printf \"%.3f\" }}s."
+
+  # ---------------------------------------------------------------------------
+  # The monitoring stack watching itself
+  # ---------------------------------------------------------------------------
+  - name: clinicx-meta
+    interval: 60s
+    rules:
+      - alert: PrometheusSeriesGrowth
+        expr: prometheus_tsdb_head_series > 120000
+        for: 15m
+        labels:
+          severity: warning
+          component: prometheus
+        annotations:
+          summary: "Prometheus series count is high"
+          description: "{{ $value }} active series. On a 512 MB box this is the memory ceiling — tighten metric_relabel_configs or reduce label cardinality."
+
+      - alert: AlertNotificationsFailing
+        expr: increase(alertmanager_notifications_failed_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: alertmanager
+        annotations:
+          summary: "Alert delivery is failing"
+          description: "Alertmanager cannot deliver notifications — you are effectively blind."
