@@ -1,0 +1,37 @@
+# Backend-side telemetry service. Runs alongside the ClinicX backend/worker.
+# The Grafana/Prometheus/Alertmanager stack is a SEPARATE project: ../monitoring
+services:
+  observability:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clinicx/observability:latest
+    container_name: clinicx-observability
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PORT:-8081}:${PORT:-8081}"
+    volumes:
+      # Only used when LOG_TO_FILE=true.
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||8081)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
