@@ -23,7 +23,7 @@ export class HttpError extends Error {
 
 export function notFoundHandler() {
   return (_req: Request, res: Response): void => {
-    res.status(HTTP_STATUS.badRequest === 400 ? 404 : 404).json({ error: "not_found" });
+    res.status(HTTP_STATUS.notFound).json({ error: "not_found" });
   };
 }
 

@@ -83,6 +83,7 @@ export const HTTP_STATUS = {
   noContent: 204,
   badRequest: 400,
   unauthorized: 401,
+  notFound: 404,
   payloadTooLarge: 413,
   tooManyRequests: 429,
   serverError: 500,
