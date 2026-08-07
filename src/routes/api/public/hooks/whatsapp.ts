@@ -1,6 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { baileysSend, clinicSessionId } from "@/lib/baileys.server";
+import { createHmac, timingSafeEqual } from "crypto";
+
+/** Verify the bridge HMAC over the raw body. Rejects when the secret is unset. */
+function verifyBridgeSignature(rawBody: string, signature: string | null): boolean {
+  const secret =
+    process.env.WHATSAPP_BRIDGE_SECRET ||
+    process.env.BRIDGE_SECRET ||
+    process.env.BAILEYS_BRIDGE_SECRET ||
+    "";
+  if (!secret || !signature) return false;
+  const provided = signature.replace(/^sha256=/, "").trim();
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 // Supabase query builders are thenable but have no `.catch`, so calling it throws
 // synchronously and aborted the whole webhook before any reply was sent.
@@ -107,7 +124,19 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const body = await request.json().catch(() => ({}));
+          const rawBody = await request.text();
+          const signature =
+            request.headers.get("x-bridge-signature") ??
+            request.headers.get("x-hub-signature-256");
+          if (!verifyBridgeSignature(rawBody, signature)) {
+            return new Response("Invalid signature", { status: 401 });
+          }
+          let body: any = {};
+          try {
+            body = JSON.parse(rawBody);
+          } catch {
+            body = {};
+          }
           const { event, from, text, name, clinic_id, session_id, to_phone } = body || {};
 
           if (event !== "message" || !from || !text) {

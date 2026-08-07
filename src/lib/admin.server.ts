@@ -1399,6 +1399,18 @@ export async function impersonateDoctorImpl(input: any) {
     .maybeSingle();
   if (!clinic) throw new Error("Clinic not found");
 
+  // Respect the doctor's impersonation opt-out.
+  if (clinic.owner_id) {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("impersonation_allowed")
+      .eq("id", clinic.owner_id)
+      .maybeSingle();
+    if (profile && profile.impersonation_allowed === false) {
+      throw new Error("This doctor has disabled account impersonation");
+    }
+  }
+
   let email = clinic.email as string | null;
   if (!email && clinic.owner_id) {
     const { data: user } = await supabaseAdmin.auth.admin.getUserById(clinic.owner_id);

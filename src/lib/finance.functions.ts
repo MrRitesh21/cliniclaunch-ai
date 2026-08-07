@@ -31,6 +31,18 @@ const RangeInput = z.object({
   clinicId: z.string().uuid().nullable().optional(),
 });
 
+/** Throws unless the caller is a member of the given organization. */
+async function assertOrgMember(supabase: any, userId: string, organizationId: string) {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select("user_id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error("Unauthorized");
+  if (!data) throw new Error("Unauthorized");
+}
+
 function sum(rows: LedgerRow[], key: "net_amount" | "tax_amount" = "net_amount") {
   return rows.reduce((s, r) => s + Number(r[key] ?? 0), 0);
 }
@@ -296,6 +308,7 @@ export const saveExpense = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ExpenseInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    await assertOrgMember(supabase, userId, data.organizationId);
     const { vendorKey } = await import("./finance.server");
 
     const payload = {
@@ -372,7 +385,9 @@ export const listExpenses = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ organizationId: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertOrgMember(supabase, userId, data.organizationId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("expenses" as any)
@@ -396,10 +411,21 @@ export const deleteExpense = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { userId } = context as any;
+    const { supabase, userId } = context as any;
+    await assertOrgMember(supabase, userId, data.organizationId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: before } = await supabaseAdmin.from("expenses").select("*").eq("id", data.id).maybeSingle();
-    const { error } = await supabaseAdmin.from("expenses").delete().eq("id", data.id);
+    const { data: before } = await supabaseAdmin
+      .from("expenses")
+      .select("*")
+      .eq("id", data.id)
+      .eq("organization_id", data.organizationId)
+      .maybeSingle();
+    if (!before) throw new Error("Expense not found");
+    const { error } = await supabaseAdmin
+      .from("expenses")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organizationId);
     if (error) throw new Error(error.message);
     await supabaseAdmin.from("finance_audit").insert({
       organization_id: data.organizationId,
