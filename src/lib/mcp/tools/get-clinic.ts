@@ -1,18 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 
-function serverClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Supabase env vars missing");
-  return createClient<Database>(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+async function serverClient() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 export default defineTool({
@@ -25,13 +16,14 @@ export default defineTool({
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   handler: async ({ slug }) => {
-    const sb = serverClient();
+    const sb = await serverClient();
     const { data, error } = await sb
       .from("clinics")
       .select(
-        "clinic_name, doctor_name, specialization, address, phone, slug, is_published, published_at",
+        "clinic_name, doctor_name, specialization, public_address, public_phone, slug, is_published, published_at",
       )
       .eq("slug", slug)
+      .eq("is_published", true)
       .maybeSingle();
 
     if (error) {
