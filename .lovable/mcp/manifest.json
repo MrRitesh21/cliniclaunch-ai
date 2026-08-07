@@ -3,7 +3,12 @@
   "sdk_version": "0.20.0",
   "path": "/mcp",
   "auth": {
-    "type": "none"
+    "type": "oauth",
+    "issuer": "https://nqbtiyohphfnqyijefhx.supabase.co/auth/v1",
+    "resource_name": "ClinicX MCP",
+    "accepted_audiences": [
+      "authenticated"
+    ]
   },
   "mcp": {
     "server": {
