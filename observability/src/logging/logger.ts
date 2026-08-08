@@ -14,7 +14,7 @@
  * `console.log` is banned across this project — this module is the only logging
  * surface.
  */
-import pino, { type Logger, type LoggerOptions } from "pino";
+import pino, { type Logger, type LoggerOptions, type TransportTargetOptions } from "pino";
 import { env, isProduction } from "../config/env.js";
 
 export type LogChannel = "app" | "access" | "error";
@@ -72,13 +72,12 @@ function buildLogger(): Logger {
     );
   }
 
-  const transport = pino.transport({
-    targets: [
-      { target: "pino/file", level: env.LOG_LEVEL, options: { destination: 1 } },
-      fileTarget("application", env.LOG_LEVEL),
-      fileTarget("error", "warn"),
-    ],
-  });
+  const targets: TransportTargetOptions[] = [
+    { target: "pino/file", level: env.LOG_LEVEL, options: { destination: 1 } },
+    fileTarget("application", env.LOG_LEVEL),
+    fileTarget("error", "warn"),
+  ];
+  const transport = pino.transport({ targets });
   return pino(baseOptions, transport);
 }
 
@@ -95,7 +94,7 @@ export const accessLogger: Logger = env.LOG_TO_FILE
         targets: [
           { target: "pino/file", level: "info", options: { destination: 1 } },
           fileTarget("access", "info"),
-        ],
+        ] as TransportTargetOptions[],
       }),
     )
   : logger.child({ channel: "access" });
