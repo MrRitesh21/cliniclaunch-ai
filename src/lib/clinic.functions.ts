@@ -138,6 +138,18 @@ export const getClinicDoctors = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ organization_id: z.string() }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
+    // This endpoint is public, so mirror the doctors RLS policy: only orgs with
+    // at least one published, non-suspended clinic may be enumerated.
+    const { data: publicClinic } = await sb
+      .from("clinics")
+      .select("id")
+      .eq("organization_id", data.organization_id)
+      .eq("is_published", true)
+      .is("suspended_at", null)
+      .limit(1)
+      .maybeSingle();
+    if (!publicClinic) return [];
+
     const { data: doctors, error } = await sb
       .from("doctors")
       .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
@@ -149,6 +161,7 @@ export const getClinicDoctors = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return doctors ?? [];
   });
+
 
 
 
