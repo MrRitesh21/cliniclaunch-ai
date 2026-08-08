@@ -337,6 +337,39 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string | null
+          id: string
+          ip_hash: string
+          metadata: Json | null
+          target_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string | null
+          id?: string
+          ip_hash: string
+          metadata?: Json | null
+          target_id?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string | null
+          id?: string
+          ip_hash?: string
+          metadata?: Json | null
+          target_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       automation_runs: {
         Row: {
           appointment_id: string | null
@@ -1123,6 +1156,107 @@ export type Database = {
           phone?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      device_events: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          event_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          browser: string | null
+          browser_version: string | null
+          created_at: string | null
+          device_confidence: number | null
+          device_hash: string
+          device_memory: number | null
+          device_type: string | null
+          fingerprint_version: string | null
+          first_seen: string | null
+          hardware_concurrency: number | null
+          id: string
+          language: string | null
+          last_seen: string | null
+          os: string | null
+          os_version: string | null
+          platform: string | null
+          screen_resolution: string | null
+          timezone: string | null
+          updated_at: string | null
+          visitor_id: string
+        }
+        Insert: {
+          browser?: string | null
+          browser_version?: string | null
+          created_at?: string | null
+          device_confidence?: number | null
+          device_hash: string
+          device_memory?: number | null
+          device_type?: string | null
+          fingerprint_version?: string | null
+          first_seen?: string | null
+          hardware_concurrency?: number | null
+          id?: string
+          language?: string | null
+          last_seen?: string | null
+          os?: string | null
+          os_version?: string | null
+          platform?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          visitor_id: string
+        }
+        Update: {
+          browser?: string | null
+          browser_version?: string | null
+          created_at?: string | null
+          device_confidence?: number | null
+          device_hash?: string
+          device_memory?: number | null
+          device_type?: string | null
+          fingerprint_version?: string | null
+          first_seen?: string | null
+          hardware_concurrency?: number | null
+          id?: string
+          language?: string | null
+          last_seen?: string | null
+          os?: string | null
+          os_version?: string | null
+          platform?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          visitor_id?: string
         }
         Relationships: []
       }
@@ -3622,6 +3756,117 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_hash: string
+          metadata: Json | null
+          risk_breakdown: Json | null
+          risk_score: number | null
+          severity: Database["public"]["Enums"]["security_severity"] | null
+          tenant_id: string
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_hash: string
+          metadata?: Json | null
+          risk_breakdown?: Json | null
+          risk_score?: number | null
+          severity?: Database["public"]["Enums"]["security_severity"] | null
+          tenant_id?: string
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_hash?: string
+          metadata?: Json | null
+          risk_breakdown?: Json | null
+          risk_score?: number | null
+          severity?: Database["public"]["Enums"]["security_severity"] | null
+          tenant_id?: string
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
+      security_metrics_daily: {
+        Row: {
+          blocked_devices: number | null
+          browser_distribution: Json | null
+          countries: Json | null
+          date: string
+          high_risk_logins: number | null
+          id: string
+          new_devices: number | null
+          os_distribution: Json | null
+          tenant_id: string
+          total_devices: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          blocked_devices?: number | null
+          browser_distribution?: Json | null
+          countries?: Json | null
+          date?: string
+          high_risk_logins?: number | null
+          id?: string
+          new_devices?: number | null
+          os_distribution?: Json | null
+          tenant_id?: string
+          total_devices?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          blocked_devices?: number | null
+          browser_distribution?: Json | null
+          countries?: Json | null
+          date?: string
+          high_risk_logins?: number | null
+          id?: string
+          new_devices?: number | null
+          os_distribution?: Json | null
+          tenant_id?: string
+          total_devices?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_metrics_realtime: {
+        Row: {
+          active_sessions: number | null
+          blocked_attempts: number | null
+          high_risk_last_hour: number | null
+          id: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          active_sessions?: number | null
+          blocked_attempts?: number | null
+          high_risk_last_hour?: number | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          active_sessions?: number | null
+          blocked_attempts?: number | null
+          high_risk_last_hour?: number | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       seo_ai_content: {
         Row: {
           clinic_id: string
@@ -4284,6 +4529,62 @@ export type Database = {
           },
         ]
       }
+      user_devices: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          first_seen: string | null
+          id: string
+          is_blocked: boolean | null
+          is_trusted: boolean | null
+          last_seen: string | null
+          login_count: number | null
+          risk_breakdown: Json | null
+          risk_score: number | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          first_seen?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_trusted?: boolean | null
+          last_seen?: string | null
+          login_count?: number | null
+          risk_breakdown?: Json | null
+          risk_score?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          first_seen?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_trusted?: boolean | null
+          last_seen?: string | null
+          login_count?: number | null
+          risk_breakdown?: Json | null
+          risk_score?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_devices_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4304,6 +4605,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string | null
+          device_id: string
+          expires_at: string
+          id: string
+          ip_hash: string
+          is_revoked: boolean | null
+          last_activity: string | null
+          session_token: string
+          tenant_id: string
+          token_family_id: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_id: string
+          expires_at: string
+          id?: string
+          ip_hash: string
+          is_revoked?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          tenant_id?: string
+          token_family_id?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_id?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string
+          is_revoked?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          tenant_id?: string
+          token_family_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       value_events: {
         Row: {
@@ -4580,6 +4937,7 @@ export type Database = {
         | "physiotherapist"
       domain_status: "pending" | "verifying" | "verified" | "active" | "failed"
       org_role: "owner" | "admin" | "doctor" | "staff"
+      security_severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
       subscription_status:
         | "trialing"
         | "active"
@@ -4733,6 +5091,7 @@ export const Constants = {
       ],
       domain_status: ["pending", "verifying", "verified", "active", "failed"],
       org_role: ["owner", "admin", "doctor", "staff"],
+      security_severity: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
       subscription_status: [
         "trialing",
         "active",
