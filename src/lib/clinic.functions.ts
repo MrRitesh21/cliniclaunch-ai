@@ -519,12 +519,20 @@ export const createBooking = createServerFn({ method: "POST" })
       if (existing) throw new Error("This time slot was just taken. Please pick another.");
     }
 
+    // Mirror the anonymous-insert RLS policy (`suspended_at IS NULL`): the
+    // service-role client bypasses RLS, so a suspended clinic would otherwise
+    // keep accepting bookings through this endpoint.
     const { data: clinicRow } = await sb
       .from("clinics")
-      .select("organization_id")
+      .select("organization_id, suspended_at")
       .eq("id", data.clinic_id)
       .maybeSingle();
-    const orgId = clinicRow?.organization_id ?? null;
+    if (!clinicRow) throw new Error("This clinic is not available for booking.");
+    if ((clinicRow as { suspended_at?: string | null }).suspended_at) {
+      throw new Error("This clinic is not accepting bookings right now. Please contact the clinic directly.");
+    }
+    const orgId = clinicRow.organization_id ?? null;
+
 
     const { data: appt, error } = await sb
       .from("appointments")
