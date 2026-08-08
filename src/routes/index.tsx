@@ -563,9 +563,11 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
               ))}
             {plans.map((p: any) => {
 
-              const price = yearly
-                ? (p.discounted_yearly_price ?? p.yearly_price)
-                : (p.discounted_monthly_price ?? p.monthly_price);
+              const listPrice = Number(yearly ? p.yearly_price : p.monthly_price);
+              const discounted = yearly ? p.discounted_yearly_price : p.discounted_monthly_price;
+              const price = discounted ?? listPrice;
+              const hasOffer = discounted != null && Number(discounted) < listPrice;
+              const offPct = hasOffer ? Math.round(((listPrice - Number(discounted)) / listPrice) * 100) : 0;
               const features = Array.isArray(p.features) ? (p.features as string[]) : [];
               return (
                 <Card
@@ -583,10 +585,22 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
                     )}
                   </div>
                   <p className="mt-1.5 text-xs text-muted-foreground">{p.tagline}</p>
-                  <p className="mt-6 font-display text-3xl font-semibold tabular-nums">
-                    ₹{Number(price).toLocaleString("en-IN")}
-                    <span className="ml-1 text-xs font-normal text-muted-foreground">/{yearly ? "yr" : "mo"}</span>
-                  </p>
+                  <div className="mt-6">
+                    {hasOffer && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground line-through tabular-nums">
+                          ₹{listPrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="rounded-full bg-success/10 px-2 py-0.5 font-semibold text-success">
+                          {offPct}% off
+                        </span>
+                      </div>
+                    )}
+                    <p className="mt-1 font-display text-3xl font-semibold tabular-nums">
+                      ₹{Number(price).toLocaleString("en-IN")}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">/{yearly ? "yr" : "mo"}</span>
+                    </p>
+                  </div>
                   <ul className="mt-6 space-y-2.5 flex-1">
                     {features.slice(0, 6).map((f) => (
                       <li key={f} className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
