@@ -29,6 +29,8 @@ import {
   Bot,
   Wallet,
   LineChart,
+  Building2,
+
   Sparkles,
 } from "lucide-react";
 import { resolveHostToClinic } from "@/lib/domain.functions";
@@ -204,7 +206,10 @@ const MODULES: { icon: any; name: string; desc: string }[] = [
   { icon: QrCode, name: "QR booking", desc: "A printable QR that opens your booking page." },
   { icon: Users, name: "Staff & roles", desc: "Invite doctors and staff with scoped access." },
   { icon: LineChart, name: "Inventory", desc: "Consumables tracking with low-stock alerts." },
+  { icon: Building2, name: "Multi-branch", desc: "Run several clinic locations with per-branch staff, slots and reporting." },
+  { icon: ShieldCheck, name: "Insurance & claims", desc: "Cashless TPA claims with document uploads and settlement tracking." },
 ];
+
 
 const DEEP_DIVES = [
   {
