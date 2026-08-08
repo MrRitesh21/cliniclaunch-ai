@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Phone, Sparkles, X } from "lucide-react";
 import { submitLead } from "@/lib/leads";
 
-const STORAGE_KEY = (slug: string) => `clinicos.lead.shown.${slug}`;
+const STORAGE_KEY = (slug: string) => `clinicx.lead.shown.${slug}`;
 
 export function LeadCapture({ clinicId, slug, doctorName, offer }: {
   clinicId: string;

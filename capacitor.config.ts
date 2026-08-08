@@ -14,7 +14,7 @@ import { CapacitorConfig } from "@capacitor/cli";
 // so doctors get instant updates without re-submitting to the stores. Remove
 // `server.url` and switch to `webDir: "dist"` for an offline-bundled build.
 const config: CapacitorConfig = {
-  appId: "app.clinicos.doctor",
+  appId: "app.clinicx.doctor",
   appName: "ClinicX",
   webDir: "dist",
   server: {

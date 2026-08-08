@@ -82,7 +82,7 @@ function AdminLogin() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@clinicos.in" />
+            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@clinicx.in" />
           </div>
           <div>
             <Label htmlFor="password">Password</Label>

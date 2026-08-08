@@ -1,12 +1,11 @@
 apiVersion: 1
+
 providers:
-  - name: ClinicX
+  - name: 'SaaS Production Dashboards'
     orgId: 1
-    folder: ClinicX
+    folder: 'SaaS Architecture'
     type: file
-    disableDeletion: true
-    allowUiUpdates: false
-    updateIntervalSeconds: 60
+    disableDeletion: false
+    editable: true
     options:
       path: /var/lib/grafana/dashboards
-      foldersFromFilesStructure: false

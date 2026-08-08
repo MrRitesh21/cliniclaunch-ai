@@ -26,7 +26,7 @@ async function callAI(system: string, user: string, json = true, model = "google
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${openrouterKey}`,
-        "HTTP-Referer": "https://clinicos.digiwil.com",
+        "HTTP-Referer": "https://clinicx.digiwil.com",
         "X-Title": "ClinicX",
       },
       body: JSON.stringify({
@@ -198,7 +198,7 @@ async function runAudit(clinic: any) {
 
   const on_page = Math.round(
     ((seo.meta_title ? 1 : 0) + (seo.meta_description ? 1 : 0) + (seo.keywords ? 1 : 0) + (bio >= 120 ? 1 : 0) + (clinic.qualification ? 1 : 0) + (clinic.public_phone || clinic.phone ? 1 : 0) + (clinic.public_address || clinic.address ? 1 : 0) + (gallery.length >= 3 ? 1 : 0) + (services.length >= 3 ? 1 : 0)) *
-      (100 / 9),
+    (100 / 9),
   );
   const local = Math.round(((clinic.public_phone || clinic.phone ? 1 : 0) + (clinic.public_address || clinic.address ? 1 : 0) + (gallery.length >= 3 ? 1 : 0) + (clinic.specialization ? 1 : 0) + (clinic.slug ? 1 : 0)) * 20);
   const aeo = 50;
@@ -261,24 +261,24 @@ export async function runAutopilotForClinic(clinicId: string, ownerCheckUserId?:
       summary.google_reviews = { count: out.reviews.length };
     } catch (e: any) { summary.google_reviews = { failed: e.message }; }
   }
-  
+
   // ─── Auto-verify and submit sitemap to GSC ───────────────────────────────────
   if (cfg.gsc_sync) {
     if (!clinic.gsc_verified || !clinic.gsc_site_url) {
       const origin = process.env.SITE_URL || "https://clinics.digiwil.com";
-      const targetUrl = clinic.custom_domain 
-        ? `https://${clinic.custom_domain.trim()}` 
-        : clinic.slug 
+      const targetUrl = clinic.custom_domain
+        ? `https://${clinic.custom_domain.trim()}`
+        : clinic.slug
           ? `${origin}/c/${clinic.slug}`
           : null;
-      
+
       if (targetUrl) {
         // Auto verify in DB
         await supabaseAdmin
           .from("clinics")
           .update({ gsc_verified: true, gsc_site_url: targetUrl })
           .eq("id", clinic.id);
-        
+
         // Auto ping Google sitemap
         try {
           const sitemapUrl = `${targetUrl}/sitemap.xml`;

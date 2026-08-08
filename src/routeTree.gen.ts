@@ -54,6 +54,7 @@ import { Route as AdminAdminDbRouteImport } from './routes/_admin/admin.db'
 import { Route as AdminAdminDoctorsRouteImport } from './routes/_admin/admin.doctors'
 import { Route as AdminAdminEmailRouteImport } from './routes/_admin/admin.email'
 import { Route as AdminAdminFeaturesRouteImport } from './routes/_admin/admin.features'
+import { Route as AdminAdminMonitoringRouteImport } from './routes/_admin/admin.monitoring'
 import { Route as AdminAdminPlansRouteImport } from './routes/_admin/admin.plans'
 import { Route as AdminAdminRefundsRouteImport } from './routes/_admin/admin.refunds'
 import { Route as AdminAdminSubscriptionsRouteImport } from './routes/_admin/admin.subscriptions'
@@ -330,6 +331,11 @@ const AdminAdminEmailRoute = AdminAdminEmailRouteImport.update({
 const AdminAdminFeaturesRoute = AdminAdminFeaturesRouteImport.update({
   id: '/admin/features',
   path: '/admin/features',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAdminMonitoringRoute = AdminAdminMonitoringRouteImport.update({
+  id: '/admin/monitoring',
+  path: '/admin/monitoring',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAdminPlansRoute = AdminAdminPlansRouteImport.update({
@@ -661,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/admin/doctors': typeof AdminAdminDoctorsRouteWithChildren
   '/admin/email': typeof AdminAdminEmailRoute
   '/admin/features': typeof AdminAdminFeaturesRoute
+  '/admin/monitoring': typeof AdminAdminMonitoringRoute
   '/admin/plans': typeof AdminAdminPlansRoute
   '/admin/refunds': typeof AdminAdminRefundsRoute
   '/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
@@ -754,6 +761,7 @@ export interface FileRoutesByTo {
   '/admin/db': typeof AdminAdminDbRoute
   '/admin/email': typeof AdminAdminEmailRoute
   '/admin/features': typeof AdminAdminFeaturesRoute
+  '/admin/monitoring': typeof AdminAdminMonitoringRoute
   '/admin/plans': typeof AdminAdminPlansRoute
   '/admin/refunds': typeof AdminAdminRefundsRoute
   '/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
@@ -853,6 +861,7 @@ export interface FileRoutesById {
   '/_admin/admin/doctors': typeof AdminAdminDoctorsRouteWithChildren
   '/_admin/admin/email': typeof AdminAdminEmailRoute
   '/_admin/admin/features': typeof AdminAdminFeaturesRoute
+  '/_admin/admin/monitoring': typeof AdminAdminMonitoringRoute
   '/_admin/admin/plans': typeof AdminAdminPlansRoute
   '/_admin/admin/refunds': typeof AdminAdminRefundsRoute
   '/_admin/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
@@ -951,6 +960,7 @@ export interface FileRouteTypes {
     | '/admin/doctors'
     | '/admin/email'
     | '/admin/features'
+    | '/admin/monitoring'
     | '/admin/plans'
     | '/admin/refunds'
     | '/admin/subscriptions'
@@ -1044,6 +1054,7 @@ export interface FileRouteTypes {
     | '/admin/db'
     | '/admin/email'
     | '/admin/features'
+    | '/admin/monitoring'
     | '/admin/plans'
     | '/admin/refunds'
     | '/admin/subscriptions'
@@ -1142,6 +1153,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/doctors'
     | '/_admin/admin/email'
     | '/_admin/admin/features'
+    | '/_admin/admin/monitoring'
     | '/_admin/admin/plans'
     | '/_admin/admin/refunds'
     | '/_admin/admin/subscriptions'
@@ -1555,6 +1567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminFeaturesRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/_admin/admin/monitoring': {
+      id: '/_admin/admin/monitoring'
+      path: '/admin/monitoring'
+      fullPath: '/admin/monitoring'
+      preLoaderRoute: typeof AdminAdminMonitoringRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/_admin/admin/plans': {
       id: '/_admin/admin/plans'
       path: '/admin/plans'
@@ -1941,6 +1960,7 @@ interface AdminRouteRouteChildren {
   AdminAdminDoctorsRoute: typeof AdminAdminDoctorsRouteWithChildren
   AdminAdminEmailRoute: typeof AdminAdminEmailRoute
   AdminAdminFeaturesRoute: typeof AdminAdminFeaturesRoute
+  AdminAdminMonitoringRoute: typeof AdminAdminMonitoringRoute
   AdminAdminPlansRoute: typeof AdminAdminPlansRoute
   AdminAdminRefundsRoute: typeof AdminAdminRefundsRoute
   AdminAdminSubscriptionsRoute: typeof AdminAdminSubscriptionsRoute
@@ -1962,6 +1982,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAdminDoctorsRoute: AdminAdminDoctorsRouteWithChildren,
   AdminAdminEmailRoute: AdminAdminEmailRoute,
   AdminAdminFeaturesRoute: AdminAdminFeaturesRoute,
+  AdminAdminMonitoringRoute: AdminAdminMonitoringRoute,
   AdminAdminPlansRoute: AdminAdminPlansRoute,
   AdminAdminRefundsRoute: AdminAdminRefundsRoute,
   AdminAdminSubscriptionsRoute: AdminAdminSubscriptionsRoute,

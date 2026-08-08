@@ -55,7 +55,7 @@ export const COMPANY = {
   name: "ClinicX",
   legalName: "[Your Registered Business Name]",
   address: "[Your Registered Business Address]",
-  email: "support@clinicos.app",
+  email: "support@clinicx.app",
   phone: "[Your Support Phone]",
   gst: "[Your GSTIN, if applicable]",
   jurisdiction: "India",

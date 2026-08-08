@@ -14,6 +14,7 @@ import { updateAppointmentStatus, createBooking } from "@/lib/clinic.functions";
 import { Label } from "@/components/ui/label";
 import { AppGuard } from "@/components/app/AppGuard";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials, SkeletonRows } from "@/components/ui/skeleton-rows";
 
@@ -307,13 +308,17 @@ function AppointmentsPage() {
         {loading ? (
           <SkeletonRows rows={6} cols={5} />
         ) : filtered.length === 0 ? (
-          <div className="p-16 text-center">
-            <div className="size-14 rounded-full bg-muted grid place-items-center mx-auto mb-4">
-              <Search className="size-6 text-muted-foreground" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {search ? `No appointments match "${search}"` : "No appointments here yet."}
-            </p>
+          <div className="p-4">
+            <EmptyState
+              icon={<Search className="size-6" />}
+              title="No appointments found"
+              description={search ? `No appointments match "${search}"` : "No appointments here yet."}
+              action={
+                <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 h-8 text-xs">
+                  <Plus className="size-3.5" /> Add Appointment
+                </Button>
+              }
+            />
           </div>
         ) : (
           <div className="divide-y">

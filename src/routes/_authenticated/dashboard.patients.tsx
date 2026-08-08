@@ -15,7 +15,8 @@ import { AppGuard } from "@/components/app/AppGuard";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/app/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard } from "@/components/ui/stat-card";
 import { AvatarInitials } from "@/components/ui/skeleton-rows";
 import { toast } from "sonner";
 import {
@@ -295,11 +296,11 @@ function PatientsPage() {
 
       {activeTab === "directory" ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatTile label="Total patients" value={dirStats.total} icon={Users} />
-            <StatTile label="Returning patients" value={dirStats.returning} icon={UserCheck} sub={`${dirStats.total ? Math.round((dirStats.returning / dirStats.total) * 100) : 0}% of total`} />
-            <StatTile label="Active this month" value={dirStats.thisMonth} icon={Activity} />
-            <StatTile label="Avg visits / patient" value={dirStats.avgVisits} icon={TrendingUp} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <StatCard title="Total patients" value={dirStats.total} icon={<Users className="size-4" />} />
+            <StatCard title="Returning patients" value={dirStats.returning} icon={<UserCheck className="size-4" />} description={`${dirStats.total ? Math.round((dirStats.returning / dirStats.total) * 100) : 0}% of total`} />
+            <StatCard title="Active this month" value={dirStats.thisMonth} icon={<Activity className="size-4" />} />
+            <StatCard title="Avg visits / patient" value={dirStats.avgVisits} icon={<TrendingUp className="size-4" />} />
           </div>
 
           <div className="flex gap-3 flex-wrap justify-between items-center">
@@ -361,11 +362,11 @@ function PatientsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatTile label="Total visits" value={emrStats.total} icon={HeartPulse} />
-            <StatTile label="This month" value={emrStats.thisMonth} icon={Calendar} />
-            <StatTile label="Patients seen" value={emrStats.patientsCount} icon={Users} />
-            <StatTile label="Follow-ups due" value={emrStats.followUps} icon={CalendarClock} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <StatCard title="Total visits" value={emrStats.total} icon={<HeartPulse className="size-4" />} />
+            <StatCard title="This month" value={emrStats.thisMonth} icon={<Calendar className="size-4" />} />
+            <StatCard title="Patients seen" value={emrStats.patientsCount} icon={<Users className="size-4" />} />
+            <StatCard title="Follow-ups due" value={emrStats.followUps} icon={<CalendarClock className="size-4" />} className={emrStats.followUps > 0 ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20" : ""} />
           </div>
 
           <div className="flex gap-2 flex-wrap">

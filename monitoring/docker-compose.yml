@@ -1,115 +1,72 @@
-# ClinicX monitoring stack — Grafana + Prometheus + Alertmanager ONLY.
-# Sized for a single Render Free / 512 MB instance: ~300-340 MB total.
-# Loki, Tempo, OTel Collector, Jaeger, Elasticsearch etc. are intentionally absent.
+version: '3.8'
+
 services:
   prometheus:
-    image: prom/prometheus:v2.55.1
-    container_name: clinicx-prometheus
+    image: prom/prometheus:v2.50.1
+    container_name: saas_prometheus
     restart: unless-stopped
-    user: "65534:65534"
     command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      # 7 days retention, hard size cap so the disk can never fill.
-      - --storage.tsdb.retention.time=7d
-      - --storage.tsdb.retention.size=512MB
-      # Memory savers: smaller head chunk pool, no admin API, no remote write.
-      - --storage.tsdb.head-chunks-write-queue-size=0
-      - --query.max-concurrency=4
-      - --query.max-samples=5000000
-      - --web.enable-lifecycle
-      - --web.console.libraries=/usr/share/prometheus/console_libraries
-      - --web.console.templates=/usr/share/prometheus/consoles
-      - --log.level=warn
-    environment:
-      # Referenced from prometheus.yml so no secret is committed.
-      METRICS_TOKEN: ${METRICS_TOKEN}
-    volumes:
-      - ./generated/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./generated/metrics_token:/etc/prometheus/metrics_token:ro
-      - ./prometheus/rules:/etc/prometheus/rules:ro
-      - prometheus-data:/prometheus
-    expose:
-      - "9090"
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=2GB'
+      - '--query.max-concurrency=10'
+      - '--web.enable-lifecycle'
     ports:
-      - "127.0.0.1:9090:9090"
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
     deploy:
       resources:
         limits:
-          memory: 200M
-    logging: &compact-logs
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "2"
+          memory: 150M
 
   alertmanager:
     image: prom/alertmanager:v0.27.0
-    container_name: clinicx-alertmanager
+    container_name: saas_alertmanager
     restart: unless-stopped
-    user: "65534:65534"
     command:
-      - --config.file=/etc/alertmanager/alertmanager.yml
-      - --storage.path=/alertmanager
-      - --data.retention=72h
-      - --log.level=warn
-      - --cluster.listen-address=
-    env_file: .env
-    volumes:
-      - ./generated/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ./alertmanager/templates:/etc/alertmanager/templates:ro
-      - alertmanager-data:/alertmanager
-    expose:
-      - "9093"
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
     ports:
-      - "127.0.0.1:9093:9093"
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
     deploy:
       resources:
         limits:
-          memory: 48M
-    logging: *compact-logs
+          memory: 30M
 
   grafana:
-    image: grafana/grafana-oss:11.3.1
-    container_name: clinicx-grafana
+    image: grafana/grafana:10.3.3
+    container_name: saas_grafana
     restart: unless-stopped
-    depends_on:
-      - prometheus
-    env_file: .env
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
-      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_USERS_ALLOW_ORG_CREATE: "false"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
-      GF_NEWS_NEWS_FEED_ENABLED: "false"
-      GF_ALERTING_ENABLED: "false"
-      GF_UNIFIED_ALERTING_ENABLED: "false"
-      # SQLite is the lightest backend; Postgres would add connections we don't need.
-      GF_DATABASE_TYPE: sqlite3
-      GF_DATABASE_WAL: "true"
-      GF_LOG_LEVEL: warn
-      # Trim the image's memory footprint: no plugin catalogue, no live streaming.
-      GF_PLUGINS_ENABLE_ALPHA: "false"
-      GF_LIVE_MAX_CONNECTIONS: "10"
-      GF_DATAPROXY_TIMEOUT: "30"
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana-data:/var/lib/grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin_secure_password_123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_TELEMETRY_REPORTING_ENABLED=false
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
     deploy:
       resources:
         limits:
-          memory: 110M
-    logging: *compact-logs
+          memory: 120M
 
 volumes:
-  prometheus-data:
-  alertmanager-data:
-  grafana-data:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
+
+networks:
+  default:
+    name: saas_monitoring_network

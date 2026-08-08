@@ -32,7 +32,7 @@ export function buildIcsDataUrl(opts: {
   uid?: string;
 }) {
   const end = new Date(opts.start.getTime() + (opts.durationMinutes ?? 30) * 60_000);
-  const uid = opts.uid ?? `${Date.now()}-${Math.random().toString(36).slice(2)}@clinicos`;
+  const uid = opts.uid ?? `${Date.now()}-${Math.random().toString(36).slice(2)}@clinicx`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

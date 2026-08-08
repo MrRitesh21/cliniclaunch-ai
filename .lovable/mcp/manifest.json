@@ -12,7 +12,7 @@
   },
   "mcp": {
     "server": {
-      "name": "clinicos-mcp",
+      "name": "clinicx-mcp",
       "version": "0.1.0",
       "title": "ClinicX MCP"
     },

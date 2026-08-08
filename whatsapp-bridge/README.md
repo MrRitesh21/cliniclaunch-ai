@@ -29,7 +29,7 @@ A standalone Node.js service that connects to WhatsApp via Baileys and bridges m
 |---|---|---|
 | `BRIDGE_SECRET` | yes | A long random string. **Paste the same value into the ClinicX WhatsApp settings page** so HMAC matches both directions. Generate with `openssl rand -hex 32`. |
 | `CLINIC_ID` | yes | The clinic UUID from ClinicX (copy from the WhatsApp settings page). |
-| `CLINICOS_WEBHOOK_URL` | yes | `https://YOUR-CLINICOS-DOMAIN/api/public/whatsapp/incoming/{CLINIC_ID}` |
+| `clinicx_WEBHOOK_URL` | yes | `https://YOUR-clinicx-DOMAIN/api/public/whatsapp/incoming/{CLINIC_ID}` |
 | `AUTH_DIR` | no | Where Baileys stores session keys. Default: `/data/auth`. Must be on the persistent volume. |
 | `PORT` | no | Default `8080`. Railway sets this automatically. |
 
@@ -80,7 +80,7 @@ Wipes the session — doctor will need to re-pair via QR.
 
 ## 5. Webhook payload (bridge → ClinicX)
 
-The bridge POSTs to `CLINICOS_WEBHOOK_URL` with:
+The bridge POSTs to `clinicx_WEBHOOK_URL` with:
 
 ```json
 {

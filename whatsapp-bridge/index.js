@@ -11,7 +11,7 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
 const CLINIC_ID = process.env.CLINIC_ID || "default";
-const WEBHOOK_URL = process.env.CLINICOS_WEBHOOK_URL || "https://clinicos.digiwil.com/api/public/hooks/whatsapp";
+const WEBHOOK_URL = process.env.clinicx_WEBHOOK_URL || "https://clinicx.digiwil.com/api/public/hooks/whatsapp";
 const AUTH_BASE_DIR = process.env.AUTH_DIR || "/data/auth";
 const PORT = parseInt(process.env.PORT || "8080", 10);
 
@@ -28,7 +28,7 @@ type SessionState = {
   qr: string | null;
 };
 
-const sessions = new Map<string, SessionState>();
+const sessions = new Map < string, SessionState> ();
 
 function sign(body: string) {
   return "sha256=" + crypto.createHmac("sha256", BRIDGE_SECRET).update(body).digest("hex");
@@ -131,7 +131,7 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("composing", remoteJid);
-      } catch {}
+      } catch { }
 
       await postWebhook({
         event: "message",
@@ -147,7 +147,7 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("paused", remoteJid);
-      } catch {}
+      } catch { }
     }
   });
 
@@ -163,7 +163,7 @@ try {
       void getOrCreateSession(folder);
     }
   }
-} catch {}
+} catch { }
 
 // Initialize default session if specified
 const defaultSessionId = process.env.DEFAULT_SESSION_ID || `user-${CLINIC_ID}`;
@@ -213,7 +213,7 @@ fastify.delete("/api/sessions/:sessionId", async (req, _reply) => {
   const { sessionId } = req.params as { sessionId: string };
   const sess = sessions.get(sessionId);
   if (sess?.sock) {
-    try { await sess.sock.logout(); } catch {}
+    try { await sess.sock.logout(); } catch { }
   }
   sessions.delete(sessionId);
   const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));

@@ -75,10 +75,10 @@ export async function getAdminStatsImpl() {
   if (!admin) throw new Error("Unauthorized");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
- 
+
   // Sync latest transactions from Razorpay API
   await syncRazorpayTransactions(supabaseAdmin);
- 
+
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -485,11 +485,11 @@ export async function changeDoctorPlanImpl(input: any) {
     plan: input.planId || "No Plan",
     billing_cycle: "monthly",
     gateway_payment_id: `MANUAL-ADMIN-${admin.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-    gateway_order_id: input.extendDays 
-      ? `Extended trial by ${input.extendDays} days` 
-      : input.grantFreeMonth 
-      ? `Granted free month` 
-      : `Admin plan change`,
+    gateway_order_id: input.extendDays
+      ? `Extended trial by ${input.extendDays} days`
+      : input.grantFreeMonth
+        ? `Granted free month`
+        : `Admin plan change`,
   } as never);
 
   await createAuditLog(
@@ -759,13 +759,13 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
   try {
     const { getPayments } = await import("@/lib/razorpay.server");
     const rzpPayments = await getPayments(100);
-    
+
     if (rzpPayments?.items?.length > 0) {
       // 1. Fetch all clinics to map organization_id and public_email to owner_id/doctor_id
       const { data: clinics } = await supabaseAdmin
         .from("clinics")
         .select("organization_id, owner_id, public_email");
-      
+
       const clinicMap = new Map((clinics ?? []).map((c: any) => [c.organization_id, c.owner_id]));
       const emailMap = new Map();
       (clinics ?? []).forEach((c: any) => {
@@ -796,7 +796,7 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
             console.error(`Failed to fetch subscription ${rzpSubId} from Razorpay API during sync:`, subErr);
           }
         }
-        
+
         let doctorId = item.notes?.doctor_id || null;
         if (!doctorId && orgId) {
           doctorId = clinicMap.get(orgId) || null;
@@ -804,7 +804,7 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
         if (!doctorId && item.email) {
           doctorId = emailMap.get(item.email.toLowerCase().trim()) || null;
         }
-        
+
         const statusVal = item.status === "captured" ? "captured" : item.status === "failed" ? "failed" : "success";
 
         // Upsert transaction in the database
@@ -840,9 +840,9 @@ export async function syncRazorpayTransactions(supabaseAdmin: any) {
 export async function listTransactionsImpl() {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");
- 
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
- 
+
   // Sync latest transactions from Razorpay API
   await syncRazorpayTransactions(supabaseAdmin);
 
@@ -874,7 +874,7 @@ export async function listTransactionsImpl() {
   const list = (txs.data ?? []).map((t: any) => {
     // 1. Determine payment reference ID
     const refId = t.razorpay_payment_id || t.gateway_payment_id;
-    
+
     // 2. Resolve organization_id via invoice fallback if missing
     let orgId = t.organization_id;
     if (!orgId && refId) {
@@ -1339,7 +1339,7 @@ export async function getSystemSettingsImpl() {
 
   const map: Record<string, string> = {
     platform_name: "ClinicX",
-    support_email: "support@clinicos.in",
+    support_email: "support@clinicx.in",
     max_free_patients: "50",
     trial_duration_days: "7",
     trial_reminder_day: "5",

@@ -1,0 +1,44 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Registered Devices by Status",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "targets": [{ "expr": "devices_total", "legendFormat": "{{status}}" }]
+    },
+    {
+      "title": "Active User Sessions",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "targets": [{ "expr": "active_user_sessions_total", "legendFormat": "Sessions" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] } } }
+    },
+    {
+      "title": "High Risk Logins (Total)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "targets": [{ "expr": "high_risk_logins_total", "legendFormat": "High Risk" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "red" }] } } }
+    },
+    {
+      "title": "Security Events Rate by Type & Severity",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
+      "targets": [{ "expr": "sum(rate(security_events_total[5m])) by (event_type, severity)", "legendFormat": "{{event_type}} ({{severity}})" }]
+    },
+    {
+      "title": "Device Risk Level Distribution",
+      "type": "piechart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
+      "targets": [{ "expr": "sum(device_risk_level_total) by (level)", "legendFormat": "Level {{level}}" }]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["saas", "security", "fingerprint"],
+  "title": "06 - Device Intelligence & Security Analytics",
+  "uid": "device-intelligence"
+}

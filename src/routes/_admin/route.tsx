@@ -103,6 +103,12 @@ const NAV: NavSection[] = [
       { to: "/admin/settings/system", label: "System Settings", icon: SettingsIcon },
     ],
   },
+  {
+    title: "Monitoring & Security",
+    items: [
+      { to: "/admin/monitoring", label: "Full System Monitoring", icon: Monitor },
+    ],
+  },
 ];
 
 function AdminLayout() {

@@ -42,7 +42,7 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
         setLocked(state.locked);
         setNote(state.note);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -78,7 +78,7 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
         <div>
           <p className="font-medium text-sm">Premium templates</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Designed and published by the ClinicOS team. Applies to your public site instantly.
+            Designed and published by the clinicx team. Applies to your public site instantly.
           </p>
         </div>
         {locked && (
@@ -90,7 +90,7 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
 
       {locked && (
         <p className="text-xs rounded-lg bg-muted p-2.5">
-          Your template is managed by the ClinicOS team{note ? ` — ${note}` : ""}. Contact support to change it.
+          Your template is managed by the clinicx team{note ? ` — ${note}` : ""}. Contact support to change it.
         </p>
       )}
 
@@ -103,9 +103,8 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
               type="button"
               disabled={locked || busy !== null}
               onClick={() => pick(t.id)}
-              className={`relative text-left rounded-2xl border-2 overflow-hidden transition disabled:opacity-60 ${
-                active ? "border-primary shadow-lg" : "border-border hover:border-primary/50"
-              }`}
+              className={`relative text-left rounded-2xl border-2 overflow-hidden transition disabled:opacity-60 ${active ? "border-primary shadow-lg" : "border-border hover:border-primary/50"
+                }`}
             >
               <div className="aspect-[4/3] bg-muted">
                 {t.preview_image_url ? (

@@ -243,7 +243,7 @@ export async function setClinicTemplateChoiceImpl(sb: any, userId: string, clini
     .select("id")
     .eq("clinic_id", clinicId)
     .maybeSingle();
-  if (forced) throw new Error("Your template is managed by the ClinicOS team and can't be changed here.");
+  if (forced) throw new Error("Your template is managed by the clinicx team and can't be changed here.");
 
   const { error: upErr } = await sb.from("clinics").update({ site_template_id: templateId }).eq("id", clinicId);
   if (upErr) throw new Error(upErr.message);

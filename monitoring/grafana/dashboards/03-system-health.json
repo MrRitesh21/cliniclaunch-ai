@@ -1,0 +1,39 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Node.js Process Memory (Heap vs RSS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "nodejs_heap_size_used_bytes / (1024 * 1024)", "legendFormat": "Heap Used (MB)" },
+        { "expr": "process_resident_memory_bytes / (1024 * 1024)", "legendFormat": "Process RSS (MB)" }
+      ]
+    },
+    {
+      "title": "CPU Usage (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "rate(process_cpu_seconds_total[5m]) * 100", "legendFormat": "CPU Utilization (%)" }]
+    },
+    {
+      "title": "Node Event Loop Lag (Seconds)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{ "expr": "nodejs_eventloop_lag_seconds", "legendFormat": "Event Loop Lag" }]
+    },
+    {
+      "title": "Concurrent Active HTTP Requests",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [{ "expr": "http_concurrent_requests", "legendFormat": "Active Requests" }]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["saas", "system", "resources"],
+  "title": "03 - System Health & Process",
+  "uid": "system-health"
+}

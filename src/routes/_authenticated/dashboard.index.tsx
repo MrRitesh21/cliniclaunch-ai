@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { ValueHero } from "@/components/value/ValueHero";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard } from "@/components/ui/stat-card";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -222,56 +225,34 @@ function Overview() {
   return (
     <div className="space-y-4">
       {/* Doctor Header & Operational Cockpit */}
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                DOCTOR'S CLINICAL CONSOLE
-              </span>
-              {clinic.specialization && (
-                <Badge variant="outline" className="text-xs font-normal">
-                  {clinic.specialization}
-                </Badge>
-              )}
-            </div>
-            <h1 className="font-display text-2xl md:text-3xl font-extrabold text-foreground tracking-tight pt-1">
-              {greeting}, {displayName}
-            </h1>
-            <p className="text-muted-foreground text-sm flex items-center gap-2">
-              <Activity className="size-4 text-emerald-500" />
-              <span>{clinic.clinic_name}</span> &bull;{" "}
-              <span className="font-mono text-xs">
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-            </p>
-          </div>
-
-          {/* Quick Doctor Actions */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <PageHeader
+        title={`${greeting}, ${displayName}`}
+        description={`${clinic.clinic_name} • ${new Date().toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        })}`}
+        actions={
+          <>
             <Button
               onClick={() => navigate({ to: "/dashboard/prescriptions" })}
-              className="bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90 h-10 px-4 text-xs gap-2"
+              className="bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90 h-9 px-4 text-xs gap-2"
             >
-              <Stethoscope className="size-4" /> Start Consultation / E-Rx
+              <Stethoscope className="size-4" /> Start Consultation
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate({ to: "/dashboard/walkins" })}
-              className="h-10 text-xs gap-1.5"
+              className="h-9 text-xs gap-1.5"
             >
-              <UserPlus className="size-4 text-emerald-600" /> Add Walk-in
+              <UserPlus className="size-4 text-emerald-600 dark:text-emerald-400" /> Walk-in
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate({ to: "/dashboard/queue" })}
-              className="h-10 text-xs gap-1.5"
+              className="h-9 text-xs gap-1.5"
             >
-              <Clock className="size-4 text-amber-600" /> Live Queue
+              <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
             </Button>
             <Button
               variant="outline"
@@ -281,17 +262,13 @@ function Overview() {
                 toast.success("Clinic booking link copied!");
               }}
               title="Copy Booking Link"
-              className="h-10 w-10"
+              className="h-9 w-9"
             >
               <Copy className="size-4" />
             </Button>
-            <a href={url} target="_blank" rel="noreferrer">
-              <Button variant="ghost" size="icon" title="View Public Website" className="h-10 w-10">
-                <ExternalLink className="size-4" />
-              </Button>
-            </a>
-          </div>
-        </div>
+          </>
+        }
+      />
 
         {/* Quick Toolbar Shortcuts */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-border/60">
@@ -332,7 +309,7 @@ function Overview() {
             <span>WhatsApp Bot Status</span>
           </Link>
         </div>
-      </div>
+      {/* End Quick Toolbar Shortcuts */}
 
       <SetupChecklistCard clinic={clinic} />
 
@@ -344,33 +321,29 @@ function Overview() {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            icon={Calendar}
-            label="Today's Consultations"
+            icon={<Calendar className="size-4" />}
+            title="Today's Consultations"
             value={`${stats.todayCompleted} / ${stats.todayTotal}`}
-            subText="Completed vs Total"
-            color="blue"
+            description="Completed vs Total"
           />
           <StatCard
-            icon={Clock}
-            label="Waiting Room Queue"
+            icon={<Clock className="size-4" />}
+            title="Waiting Room Queue"
             value={stats.waitingQueue}
-            subText="Patients waiting at clinic"
-            color="amber"
-            accent={stats.waitingQueue > 0}
+            description="Patients waiting at clinic"
+            className={stats.waitingQueue > 0 ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20" : ""}
           />
           <StatCard
-            icon={AlertCircle}
-            label="Pending Approvals"
+            icon={<AlertCircle className="size-4" />}
+            title="Pending Approvals"
             value={stats.pending}
-            subText="Awaiting confirmation"
-            color="purple"
+            description="Awaiting confirmation"
           />
           <StatCard
-            icon={IndianRupee}
-            label="Est. Today Collections"
+            icon={<IndianRupee className="size-4" />}
+            title="Est. Today Collections"
             value={`₹${stats.todayRevenue.toLocaleString()}`}
-            subText={`₹${clinic.consultation_fee ?? 500} / patient`}
-            color="emerald"
+            description={`₹${clinic.consultation_fee ?? 500} / patient`}
           />
         </div>
       )}
@@ -435,36 +408,38 @@ function Overview() {
             Loading today's schedule...
           </div>
         ) : filteredAppts.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="size-12 rounded-full bg-primary/10 text-primary grid place-items-center mx-auto mb-3">
-              <Calendar className="size-6" />
-            </div>
-            <h3 className="font-display font-semibold text-base">No appointments for this filter</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-              {activeFilter === "all"
-                ? "No patients booked yet for today. Share your clinic booking link or add a walk-in patient."
-                : `No ${activeFilter} appointments scheduled for today.`}
-            </p>
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <Button
-                size="sm"
-                onClick={() => navigate({ to: "/dashboard/walkins" })}
-                className="h-8 text-xs gap-1.5"
-              >
-                <UserPlus className="size-3.5" /> Add Walk-in
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(url);
-                  toast.success("Booking link copied!");
-                }}
-                className="h-8 text-xs gap-1.5"
-              >
-                <Copy className="size-3.5" /> Copy Booking Link
-              </Button>
-            </div>
+          <div className="p-4">
+            <EmptyState
+              icon={<Calendar className="size-6" />}
+              title="No appointments for this filter"
+              description={
+                activeFilter === "all"
+                  ? "No patients booked yet for today. Share your clinic booking link or add a walk-in patient."
+                  : `No ${activeFilter} appointments scheduled for today.`
+              }
+              action={
+                <Button
+                  size="sm"
+                  onClick={() => navigate({ to: "/dashboard/walkins" })}
+                  className="h-8 text-xs gap-1.5"
+                >
+                  <UserPlus className="size-3.5" /> Add Walk-in
+                </Button>
+              }
+              secondaryAction={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(url);
+                    toast.success("Booking link copied!");
+                  }}
+                  className="h-8 text-xs gap-1.5"
+                >
+                  <Copy className="size-3.5" /> Copy Booking Link
+                </Button>
+              }
+            />
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -615,35 +590,6 @@ const COLOR_MAP: Record<string, string> = {
   emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200/50",
   purple: "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200/50",
 };
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  subText,
-  color = "blue",
-  accent,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string | number;
-  subText?: string;
-  color?: string;
-  accent?: boolean;
-}) {
-  return (
-    <Card className={`p-5 card-soft transition-all ${accent ? "border-primary/40 bg-primary/5 shadow-xs" : ""}`}>
-      <div className="flex items-center justify-between">
-        <div className={`size-10 rounded-xl grid place-items-center border ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}>
-          <Icon className="size-5" />
-        </div>
-      </div>
-      <p className="mt-3 text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground">{value}</p>
-      <p className="text-xs font-semibold text-foreground/80 mt-1">{label}</p>
-      {subText && <p className="text-[11px] text-muted-foreground mt-0.5">{subText}</p>}
-    </Card>
-  );
-}
 
 function QuickActionCard({
   icon,

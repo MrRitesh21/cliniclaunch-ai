@@ -36,7 +36,7 @@ export async function callAI(opts: {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${openrouterKey}`,
-        "HTTP-Referer": "https://clinicos.digiwil.com",
+        "HTTP-Referer": "https://clinicx.digiwil.com",
         "X-Title": "ClinicX",
       },
       body: JSON.stringify(body),

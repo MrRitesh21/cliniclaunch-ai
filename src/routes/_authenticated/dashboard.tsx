@@ -17,7 +17,7 @@ import {
   QrCode, Video, BarChart3, Receipt, FileText, FlaskConical, Menu,
   ListOrdered, Pill, HeartPulse,
   ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles, Download,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
@@ -749,6 +749,31 @@ function DashboardLayout() {
                   />
                 </SheetContent>
               </Sheet>
+            </div>
+          </div>
+
+          {/* Desktop Productivity Toolbar */}
+          <div className="hidden md:flex h-14 border-b bg-background/95 backdrop-blur sticky top-0 z-10 px-6 items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              {/* Global Search Trigger Placeholder */}
+              <button className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-md px-3 py-1.5 border border-border/50 transition-colors w-64">
+                <Search className="size-4" />
+                <span>Search everything...</span>
+                <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </button>
+            </div>
+            
+            <div className="flex items-center gap-3 shrink-0">
+              <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => navigate({ to: "/dashboard/appointments" })}>
+                <Calendar className="size-4 mr-2" />
+                New Appointment
+              </Button>
+              <Button variant="default" size="sm" className="hidden lg:flex" onClick={() => navigate({ to: "/dashboard/patients" })}>
+                <UserPlus className="size-4 mr-2" />
+                New Patient
+              </Button>
             </div>
           </div>
 

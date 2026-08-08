@@ -1,0 +1,92 @@
+groups:
+  - name: backend_alerts
+    rules:
+      # 1. API Down Alert
+      - alert: ApiDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend API is down"
+          description: "The backend server target has been unreachable for more than 1 minute."
+
+      # 2. High Memory Usage (>80% of Render Free 512MB limit)
+      - alert: HighMemoryUsage
+        expr: nodejs_external_memory_bytes / (512 * 1024 * 1024) > 0.80 or process_resident_memory_bytes / (512 * 1024 * 1024) > 0.80
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory Usage Detected"
+          description: "Backend memory usage is exceeding 80% (approx 410 MB) of the 512 MB Render limit."
+
+      # 3. High CPU Usage (>85%)
+      - alert: HighCpuUsage
+        expr: rate(process_cpu_seconds_total[5m]) > 0.85
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU Usage Detected"
+          description: "Backend CPU utilization is above 85% for more than 3 minutes."
+
+      # 4. High Latency (P95 > 1000ms)
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 Latency Detected"
+          description: "P95 response latency has exceeded 1000ms (1.0s) for 2 minutes."
+
+      # 5. High 5xx Error Rate (>5%)
+      - alert: HighErrorRate5xx
+        expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 5
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx Error Rate"
+          description: "HTTP 5xx server error rate is above 5% over the last 5 minutes."
+
+      # 6. Redis Down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis Cache Down"
+          description: "Redis instance readiness check failed or instance is unreachable."
+
+      # 7. Database Down
+      - alert: DatabaseDown
+        expr: database_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Supabase Database Down"
+          description: "Database readiness probe failed or connection dropped."
+
+      # 8. No Requests for 10 minutes
+      - alert: NoRequests10m
+        expr: sum(rate(http_requests_total[10m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No HTTP Traffic Detected"
+          description: "Zero HTTP requests recorded by backend server in the last 10 minutes."
+
+      # 9. Application Restarted
+      - alert: ApplicationRestarted
+        expr: changes(process_start_time_seconds[10m]) > 0
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Backend Container Restarted"
+          description: "The backend process was restarted within the last 10 minutes."

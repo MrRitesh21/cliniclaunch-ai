@@ -1,23 +1,29 @@
+import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export function PageHeader({
-  title,
-  subtitle,
-  actions,
-  className,
-}: {
+export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
-  actions?: React.ReactNode;
+  description?: string;
+  subtitle?: string; // legacy support
+  actions?: ReactNode;
+  breadcrumbs?: ReactNode;
   className?: string;
-}) {
+}
+
+export function PageHeader({ title, description, subtitle, actions, breadcrumbs, className }: PageHeaderProps) {
+  const desc = description || subtitle;
   return (
-    <div className={cn("flex items-start justify-between gap-4 flex-wrap mb-6", className)}>
-      <div>
-        <h1 className="font-display text-2xl md:text-3xl tracking-tight">{title}</h1>
-        {subtitle && <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>}
+    <div className={cn("flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-8", className)}>
+      <div className="flex-1 space-y-1.5">
+        {breadcrumbs && <div className="mb-2 text-sm text-muted-foreground">{breadcrumbs}</div>}
+        <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">{title}</h1>
+        {desc && <p className="text-sm text-muted-foreground">{desc}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
+      {actions && (
+        <div className="flex items-center gap-3 shrink-0">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

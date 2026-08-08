@@ -35,7 +35,7 @@ function DbToolsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `clinicos-backup-${new Date().toISOString().slice(0, 10)}.sql`;
+    a.download = `clinicx-backup-${new Date().toISOString().slice(0, 10)}.sql`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("SQL schema backup generated and downloaded.");

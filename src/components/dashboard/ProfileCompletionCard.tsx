@@ -36,20 +36,20 @@ function computeChecks(c: ClinicLike): Check[] {
   const hasHours = !!c.working_hours && typeof c.working_hours === "object";
   const hasServices = Array.isArray(c.services) && (c.services as unknown[]).length > 0;
   return [
-    { key: "doctor_name",     label: "Add your name",              done: !!c.doctor_name?.trim(),                                to: "/dashboard/settings" },
-    { key: "specialization",  label: "Set your specialization",    done: !!c.specialization?.trim(),                             to: "/dashboard/settings" },
-    { key: "qualification",   label: "Add qualifications",         done: !!c.qualification?.trim(),                              to: "/dashboard/settings" },
-    { key: "experience",      label: "Years of experience",        done: (c.experience_years ?? 0) > 0,                          to: "/dashboard/settings" },
-    { key: "fee",             label: "Set consultation fee",       done: (c.consultation_fee ?? 0) > 0,                          to: "/dashboard/settings" },
-    { key: "bio",             label: "Write a short bio",          done: !!(c.bio || c.about_text)?.toString().trim(),           to: "/dashboard/settings" },
-    { key: "avatar",          label: "Upload profile photo",       done: !!c.avatar_url,                                         to: "/dashboard/settings" },
-    { key: "logo",            label: "Upload clinic logo",         done: !!c.logo_url,                                           to: "/dashboard/settings" },
-    { key: "gallery",         label: "Add gallery photos",         done: hasGallery,                                             to: "/dashboard/settings" },
-    { key: "phone",           label: "Contact phone",              done: !!(c.public_phone || c.phone)?.trim(),                  to: "/dashboard/settings" },
-    { key: "address",         label: "Clinic address",             done: !!(c.public_address || c.address)?.trim(),              to: "/dashboard/settings" },
-    { key: "hours",           label: "Working hours",              done: hasHours,                                               to: "/dashboard/settings" },
-    { key: "services",        label: "List your services",         done: hasServices,                                            to: "/dashboard/settings" },
-    { key: "publish",         label: "Publish your website",       done: !!c.is_published,                                       to: "/dashboard/website" },
+    { key: "doctor_name", label: "Add your name", done: !!c.doctor_name?.trim(), to: "/dashboard/settings" },
+    { key: "specialization", label: "Set your specialization", done: !!c.specialization?.trim(), to: "/dashboard/settings" },
+    { key: "qualification", label: "Add qualifications", done: !!c.qualification?.trim(), to: "/dashboard/settings" },
+    { key: "experience", label: "Years of experience", done: (c.experience_years ?? 0) > 0, to: "/dashboard/settings" },
+    { key: "fee", label: "Set consultation fee", done: (c.consultation_fee ?? 0) > 0, to: "/dashboard/settings" },
+    { key: "bio", label: "Write a short bio", done: !!(c.bio || c.about_text)?.toString().trim(), to: "/dashboard/settings" },
+    { key: "avatar", label: "Upload profile photo", done: !!c.avatar_url, to: "/dashboard/settings" },
+    { key: "logo", label: "Upload clinic logo", done: !!c.logo_url, to: "/dashboard/settings" },
+    { key: "gallery", label: "Add gallery photos", done: hasGallery, to: "/dashboard/settings" },
+    { key: "phone", label: "Contact phone", done: !!(c.public_phone || c.phone)?.trim(), to: "/dashboard/settings" },
+    { key: "address", label: "Clinic address", done: !!(c.public_address || c.address)?.trim(), to: "/dashboard/settings" },
+    { key: "hours", label: "Working hours", done: hasHours, to: "/dashboard/settings" },
+    { key: "services", label: "List your services", done: hasServices, to: "/dashboard/settings" },
+    { key: "publish", label: "Publish your website", done: !!c.is_published, to: "/dashboard/website" },
   ];
 }
 
@@ -58,7 +58,7 @@ export function ProfileCompletionCard({ clinic }: { clinic: ClinicLike | null | 
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setDismissed(sessionStorage.getItem("clinicos.profileCompletion.dismissed") === "1");
+    setDismissed(sessionStorage.getItem("clinicx.profileCompletion.dismissed") === "1");
   }, []);
 
   if (!clinic) return null;
@@ -74,7 +74,7 @@ export function ProfileCompletionCard({ clinic }: { clinic: ClinicLike | null | 
       <button
         aria-label="Dismiss for this session"
         onClick={() => {
-          sessionStorage.setItem("clinicos.profileCompletion.dismissed", "1");
+          sessionStorage.setItem("clinicx.profileCompletion.dismissed", "1");
           setDismissed(true);
         }}
         className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition"

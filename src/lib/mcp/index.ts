@@ -5,7 +5,7 @@ import getClinicTool from "./tools/get-clinic";
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
 
 export default defineMcp({
-  name: "clinicos-mcp",
+  name: "clinicx-mcp",
   title: "ClinicX MCP",
   version: "0.1.0",
   instructions:

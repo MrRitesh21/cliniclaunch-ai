@@ -1,4 +1,4 @@
--- Supabase Migration: ClinicOS Super Admin Panel
+-- Supabase Migration: clinicx Super Admin Panel
 -- Creates all tables and columns needed for the Ritesh Super Admin Dashboard.
 
 -- 1. Create admin_users table (custom admin credentials separate from doctor auth)

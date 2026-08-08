@@ -386,7 +386,7 @@ export const checkMaintenanceStatus = createServerFn({ method: "GET" })
       maintenance_mode: "false",
       maintenance_message: "We're upgrading the platform. Back in 2 hours.",
       platform_name: "ClinicX",
-      support_email: "support@clinicos.in"
+      support_email: "support@clinicx.in"
     };
 
     try {
@@ -395,7 +395,7 @@ export const checkMaintenanceStatus = createServerFn({ method: "GET" })
         .from("system_settings")
         .select("key, value")
         .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
-      
+
       if (error) {
         console.error("[checkMaintenanceStatus] Error fetching system settings:", error.message);
         return settings;
@@ -410,6 +410,6 @@ export const checkMaintenanceStatus = createServerFn({ method: "GET" })
     } catch (err) {
       console.error("[checkMaintenanceStatus] Failed to load maintenance status:", err);
     }
-    
+
     return settings;
   });

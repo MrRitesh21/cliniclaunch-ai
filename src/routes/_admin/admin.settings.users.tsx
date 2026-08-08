@@ -81,7 +81,7 @@ function AdminUsersPage() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="adminEmail">Account Email</Label>
-              <Input id="adminEmail" type="email" value={email} placeholder="teammate@clinicos.in" onChange={(e) => setEmail(e.target.value)} />
+              <Input id="adminEmail" type="email" value={email} placeholder="teammate@clinicx.in" onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
               <Label>Access Role</Label>

@@ -1,0 +1,24 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "HTTP Status Distribution (2xx, 3xx, 4xx, 5xx)",
+      "type": "piechart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(http_requests_total) by (status_class)", "legendFormat": "{{status_class}}" }]
+    },
+    {
+      "title": "HTTP Status Codes Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(http_requests_total[5m])) by (status)", "legendFormat": "HTTP {{status}}" }]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["saas", "http", "status"],
+  "title": "05 - HTTP Status Codes Breakdown",
+  "uid": "http-status-codes"
+}

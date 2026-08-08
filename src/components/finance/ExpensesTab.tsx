@@ -30,7 +30,7 @@ type Expense = {
 };
 
 /** Offline-safe queue: expenses saved while offline are replayed on reconnect. */
-const QUEUE_KEY = "clinicos.finance.expenseQueue";
+const QUEUE_KEY = "clinicx.finance.expenseQueue";
 function readQueue(): any[] {
   try { return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? "[]"); } catch { return []; }
 }

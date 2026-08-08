@@ -166,7 +166,7 @@ function WalkinPage() {
       location: clinic.public_address || clinic.address || "",
       start: confirmed.at,
       durationMinutes: 15,
-      uid: `${confirmed.id}@clinicos`,
+      uid: `${confirmed.id}@clinicx`,
     });
     const waMessage = `Hi ${clinicName}, I've checked in for a walk-in at ${confirmed.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Name: ${form.name}. Ref: ${confirmed.id.slice(0, 8)}.`;
     const waHref = buildWhatsAppShareUrl({ phone: clinic.public_phone, message: waMessage });
@@ -260,11 +260,10 @@ function WalkinPage() {
                       key={iso}
                       type="button"
                       onClick={() => setSelectedSlot(s)}
-                      className={`rounded-md border px-2 py-2 text-sm transition ${
-                        active
+                      className={`rounded-md border px-2 py-2 text-sm transition ${active
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-background hover:bg-muted"
-                      }`}
+                        }`}
                     >
                       {s.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
                     </button>

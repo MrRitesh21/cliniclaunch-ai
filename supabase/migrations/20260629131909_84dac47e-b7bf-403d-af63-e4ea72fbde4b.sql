@@ -15,7 +15,7 @@ ON CONFLICT (key) DO NOTHING;
 -- Seed default system settings
 INSERT INTO public.system_settings (key, value, description) VALUES
   ('platform_name', 'ClinicX', 'Public-facing brand name'),
-  ('support_email', 'support@clinicos.app', 'Support contact email'),
+  ('support_email', 'support@clinicx.app', 'Support contact email'),
   ('signup_enabled', 'true', 'Allow new doctor signups'),
   ('maintenance_mode', 'false', 'Block all non-admin access when true'),
   ('default_trial_days', '14', 'Trial length for new accounts in days'),

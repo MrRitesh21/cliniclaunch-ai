@@ -120,6 +120,7 @@ function BookPage() {
   const [appointmentType, setAppointmentType] = useState<"online" | "offline">("offline");
   const [selectedDay, setSelectedDay] = useState<Date | null>(days[0] ?? null);
   const [bookedAt, setBookedAt] = useState<Set<number>>(new Set());
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", age: "", gender: "", problem: "" });
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
@@ -191,11 +192,14 @@ function BookPage() {
 
   useEffect(() => {
     if (!selectedDay) return;
+    setLoadingSlots(true);
     const from = new Date(selectedDay);
     const to = new Date(selectedDay); to.setHours(23, 59, 59, 999);
     const dbDoctorId = selectedDoctorId === "owner" ? null : selectedDoctorId;
     getBookedSlots({ data: { clinic_id: clinic.id, from: from.toISOString(), to: to.toISOString(), doctor_id: dbDoctorId } })
-      .then((rows) => setBookedAt(new Set((rows ?? []).filter((r): r is string => typeof r === "string").map((r) => new Date(r).getTime()))));
+      .then((rows) => setBookedAt(new Set((rows ?? []).filter((r): r is string => typeof r === "string").map((r) => new Date(r).getTime()))))
+      .catch(() => {})
+      .finally(() => setLoadingSlots(false));
   }, [selectedDay, clinic.id, selectedDoctorId]);
 
   const slots = useMemo(() => {
@@ -299,7 +303,7 @@ function BookPage() {
             location,
             start: dt,
             durationMinutes: 30,
-            uid: `${confirmed.id}@clinicos`,
+            uid: `${confirmed.id}@clinicx`,
           });
           const waMessage = `Hi ${clinicName}, I just booked an appointment for ${dt.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}. Name: ${form.name}. Ref: ${confirmed.id.slice(0, 8)}.`;
           const waHref = buildWhatsAppShareUrl({ phone: clinic.public_phone, message: waMessage });
@@ -427,11 +431,10 @@ function BookPage() {
                     type="button"
                     key={d.id}
                     onClick={() => { setSelectedDoctorId(d.id); setSelectedSlot(null); }}
-                    className={`relative flex flex-col gap-4 rounded-2xl border p-5 text-left transition-all ${
-                      active
+                    className={`relative flex flex-col gap-4 rounded-2xl border p-5 text-left transition-all ${active
                         ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-md"
                         : "border-border hover:border-primary/30 hover:shadow-sm hover:bg-accent/40"
-                    }`}
+                      }`}
                   >
                     {active && (
                       <span className="absolute top-4 right-4 size-5 rounded-full bg-primary text-primary-foreground grid place-items-center">
@@ -496,11 +499,10 @@ function BookPage() {
                       key={opt.value}
                       type="button"
                       onClick={() => setAppointmentType(opt.value)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                        active
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${active
                           ? "border-primary bg-primary text-primary-foreground shadow-sm"
                           : "border-border hover:border-primary/40 hover:bg-accent"
-                      }`}
+                        }`}
                     >
                       <opt.Icon className="size-3.5" /> {opt.label}
                     </button>
@@ -523,9 +525,8 @@ function BookPage() {
                         type="button"
                         key={d.toISOString()}
                         onClick={() => { setSelectedDay(d); setSelectedSlot(null); }}
-                        className={`shrink-0 snap-start rounded-xl border px-4 py-3 text-center min-w-[4.5rem] transition ${
-                          active ? "bg-primary text-primary-foreground border-primary shadow-sm" : "hover:bg-accent hover:border-primary/30"
-                        }`}
+                        className={`shrink-0 snap-start rounded-xl border px-4 py-3 text-center min-w-[4.5rem] transition ${active ? "bg-primary text-primary-foreground border-primary shadow-sm" : "hover:bg-accent hover:border-primary/30"
+                          }`}
                       >
                         <div className="text-[10px] uppercase tracking-wide opacity-80">{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
                         <div className="text-xl font-display mt-1 leading-none">{d.getDate()}</div>
@@ -540,7 +541,10 @@ function BookPage() {
             {/* Time slots */}
             <Card className="p-5 sm:p-6">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium">Available times</p>
+                <p className="text-sm font-medium flex items-center gap-2">
+                  Available times
+                  {loadingSlots && <Loader2 className="size-3.5 animate-spin text-primary" />}
+                </p>
                 {selectedSlot && (
                   <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
                     {formatTime12h(selectedSlot)} ✓
@@ -559,15 +563,14 @@ function BookPage() {
                       <button
                         type="button"
                         key={iso}
-                        disabled={taken}
+                        disabled={taken || loadingSlots}
                         onClick={() => setSelectedSlot(s)}
-                        className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${
-                          taken
+                        className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${taken
                             ? "opacity-35 cursor-not-allowed line-through bg-muted"
                             : active
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                            : "hover:bg-accent hover:border-primary/30"
-                        }`}
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+                              : "hover:bg-accent hover:border-primary/30"
+                          }`}
                       >
                         {formatTime12h(s)}
                       </button>
