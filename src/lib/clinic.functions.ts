@@ -860,8 +860,11 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
 
     const clinicName = clinic?.clinic_name || clinic?.doctor_name || "our clinic";
 
-    // 3. Generate a temporary password
-    const tempPassword = "Temp@" + Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 10);
+    // 3. Generate a temporary password from a CSPRNG (never Math.random()):
+    // this value is a real login credential until the invitee changes it.
+    const { randomBytes } = await import("node:crypto");
+    const tempPassword = "Temp@" + randomBytes(18).toString("base64url") + "9";
+
 
     // 4. Create user in Supabase Auth Admin
     let userId: string;
