@@ -28,7 +28,7 @@ export function requestContextMiddleware() {
     };
 
     res.setHeader(Header.requestId, requestId);
-    res.locals.requestContext = ctx;
+    res.locals['requestContext'] = ctx;
     runWithContext(ctx, () => next());
   };
 }
