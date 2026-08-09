@@ -35,6 +35,8 @@ import {
   aiFixSeoTask,
 } from "@/lib/seo-ai.functions";
 import { SeoStartHere, type SeoActionTarget } from "@/components/seo/SeoStartHere";
+import { submitClinicToGoogleServerFn } from "@/lib/gsc-pipeline.functions";
+
 
 
 import { Switch } from "@/components/ui/switch";
