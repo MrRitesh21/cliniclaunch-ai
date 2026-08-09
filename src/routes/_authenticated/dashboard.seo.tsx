@@ -34,6 +34,10 @@ import {
   verifyLiveSeoInstall,
   aiFixSeoTask,
 } from "@/lib/seo-ai.functions";
+import { SeoStartHere, type SeoActionTarget } from "@/components/seo/SeoStartHere";
+import { submitClinicToGoogleServerFn } from "@/lib/gsc-pipeline.functions";
+
+
 
 import { Switch } from "@/components/ui/switch";
 
@@ -98,6 +102,8 @@ function SEOPage() {
   const clinic = useClinic();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [keywords, setKeywords] = useState<KeywordRow[]>([]);
+  const [tab, setTab] = useState<string>("start");
+
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -139,66 +145,58 @@ function SEOPage() {
           <Search className="size-6" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-3xl">SEO · AEO · GEO</h1>
+          <h1 className="font-display text-3xl">Get found on Google</h1>
           <p className="text-muted-foreground text-sm">
-            Rank #1 on Google & AI search engines. Get more patients with local SEO, answer engine, and generative AI optimization.
+            Everything here is measured on your real, live website. Start at the top and work down the list.
           </p>
         </div>
       </header>
 
-      <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-11 h-auto">
-          <TabsTrigger value="dashboard" className="gap-1.5 text-xs"><TrendingUp className="size-3.5" /> Dashboard</TabsTrigger>
-          <TabsTrigger value="autopilot" className="gap-1.5 text-xs"><Bot className="size-3.5" /> Autopilot</TabsTrigger>
-          <TabsTrigger value="live" className="gap-1.5 text-xs"><Zap className="size-3.5" /> Live Check</TabsTrigger>
-          <TabsTrigger value="local" className="gap-1.5 text-xs"><MapPin className="size-3.5" /> Local SEO</TabsTrigger>
-          <TabsTrigger value="keywords" className="gap-1.5 text-xs"><Target className="size-3.5" /> Keywords</TabsTrigger>
-          <TabsTrigger value="meta" className="gap-1.5 text-xs"><FileCode2 className="size-3.5" /> Meta Tags</TabsTrigger>
-          <TabsTrigger value="content" className="gap-1.5 text-xs"><Sparkles className="size-3.5" /> AI Content</TabsTrigger>
-          <TabsTrigger value="citations" className="gap-1.5 text-xs"><Award className="size-3.5" /> Citations</TabsTrigger>
-          <TabsTrigger value="console" className="gap-1.5 text-xs"><Globe className="size-3.5" /> Search Console</TabsTrigger>
-          <TabsTrigger value="aeo" className="gap-1.5 text-xs"><Sparkles className="size-3.5" /> AEO</TabsTrigger>
-          <TabsTrigger value="geo" className="gap-1.5 text-xs"><Brain className="size-3.5" /> GEO</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
+          <TabsTrigger value="start" className="gap-1.5 text-xs"><TrendingUp className="size-3.5" /> Start here</TabsTrigger>
+          <TabsTrigger value="rankings" className="gap-1.5 text-xs"><Target className="size-3.5" /> Rankings</TabsTrigger>
+          <TabsTrigger value="content" className="gap-1.5 text-xs"><Sparkles className="size-3.5" /> Content &amp; meta</TabsTrigger>
+          <TabsTrigger value="local" className="gap-1.5 text-xs"><MapPin className="size-3.5" /> Local &amp; Google</TabsTrigger>
+          <TabsTrigger value="advanced" className="gap-1.5 text-xs"><Brain className="size-3.5" /> Advanced</TabsTrigger>
         </TabsList>
 
-
-        <TabsContent value="dashboard" className="mt-4">
+        <TabsContent value="start" className="mt-4 space-y-6">
+          <SeoStartHere
+            clinic={clinic}
+            keywordCount={keywords.length}
+            keywordsTop10={keywords.filter((k) => (k.current_position ?? 999) <= 10).length}
+            openTaskCount={totalCount - completedCount}
+            onGoTo={(target: SeoActionTarget) => setTab(target)}
+          />
           <DashboardTab score={score} completed={completedCount} total={totalCount} tasks={tasks} keywords={keywords} clinic={clinic} />
         </TabsContent>
-        <TabsContent value="autopilot" className="mt-4">
-          <AutopilotTab clinic={clinic} onRefresh={loadData} />
-        </TabsContent>
-        <TabsContent value="live" className="mt-4">
-          <LiveCheckTab clinic={clinic} />
-        </TabsContent>
 
-        <TabsContent value="local" className="mt-4">
-          <ChecklistTab category="local_seo" title="Local SEO" icon={<MapPin className="size-5" />} description="Dominate local search results. These tasks directly impact your Google Maps and local pack rankings." tasks={tasks} onToggle={toggleTask} loading={loading} />
-        </TabsContent>
-        <TabsContent value="keywords" className="mt-4">
+        <TabsContent value="rankings" className="mt-4">
           <KeywordsTab keywords={keywords} clinic={clinic} onRefresh={loadData} />
         </TabsContent>
-        <TabsContent value="meta" className="mt-4">
+
+        <TabsContent value="content" className="mt-4 space-y-6">
           {clinic && <MetaTagsTab clinic={clinic} key={clinic.id} />}
-        </TabsContent>
-        <TabsContent value="content" className="mt-4">
           <AiContentTab clinic={clinic} />
         </TabsContent>
-        <TabsContent value="citations" className="mt-4">
+
+        <TabsContent value="local" className="mt-4 space-y-6">
+          <ChecklistTab category="local_seo" title="Local SEO" icon={<MapPin className="size-5" />} description="These tasks decide whether patients near you find your clinic on Google Maps and in the local results." tasks={tasks} onToggle={toggleTask} loading={loading} onRefresh={loadData} />
+          <SearchConsoleTab clinic={clinic} />
           <CitationsTab clinic={clinic} />
         </TabsContent>
-        <TabsContent value="console" className="mt-4">
-          <SearchConsoleTab clinic={clinic} />
-        </TabsContent>
-        <TabsContent value="aeo" className="mt-4">
-          <ChecklistTab category="aeo" title="Answer Engine Optimization" icon={<Sparkles className="size-5" />} description="Optimize for Google's featured snippets, People Also Ask, and voice assistants like Alexa and Google Assistant." tasks={tasks} onToggle={toggleTask} loading={loading} onRefresh={loadData} />
-        </TabsContent>
-        <TabsContent value="geo" className="mt-4">
+
+        <TabsContent value="advanced" className="mt-4 space-y-6">
+          <AutopilotTab clinic={clinic} onRefresh={loadData} />
+          <LiveCheckTab clinic={clinic} />
+          <ChecklistTab category="aeo" title="Answer Engine Optimization" icon={<Sparkles className="size-5" />} description="Optimize for Google's featured snippets, People Also Ask, and voice assistants." tasks={tasks} onToggle={toggleTask} loading={loading} onRefresh={loadData} />
           <ChecklistTab category="geo" title="Generative Engine Optimization" icon={<Brain className="size-5" />} description="Get recommended by ChatGPT, Google AI Overview, Perplexity, and other AI search engines." tasks={tasks} onToggle={toggleTask} loading={loading} onRefresh={loadData} />
         </TabsContent>
       </Tabs>
     </div>
   );
+
 
   async function toggleTask(task: TaskRow) {
     const next = !task.is_completed;
@@ -683,6 +681,8 @@ function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
 function SearchConsoleTab({ clinic }: { clinic: any }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const publicUrl = getPublicClinicUrl(clinic, origin);
+  const submitIndexing = useServerFn(submitClinicToGoogleServerFn);
+
 
   // GSC states
   const [gscStatus, setGscStatus] = useState<"disconnected" | "verifying" | "connected">(
@@ -694,36 +694,8 @@ function SearchConsoleTab({ clinic }: { clinic: any }) {
     clinic?.gsc_verified ? "submitted" : "unchecked"
   );
 
-  useEffect(() => {
-    // Auto-verify and submit sitemap in the background if not connected yet!
-    if (clinic && !clinic.gsc_verified && gscStatus === "disconnected") {
-      void (async () => {
-        setGscStatus("verifying");
-        try {
-          // 1. Auto-verify in database
-          const { error } = await supabase
-            .from("clinics")
-            .update({ gsc_verified: true, gsc_site_url: publicUrl })
-            .eq("id", clinic.id);
-          if (error) throw error;
-          setGscStatus("connected");
-          toast.success("Google Search Console connected automatically!");
+  // Ownership verification is a real action the doctor triggers — never auto-claimed.
 
-          // 2. Auto-submit sitemap
-          setSubmittingSitemap(true);
-          const sitemapUrl = `${origin}/sitemap.xml`;
-          await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { mode: 'no-cors' });
-          setSitemapStatus("submitted");
-          toast.success("Sitemap auto-submitted to Google Indexing Engine!");
-        } catch (err: any) {
-          console.error("Auto GSC setup failed:", err);
-          setGscStatus("disconnected");
-        } finally {
-          setSubmittingSitemap(false);
-        }
-      })();
-    }
-  }, [clinic, gscStatus, publicUrl, origin]);
 
   // PageSpeed states
   const [auditUrl, setAuditUrl] = useState(publicUrl.includes("localhost") || publicUrl.includes("127.0.0.1") ? "https://digiclini.vercel.app" : publicUrl);
@@ -796,20 +768,9 @@ function SearchConsoleTab({ clinic }: { clinic: any }) {
       toast.success("PageSpeed analysis completed successfully!");
     } catch (err: any) {
       console.error(err);
-      toast.success("PageSpeed analysis succeeded (with local optimizer fallback)");
-      setAuditResults({
-        perfScore: 88,
-        seoScore: 95,
-        fcp: "1.7 s",
-        lcp: "2.3 s",
-        cls: "0.02",
-        speedIndex: "1.9 s",
-        opportunities: [
-          { title: "Serve images in next-gen formats", description: "Image formats like WebP and AVIF often provide better compression than PNG or JPEG.", savings: "Save ~1.2s" },
-          { title: "Eliminate render-blocking resources", description: "Resources are blocking the first paint of your page. Consider delivering critical JS/CSS inline.", savings: "Save ~0.5s" },
-          { title: "Reduce unused JavaScript", description: "Reduce unused JavaScript and defer loading of scripts until they are required.", savings: "Save ~0.3s" }
-        ]
-      });
+      toast.error(err?.message || "Google could not audit this page. Make sure your website is published and reachable.");
+      setAuditResults(null);
+
     } finally {
       setAuditing(false);
     }
@@ -819,27 +780,26 @@ function SearchConsoleTab({ clinic }: { clinic: any }) {
   async function checkAndSubmitSitemap() {
     setSubmittingSitemap(true);
     try {
-      // Check sitemap exists locally
       const localCheck = await fetch("/sitemap.xml");
-      if (!localCheck.ok) {
-        throw new Error("Local sitemap.xml did not respond correctly");
-      }
+      if (!localCheck.ok) throw new Error(`sitemap.xml replied with status ${localCheck.status}`);
       setSitemapStatus("valid");
-      toast.success("sitemap.xml is active, verified, and correctly structured!");
-
-      // Submit to Google indexing
-      const sitemapUrl = `${origin}/sitemap.xml`;
-      await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { mode: 'no-cors' });
-      setSitemapStatus("submitted");
-      toast.success("Sitemap successfully pinged and registered with Google Indexing Engine!");
+      const res = await submitIndexing({ data: { clinicId: clinic.id } });
+      if (res.success) {
+        setSitemapStatus("submitted");
+        toast.success(res.message);
+      } else {
+        setSitemapStatus("valid");
+        toast.error(res.message);
+      }
     } catch (err: any) {
       console.error(err);
-      setSitemapStatus("submitted");
-      toast.success("Sitemap registered and submitted to Google indexing service!");
+      setSitemapStatus("unchecked");
+      toast.error(err?.message || "Could not submit your sitemap. Publish your website first.");
     } finally {
       setSubmittingSitemap(false);
     }
   }
+
 
   // Google Search Console verification flow
   async function handleVerifyGsc() {

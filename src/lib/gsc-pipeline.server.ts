@@ -4,12 +4,23 @@ export type GscSubmissionResult = {
   success: boolean;
   clinicUrl: string;
   sitemapUrl: string;
-  googlePingOk: boolean;
+  /** Sitemap actually reachable over HTTP (real status check). */
+  sitemapOk: boolean;
+  sitemapStatus: number;
+  /** IndexNow accepted the URL list (Bing, Yandex, Seznam, Naver). */
   indexNowOk: boolean;
+  indexNowStatus: number;
   timestamp: string;
   message: string;
 };
 
+/**
+ * Submits a clinic's public site for indexing.
+ *
+ * Only real outcomes are reported: we verify the sitemap responds, then push the
+ * URLs to IndexNow. Google retired its sitemap ping endpoint, so Google
+ * discovery happens through the sitemap + Search Console, not a ping call.
+ */
 export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<GscSubmissionResult> {
   const { data: clinic, error } = await supabaseAdmin
     .from("clinics")
@@ -22,56 +33,52 @@ export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<Gs
   }
 
   const appDomain = process.env.APP_URL || process.env.VITE_APP_URL || "https://clinicx.digiwil.com";
+  const host = clinic.custom_domain
+    ? clinic.custom_domain.replace(/^https?:\/\//, "")
+    : appDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+
   const baseUrl = clinic.custom_domain
-    ? `https://${clinic.custom_domain.replace(/^https?:\/\//, "")}`
+    ? `https://${host}`
     : `${appDomain.replace(/\/$/, "")}/c/${clinic.slug}`;
+  const sitemapUrl = `https://${host}/sitemap.xml`;
 
-  const sitemapUrl = clinic.custom_domain
-    ? `https://${clinic.custom_domain.replace(/^https?:\/\//, "")}/sitemap.xml`
-    : `${appDomain.replace(/\/$/, "")}/sitemap.xml`;
-
-  let googlePingOk = false;
-  let indexNowOk = false;
-
-  // 1. Google Sitemap Direct Ping API
+  // 1. Verify the sitemap is actually reachable.
+  let sitemapStatus = 0;
   try {
-    const gPingRes = await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, {
-      method: "GET",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ClinicX-GSC-Submitter/1.0)",
-      },
+    const res = await fetch(sitemapUrl, {
+      headers: { "User-Agent": "ClinicX-Indexing/1.0" },
+      redirect: "follow",
     });
-    googlePingOk = gPingRes.status < 500;
+    sitemapStatus = res.status;
   } catch (err) {
-    console.warn("[GSC Pipeline] Google sitemap ping failed:", err);
-    googlePingOk = true; // Non-fatal ping
+    console.warn("[Indexing] sitemap fetch failed:", err);
   }
+  const sitemapOk = sitemapStatus === 200;
 
-  // 2. IndexNow Protocol Ping (Google, Bing, Yandex, Seznam)
+  // 2. IndexNow submission (real status).
+  let indexNowStatus = 0;
   try {
-    const host = clinic.custom_domain ? clinic.custom_domain.replace(/^https?:\/\//, "") : "clinicx.digiwil.com";
-    const indexNowRes = await fetch("https://api.indexnow.org/indexnow", {
+    const res = await fetch("https://api.indexnow.org/indexnow", {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
         host,
         key: "clinicx_indexing_key_" + clinic.slug,
         keyLocation: `${baseUrl}/indexnow.txt`,
-        urlList: [baseUrl, `${baseUrl}#services`, `${baseUrl}#booking`, sitemapUrl],
+        urlList: [baseUrl, sitemapUrl],
       }),
     });
-    indexNowOk = indexNowRes.status === 200 || indexNowRes.status === 202;
+    indexNowStatus = res.status;
   } catch (err) {
-    console.warn("[GSC Pipeline] IndexNow submission failed:", err);
-    indexNowOk = true; // Non-fatal
+    console.warn("[Indexing] IndexNow submission failed:", err);
   }
+  const indexNowOk = indexNowStatus === 200 || indexNowStatus === 202;
 
-  // 3. Log Submission Event to Audit Log / System Activity
   const now = new Date().toISOString();
   try {
     await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: clinicId,
-      action: "gsc_auto_submitted",
+      action: "indexing_submitted",
       target_type: "clinic_website",
       target_id: clinicId,
       details: {
@@ -79,22 +86,32 @@ export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<Gs
         slug: clinic.slug,
         baseUrl,
         sitemapUrl,
-        googlePingOk,
+        sitemapOk,
+        sitemapStatus,
         indexNowOk,
+        indexNowStatus,
         submittedAt: now,
       },
     } as any);
   } catch {
-    /* Audit log fallback */
+    /* audit log is best-effort */
   }
 
+  const message = !sitemapOk
+    ? `Your sitemap did not respond (status ${sitemapStatus || "no response"}). Publish your website first, then submit again.`
+    : indexNowOk
+      ? `Sitemap is live and your pages were submitted for indexing (${baseUrl}).`
+      : `Sitemap is live, but the indexing service replied with status ${indexNowStatus || "no response"}. Submit the sitemap in Google Search Console.`;
+
   return {
-    success: true,
+    success: sitemapOk && indexNowOk,
     clinicUrl: baseUrl,
     sitemapUrl,
-    googlePingOk,
+    sitemapOk,
+    sitemapStatus,
     indexNowOk,
+    indexNowStatus,
     timestamp: now,
-    message: `Website submitted to Google Search Console & IndexNow for instant indexing: ${baseUrl}`,
+    message,
   };
 }
