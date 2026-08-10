@@ -7,10 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Settings, Shield, Download, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { normalizeLeadPopup, type LeadPopupConfig } from "@/components/clinic/lead-capture";
 
 export function SettingsView() {
   const { state, patch } = useWebsiteBuilder();
   const dt = state.design_tokens;
+  const lp = normalizeLeadPopup(state.lead_popup);
+
+  function setLp(partial: Partial<LeadPopupConfig>) {
+    patch({ lead_popup: { ...lp, ...partial } });
+  }
+
+  function preview(text: string) {
+    return text.replace(/\{offer\}/g, lp.offer).replace(/\{doctor\}/g, dt.brandName || "our team");
+  }
 
   function handleExportBackup() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
