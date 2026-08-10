@@ -179,6 +179,27 @@ function WhatsAppPage() {
     setTemplates((cur) => cur.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
+  const [creatingKey, setCreatingKey] = useState<string | null>(null);
+
+  /** Create a missing automation template from the built-in default copy. */
+  async function createDefaultTemplate(key: string) {
+    if (!org?.id) return;
+    const def = DEFAULT_TEMPLATES.find((d) => d.key === key);
+    if (!def) return toast.error("No default copy available for this automation");
+    setCreatingKey(key);
+    const { error } = await supabase.from("whatsapp_templates").insert({
+      organization_id: org.id,
+      template_key: def.key,
+      name: def.name,
+      body: def.body,
+      is_active: true,
+    });
+    setCreatingKey(null);
+    if (error) return toast.error(error.message);
+    toast.success(`${def.name} is now active`);
+    load();
+  }
+
   async function toggleTemplateActive(id: string, isActive: boolean) {
     updateLocal(id, { is_active: isActive });
     const { error } = await supabase
@@ -430,16 +451,16 @@ function WhatsAppPage() {
           <Card className="p-5">
             <h3 className="font-medium mb-4">Automation map</h3>
             <ul className="divide-y">
-              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} onToggle={toggleTemplateActive} />
+              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
               Lab report, prescription, discharge, OPD token, bill & camp templates are triggered manually via <strong>Quick Send</strong> or your EHR/LIS integration.
