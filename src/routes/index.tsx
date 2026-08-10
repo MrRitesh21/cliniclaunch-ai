@@ -173,7 +173,7 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
           clinicId={c.id}
           slug={c.slug}
           doctorName={c.doctor_name}
-          offer="20% off your first consultation"
+          config={(c as any).lead_popup}
         />
       </main>
       <Footer clinic={c} />

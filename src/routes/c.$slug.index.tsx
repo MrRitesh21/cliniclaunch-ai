@@ -21,7 +21,7 @@ function ClinicHome() {
     return (
       <>
         <CustomTemplateSite html={template.html} css={template.css} />
-        <LeadCapture clinicId={c.id} slug={c.slug} doctorName={c.doctor_name} offer="20% off your first consultation" />
+        <LeadCapture clinicId={c.id} slug={c.slug} doctorName={c.doctor_name} config={(c as any).lead_popup} />
       </>
     );
   }
@@ -48,7 +48,7 @@ function ClinicHome() {
         const Comp = getVariantComponent(key, variants[key]);
         return <Comp key={key} clinic={c} />;
       })}
-      <LeadCapture clinicId={c.id} slug={c.slug} doctorName={c.doctor_name} offer="20% off your first consultation" />
+      <LeadCapture clinicId={c.id} slug={c.slug} doctorName={c.doctor_name} config={(c as any).lead_popup} />
     </>
   );
 }

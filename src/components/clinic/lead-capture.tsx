@@ -10,19 +10,64 @@ import { submitLead } from "@/lib/leads";
 
 const STORAGE_KEY = (slug: string) => `clinicx.lead.shown.${slug}`;
 
-export function LeadCapture({ clinicId, slug, doctorName, offer }: {
+/** Doctor-editable popup configuration, stored on `clinics.lead_popup`. */
+export type LeadPopupConfig = {
+  enabled: boolean;
+  offer: string;
+  headline: string;
+  subtext: string;
+  ctaLabel: string;
+  dismissLabel: string;
+  delaySeconds: number;
+  exitIntent: boolean;
+  scrollTrigger: boolean;
+  showFloatingButton: boolean;
+  floatingLabel: string;
+};
+
+export const DEFAULT_LEAD_POPUP: LeadPopupConfig = {
+  enabled: true,
+  offer: "20% off your first consultation",
+  headline: "Wait — get {offer}",
+  subtext: "Leave your number and {doctor}'s team will call you back to confirm your slot.",
+  ctaLabel: "Claim offer",
+  dismissLabel: "No thanks",
+  delaySeconds: 35,
+  exitIntent: true,
+  scrollTrigger: true,
+  showFloatingButton: true,
+  floatingLabel: "Free callback",
+};
+
+export function normalizeLeadPopup(raw: unknown): LeadPopupConfig {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Partial<LeadPopupConfig>;
+  return {
+    ...DEFAULT_LEAD_POPUP,
+    ...r,
+    delaySeconds: Number.isFinite(Number(r.delaySeconds)) ? Number(r.delaySeconds) : DEFAULT_LEAD_POPUP.delaySeconds,
+  };
+}
+
+function fill(text: string, doctorName: string, offer: string) {
+  return text.replace(/\{offer\}/g, offer).replace(/\{doctor\}/g, doctorName);
+}
+
+export function LeadCapture({ clinicId, slug, doctorName, config }: {
   clinicId: string;
   slug: string;
   doctorName: string;
-  offer?: string | null;
+  config?: unknown;
 }) {
+  const cfg = normalizeLeadPopup(config);
+  const offer = cfg.offer;
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState<"callback" | "offer">("callback");
   const [popup, setPopup] = useState(false);
 
-  // Exit-intent / scroll trigger for popup
+  // Exit-intent / scroll / timer triggers, all doctor-configurable
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!cfg.enabled) return;
     if (sessionStorage.getItem(STORAGE_KEY(slug))) return;
 
     let triggered = false;
@@ -34,34 +79,35 @@ export function LeadCapture({ clinicId, slug, doctorName, offer }: {
     };
     const onMouseLeave = (e: MouseEvent) => { if (e.clientY <= 0) fire(); };
     const onScroll = () => { if (window.scrollY > window.innerHeight * 1.2) fire(); };
-    const timer = window.setTimeout(fire, 35000);
-    document.addEventListener("mouseleave", onMouseLeave);
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const timer = cfg.delaySeconds > 0 ? window.setTimeout(fire, cfg.delaySeconds * 1000) : undefined;
+    if (cfg.exitIntent) document.addEventListener("mouseleave", onMouseLeave);
+    if (cfg.scrollTrigger) window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      window.clearTimeout(timer);
+      if (timer) window.clearTimeout(timer);
       document.removeEventListener("mouseleave", onMouseLeave);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [slug]);
+  }, [slug, cfg.enabled, cfg.delaySeconds, cfg.exitIntent, cfg.scrollTrigger]);
 
   function openCallback() { setSource("callback"); setOpen(true); }
   function openOffer() { setSource("offer"); setPopup(false); setOpen(true); }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openCallback}
-        aria-label="Request a free callback"
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 group flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-4 pr-5 py-3 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition active:scale-95"
-      >
-        <span className="relative flex size-8 items-center justify-center rounded-full bg-primary-foreground/15">
-          <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/30" />
-          <Phone className="size-4 relative" />
-        </span>
-        <span className="text-sm font-medium hidden sm:inline">Free callback</span>
-        <span className="text-sm font-medium sm:hidden">Call back</span>
-      </button>
+      {cfg.showFloatingButton && (
+        <button
+          type="button"
+          onClick={openCallback}
+          aria-label="Request a free callback"
+          className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 group flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-4 pr-5 py-3 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition active:scale-95"
+        >
+          <span className="relative flex size-8 items-center justify-center rounded-full bg-primary-foreground/15">
+            <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/30" />
+            <Phone className="size-4 relative" />
+          </span>
+          <span className="text-sm font-medium">{cfg.floatingLabel}</span>
+        </button>
+      )}
 
       {/* Exit-intent popup */}
       {popup && (
@@ -75,12 +121,10 @@ export function LeadCapture({ clinicId, slug, doctorName, offer }: {
             <div className="size-12 rounded-xl bg-primary/10 text-primary grid place-items-center">
               <Sparkles className="size-6" />
             </div>
-            <h3 className="font-display text-2xl mt-4">Wait — get {offer || "20% off your first consultation"}</h3>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Leave your number and {doctorName.split(" ").slice(-1)[0] ? `${doctorName}'s` : "our"} team will call you back to confirm your slot.
-            </p>
-            <Button className="w-full mt-5" size="lg" onClick={openOffer}>Claim offer</Button>
-            <button onClick={() => setPopup(false)} className="block mx-auto mt-3 text-xs text-muted-foreground hover:text-foreground">No thanks</button>
+            <h3 className="font-display text-2xl mt-4">{fill(cfg.headline, doctorName, offer)}</h3>
+            <p className="text-muted-foreground mt-2 text-sm">{fill(cfg.subtext, doctorName, offer)}</p>
+            <Button className="w-full mt-5" size="lg" onClick={openOffer}>{cfg.ctaLabel}</Button>
+            <button onClick={() => setPopup(false)} className="block mx-auto mt-3 text-xs text-muted-foreground hover:text-foreground">{cfg.dismissLabel}</button>
           </div>
         </div>
       )}

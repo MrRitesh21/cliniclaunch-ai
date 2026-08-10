@@ -4,6 +4,7 @@ import { submitClinicToGoogleServerFn } from "@/lib/gsc-pipeline.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { DEFAULT_SECTION_ORDER, type SectionKey, type SectionVariants } from "@/components/site/types";
+import { normalizeLeadPopup } from "@/components/clinic/lead-capture";
 import type { EditorState, WebsiteTab, DeviceMode, DesignTokens, PageItem } from "../types";
 
 const defaultDesignTokens: DesignTokens = {
@@ -131,6 +132,7 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
       },
       pages: defaultPages,
       custom_domain: (c?.custom_domain as string) ?? undefined,
+      lead_popup: normalizeLeadPopup(c?.lead_popup),
     };
   }, [clinic]);
 
@@ -213,6 +215,7 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
           public_phone: activeState.public_phone,
           public_email: activeState.public_email,
           public_address: activeState.public_address,
+          lead_popup: JSON.parse(JSON.stringify(activeState.lead_popup)),
         })
         .eq("id", clinic.id);
       setSaving(false);
@@ -250,6 +253,7 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
         public_phone: state.public_phone,
         public_email: state.public_email,
         public_address: state.public_address,
+        lead_popup: JSON.parse(JSON.stringify(state.lead_popup)),
       })
       .eq("id", clinic.id);
     setSaving(false);

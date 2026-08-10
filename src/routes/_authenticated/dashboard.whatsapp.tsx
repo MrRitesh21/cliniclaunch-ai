@@ -179,6 +179,27 @@ function WhatsAppPage() {
     setTemplates((cur) => cur.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
+  const [creatingKey, setCreatingKey] = useState<string | null>(null);
+
+  /** Create a missing automation template from the built-in default copy. */
+  async function createDefaultTemplate(key: string) {
+    if (!org?.id) return;
+    const def = DEFAULT_TEMPLATES.find((d) => d.key === key);
+    if (!def) return toast.error("No default copy available for this automation");
+    setCreatingKey(key);
+    const { error } = await supabase.from("whatsapp_templates").insert({
+      organization_id: org.id,
+      template_key: def.key,
+      name: def.name,
+      body: def.body,
+      is_active: true,
+    });
+    setCreatingKey(null);
+    if (error) return toast.error(error.message);
+    toast.success(`${def.name} is now active`);
+    load();
+  }
+
   async function toggleTemplateActive(id: string, isActive: boolean) {
     updateLocal(id, { is_active: isActive });
     const { error } = await supabase
@@ -430,16 +451,16 @@ function WhatsAppPage() {
           <Card className="p-5">
             <h3 className="font-medium mb-4">Automation map</h3>
             <ul className="divide-y">
-              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} onToggle={toggleTemplateActive} />
-              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} onToggle={toggleTemplateActive} />
+              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
               Lab report, prescription, discharge, OPD token, bill & camp templates are triggered manually via <strong>Quick Send</strong> or your EHR/LIS integration.
@@ -1236,29 +1257,57 @@ function LogsTab({ logs, onRefresh }: { logs: LogRow[]; onRefresh?: () => void }
 // ─── Automation row ────────────────────────────────────────────────────────────
 
 function AutomationRow({
-  label, trigger, templateKey, templates, onToggle,
+  label, trigger, templateKey, templates, logs, onToggle, onCreate, creatingKey,
 }: {
   label: string;
   trigger: string;
   templateKey: WaTemplateKey;
   templates: TemplateRow[];
+  logs: LogRow[];
   onToggle: (id: string, isActive: boolean) => void;
+  onCreate: (key: WaTemplateKey) => void;
+  creatingKey: string | null;
 }) {
+  const creating = creatingKey === templateKey;
   const t = templates.find((x) => x.template_key === templateKey);
-  if (!t) return null;
+  const sentCount = logs.filter((l) => l.template_key === templateKey).length;
+  const def = DEFAULT_TEMPLATES.find((d) => d.key === templateKey);
+  const preview = (t?.body ?? def?.body ?? "").split("\n").filter(Boolean)[0] ?? "";
+
   return (
-    <li className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-      <div>
-        <div className="font-medium text-sm">{label}</div>
-        <div className="text-xs text-muted-foreground">{trigger}</div>
+    <li className="flex items-start justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium text-sm">{label}</span>
+          {def?.audience && (
+            <Badge variant="outline" className="text-[10px] capitalize">{def.audience}</Badge>
+          )}
+          {!t && <Badge variant="secondary" className="text-[10px]">Not set up</Badge>}
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">{trigger}</div>
+        {preview && (
+          <p className="text-xs text-muted-foreground/80 mt-1 line-clamp-2 font-mono">{preview}</p>
+        )}
+        <div className="text-[11px] text-muted-foreground mt-1">
+          {sentCount > 0 ? `${sentCount} message${sentCount === 1 ? "" : "s"} sent so far` : "No messages sent yet"}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">{t.is_active ? "Active" : "Paused"}</span>
-        <Switch checked={t.is_active} onCheckedChange={(v) => onToggle(t.id, v)} />
+      <div className="flex items-center gap-2 shrink-0 pt-0.5">
+        {t ? (
+          <>
+            <span className="text-xs text-muted-foreground">{t.is_active ? "Active" : "Paused"}</span>
+            <Switch checked={t.is_active} onCheckedChange={(v) => onToggle(t.id, v)} />
+          </>
+        ) : (
+          <Button size="sm" variant="outline" disabled={creating} onClick={() => onCreate(templateKey)}>
+            {creating ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5 mr-1" />} Set up
+          </Button>
+        )}
       </div>
     </li>
   );
 }
+
 
 // ─── Test dialog ───────────────────────────────────────────────────────────────
 

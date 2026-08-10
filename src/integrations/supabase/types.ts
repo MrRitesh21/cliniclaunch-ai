@@ -709,6 +709,7 @@ export type Database = {
           hero_subheadline: string | null
           id: string
           is_published: boolean
+          lead_popup: Json | null
           logo_url: string | null
           medical_registration_no: string | null
           organization_id: string
@@ -785,6 +786,7 @@ export type Database = {
           hero_subheadline?: string | null
           id?: string
           is_published?: boolean
+          lead_popup?: Json | null
           logo_url?: string | null
           medical_registration_no?: string | null
           organization_id: string
@@ -861,6 +863,7 @@ export type Database = {
           hero_subheadline?: string | null
           id?: string
           is_published?: boolean
+          lead_popup?: Json | null
           logo_url?: string | null
           medical_registration_no?: string | null
           organization_id?: string

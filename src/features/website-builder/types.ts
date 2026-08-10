@@ -1,3 +1,4 @@
+import type { LeadPopupConfig } from "@/components/clinic/lead-capture";
 import type { SectionKey, SectionVariants } from "@/components/site/types";
 
 export type WebsiteTab =
@@ -107,6 +108,7 @@ export type EditorState = {
   design_tokens: DesignTokens;
   pages: PageItem[];
   custom_domain?: string;
+  lead_popup: LeadPopupConfig;
 };
 
 export type TemplateCategory =
