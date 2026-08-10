@@ -451,16 +451,16 @@ function WhatsAppPage() {
           <Card className="p-5">
             <h3 className="font-medium mb-4">Automation map</h3>
             <ul className="divide-y">
-              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
-              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creating={creatingKey === null ? false : true} />
+              <AutomationRow label="Booking alert → doctor" trigger="Immediately after booking" templateKey="appointment_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Booking received → patient" trigger="Immediately after booking" templateKey="appointment_received" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Appointment confirmed → patient" trigger="When doctor confirms" templateKey="appointment_confirmed" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="24-hour reminder → patient" trigger="Hourly cron — 24 h before visit" templateKey="appointment_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Walk-in alert → doctor" trigger="Walk-in registration" templateKey="walkin_doctor_alert" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Walk-in confirmation → patient" trigger="Walk-in registration" templateKey="walkin_confirmation" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Post-visit follow-up → patient" trigger="3 days after completion" templateKey="followup" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Review request → patient" trigger="7 days after completion" templateKey="review_request" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Birthday wishes → patient" trigger="Daily cron on birth date" templateKey="birthday_wishes" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
+              <AutomationRow label="Vaccination reminder → patient" trigger="Daily cron — 7 days before due date" templateKey="vaccination_reminder" templates={templates} logs={logs} onToggle={toggleTemplateActive} onCreate={createDefaultTemplate} creatingKey={creatingKey} />
             </ul>
             <p className="text-xs text-muted-foreground mt-4">
               Lab report, prescription, discharge, OPD token, bill & camp templates are triggered manually via <strong>Quick Send</strong> or your EHR/LIS integration.
@@ -1257,7 +1257,7 @@ function LogsTab({ logs, onRefresh }: { logs: LogRow[]; onRefresh?: () => void }
 // ─── Automation row ────────────────────────────────────────────────────────────
 
 function AutomationRow({
-  label, trigger, templateKey, templates, logs, onToggle, onCreate, creating,
+  label, trigger, templateKey, templates, logs, onToggle, onCreate, creatingKey,
 }: {
   label: string;
   trigger: string;
@@ -1266,8 +1266,9 @@ function AutomationRow({
   logs: LogRow[];
   onToggle: (id: string, isActive: boolean) => void;
   onCreate: (key: WaTemplateKey) => void;
-  creating: boolean;
+  creatingKey: string | null;
 }) {
+  const creating = creatingKey === templateKey;
   const t = templates.find((x) => x.template_key === templateKey);
   const sentCount = logs.filter((l) => l.template_key === templateKey).length;
   const def = DEFAULT_TEMPLATES.find((d) => d.key === templateKey);
