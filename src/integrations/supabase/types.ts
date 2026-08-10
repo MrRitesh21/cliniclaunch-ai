@@ -1277,6 +1277,7 @@ export type Database = {
           specialization: string | null
           updated_at: string
           user_id: string | null
+          working_hours: Json
         }
         Insert: {
           avatar_url?: string | null
@@ -1294,6 +1295,7 @@ export type Database = {
           specialization?: string | null
           updated_at?: string
           user_id?: string | null
+          working_hours?: Json
         }
         Update: {
           avatar_url?: string | null
@@ -1311,6 +1313,7 @@ export type Database = {
           specialization?: string | null
           updated_at?: string
           user_id?: string | null
+          working_hours?: Json
         }
         Relationships: [
           {
