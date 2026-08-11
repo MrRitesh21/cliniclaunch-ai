@@ -106,14 +106,6 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <button
-              onClick={() => setCmdOpen(true)}
-              className="hidden lg:flex items-center gap-2 h-9 px-3 text-xs text-muted-foreground bg-muted/60 hover:bg-muted border border-border/60 rounded-xl transition-all font-medium"
-            >
-              <Search className="size-3.5" />
-              <span>Search...</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-background border rounded text-muted-foreground">⌘K</kbd>
-            </button>
 
             <Button
               variant="ghost"
