@@ -37,14 +37,6 @@ export function OverviewView() {
 
   const publicUrl = `/c/${clinic?.slug}`;
 
-  function handleDuplicate() {
-    toast.success("Clinic website template cloned as draft copy");
-  }
-
-  function handleRestoreBackup() {
-    toast.success("Restored previous published snapshot from backup");
-  }
-
   return (
     <div className="space-y-6 pb-12">
       {/* Header Banner */}
