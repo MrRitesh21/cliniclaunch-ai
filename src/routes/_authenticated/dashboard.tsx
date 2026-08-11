@@ -598,7 +598,8 @@ function DashboardLayout() {
 
   useEffect(() => {
     if (clinic === null) {
-      supabase.auth.getUser().then(({ data: { user } }) => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const user = session?.user;
         if (user?.email) {
           supabase
             .from("organization_invites" as any)
@@ -632,6 +633,7 @@ function DashboardLayout() {
 
   async function startFreeTrial() {
     clearDemoSessionFlags();
+    clearCachePrefix();
     await supabase.auth.signOut();
     toast.success("Starting your 14-day free trial setup");
     window.location.href = "/login";

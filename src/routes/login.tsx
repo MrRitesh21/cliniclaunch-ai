@@ -62,7 +62,8 @@ function LoginPage() {
       return;
     }
 
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getSession().then(({ data: sessionData }) => {
+      const data = { user: sessionData.session?.user ?? null };
       if (data.user) {
         if (searchEmail && data.user.email?.toLowerCase() !== searchEmail.toLowerCase()) {
           supabase.auth.signOut().then(() => {
