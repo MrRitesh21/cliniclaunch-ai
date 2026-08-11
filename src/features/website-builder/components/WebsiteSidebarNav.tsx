@@ -18,6 +18,7 @@ import {
   Globe,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
 } from "lucide-react";
 
 type NavItem = {
@@ -47,8 +48,54 @@ const advancedItems: NavItem[] = [
   { id: "domain", label: "Custom Domain", icon: Globe },
 ];
 
+function NavButton({
+  item,
+  isActive,
+  isCollapsed,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  isCollapsed: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      onClick={onClick}
+      title={item.label}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+        isActive
+          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+      }`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Icon className={`size-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+        <span className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"}`}>
+          {item.label}
+        </span>
+      </div>
+      {item.badge && (
+        <span
+          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+            isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"
+          } ${
+            isActive
+              ? "bg-primary-foreground/20 text-primary-foreground"
+              : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+          }`}
+        >
+          {item.badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
 export function WebsiteSidebarNav() {
   const { activeTab, setActiveTab } = useWebsiteBuilder();
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("clinicx_studio_sidebar_collapsed") === "true";
@@ -89,45 +136,40 @@ export function WebsiteSidebarNav() {
         </div>
 
         <nav className="space-y-0.5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                title={item.label}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  isActive
-                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`size-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
-                  <span className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"}`}>
-                    {item.label}
-                  </span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                      isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"
-                    } ${
-                      isActive
-                        ? "bg-primary-foreground/20 text-primary-foreground"
-                        : item.badge === "AI"
-                        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                        : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {essentialItems.map((item) => (
+            <NavButton
+              key={item.id}
+              item={item}
+              isActive={activeTab === item.id}
+              isCollapsed={isCollapsed}
+              onClick={() => setActiveTab(item.id)}
+            />
+          ))}
         </nav>
+
+        <div className="pt-2">
+          <button
+            onClick={() => setShowAdvanced((v) => !v)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 transition-colors ${isCollapsed ? "hidden group-hover/studiosidebar:flex" : "flex"}`}
+          >
+            <span>Advanced (optional)</span>
+            <ChevronDown className={`size-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+          </button>
+
+          {showAdvanced && (
+            <nav className="space-y-0.5 mt-1">
+              {advancedItems.map((item) => (
+                <NavButton
+                  key={item.id}
+                  item={item}
+                  isActive={activeTab === item.id}
+                  isCollapsed={isCollapsed}
+                  onClick={() => setActiveTab(item.id)}
+                />
+              ))}
+            </nav>
+          )}
+        </div>
       </div>
 
       {/* Footer Info Box */}
