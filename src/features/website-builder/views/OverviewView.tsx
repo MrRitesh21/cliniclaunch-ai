@@ -15,10 +15,8 @@ import {
   CalendarCheck,
   TrendingUp,
   CheckCircle2,
-  AlertCircle,
   Eye,
 } from "lucide-react";
-import { toast } from "sonner";
 import { DoctorSteps } from "../components/DoctorSteps";
 
 
@@ -28,9 +26,7 @@ export function OverviewView() {
     isPublished,
     publishedAt,
     updatedAt,
-    save,
     togglePublish,
-    setActiveTab,
     setIsFloatingAIOpen,
     triggerGscSubmission,
   } = useWebsiteBuilder();
