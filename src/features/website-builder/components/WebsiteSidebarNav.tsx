@@ -27,21 +27,24 @@ type NavItem = {
   badge?: string;
 };
 
-const navItems: NavItem[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "templates", label: "Templates", icon: Palette, badge: "Marketplace" },
-  { id: "customize", label: "Customize Tokens", icon: Sliders },
+const essentialItems: NavItem[] = [
+  { id: "overview", label: "Start here", icon: LayoutDashboard },
+  { id: "templates", label: "1. Pick a look", icon: Palette },
+  { id: "customize", label: "2. Clinic name & logo", icon: Sliders },
+  { id: "sections", label: "3. Edit content", icon: LayoutGrid },
+  { id: "settings", label: "4. Contact & popup", icon: Settings },
+  { id: "publish", label: "5. Go live", icon: Rocket },
+];
+
+const advancedItems: NavItem[] = [
   { id: "pages", label: "Pages", icon: Layers },
-  { id: "sections", label: "Sections & Editor", icon: LayoutGrid },
   { id: "media", label: "Media Library", icon: Image },
   { id: "theme", label: "Themes", icon: Paintbrush },
   { id: "ai", label: "AI Assistant", icon: Sparkles, badge: "AI" },
   { id: "seo", label: "SEO Center", icon: Search },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "integrations", label: "Integrations", icon: Plug },
-  { id: "publish", label: "Publish & History", icon: Rocket },
-  { id: "domain", label: "Custom Domain", icon: Globe, badge: "Live" },
-  { id: "settings", label: "White Label & Settings", icon: Settings },
+  { id: "domain", label: "Custom Domain", icon: Globe },
 ];
 
 export function WebsiteSidebarNav() {
