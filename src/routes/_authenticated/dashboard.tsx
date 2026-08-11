@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useOrganization } from "@/hooks/useOrganization";
+import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -105,6 +106,12 @@ export function useClinic() {
       return () => { active = false; };
     }
 
+    // Paint the last known clinic instantly, then revalidate in the background.
+    const cachedClinic = readCache<Clinic>(`clinic:${getImpersonationCookie() || user.id}`, 24 * 60 * 60 * 1000);
+    if (cachedClinic) setClinic(cachedClinic);
+
+
+
     (async () => {
       const targetId = getImpersonationCookie() || user.id;
 
@@ -173,6 +180,7 @@ export function useClinic() {
         clinicData = createdClinic as Clinic | null;
       }
 
+      if (clinicData) writeCache(`clinic:${targetId}`, clinicData);
       if (active) setClinic(clinicData);
     })();
     return () => { active = false; };
@@ -590,7 +598,8 @@ function DashboardLayout() {
 
   useEffect(() => {
     if (clinic === null) {
-      supabase.auth.getUser().then(({ data: { user } }) => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const user = session?.user;
         if (user?.email) {
           supabase
             .from("organization_invites" as any)
@@ -616,6 +625,7 @@ function DashboardLayout() {
 
   async function signOut() {
     clearDemoSessionFlags();
+    clearCachePrefix();
     await supabase.auth.signOut();
     toast.success("Signed out");
     navigate({ to: "/login" });
@@ -623,6 +633,7 @@ function DashboardLayout() {
 
   async function startFreeTrial() {
     clearDemoSessionFlags();
+    clearCachePrefix();
     await supabase.auth.signOut();
     toast.success("Starting your 14-day free trial setup");
     window.location.href = "/login";
