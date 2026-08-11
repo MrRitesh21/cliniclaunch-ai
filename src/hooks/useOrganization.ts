@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { readCache, writeCache } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
 
 export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
@@ -50,11 +51,15 @@ let cache: Snapshot | undefined;
 let inFlight: Promise<Snapshot> | null = null;
 const listeners = new Set<(s: Snapshot) => void>();
 
+const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 function publish(s: Snapshot) {
   cache = s;
   cacheAt = Date.now();
+  if (cacheUserId) writeCache(`org:${cacheUserId}`, s);
   listeners.forEach((l) => l(s));
 }
+
 
 async function fetchSnapshot(userId: string): Promise<Snapshot> {
   const { data: mem } = await supabase
@@ -109,9 +114,17 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
     cache = undefined;
     cacheAt = 0;
     inFlight = null;
+    // Paint the last known snapshot immediately, then revalidate below.
+    const persisted = readCache<Snapshot>(`org:${userId}`, PERSIST_MAX_AGE_MS);
+    if (persisted) {
+      cache = persisted;
+      listeners.forEach((l) => l(persisted));
+    }
   }
   if (!force && cache && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
   if (inFlight) return inFlight;
+
+
 
   inFlight = fetchSnapshot(userId)
     .then((s) => {
