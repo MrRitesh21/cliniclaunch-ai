@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, Menu, X, Sun, Moon, Monitor, Sparkles, ArrowRight, ShieldCheck, CheckCircle2, Search } from "lucide-react";
+import { Stethoscope, Menu, X, Sun, Moon, Monitor, Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { CommandPalette } from "./CommandPalette";
