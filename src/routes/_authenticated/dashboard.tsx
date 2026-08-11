@@ -624,6 +624,7 @@ function DashboardLayout() {
 
   async function signOut() {
     clearDemoSessionFlags();
+    clearCachePrefix();
     await supabase.auth.signOut();
     toast.success("Signed out");
     navigate({ to: "/login" });
