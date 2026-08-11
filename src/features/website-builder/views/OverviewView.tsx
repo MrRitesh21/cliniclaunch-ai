@@ -10,18 +10,15 @@ import {
   Search,
   Sparkles,
   ExternalLink,
-  Copy,
-  RotateCcw,
   Rocket,
   Users,
   CalendarCheck,
   TrendingUp,
   CheckCircle2,
-  AlertCircle,
   Eye,
-  Zap,
 } from "lucide-react";
-import { toast } from "sonner";
+import { DoctorSteps } from "../components/DoctorSteps";
+
 
 export function OverviewView() {
   const {
@@ -29,22 +26,12 @@ export function OverviewView() {
     isPublished,
     publishedAt,
     updatedAt,
-    save,
     togglePublish,
-    setActiveTab,
     setIsFloatingAIOpen,
     triggerGscSubmission,
   } = useWebsiteBuilder();
 
   const publicUrl = `/c/${clinic?.slug}`;
-
-  function handleDuplicate() {
-    toast.success("Clinic website template cloned as draft copy");
-  }
-
-  function handleRestoreBackup() {
-    toast.success("Restored previous published snapshot from backup");
-  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -178,61 +165,12 @@ export function OverviewView() {
         </Card>
       </div>
 
+      {/* Doctor-first guided steps */}
+      <DoctorSteps />
+
       {/* Quick Tooling Actions & Health Checklist */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Quick Management Buttons */}
-        <Card className="p-5 rounded-2xl border-border/50 space-y-4">
-          <h3 className="text-sm font-bold tracking-tight">Quick Site Management</h3>
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <Button
-              variant="outline"
-              onClick={() => setActiveTab("templates")}
-              className="h-12 rounded-xl justify-start gap-2.5 font-medium border-border/60 hover:bg-muted"
-            >
-              <Zap className="size-4 text-blue-500" />
-              <div className="text-left">
-                <p className="font-semibold text-xs leading-none">Templates</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Switch clinic layout</p>
-              </div>
-            </Button>
+      <div className="grid grid-cols-1 gap-6">
 
-            <Button
-              variant="outline"
-              onClick={() => setActiveTab("seo")}
-              className="h-12 rounded-xl justify-start gap-2.5 font-medium border-border/60 hover:bg-muted"
-            >
-              <Search className="size-4 text-emerald-500" />
-              <div className="text-left">
-                <p className="font-semibold text-xs leading-none">SEO Center</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Google indexing</p>
-              </div>
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleDuplicate}
-              className="h-12 rounded-xl justify-start gap-2.5 font-medium border-border/60 hover:bg-muted"
-            >
-              <Copy className="size-4 text-purple-500" />
-              <div className="text-left">
-                <p className="font-semibold text-xs leading-none">Duplicate Site</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Create sandbox draft</p>
-              </div>
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handleRestoreBackup}
-              className="h-12 rounded-xl justify-start gap-2.5 font-medium border-border/60 hover:bg-muted"
-            >
-              <RotateCcw className="size-4 text-amber-500" />
-              <div className="text-left">
-                <p className="font-semibold text-xs leading-none">Restore Backup</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Rollback snapshot</p>
-              </div>
-            </Button>
-          </div>
-        </Card>
 
         {/* Website Audit Checklist */}
         <Card className="p-5 rounded-2xl border-border/50 space-y-3">
