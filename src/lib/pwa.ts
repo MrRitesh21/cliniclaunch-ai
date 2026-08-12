@@ -27,10 +27,45 @@ export function registerPWA() {
       .register("/sw.js")
       .then((reg) => {
         console.log("[ClinicX PWA] Service worker registered successfully:", reg.scope);
+        watchForUpdates(reg);
       })
       .catch((err) => {
         console.warn("[ClinicX PWA] Service worker registration failed:", err);
       });
+  });
+}
+
+/**
+ * Safe update flow: a new worker waits until the user accepts, then we ask it
+ * to activate and reload once. Prevents mid-session chunk mismatches.
+ */
+function watchForUpdates(reg: ServiceWorkerRegistration) {
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+
+  const promptUpdate = (worker: ServiceWorker) => {
+    import("sonner").then(({ toast }) => {
+      toast("A new version of ClinicX is ready", {
+        duration: Infinity,
+        action: { label: "Update", onClick: () => worker.postMessage({ type: "SKIP_WAITING" }) },
+      });
+    });
+  };
+
+  if (reg.waiting && navigator.serviceWorker.controller) promptUpdate(reg.waiting);
+
+  reg.addEventListener("updatefound", () => {
+    const installing = reg.installing;
+    if (!installing) return;
+    installing.addEventListener("statechange", () => {
+      if (installing.state === "installed" && navigator.serviceWorker.controller) {
+        promptUpdate(installing);
+      }
+    });
   });
 }
 
