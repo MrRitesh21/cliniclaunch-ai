@@ -5,6 +5,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useOrganization } from "@/hooks/useOrganization";
 import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
+import { InstallAppPrompt } from "@/components/app/InstallAppPrompt";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -840,6 +841,8 @@ function DashboardLayout() {
           </nav>
         </main>
       </div>
+
+      <InstallAppPrompt />
 
       {profileOpen && user && (
         <Dialog open={profileOpen} onOpenChange={setProfileOpen}>

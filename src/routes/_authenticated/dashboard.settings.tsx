@@ -13,7 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Upload, X, Copy, Globe, Image as ImageIcon, Palette, User, FileText, Loader2, Check, AlertCircle, RefreshCw, Clock, Phone as PhoneIcon, Lock, Eye, QrCode, ExternalLink, CheckCircle } from "lucide-react";
+import { Upload, X, Copy, Globe, Image as ImageIcon, Palette, User, FileText, Loader2, Check, AlertCircle, RefreshCw, Clock, Phone as PhoneIcon, Lock, Eye, QrCode, ExternalLink, CheckCircle, Bell } from "lucide-react";
+import { NotificationSettingsCard } from "@/components/app/NotificationSettingsCard";
 import { Switch } from "@/components/ui/switch";
 import type { SectionVariants } from "@/components/site/types";
 import { uploadClinicMedia } from "@/lib/upload";
@@ -277,7 +278,7 @@ function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 sm:grid-cols-8 h-auto">
+        <TabsList className="w-full grid grid-cols-3 sm:grid-cols-9 h-auto">
           <TabsTrigger value="profile" className="gap-1.5"><User className="size-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="contact" className="gap-1.5"><PhoneIcon className="size-3.5" /> Contact</TabsTrigger>
           <TabsTrigger value="schedule" className="gap-1.5"><Clock className="size-3.5" /> Schedule</TabsTrigger>
@@ -286,7 +287,13 @@ function SettingsPage() {
           <TabsTrigger value="gallery" className="gap-1.5"><ImageIcon className="size-3.5" /> Gallery</TabsTrigger>
           <TabsTrigger value="content" className="gap-1.5"><FileText className="size-3.5" /> Content</TabsTrigger>
           <TabsTrigger value="domain" className="gap-1.5"><Globe className="size-3.5" /> Domain</TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-1.5"><Bell className="size-3.5" /> Alerts</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="notifications" className="mt-4">
+          <NotificationSettingsCard />
+        </TabsContent>
+
 
 
         <TabsContent value="profile" className="mt-4">
