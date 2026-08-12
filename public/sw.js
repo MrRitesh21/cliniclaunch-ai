@@ -1,4 +1,4 @@
-const CACHE_NAME = "clinicx-pwa-v2";
+const CACHE_NAME = "clinicx-pwa-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -91,5 +91,99 @@ self.addEventListener("fetch", (event) => {
           headers: new Headers({ "Content-Type": "text/plain" }),
         });
       })
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Update handling — the page can ask a waiting worker to activate immediately.
+// ---------------------------------------------------------------------------
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Web Push (RFC 8291). Payload shape:
+// { title, body, icon, badge, url, tag, renotify, data }
+// ---------------------------------------------------------------------------
+function safeUrl(rawUrl) {
+  // Only same-origin paths may be opened from a notification.
+  try {
+    const target = new URL(rawUrl || "/", self.location.origin);
+    if (target.origin !== self.location.origin) return self.location.origin + "/";
+    return target.href;
+  } catch {
+    return self.location.origin + "/";
+  }
+}
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { title: "ClinicX", body: event.data.text() };
+    }
+  }
+
+  const title = payload.title || "ClinicX";
+  const url = safeUrl(payload.url);
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "",
+      icon: payload.icon || "/icon-512.png",
+      badge: payload.badge || "/icon-512.png",
+      tag: payload.tag || undefined,
+      renotify: payload.renotify === true,
+      data: { ...(payload.data || {}), url },
+      actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : undefined,
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = safeUrl(event.notification.data && event.notification.data.url);
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // Prefer focusing an existing window instead of opening a duplicate tab.
+      for (const client of clientList) {
+        if (new URL(client.url).origin === self.location.origin) {
+          await client.focus();
+          if ("navigate" in client) {
+            try {
+              await client.navigate(url);
+            } catch {
+              /* focused window kept as-is */
+            }
+          }
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
+  );
+});
+
+// Browser rotated the subscription — re-subscribe and let the app resync on
+// next load (the page re-registers the fresh endpoint with the backend).
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      const old = event.oldSubscription || (await self.registration.pushManager.getSubscription());
+      const key = (event.newSubscription && event.newSubscription.options.applicationServerKey) ||
+        (old && old.options && old.options.applicationServerKey);
+      if (!key) return;
+      try {
+        await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      } catch {
+        /* the app will re-subscribe on next visit */
+      }
+    })()
   );
 });
