@@ -13,7 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Upload, X, Copy, Globe, Image as ImageIcon, Palette, User, FileText, Loader2, Check, AlertCircle, RefreshCw, Clock, Phone as PhoneIcon, Lock, Eye, QrCode, ExternalLink, CheckCircle } from "lucide-react";
+import { Upload, X, Copy, Globe, Image as ImageIcon, Palette, User, FileText, Loader2, Check, AlertCircle, RefreshCw, Clock, Phone as PhoneIcon, Lock, Eye, QrCode, ExternalLink, CheckCircle, Bell } from "lucide-react";
+import { NotificationSettingsCard } from "@/components/app/NotificationSettingsCard";
 import { Switch } from "@/components/ui/switch";
 import type { SectionVariants } from "@/components/site/types";
 import { uploadClinicMedia } from "@/lib/upload";
