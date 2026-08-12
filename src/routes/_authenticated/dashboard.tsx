@@ -841,6 +841,8 @@ function DashboardLayout() {
         </main>
       </div>
 
+      <InstallAppPrompt />
+
       {profileOpen && user && (
         <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
           <DialogContent className="sm:max-w-md">
