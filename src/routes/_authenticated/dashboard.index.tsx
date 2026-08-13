@@ -44,6 +44,8 @@ import { AvatarInitials, SkeletonStatCards } from "@/components/ui/skeleton-rows
 import { SetupChecklistCard } from "@/components/dashboard/SetupChecklistCard";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus } from "@/lib/clinic.functions";
+import { readCache, writeCache } from "@/lib/persist-cache";
+import { useOnline } from "@/hooks/useOnline";
 
 interface TodayAppointment {
   id: string;
@@ -82,9 +84,23 @@ function Overview() {
   const [loadingAppts, setLoadingAppts] = useState(true);
 
   const updateStatusFn = useServerFn(updateAppointmentStatus);
+  const online = useOnline();
+  const [usingCachedStats, setUsingCachedStats] = useState(false);
 
   const fetchDashboardData = async () => {
     if (!clinic?.id) return;
+
+    // Offline: paint the last saved counts (no patient details) instead of a blank page.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cached = readCache<typeof stats>(`dash:stats:${clinic.id}`, 24 * 60 * 60 * 1000);
+      if (cached) setStats(cached);
+      setUsingCachedStats(true);
+      setTodayAppts([]);
+      setLoadingAppts(false);
+      return;
+    }
+
+    setUsingCachedStats(false);
     setLoadingAppts(true);
 
     const now = new Date();
@@ -155,7 +171,7 @@ function Overview() {
     const fee = clinic.consultation_fee ?? 500;
     const estRevenue = completedCount * fee;
 
-    setStats({
+    const nextStats = {
       todayTotal: todayRes.count ?? 0,
       todayCompleted: completedCount,
       pending: pendingRes.count ?? 0,
@@ -163,7 +179,9 @@ function Overview() {
       patients: uniquePhones.size,
       waitingQueue: queueRes.count ?? 0,
       todayRevenue: estRevenue,
-    });
+    };
+    setStats(nextStats);
+    writeCache(`dash:stats:${clinic.id}`, nextStats);
 
     setTodayAppts((todayListRes.data as TodayAppointment[]) ?? []);
     setLoadingAppts(false);
@@ -171,9 +189,15 @@ function Overview() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [clinic?.id]);
+  }, [clinic?.id, online]);
 
   const handleUpdateStatus = async (id: string, status: "confirmed" | "completed" | "cancelled") => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("You're offline — reconnect and try again", {
+        action: { label: "Retry", onClick: () => handleUpdateStatus(id, status) },
+      });
+      return;
+    }
     try {
       await updateStatusFn({ data: { id, status } });
       toast.success(`Appointment marked as ${status}`);
@@ -192,7 +216,9 @@ function Overview() {
         );
       }
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update status");
+      toast.error(err?.message || "Failed to update status", {
+        action: { label: "Retry", onClick: () => handleUpdateStatus(id, status) },
+      });
     }
   };
 
@@ -224,6 +250,15 @@ function Overview() {
 
   return (
     <div className="space-y-4">
+      {usingCachedStats && (
+        <div className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-2">
+          <span>Offline — showing your last saved totals. Patient details stay hidden until you reconnect.</span>
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={fetchDashboardData}>
+            <RefreshCw className="size-3 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
+
       {/* Doctor Header & Operational Cockpit */}
       <PageHeader
         title={`${greeting}, ${displayName}`}
