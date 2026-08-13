@@ -90,6 +90,7 @@ import { Route as AuthenticatedDashboardWalkinsRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardWebsiteRouteImport } from './routes/_authenticated/dashboard.website'
 import { Route as AuthenticatedDashboardWhatsappRouteImport } from './routes/_authenticated/dashboard.whatsapp'
 import { Route as ApiPublicHealthzRouteImport } from './routes/api/public/healthz'
+import { Route as ApiPublicPushEventRouteImport } from './routes/api.public.push-event'
 import { Route as ApiWaCronRouteImport } from './routes/api.wa.cron'
 import { Route as CSlugIndexRouteImport } from './routes/c.$slug.index'
 import { Route as CSlugAboutRouteImport } from './routes/c.$slug.about'
@@ -540,6 +541,11 @@ const ApiPublicHealthzRoute = ApiPublicHealthzRouteImport.update({
   path: '/api/public/healthz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPushEventRoute = ApiPublicPushEventRouteImport.update({
+  id: '/api/public/push-event',
+  path: '/api/public/push-event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWaCronRoute = ApiWaCronRouteImport.update({
   id: '/api/wa/cron',
   path: '/api/wa/cron',
@@ -702,6 +708,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
+  '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/wa/cron': typeof ApiWaCronRoute
   '/c/$slug/about': typeof CSlugAboutRoute
   '/c/$slug/book': typeof CSlugBookRoute
@@ -796,6 +803,7 @@ export interface FileRoutesByTo {
   '/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
+  '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/wa/cron': typeof ApiWaCronRoute
   '/c/$slug/about': typeof CSlugAboutRoute
   '/c/$slug/book': typeof CSlugBookRoute
@@ -896,6 +904,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/_authenticated/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
+  '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/wa/cron': typeof ApiWaCronRoute
   '/c/$slug/about': typeof CSlugAboutRoute
   '/c/$slug/book': typeof CSlugBookRoute
@@ -995,6 +1004,7 @@ export interface FileRouteTypes {
     | '/dashboard/website'
     | '/dashboard/whatsapp'
     | '/api/public/healthz'
+    | '/api/public/push-event'
     | '/api/wa/cron'
     | '/c/$slug/about'
     | '/c/$slug/book'
@@ -1089,6 +1099,7 @@ export interface FileRouteTypes {
     | '/dashboard/website'
     | '/dashboard/whatsapp'
     | '/api/public/healthz'
+    | '/api/public/push-event'
     | '/api/wa/cron'
     | '/c/$slug/about'
     | '/c/$slug/book'
@@ -1188,6 +1199,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/website'
     | '/_authenticated/dashboard/whatsapp'
     | '/api/public/healthz'
+    | '/api/public/push-event'
     | '/api/wa/cron'
     | '/c/$slug/about'
     | '/c/$slug/book'
@@ -1244,6 +1256,7 @@ export interface RootRouteChildren {
   RSlugRoute: typeof RSlugRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicHealthzRoute: typeof ApiPublicHealthzRoute
+  ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
   ApiWaCronRoute: typeof ApiWaCronRoute
   ApiPublicHooksRazorpayRoute: typeof ApiPublicHooksRazorpayRoute
   ApiPublicHooksSeoAutopilotRoute: typeof ApiPublicHooksSeoAutopilotRoute
@@ -1819,6 +1832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/push-event': {
+      id: '/api/public/push-event'
+      path: '/api/public/push-event'
+      fullPath: '/api/public/push-event'
+      preLoaderRoute: typeof ApiPublicPushEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/wa/cron': {
       id: '/api/wa/cron'
       path: '/api/wa/cron'
@@ -2137,6 +2157,7 @@ const rootRouteChildren: RootRouteChildren = {
   RSlugRoute: RSlugRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicHealthzRoute: ApiPublicHealthzRoute,
+  ApiPublicPushEventRoute: ApiPublicPushEventRoute,
   ApiWaCronRoute: ApiWaCronRoute,
   ApiPublicHooksRazorpayRoute: ApiPublicHooksRazorpayRoute,
   ApiPublicHooksSeoAutopilotRoute: ApiPublicHooksSeoAutopilotRoute,

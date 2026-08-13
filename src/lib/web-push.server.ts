@@ -207,21 +207,53 @@ export async function sendPush(
 
 /**
  * Fan-out to every active subscription of a user (multi-device) and clean up
- * endpoints the push service reports as gone.
+ * endpoints the push service reports as gone. Also writes the alert into the
+ * in-app inbox and records one analytics event per device.
  */
-export async function sendPushToUser(userId: string, payload: PushPayload) {
+export async function sendPushToUser(
+  userId: string,
+  payload: PushPayload,
+  opts: { inbox?: boolean; category?: string } = {},
+) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { createNotification, getUserPlanContext, hashEndpoint, recordPushEvents } = await import(
+    "./notifications.server"
+  );
 
   const { data: subs, error } = await supabaseAdmin
     .from("push_subscriptions")
-    .select("endpoint, p256dh, auth")
+    .select("endpoint, p256dh, auth, platform")
     .eq("user_id", userId)
     .eq("enabled", true);
 
   if (error) throw error;
-  if (!subs?.length) return { sent: 0, failed: 0, removed: 0 };
 
-  const results = await Promise.all(subs.map((s) => sendPush(s as PushTarget, payload)));
+  // The inbox row exists even when no device is subscribed, so alerts are never lost.
+  const notification =
+    opts.inbox === false
+      ? null
+      : await createNotification({
+          userId,
+          title: payload.title,
+          body: payload.body,
+          url: payload.url,
+          category: opts.category ?? "general",
+        }).catch(() => null);
+
+  const { organizationId, planId } = await getUserPlanContext(userId);
+
+  if (!subs?.length) return { sent: 0, failed: 0, removed: 0, notificationId: notification?.id ?? null };
+
+  const enriched: PushPayload = {
+    ...payload,
+    url: notification ? appendNotificationId(payload.url, notification.id) : payload.url,
+    data: {
+      ...(payload.data ?? {}),
+      ...(notification ? { nid: notification.id, ntoken: notification.event_token } : {}),
+    },
+  };
+
+  const results = await Promise.all(subs.map((s) => sendPush(s as PushTarget, enriched)));
 
   const expired = results.filter((r) => r.expired).map((r) => r.endpoint);
   if (expired.length) {
@@ -236,9 +268,32 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
       .in("endpoint", okEndpoints);
   }
 
+  const platformByEndpoint = new Map(subs.map((s) => [s.endpoint, s.platform ?? null]));
+  await recordPushEvents(
+    await Promise.all(
+      results.map(async (r) => ({
+        notificationId: notification?.id ?? null,
+        userId,
+        organizationId,
+        event: (r.ok ? "sent" : "failed") as "sent" | "failed",
+        endpointHash: await hashEndpoint(r.endpoint),
+        platform: platformByEndpoint.get(r.endpoint) ?? null,
+        planId,
+      })),
+    ),
+  ).catch(() => undefined);
+
   return {
     sent: okEndpoints.length,
     failed: results.filter((r) => !r.ok).length,
     removed: expired.length,
+    notificationId: notification?.id ?? null,
   };
 }
+
+/** Deep-link URLs carry the notification id so opening it can mark it read. */
+function appendNotificationId(url: string | undefined, id: string) {
+  const path = url && url.startsWith("/") ? url : "/dashboard";
+  return path.includes("?") ? `${path}&n=${id}` : `${path}?n=${id}`;
+}
+
