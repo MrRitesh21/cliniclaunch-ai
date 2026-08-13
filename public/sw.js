@@ -1,4 +1,4 @@
-const CACHE_NAME = "clinicx-pwa-v3";
+const CACHE_NAME = "clinicx-pwa-v4";
 const STATIC_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -118,6 +118,24 @@ function safeUrl(rawUrl) {
   }
 }
 
+function devicePlatform() {
+  const ua = self.navigator && self.navigator.userAgent ? self.navigator.userAgent : "";
+  if (/Android/.test(ua)) return "android";
+  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
+  return "desktop";
+}
+
+// Analytics beacon. The notification token proves this device received the push.
+function reportPushEvent(data, name) {
+  if (!data || !data.nid || !data.ntoken) return Promise.resolve();
+  return fetch("/api/public/push-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nid: data.nid, token: data.ntoken, event: name, platform: devicePlatform() }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   if (event.data) {
@@ -132,6 +150,8 @@ self.addEventListener("push", (event) => {
   const url = safeUrl(payload.url);
 
   event.waitUntil(
+    Promise.all([
+    reportPushEvent(payload.data, "delivered"),
     self.registration.showNotification(title, {
       body: payload.body || "",
       icon: payload.icon || "/icon-512.png",
@@ -140,7 +160,8 @@ self.addEventListener("push", (event) => {
       renotify: payload.renotify === true,
       data: { ...(payload.data || {}), url },
       actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : undefined,
-    })
+    }),
+    ])
   );
 });
 
@@ -150,6 +171,7 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(
     (async () => {
+      await reportPushEvent(event.notification.data, "clicked");
       const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       // Prefer focusing an existing window instead of opening a duplicate tab.
       for (const client of clientList) {

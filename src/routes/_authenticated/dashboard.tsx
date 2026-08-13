@@ -6,6 +6,8 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
 import { InstallAppPrompt } from "@/components/app/InstallAppPrompt";
+import { NotificationInbox } from "@/components/app/NotificationInbox";
+import { OfflineBanner } from "@/components/app/OfflineBanner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -729,6 +731,7 @@ function DashboardLayout() {
               <span className="font-display text-base">{platformName}</span>
             </Link>
             <div className="flex items-center gap-1">
+              <NotificationInbox />
               {publicClinicUrl && (
                 <a href={publicClinicUrl} target="_blank" rel="noreferrer">
                   <Button variant="ghost" size="icon" aria-label="View public site">
@@ -778,6 +781,7 @@ function DashboardLayout() {
             </div>
             
             <div className="flex items-center gap-3 shrink-0">
+              <NotificationInbox />
               <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => navigate({ to: "/dashboard/appointments" })}>
                 <Calendar className="size-4 mr-2" />
                 New Appointment
@@ -788,6 +792,8 @@ function DashboardLayout() {
               </Button>
             </div>
           </div>
+
+          <OfflineBanner />
 
           <div className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-4 sm:px-5 lg:px-6 pt-4 pb-24 md:pb-6"} page-enter`}>
             {isSubscriptionExpired && pathname !== "/dashboard/billing" ? (

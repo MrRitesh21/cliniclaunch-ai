@@ -2641,6 +2641,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          event_token: string
+          id: string
+          meta: Json
+          organization_id: string | null
+          read_at: string | null
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          event_token?: string
+          id?: string
+          meta?: Json
+          organization_id?: string | null
+          read_at?: string | null
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          event_token?: string
+          id?: string
+          meta?: Json
+          organization_id?: string | null
+          read_at?: string | null
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -3597,6 +3639,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      push_events: {
+        Row: {
+          created_at: string
+          endpoint_hash: string | null
+          event: string
+          id: string
+          notification_id: string | null
+          organization_id: string | null
+          plan_id: string | null
+          platform: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint_hash?: string | null
+          event: string
+          id?: string
+          notification_id?: string | null
+          organization_id?: string | null
+          plan_id?: string | null
+          platform?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint_hash?: string | null
+          event?: string
+          id?: string
+          notification_id?: string | null
+          organization_id?: string | null
+          plan_id?: string | null
+          platform?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_events_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
