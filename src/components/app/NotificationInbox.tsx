@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownUp, Bell, CheckCheck, Inbox, Search, Settings2 } from "lucide-react";
+import { ArrowDownUp, Bell, CheckCheck, Inbox, Mail, MailOpen, Search, Settings2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
+  deleteNotifications,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  setNotificationsRead,
   type InboxItem,
 } from "@/lib/notifications.functions";
 
@@ -31,11 +33,14 @@ export function NotificationInbox() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<"newest" | "unread">("newest");
+  const [selected, setSelected] = useState<string[]>([]);
   const navigate = useNavigate();
 
   const load = useServerFn(listNotifications);
   const markRead = useServerFn(markNotificationRead);
   const markAll = useServerFn(markAllNotificationsRead);
+  const setRead = useServerFn(setNotificationsRead);
+  const removeMany = useServerFn(deleteNotifications);
 
   const refresh = useCallback(async () => {
     try {
@@ -77,6 +82,34 @@ export function NotificationInbox() {
     setUnread(0);
     await markAll().catch(() => undefined);
   };
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  /** Optimistically flips read state for the given ids (single item or selection). */
+  const applyRead = async (ids: string[], read: boolean) => {
+    if (!ids.length) return;
+    const stamp = new Date().toISOString();
+    setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, read_at: read ? (i.read_at ?? stamp) : null } : i)));
+    setUnread((n) => {
+      const affected = items.filter((i) => ids.includes(i.id));
+      const delta = affected.filter((i) => (read ? !i.read_at : i.read_at)).length;
+      return Math.max(0, read ? n - delta : n + delta);
+    });
+    setSelected([]);
+    await setRead({ data: { ids, read } }).catch(() => refresh());
+  };
+
+  const handleDelete = async () => {
+    const ids = selected;
+    if (!ids.length) return;
+    const removedUnread = items.filter((i) => ids.includes(i.id) && !i.read_at).length;
+    setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+    setUnread((n) => Math.max(0, n - removedUnread));
+    setSelected([]);
+    await removeMany({ data: { ids } }).catch(() => refresh());
+  };
+
 
   const categories = useMemo(
     () => [...new Set(items.map((i) => i.category).filter(Boolean))].sort(),
