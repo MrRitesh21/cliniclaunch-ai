@@ -1,9 +1,11 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Bell, CheckCheck, Inbox } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { ArrowDownUp, Bell, CheckCheck, Inbox, Search, Settings2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   listNotifications,
@@ -26,6 +28,9 @@ export function NotificationInbox() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<InboxItem[]>([]);
   const [unread, setUnread] = useState(0);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState<"newest" | "unread">("newest");
   const navigate = useNavigate();
 
   const load = useServerFn(listNotifications);
@@ -73,6 +78,28 @@ export function NotificationInbox() {
     await markAll().catch(() => undefined);
   };
 
+  const categories = useMemo(
+    () => [...new Set(items.map((i) => i.category).filter(Boolean))].sort(),
+    [items],
+  );
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = items.filter((i) => {
+      if (category === "unread" ? Boolean(i.read_at) : category !== "all" && i.category !== category) return false;
+      if (!q) return true;
+      return `${i.title} ${i.body ?? ""} ${i.category}`.toLowerCase().includes(q);
+    });
+    return [...list].sort((a, b) => {
+      if (sort === "unread") {
+        const aUnread = a.read_at ? 1 : 0;
+        const bUnread = b.read_at ? 1 : 0;
+        if (aUnread !== bUnread) return aUnread - bUnread;
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [items, query, category, sort]);
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -99,13 +126,62 @@ export function NotificationInbox() {
           </SheetTitle>
         </SheetHeader>
 
+        <div className="px-4 py-3 border-b space-y-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search alerts"
+              className="pl-8 h-9"
+              aria-label="Search notifications"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-9 flex-1 text-xs" aria-label="Filter notifications">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All alerts</SelectItem>
+                <SelectItem value="unread">Unread only</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(v) => setSort(v as "newest" | "unread")}>
+              <SelectTrigger className="h-9 flex-1 text-xs" aria-label="Sort notifications">
+                <ArrowDownUp className="size-3.5 mr-1 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="unread">Unread first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Link
+            to="/dashboard/notifications"
+            onClick={() => setOpen(false)}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Settings2 className="size-3.5" /> Notification preferences
+          </Link>
+        </div>
+
         <div className="flex-1 overflow-y-auto divide-y">
           {items.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground text-center">
               No alerts yet. Booking, reminder and review alerts will show up here.
             </p>
           )}
-          {items.map((item) => (
+          {items.length > 0 && visible.length === 0 && (
+            <p className="p-6 text-sm text-muted-foreground text-center">No alerts match this search.</p>
+          )}
+          {visible.map((item) => (
             <button
               key={item.id}
               type="button"

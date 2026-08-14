@@ -3687,6 +3687,7 @@ export type Database = {
       push_subscriptions: {
         Row: {
           auth: string
+          categories: string[]
           created_at: string
           device_label: string | null
           enabled: boolean
@@ -3697,12 +3698,16 @@ export type Database = {
           last_used_at: string | null
           p256dh: string
           platform: string | null
+          quiet_end: string | null
+          quiet_start: string | null
+          timezone: string
           updated_at: string
           user_agent: string | null
           user_id: string
         }
         Insert: {
           auth: string
+          categories?: string[]
           created_at?: string
           device_label?: string | null
           enabled?: boolean
@@ -3713,12 +3718,16 @@ export type Database = {
           last_used_at?: string | null
           p256dh: string
           platform?: string | null
+          quiet_end?: string | null
+          quiet_start?: string | null
+          timezone?: string
           updated_at?: string
           user_agent?: string | null
           user_id: string
         }
         Update: {
           auth?: string
+          categories?: string[]
           created_at?: string
           device_label?: string | null
           enabled?: boolean
@@ -3729,6 +3738,9 @@ export type Database = {
           last_used_at?: string | null
           p256dh?: string
           platform?: string | null
+          quiet_end?: string | null
+          quiet_start?: string | null
+          timezone?: string
           updated_at?: string
           user_agent?: string | null
           user_id?: string

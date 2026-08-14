@@ -67,11 +67,51 @@ export const listMyPushDevices = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("push_subscriptions")
-      .select("id, endpoint, device_label, platform, enabled, created_at, last_used_at")
+      .select(
+        "id, endpoint, device_label, platform, enabled, created_at, last_used_at, categories, quiet_start, quiet_end, timezone",
+      )
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
+  });
+
+export const NOTIFICATION_CATEGORIES = [
+  { id: "booking", label: "New bookings" },
+  { id: "reminder", label: "Appointment reminders" },
+  { id: "review", label: "Review requests & new reviews" },
+  { id: "finance", label: "Payments & finance" },
+  { id: "system", label: "System & security" },
+  { id: "general", label: "Everything else" },
+] as const;
+
+const prefsSchema = z.object({
+  endpoint: z.string().url().max(2000),
+  categories: z.array(z.string().max(40)).max(20),
+  quietStart: z.string().nullable().optional(),
+  quietEnd: z.string().nullable().optional(),
+  timezone: z.string().max(80).optional(),
+});
+
+/** Per-device alert types + quiet hours. RLS scopes the row to the caller. */
+export const updatePushDevicePrefs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => prefsSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const allowed = NOTIFICATION_CATEGORIES.map((c) => c.id as string);
+    const categories = data.categories.filter((c) => allowed.includes(c));
+    const { error } = await context.supabase
+      .from("push_subscriptions")
+      .update({
+        categories,
+        quiet_start: data.quietStart || null,
+        quiet_end: data.quietEnd || null,
+        ...(data.timezone ? { timezone: data.timezone } : {}),
+      })
+      .eq("endpoint", data.endpoint)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /** Sends a test notification to the caller's own devices only. */

@@ -66,6 +66,10 @@ export type PushDevice = {
   enabled: boolean;
   created_at: string;
   last_used_at: string | null;
+  categories?: string[] | null;
+  quiet_start?: string | null;
+  quiet_end?: string | null;
+  timezone?: string | null;
 };
 
 export function usePushNotifications() {
