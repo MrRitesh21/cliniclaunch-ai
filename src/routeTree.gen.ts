@@ -76,6 +76,7 @@ import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardLoyaltyRouteImport } from './routes/_authenticated/dashboard.loyalty'
 import { Route as AuthenticatedDashboardMarketingRouteImport } from './routes/_authenticated/dashboard.marketing'
 import { Route as AuthenticatedDashboardModulesRouteImport } from './routes/_authenticated/dashboard.modules'
+import { Route as AuthenticatedDashboardNotificationsRouteImport } from './routes/_authenticated/dashboard.notifications'
 import { Route as AuthenticatedDashboardPatientsRouteImport } from './routes/_authenticated/dashboard.patients'
 import { Route as AuthenticatedDashboardPharmacyRouteImport } from './routes/_authenticated/dashboard.pharmacy'
 import { Route as AuthenticatedDashboardPrescriptionsRouteImport } from './routes/_authenticated/dashboard.prescriptions'
@@ -458,6 +459,12 @@ const AuthenticatedDashboardModulesRoute =
     path: '/modules',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardNotificationsRoute =
+  AuthenticatedDashboardNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardPatientsRoute =
   AuthenticatedDashboardPatientsRouteImport.update({
     id: '/patients',
@@ -694,6 +701,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/loyalty': typeof AuthenticatedDashboardLoyaltyRoute
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
+  '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
   '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
@@ -789,6 +797,7 @@ export interface FileRoutesByTo {
   '/dashboard/loyalty': typeof AuthenticatedDashboardLoyaltyRoute
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
+  '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
   '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
@@ -890,6 +899,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/loyalty': typeof AuthenticatedDashboardLoyaltyRoute
   '/_authenticated/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/_authenticated/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
+  '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/_authenticated/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
   '/_authenticated/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/_authenticated/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
@@ -990,6 +1000,7 @@ export interface FileRouteTypes {
     | '/dashboard/loyalty'
     | '/dashboard/marketing'
     | '/dashboard/modules'
+    | '/dashboard/notifications'
     | '/dashboard/patients'
     | '/dashboard/pharmacy'
     | '/dashboard/prescriptions'
@@ -1085,6 +1096,7 @@ export interface FileRouteTypes {
     | '/dashboard/loyalty'
     | '/dashboard/marketing'
     | '/dashboard/modules'
+    | '/dashboard/notifications'
     | '/dashboard/patients'
     | '/dashboard/pharmacy'
     | '/dashboard/prescriptions'
@@ -1185,6 +1197,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/loyalty'
     | '/_authenticated/dashboard/marketing'
     | '/_authenticated/dashboard/modules'
+    | '/_authenticated/dashboard/notifications'
     | '/_authenticated/dashboard/patients'
     | '/_authenticated/dashboard/pharmacy'
     | '/_authenticated/dashboard/prescriptions'
@@ -1734,6 +1747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardModulesRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/notifications': {
+      id: '/_authenticated/dashboard/notifications'
+      path: '/notifications'
+      fullPath: '/dashboard/notifications'
+      preLoaderRoute: typeof AuthenticatedDashboardNotificationsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/patients': {
       id: '/_authenticated/dashboard/patients'
       path: '/patients'
@@ -2033,6 +2053,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardLoyaltyRoute: typeof AuthenticatedDashboardLoyaltyRoute
   AuthenticatedDashboardMarketingRoute: typeof AuthenticatedDashboardMarketingRoute
   AuthenticatedDashboardModulesRoute: typeof AuthenticatedDashboardModulesRoute
+  AuthenticatedDashboardNotificationsRoute: typeof AuthenticatedDashboardNotificationsRoute
   AuthenticatedDashboardPatientsRoute: typeof AuthenticatedDashboardPatientsRoute
   AuthenticatedDashboardPharmacyRoute: typeof AuthenticatedDashboardPharmacyRoute
   AuthenticatedDashboardPrescriptionsRoute: typeof AuthenticatedDashboardPrescriptionsRoute
@@ -2065,6 +2086,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardLoyaltyRoute: AuthenticatedDashboardLoyaltyRoute,
     AuthenticatedDashboardMarketingRoute: AuthenticatedDashboardMarketingRoute,
     AuthenticatedDashboardModulesRoute: AuthenticatedDashboardModulesRoute,
+    AuthenticatedDashboardNotificationsRoute:
+      AuthenticatedDashboardNotificationsRoute,
     AuthenticatedDashboardPatientsRoute: AuthenticatedDashboardPatientsRoute,
     AuthenticatedDashboardPharmacyRoute: AuthenticatedDashboardPharmacyRoute,
     AuthenticatedDashboardPrescriptionsRoute:

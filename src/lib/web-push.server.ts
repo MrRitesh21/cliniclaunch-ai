@@ -222,7 +222,7 @@ export async function sendPushToUser(
 
   const { data: subs, error } = await supabaseAdmin
     .from("push_subscriptions")
-    .select("endpoint, p256dh, auth, platform")
+    .select("endpoint, p256dh, auth, platform, categories, quiet_start, quiet_end, timezone")
     .eq("user_id", userId)
     .eq("enabled", true);
 
@@ -242,7 +242,14 @@ export async function sendPushToUser(
 
   const { organizationId, planId } = await getUserPlanContext(userId);
 
-  if (!subs?.length) return { sent: 0, failed: 0, removed: 0, notificationId: notification?.id ?? null };
+  const category = opts.category ?? "general";
+  const eligible = (subs ?? []).filter((s) => {
+    const cats = (s as { categories?: string[] | null }).categories;
+    if (cats && cats.length && !cats.includes(category)) return false;
+    return !inQuietHours(s as QuietWindow);
+  });
+
+  if (!eligible.length) return { sent: 0, failed: 0, removed: 0, notificationId: notification?.id ?? null };
 
   const enriched: PushPayload = {
     ...payload,
@@ -253,7 +260,7 @@ export async function sendPushToUser(
     },
   };
 
-  const results = await Promise.all(subs.map((s) => sendPush(s as PushTarget, enriched)));
+  const results = await Promise.all(eligible.map((s) => sendPush(s as PushTarget, enriched)));
 
   const expired = results.filter((r) => r.expired).map((r) => r.endpoint);
   if (expired.length) {
@@ -268,7 +275,7 @@ export async function sendPushToUser(
       .in("endpoint", okEndpoints);
   }
 
-  const platformByEndpoint = new Map(subs.map((s) => [s.endpoint, s.platform ?? null]));
+  const platformByEndpoint = new Map(eligible.map((s) => [s.endpoint, s.platform ?? null]));
   await recordPushEvents(
     await Promise.all(
       results.map(async (r) => ({
@@ -289,6 +296,32 @@ export async function sendPushToUser(
     removed: expired.length,
     notificationId: notification?.id ?? null,
   };
+}
+
+type QuietWindow = { quiet_start?: string | null; quiet_end?: string | null; timezone?: string | null };
+
+/** True when the device's local clock sits inside its quiet-hours window (wrap-around aware). */
+function inQuietHours(sub: QuietWindow, now = new Date()) {
+  if (!sub.quiet_start || !sub.quiet_end) return false;
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":");
+    return Number(h) * 60 + Number(m ?? 0);
+  };
+  let local: string;
+  try {
+    local = new Intl.DateTimeFormat("en-GB", {
+      timeZone: sub.timezone || "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(now);
+  } catch {
+    return false;
+  }
+  const cur = toMinutes(local);
+  const start = toMinutes(sub.quiet_start);
+  const end = toMinutes(sub.quiet_end);
+  return start <= end ? cur >= start && cur < end : cur >= start || cur < end;
 }
 
 /** Deep-link URLs carry the notification id so opening it can mark it read. */
