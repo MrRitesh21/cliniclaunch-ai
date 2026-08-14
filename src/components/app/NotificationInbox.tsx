@@ -205,6 +205,24 @@ export function NotificationInbox() {
           </Link>
         </div>
 
+        {selected.length > 0 && (
+          <div className="px-4 py-2 border-b bg-muted/40 flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-medium mr-auto">{selected.length} selected</span>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => applyRead(selected, true)}>
+              <MailOpen className="size-3.5 mr-1" /> Read
+            </Button>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => applyRead(selected, false)}>
+              <Mail className="size-3.5 mr-1" /> Unread
+            </Button>
+            <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={handleDelete}>
+              <Trash2 className="size-3.5 mr-1" /> Delete
+            </Button>
+            <Button variant="ghost" size="icon" aria-label="Clear selection" onClick={() => setSelected([])}>
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto divide-y">
           {items.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground text-center">
@@ -215,25 +233,46 @@ export function NotificationInbox() {
             <p className="p-6 text-sm text-muted-foreground text-center">No alerts match this search.</p>
           )}
           {visible.map((item) => (
-            <button
+            <div
               key={item.id}
-              type="button"
-              onClick={() => handleOpen(item)}
-              className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors ${
-                item.read_at ? "" : "bg-primary/5"
+              className={`flex items-start gap-2 px-4 py-3 transition-colors ${
+                selected.includes(item.id) ? "bg-muted" : item.read_at ? "" : "bg-primary/5"
               }`}
             >
-              <div className="flex items-start gap-2">
-                {!item.read_at && <span className="mt-1.5 size-2 rounded-full bg-primary shrink-0" />}
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{item.title}</p>
-                  {item.body && <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>}
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
-                    {item.category} • {timeAgo(item.created_at)}
-                  </p>
+              <input
+                type="checkbox"
+                checked={selected.includes(item.id)}
+                onChange={() => toggleSelect(item.id)}
+                aria-label={`Select ${item.title}`}
+                className="mt-1 size-4 shrink-0 accent-primary"
+              />
+              <button
+                type="button"
+                onClick={() => handleOpen(item)}
+                className="flex-1 min-w-0 text-left hover:opacity-80"
+              >
+                <div className="flex items-start gap-2">
+                  {!item.read_at && <span className="mt-1.5 size-2 rounded-full bg-primary shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    {item.body && <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>}
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
+                      {item.category} • {timeAgo(item.created_at)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 size-8"
+                aria-label={item.read_at ? "Mark as unread" : "Mark as read"}
+                title={item.read_at ? "Mark as unread" : "Mark as read"}
+                onClick={() => applyRead([item.id], !item.read_at)}
+              >
+                {item.read_at ? <Mail className="size-3.5" /> : <MailOpen className="size-3.5" />}
+              </Button>
+            </div>
           ))}
         </div>
       </SheetContent>
