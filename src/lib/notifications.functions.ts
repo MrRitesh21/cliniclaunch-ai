@@ -69,6 +69,38 @@ export const markAllNotificationsRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Bulk read/unread toggle for one or more inbox items. */
+export const setNotificationsRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(100), read: z.boolean() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("notifications")
+      .update({ read_at: data.read ? new Date().toISOString() : null })
+      .in("id", data.ids)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Permanently removes inbox items owned by the signed-in user. */
+export const deleteNotifications = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(100) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("notifications")
+      .delete()
+      .in("id", data.ids)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export type PushAnalytics = {
   totals: { sent: number; delivered: number; clicked: number; opened: number; failed: number };
   byPlatform: Array<{ platform: string; sent: number; delivered: number; clicked: number }>;
