@@ -384,10 +384,10 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
           </span>
 
           <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] text-foreground text-left overflow-auto max-h-[400px]">
-            '''Do not make any visual modifications.
+            '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
             <br />
             <br />
-            Publish the clinic's Website Builder so the public site is live, then share the link with patients.
+            update hero section
           </h1>
 
           <p className="mt-6 mx-auto max-w-2xl text-base sm:text-lg leading-relaxed text-muted-foreground">
