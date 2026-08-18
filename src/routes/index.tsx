@@ -387,22 +387,7 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
             <br />
             <br />
-            For the code present, I get the error below.
-            <br />
-            Please think step-by-step in order to resolve it.
-            <pre className="mt-4 p-4 bg-muted rounded text-xs text-left whitespace-pre-wrap">
-              {`Dev server returned 500 for GET /_serverFn/eyJmaWxlIjoiL3NyYy9saWIvbm90aWZpY2F0aW9ucy5mdW5jdGlvbnMudHM_dHNzLXNlcnZlcmZuLXNwbGl0IiwiZXhwb3J0IjoibGlzdE5vdGlmaWNhdGlvbnNfY3JlYXRlU2VydmVyRm5faGFuZGxlciJ9?payload=%7B%22t%22%3A%7B%22t%22%3A10%2C%22i%22%3A0%2C%22p%22%3A%7B%22k%22%3A%5B%22data%22%5D%2C%22v%22%3A%5B%7B%22t%22%3A10%2C%22i%22%3A1%2C%22p%22%3A%7B%22k%22%3A%5B%22limit%22%5D%2C%22v%22%3A%5B%7B%22t%22%3A0%2C%22s%22%3A50%7D%5D%7D%2C%22o%22%3A0%7D%5D%7D%2C%22o%22%3A0%7D%2C%22f%22%3A127%2C%22m%22%3A%5B%5D%7D before the app handler ran. This is usually a Vite build/transform error — check the dev server output for the underlying error.
-
-{
-  "timestamp": 1787090950461,
-  "error_type": "RUNTIME_ERROR",
-  "filename": "Unknown file",
-  "lineno": 0,
-  "colno": 0,
-  "stack": "Unavailable",
-  "has_blank_screen": true
-}`}
-            </pre>
+            Add a CSV download to the Alerts report showing sent, delivered, opened and clicked counts per device.
           </h1>
 
           <p className="mt-6 mx-auto max-w-2xl text-base sm:text-lg leading-relaxed text-muted-foreground">
