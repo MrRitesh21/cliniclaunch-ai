@@ -783,6 +783,7 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
         const consultUrl = appt.appointment_type === "online"
           ? `${origin}/consult/${appt.id}`
           : "";
+        
         const consultInfo = consultUrl
           ? `Join your video consultation here: ${consultUrl}\n\n`
           : "";
@@ -801,9 +802,9 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
             clinic_link: clinic.slug ? `${origin}/c/${clinic.slug}` : "",
             consult_info: consultInfo,
             consult_link: consultUrl,
+            join_link: consultUrl, // Extra variable for flexibility in templates
           },
         });
-
       }
 
       if (data.status === "completed" && appt.patient_phone && clinic.organization_id) {

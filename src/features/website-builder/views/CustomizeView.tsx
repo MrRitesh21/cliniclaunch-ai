@@ -76,6 +76,10 @@ export function CustomizeView() {
           );
         })}
       </div>
+      
+      <div className="xl:hidden p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl mb-4">
+        <p className="text-[11px] text-blue-700 font-medium">Use a larger screen to see a live preview while you customize.</p>
+      </div>
 
       {/* Tab Panels */}
       <div className="max-w-2xl">

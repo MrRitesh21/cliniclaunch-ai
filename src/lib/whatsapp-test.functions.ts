@@ -25,18 +25,40 @@ export const sendTestWhatsAppFn = createServerFn({ method: "POST" })
     
     const message = renderTemplate(tpl.body, variables);
     
-    // In a real scenario, we'd call the Baileys bridge here.
-    // For now, we simulate a successful send and log it.
-    console.log(`[WhatsApp Test] To: ${phone}, Message: ${message}`);
+    // Check if WhatsApp is connected for this organization
+    const { data: clinic } = await supabaseAdmin
+      .from("clinics")
+      .select("wa_status, wa_session_id")
+      .eq("organization_id", organizationId)
+      .limit(1)
+      .maybeSingle();
+
+    let status = "sent";
+    let messageResult = "Test message logged (Baileys simulation)";
+
+    if (clinic?.wa_status === "ready" && clinic.wa_session_id) {
+      try {
+        const { baileysSend } = await import("./baileys.server");
+        await baileysSend(clinic.wa_session_id, phone, message);
+        messageResult = "Test message sent via WhatsApp bridge";
+      } catch (err: any) {
+        status = "failed";
+        messageResult = `Bridge error: ${err.message}`;
+        console.error("[WhatsApp Test Error]", err);
+      }
+    } else {
+      console.log(`[WhatsApp Test Simulation] To: ${phone}, Message: ${message}`);
+    }
     
     await supabaseAdmin.from("whatsapp_logs").insert({
       organization_id: organizationId,
       patient_phone: phone,
       template_key: templateKey,
       message,
-      status: "sent",
+      status,
       sent_at: new Date().toISOString(),
+      metadata: { is_test: true, result: messageResult }
     });
     
-    return { success: true, message: "Test message sent (simulated)" };
+    return { success: status === "sent", message: messageResult };
   });
