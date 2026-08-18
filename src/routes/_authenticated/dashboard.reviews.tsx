@@ -430,6 +430,8 @@ export function ReviewsPage() {
 
       {/* Reviews List */}
       {loading ? (
+        <SkeletonRows rows={8} />
+      ) : filtered.length === 0 ? (
         <Skeleton className="h-48 w-full rounded-2xl" />
       ) : filtered.length === 0 ? (
         <EmptyState icon={<MessageSquare className="size-6" />} title="No reviews found" description="Share your public review link to start collecting verified patient feedback." />
