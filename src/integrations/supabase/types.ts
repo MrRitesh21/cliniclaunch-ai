@@ -685,6 +685,8 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           blog_enabled: boolean
+          branch_code: string | null
+          branch_name: string | null
           clinic_name: string
           consultation_fee: number
           created_at: string
@@ -708,6 +710,8 @@ export type Database = {
           hero_headline: string | null
           hero_subheadline: string | null
           id: string
+          is_active: boolean
+          is_primary_branch: boolean
           is_published: boolean
           lead_popup: Json | null
           logo_url: string | null
@@ -762,6 +766,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           blog_enabled?: boolean
+          branch_code?: string | null
+          branch_name?: string | null
           clinic_name?: string
           consultation_fee?: number
           created_at?: string
@@ -785,6 +791,8 @@ export type Database = {
           hero_headline?: string | null
           hero_subheadline?: string | null
           id?: string
+          is_active?: boolean
+          is_primary_branch?: boolean
           is_published?: boolean
           lead_popup?: Json | null
           logo_url?: string | null
@@ -839,6 +847,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           blog_enabled?: boolean
+          branch_code?: string | null
+          branch_name?: string | null
           clinic_name?: string
           consultation_fee?: number
           created_at?: string
@@ -862,6 +872,8 @@ export type Database = {
           hero_headline?: string | null
           hero_subheadline?: string | null
           id?: string
+          is_active?: boolean
+          is_primary_branch?: boolean
           is_published?: boolean
           lead_popup?: Json | null
           logo_url?: string | null
@@ -2729,6 +2741,7 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          clinic_id: string | null
           id: string
           invited_by: string | null
           joined_at: string
@@ -2737,6 +2750,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          clinic_id?: string | null
           id?: string
           invited_by?: string | null
           joined_at?: string
@@ -2745,6 +2759,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          clinic_id?: string | null
           id?: string
           invited_by?: string | null
           joined_at?: string
@@ -2753,6 +2768,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_members_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organization_members_organization_id_fkey"
             columns: ["organization_id"]
@@ -5034,6 +5056,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_clinic: {
+        Args: { _clinic_id: string; _user_id: string }
+        Returns: boolean
+      }
       expire_lapsed_subscriptions: { Args: never; Returns: number }
       get_invite_by_token: {
         Args: { _token: string }
@@ -5071,6 +5097,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      user_clinic_ids: { Args: { _user_id: string }; Returns: string[] }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
