@@ -186,6 +186,7 @@ export const DEFAULT_TEMPLATES: Array<{
 ];
 
 export function renderTemplate(body: string, vars: Record<string, string | number | undefined>): string {
+  // Support both {var} and variable_name for flexibility
   return body.replace(/\{(\w+)\}/g, (_, k) => {
     const v = vars[k];
     return v === undefined || v === null ? `{${k}}` : String(v);
