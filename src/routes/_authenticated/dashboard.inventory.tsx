@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonRows } from "@/components/ui/skeleton-rows";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -100,7 +101,7 @@ function InventoryPage() {
         <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      {loading ? <Skeleton className="h-64 w-full" /> :
+      {loading ? <SkeletonRows rows={10} cols={6} /> :
         filtered.length === 0 ? (
           <EmptyState icon={<Boxes className="size-6" />} title={items.length === 0 ? "No inventory yet" : "No matches"} action={items.length === 0 ? { label: "Add item", onClick: () => setEditing("new") } : undefined} />
         ) : (

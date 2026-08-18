@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, Outlet, useRouterState, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -259,6 +259,7 @@ function NavLink({ item, active, isCollapsed }: { item: NavItem; active: boolean
       key={item.to}
       to={item.to}
       title={item.label}
+      preload="intent"
       className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-all ${
         active
           ? "nav-active font-medium"
@@ -447,6 +448,7 @@ function DashboardLayout() {
   const clinic = useClinic();
   const { isReady, user } = useAuthReady();
   const { org, role, installedModuleIds, planModuleIds, isSubscriptionExpired } = useOrganization();
+  const router = useRouter();
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const { change_password } = Route.useSearch();
@@ -550,6 +552,16 @@ function DashboardLayout() {
         }),
     })).filter((s) => s.items.length > 0);
   }, [installedModuleIds, planModuleIds, org, role]);
+
+  // Optimistically preload dashboard routes
+  useEffect(() => {
+    if (org && filteredNav) {
+      const allItems = filteredNav.flatMap(s => s.items);
+      allItems.forEach(item => {
+        router.preloadRoute({ to: item.to });
+      });
+    }
+  }, [org, filteredNav, router]);
 
   // Flat list for mobile
   const flatNav = useMemo(() => {

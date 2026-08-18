@@ -1,9 +1,14 @@
 import { useOrganization } from "@/hooks/useOrganization";
 import { AppNotInstalled } from "./AppNotInstalled";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo, ReactNode, memo } from "react";
 
-export function AppGuard({ appKey, children }: { appKey: string; children: React.ReactNode }) {
+export const AppGuard = memo(({ appKey, children }: { appKey: string; children: ReactNode }) => {
   const { org, installedModuleIds } = useOrganization();
+
+  const isInstalled = useMemo(() => {
+    return installedModuleIds.includes(appKey);
+  }, [installedModuleIds, appKey]);
 
   if (org === undefined) {
     return (
@@ -15,9 +20,11 @@ export function AppGuard({ appKey, children }: { appKey: string; children: React
     );
   }
 
-  if (!installedModuleIds.includes(appKey)) {
+  if (!isInstalled) {
     return <AppNotInstalled appKey={appKey} />;
   }
 
   return <>{children}</>;
-}
+});
+
+AppGuard.displayName = "AppGuard";
