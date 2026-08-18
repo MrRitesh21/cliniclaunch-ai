@@ -1,12 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownUp, Bell, CheckCheck, Inbox, Mail, MailOpen, Search, Settings2, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowDownUp, Bell, CheckCheck, ChevronRight, Inbox, Loader2, Mail, MailOpen, Search, Settings2, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   deleteNotifications,
   listNotifications,
@@ -34,6 +38,12 @@ export function NotificationInbox() {
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<"newest" | "unread">("newest");
   const [selected, setSelected] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
+  const [undoAction, setUndoAction] = useState<{ type: "read" | "unread" | "delete"; ids: string[]; previousState: InboxItem[] } | null>(null);
+  const [detailItem, setDetailItem] = useState<InboxItem | null>(null);
+  
   const navigate = useNavigate();
 
   const load = useServerFn(listNotifications);
@@ -42,19 +52,37 @@ export function NotificationInbox() {
   const setRead = useServerFn(setNotificationsRead);
   const removeMany = useServerFn(deleteNotifications);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (isInitial = true) => {
     try {
-      const res = await load();
+      if (isInitial) setLoading(true);
+      const res = await load({ data: { limit: 50 } });
       setItems(res.items);
       setUnread(res.unread);
+      setNextCursor(res.nextCursor);
     } catch {
-      /* offline or signed out — keep whatever we already show */
+      /* offline or signed out */
+    } finally {
+      if (isInitial) setLoading(false);
     }
   }, [load]);
 
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || loadingMore) return;
+    try {
+      setLoadingMore(true);
+      const res = await load({ data: { cursor: nextCursor, limit: 50 } });
+      setItems((prev) => [...prev, ...res.items]);
+      setNextCursor(res.nextCursor);
+    } catch {
+      toast.error("Failed to load more notifications");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [load, nextCursor, loadingMore]);
+
   useEffect(() => {
     refresh();
-    const timer = window.setInterval(refresh, 3 * 60 * 1000);
+    const timer = window.setInterval(() => refresh(false), 3 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [refresh]);
 
@@ -63,17 +91,22 @@ export function NotificationInbox() {
     const id = new URLSearchParams(window.location.search).get("n");
     if (!id) return;
     markRead({ data: { id, opened: true } })
-      .then(refresh)
+      .then(() => refresh(false))
       .catch(() => undefined);
   }, [markRead, refresh]);
 
   const handleOpen = async (item: InboxItem) => {
-    setOpen(false);
+    setDetailItem(item);
     if (!item.read_at) {
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, read_at: new Date().toISOString() } : i)));
       setUnread((n) => Math.max(0, n - 1));
       markRead({ data: { id: item.id, opened: true } }).catch(() => undefined);
     }
+  };
+
+  const handleAction = (item: InboxItem) => {
+    setOpen(false);
+    setDetailItem(null);
     if (item.url) navigate({ to: item.url.split("?")[0] as string }).catch(() => undefined);
   };
 
@@ -86,10 +119,11 @@ export function NotificationInbox() {
   const toggleSelect = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  /** Optimistically flips read state for the given ids (single item or selection). */
   const applyRead = async (ids: string[], read: boolean) => {
     if (!ids.length) return;
+    const previousState = items.filter(i => ids.includes(i.id)).map(i => ({ ...i }));
     const stamp = new Date().toISOString();
+    
     setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, read_at: read ? (i.read_at ?? stamp) : null } : i)));
     setUnread((n) => {
       const affected = items.filter((i) => ids.includes(i.id));
@@ -97,19 +131,63 @@ export function NotificationInbox() {
       return Math.max(0, read ? n - delta : n + delta);
     });
     setSelected([]);
-    await setRead({ data: { ids, read } }).catch(() => refresh());
+    
+    setUndoAction({ type: read ? "read" : "unread", ids, previousState });
+    toast(read ? "Marked as read" : "Marked as unread", {
+      action: {
+        label: "Undo",
+        onClick: () => handleUndo(),
+      },
+      duration: 5000,
+    });
+
+    await setRead({ data: { ids, read } }).catch(() => refresh(false));
   };
 
   const handleDelete = async () => {
     const ids = selected;
     if (!ids.length) return;
+    const previousState = items.filter(i => ids.includes(i.id)).map(i => ({ ...i }));
     const removedUnread = items.filter((i) => ids.includes(i.id) && !i.read_at).length;
+    
     setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
     setUnread((n) => Math.max(0, n - removedUnread));
     setSelected([]);
-    await removeMany({ data: { ids } }).catch(() => refresh());
+    
+    setUndoAction({ type: "delete", ids, previousState });
+    toast("Notifications deleted", {
+      action: {
+        label: "Undo",
+        onClick: () => handleUndo(),
+      },
+      duration: 5000,
+    });
+
+    await removeMany({ data: { ids } }).catch(() => refresh(false));
   };
 
+  const handleUndo = async () => {
+    if (!undoAction) return;
+    const { type, ids, previousState } = undoAction;
+    
+    if (type === "delete") {
+      setItems((prev) => [...previousState, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      const restoredUnread = previousState.filter(i => !i.read_at).length;
+      setUnread(n => n + restoredUnread);
+    } else {
+      setItems((prev) => prev.map(i => {
+        const old = previousState.find(p => p.id === i.id);
+        return old ? { ...old } : i;
+      }));
+      const restoredUnread = previousState.filter(i => !i.read_at).length;
+      const currentUnread = items.filter(i => ids.includes(i.id) && !i.read_at).length;
+      setUnread(n => n + (restoredUnread - currentUnread));
+      await setRead({ data: { ids, read: type === "unread" } }).catch(() => refresh(false));
+    }
+    
+    setUndoAction(null);
+    toast.info("Action reversed");
+  };
 
   const categories = useMemo(
     () => [...new Set(items.map((i) => i.category).filter(Boolean))].sort(),
@@ -223,8 +301,21 @@ export function NotificationInbox() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto divide-y">
-          {items.length === 0 && (
+        <div 
+          className="flex-1 overflow-y-auto divide-y"
+          onScroll={(e) => {
+            const target = e.currentTarget;
+            if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
+              loadMore();
+            }
+          }}
+        >
+          {loading && items.length === 0 && (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {!loading && items.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground text-center">
               No alerts yet. Booking, reminder and review alerts will show up here.
             </p>
@@ -235,26 +326,29 @@ export function NotificationInbox() {
           {visible.map((item) => (
             <div
               key={item.id}
-              className={`flex items-start gap-2 px-4 py-3 transition-colors ${
+              role="listitem"
+              className={`flex items-start gap-2 px-4 py-3 transition-colors outline-none focus-within:bg-muted/50 ${
                 selected.includes(item.id) ? "bg-muted" : item.read_at ? "" : "bg-primary/5"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={selected.includes(item.id)}
-                onChange={() => toggleSelect(item.id)}
-                aria-label={`Select ${item.title}`}
-                className="mt-1 size-4 shrink-0 accent-primary"
-              />
+              <div className="flex items-center h-5 mt-1">
+                <Checkbox
+                  id={`check-${item.id}`}
+                  checked={selected.includes(item.id)}
+                  onCheckedChange={() => toggleSelect(item.id)}
+                  aria-label={`Select ${item.title}`}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => handleOpen(item)}
-                className="flex-1 min-w-0 text-left hover:opacity-80"
+                className="flex-1 min-w-0 text-left hover:opacity-80 focus:outline-none"
+                aria-expanded={detailItem?.id === item.id}
               >
                 <div className="flex items-start gap-2">
-                  {!item.read_at && <span className="mt-1.5 size-2 rounded-full bg-primary shrink-0" />}
+                  {!item.read_at && <span className="mt-1.5 size-2 rounded-full bg-primary shrink-0" aria-hidden="true" />}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <p className={`text-sm truncate ${!item.read_at ? "font-semibold" : "font-medium"}`}>{item.title}</p>
                     {item.body && <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>}
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
                       {item.category} • {timeAgo(item.created_at)}
@@ -268,13 +362,89 @@ export function NotificationInbox() {
                 className="shrink-0 size-8"
                 aria-label={item.read_at ? "Mark as unread" : "Mark as read"}
                 title={item.read_at ? "Mark as unread" : "Mark as read"}
-                onClick={() => applyRead([item.id], !item.read_at)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  applyRead([item.id], !item.read_at);
+                }}
               >
                 {item.read_at ? <Mail className="size-3.5" /> : <MailOpen className="size-3.5" />}
               </Button>
             </div>
           ))}
+          {loadingMore && (
+            <div className="p-4 flex justify-center">
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
+
+        {/* Detail View Drawer */}
+        <Sheet open={!!detailItem} onOpenChange={(o) => !o && setDetailItem(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-sm p-0 flex flex-col">
+            <SheetHeader className="px-4 py-4 border-b">
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" size="icon" onClick={() => setDetailItem(null)} aria-label="Back">
+                  <X className="size-4" />
+                </Button>
+                <SheetTitle className="text-base font-semibold">Details</SheetTitle>
+                <div className="w-10" /> {/* spacer */}
+              </div>
+            </SheetHeader>
+            
+            {detailItem && (
+              <div className="flex-1 flex flex-col">
+                <div className="p-6 space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {detailItem.category}
+                    </p>
+                    <h2 className="text-lg font-bold leading-tight">{detailItem.title}</h2>
+                    <p className="text-xs text-muted-foreground">{new Date(detailItem.created_at).toLocaleString()}</p>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                      {detailItem.body || "No additional message content."}
+                    </p>
+                    
+                    {detailItem.url && (
+                      <Button className="w-full" onClick={() => handleAction(detailItem)}>
+                        View related content <ChevronRight className="ml-2 size-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="mt-auto p-4 border-t bg-muted/20 flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1" 
+                    onClick={() => {
+                      applyRead([detailItem.id], !detailItem.read_at);
+                      setDetailItem(null);
+                    }}
+                  >
+                    {detailItem.read_at ? <Mail className="size-4 mr-2" /> : <MailOpen className="size-4 mr-2" />}
+                    {detailItem.read_at ? "Mark unread" : "Mark read"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setSelected([detailItem.id]);
+                      handleDelete();
+                      setDetailItem(null);
+                    }}
+                  >
+                    <Trash2 className="size-4 mr-2" /> Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
       </SheetContent>
     </Sheet>
   );
