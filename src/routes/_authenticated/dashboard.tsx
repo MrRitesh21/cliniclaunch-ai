@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, Outlet, useRouterState, useRouter } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -253,7 +253,7 @@ const ALL_NAV_FLAT: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items as unknown a
 // Primary tabs shown in mobile bottom bar
 const MOBILE_PRIMARY = ["/dashboard", "/dashboard/appointments", "/dashboard/patients", "/dashboard/leads", "/dashboard/modules"];
 
-function NavLink({ item, active, isCollapsed }: { item: NavItem; active: boolean; isCollapsed?: boolean }) {
+const NavLink = memo(({ item, active, isCollapsed }: { item: NavItem; active: boolean; isCollapsed?: boolean }) => {
   return (
     <Link
       key={item.to}
@@ -275,7 +275,9 @@ function NavLink({ item, active, isCollapsed }: { item: NavItem; active: boolean
       )}
     </Link>
   );
-}
+});
+
+NavLink.displayName = "NavLink";
 
 function SidebarContent({
   nav,
