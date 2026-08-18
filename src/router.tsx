@@ -23,7 +23,8 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     // Reuse loader data for preloads instead of re-hitting the database.
-    defaultPreloadStaleTime: 60_000,
+    defaultPreloadStaleTime: 5 * 60_000,
+    defaultPreload: "intent",
 
   });
 
