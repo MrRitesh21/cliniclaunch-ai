@@ -15,16 +15,40 @@ export type InboxItem = {
 
 export const listNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .inputValidator((data: unknown) =>
+    z.object({
+      cursor: z.string().optional(),
+      limit: z.number().int().min(1).max(100).default(50),
+    }).parse(data),
+  )
+  .handler(async ({ data: { cursor, limit }, context }) => {
+    let query = context.supabase
       .from("notifications")
       .select("id, category, title, body, url, read_at, created_at")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(limit + 1);
+
+    if (cursor) {
+      query = query.lt("created_at", cursor);
+    }
+
+    const { data, error } = await query;
     if (error) throw new Error(error.message);
+
     const items = (data ?? []) as InboxItem[];
-    return { items, unread: items.filter((i) => !i.read_at).length };
+    const hasMore = items.length > limit;
+    const resultItems = hasMore ? items.slice(0, limit) : items;
+    const nextCursor = hasMore ? resultItems[resultItems.length - 1].created_at : undefined;
+
+    // We still want a global unread count, but maybe we should optimize this
+    const { count } = await context.supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .is("read_at", null);
+
+    return { items: resultItems, unread: count ?? 0, nextCursor };
   });
 
 export const markNotificationRead = createServerFn({ method: "POST" })
