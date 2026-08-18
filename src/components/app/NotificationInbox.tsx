@@ -1,18 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-2: import { useServerFn } from "@tanstack/react-start";
-3: import { ArrowDownUp, Bell, CheckCheck, ChevronRight, Inbox, Loader2, Mail, MailOpen, Search, Settings2, Trash2, X } from "lucide-react";
-4: import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-5: import { toast } from "sonner";
-6: 
-7: import { Checkbox } from "@/components/ui/checkbox";
-8: import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-9: import { ScrollArea } from "@/components/ui/scroll-area";
-10: import { Separator } from "@/components/ui/separator";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowDownUp, Bell, CheckCheck, ChevronRight, Inbox, Loader2, Mail, MailOpen, Search, Settings2, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   deleteNotifications,
   listNotifications,
@@ -43,10 +41,9 @@ export function NotificationInbox() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
-  const [undoAction, setUndoAction] = useState<{ type: "read" | "unread" | "delete"; ids: string[]; previousState: any[] } | null>(null);
+  const [undoAction, setUndoAction] = useState<{ type: "read" | "unread" | "delete"; ids: string[]; previousState: InboxItem[] } | null>(null);
   const [detailItem, setDetailItem] = useState<InboxItem | null>(null);
   
-  const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const load = useServerFn(listNotifications);
@@ -85,7 +82,7 @@ export function NotificationInbox() {
 
   useEffect(() => {
     refresh();
-    const timer = window.setInterval(refresh, 3 * 60 * 1000);
+    const timer = window.setInterval(() => refresh(false), 3 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [refresh]);
 
@@ -94,7 +91,7 @@ export function NotificationInbox() {
     const id = new URLSearchParams(window.location.search).get("n");
     if (!id) return;
     markRead({ data: { id, opened: true } })
-      .then(refresh)
+      .then(() => refresh(false))
       .catch(() => undefined);
   }, [markRead, refresh]);
 
@@ -144,7 +141,7 @@ export function NotificationInbox() {
       duration: 5000,
     });
 
-    await setRead({ data: { ids, read } }).catch(() => refresh());
+    await setRead({ data: { ids, read } }).catch(() => refresh(false));
   };
 
   const handleDelete = async () => {
@@ -166,7 +163,7 @@ export function NotificationInbox() {
       duration: 5000,
     });
 
-    await removeMany({ data: { ids } }).catch(() => refresh());
+    await removeMany({ data: { ids } }).catch(() => refresh(false));
   };
 
   const handleUndo = async () => {
@@ -177,10 +174,6 @@ export function NotificationInbox() {
       setItems((prev) => [...previousState, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       const restoredUnread = previousState.filter(i => !i.read_at).length;
       setUnread(n => n + restoredUnread);
-      // In a real app, we'd need a server-side "restore" or just re-insert. 
-      // For now, we'll re-sync with server after a delay if undo was clicked.
-      // But we need to call something to "un-delete" if the deletion already happened.
-      // Assuming a soft-delete or just re-syncing for now.
     } else {
       setItems((prev) => prev.map(i => {
         const old = previousState.find(p => p.id === i.id);
@@ -189,13 +182,12 @@ export function NotificationInbox() {
       const restoredUnread = previousState.filter(i => !i.read_at).length;
       const currentUnread = items.filter(i => ids.includes(i.id) && !i.read_at).length;
       setUnread(n => n + (restoredUnread - currentUnread));
-      await setRead({ data: { ids, read: type === "unread" } }).catch(() => refresh());
+      await setRead({ data: { ids, read: type === "unread" } }).catch(() => refresh(false));
     }
     
     setUndoAction(null);
     toast.info("Action reversed");
   };
-
 
   const categories = useMemo(
     () => [...new Set(items.map((i) => i.category).filter(Boolean))].sort(),
