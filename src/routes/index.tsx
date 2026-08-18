@@ -387,7 +387,7 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
             <br />
             <br />
-            production ready architecture banao
+            Load the security issues from the scan results and fix the selected issues.
           </h1>
 
           <p className="mt-6 mx-auto max-w-2xl text-base sm:text-lg leading-relaxed text-muted-foreground">
