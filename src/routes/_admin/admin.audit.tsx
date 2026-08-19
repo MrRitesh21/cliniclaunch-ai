@@ -1,15 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAuditLogs } from "@/lib/admin.functions";
+import { deleteAuditLog } from "@/lib/audit-test.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ScrollText, Search, Filter, Calendar, RefreshCcw, Database, ShieldAlert, User, Activity } from "lucide-react";
+import { Loader2, ScrollText, Search, Filter, Calendar, RefreshCcw, Database, ShieldAlert, User, Activity, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
+import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_admin/admin/audit")({
   component: AuditLogsPage,
@@ -17,6 +20,8 @@ export const Route = createFileRoute("/_admin/admin/audit")({
 
 function AuditLogsPage() {
   const fn = useServerFn(listAuditLogs);
+  const deleteFn = useServerFn(deleteAuditLog);
+  const queryClient = useQueryClient();
   const { data: logs = [], isLoading, refetch, isFetching } = useQuery({ 
     queryKey: ["admin-audit-logs"], 
     queryFn: () => fn() 
@@ -24,6 +29,18 @@ function AuditLogsPage() {
 
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-audit-logs"] });
+      toast.success("Audit log entry deleted successfully");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to delete audit log entry");
+    },
+  });
+
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log: any) => {

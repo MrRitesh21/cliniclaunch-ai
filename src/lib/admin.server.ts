@@ -1638,3 +1638,17 @@ export async function testIntegrationImpl(input: { provider: "wati" | "razorpay"
     return { ok: false, message: err?.message || "Connection failed" };
   }
 }
+
+export async function deleteAuditLogImpl(input: { id: string }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin.from("admin_audit_logs" as any).delete().eq("id", input.id);
+  if (error) throw error;
+  
+  // We don't log the deletion of an audit log entry in the audit log itself
+  // to avoid confusion during tests, or we could if needed.
+  return { success: true };
+}
+
