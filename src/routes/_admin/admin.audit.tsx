@@ -279,7 +279,23 @@ function AuditLogsPage() {
                       </div>
                     </div>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this audit log entry?")) {
+                          deleteMutation.mutate(log.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </td>
                 </tr>
+
               ))}
             </tbody>
           </table>
