@@ -32,6 +32,9 @@ import { DemoConversionWidget } from "@/components/demo/DemoConversionWidget";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
 
+/** Routes already warmed this session, so remounts don't re-preload everything. */
+const preloadedRoutes = new Set<string>();
+
 function getImpersonationCookie() {
   if (typeof window === "undefined") return null;
   const match = document.cookie.match(/impersonating_doctor_id=([^;]+)/);
@@ -555,15 +558,36 @@ function DashboardLayout() {
     })).filter((s) => s.items.length > 0);
   }, [installedModuleIds, planModuleIds, org, role]);
 
-  // Optimistically preload dashboard routes
+  // Warm dashboard routes in the background. Firing all ~25 preloads at once
+  // saturated the connection and made the module the user actually clicked wait
+  // behind two dozen competing chunk + loader requests. Now they are queued one
+  // at a time during idle time, and only once per session.
   useEffect(() => {
-    if (org && filteredNav) {
-      const allItems = filteredNav.flatMap(s => s.items);
-      allItems.forEach(item => {
-        router.preloadRoute({ to: item.to });
-      });
-    }
+    if (!org || !filteredNav) return;
+    const targets = filteredNav.flatMap((s) => s.items).map((i) => i.to).filter((to) => !preloadedRoutes.has(to));
+    if (targets.length === 0) return;
+
+    let cancelled = false;
+    const idle: (cb: () => void) => number =
+      typeof window !== "undefined" && "requestIdleCallback" in window
+        ? (cb) => (window as any).requestIdleCallback(cb, { timeout: 2000 })
+        : (cb) => window.setTimeout(cb, 300);
+
+    const next = () => {
+      if (cancelled) return;
+      const to = targets.shift();
+      if (!to) return;
+      preloadedRoutes.add(to);
+      void router.preloadRoute({ to }).catch(() => { }).then(() => idle(next));
+    };
+    idle(next);
+
+    return () => {
+      cancelled = true;
+    };
   }, [org, filteredNav, router]);
+
+
 
   // Flat list for mobile
   const flatNav = useMemo(() => {
