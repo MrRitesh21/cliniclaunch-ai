@@ -197,6 +197,8 @@ function AuditLogsPage() {
                 <th className="text-left px-6 py-4 border-b">Target Entity</th>
                 <th className="text-left px-6 py-4 border-b">Context/Reason</th>
                 <th className="text-left px-6 py-4 border-b">Footprint</th>
+                <th className="text-right px-6 py-4 border-b">Actions</th>
+
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
