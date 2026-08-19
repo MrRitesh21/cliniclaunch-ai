@@ -383,11 +383,9 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             Built for independent Indian clinics
           </span>
 
-          <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] text-foreground text-left overflow-auto max-h-[400px]">
-            '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
-            <br />
-            <br />
-            take too much time to load data of apps fix this
+          <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] text-foreground">
+            The operating system
+            <br className="hidden sm:block" /> for your clinic
           </h1>
 
           <p className="mt-6 mx-auto max-w-2xl text-base sm:text-lg leading-relaxed text-muted-foreground">
