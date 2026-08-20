@@ -96,7 +96,16 @@ function AuditLogsPage() {
             Audit Log
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-lg">
-            Complete transparency of administrative operations. Tracks access, modifications, and system events.
+            '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
+                                        
+                                            
+                                            Log and display separate audit events whenever audit records are purged by the retention job.
+
+Add an archive mechanism so expired audit entries are moved to an archive (or export) before deletion.
+
+Implement an admin UI setting to configure the audit retention period in days for my /admin/audit module.
+
+Add a retention policy to /admin/audit so old entries automatically expire after a configurable number of days.
           </p>
         </div>
         <Button 
