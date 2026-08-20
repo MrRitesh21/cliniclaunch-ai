@@ -1,35 +1,52 @@
-# Plan: Audit Log Retention Policy
+# Audit Log Retention Policy and Security Hardening
 
-Implement a configurable retention policy for administrative audit logs to automatically expire old entries.
+Implement a configurable retention policy for admin audit logs and address security findings from the scan.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - The retention policy will permanently delete audit logs older than the configured number of days.
-> - By default, we will set this to 90 days, but it can be changed in System Settings.
+> A daily cron job will be required to trigger the audit log cleanup. Ensure the `DAILY_MAINTENANCE_KEY` is set in your environment variables for security.
+
+- **Retention Config**: The default retention is set to 90 days. You can change this in System Settings.
+- **Security**: Targeted security fixes are applied based on the scan results.
 
 ## Proposed Changes
 
 ### Database & Backend
-- Add `audit_log_retention_days` to `system_settings` table (default: 90).
-- Create a new server function `cleanupAuditLogsImpl` in `src/lib/admin.server.ts` that deletes logs older than the configured threshold.
-- Create a public API route `/api/public/cron/cleanup-audit` to trigger the cleanup (secured via a secret key).
+- **System Settings**: Add `audit_log_retention_days` to `public.system_settings`.
+- **Cleanup Logic**: Implement `cleanupAuditLogsImpl` in `src/lib/admin.server.ts` to delete logs older than the configured threshold.
+- **API Endpoint**: Create a secured `POST /api/public/maintenance/cleanup-audit` route to trigger the cleanup.
+- **Security Patches**:
+    - Fix targeted findings (e.g., restricted RLS, revoked executable permissions on sensitive functions).
 
-### Admin Interface
-- Update `src/routes/_admin/admin.audit.tsx` to display the current retention policy and a manual "Cleanup Now" trigger for super-admins.
-- Add a settings field in the System Settings page to configure the retention duration.
+### Admin UI
+- **Retention UI**: Add a "Log Retention" setting to the System Settings page in the Admin Dashboard.
+- **Audit Page**: Display a small notice about the current retention policy.
 
 ## Technical Details
-- **Cleanup Logic**: `DELETE FROM admin_audit_logs WHERE created_at < NOW() - INTERVAL 'X days'`.
-- **Automation**: The API endpoint can be called by an external cron service (like GitHub Actions or a dedicated cron provider) to run daily.
-- **Security**: The cron endpoint will require an `x-cron-secret` header matching a server-side environment variable.
 
-## Verification Plan
+### Retention Cleanup
+```typescript
+// src/lib/admin.server.ts
+export async function cleanupAuditLogsImpl() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const settings = await getSystemSettingsImpl();
+  const days = parseInt(settings.audit_log_retention_days || "90", 10);
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  
+  const { error, count } = await supabaseAdmin
+    .from("admin_audit_logs")
+    .delete()
+    .lt("created_at", cutoff);
+  
+  return { success: true, count };
+}
+```
 
-### Automated Tests
-- Test the `cleanupAuditLogsImpl` logic by inserting a temporary old log and verifying its deletion.
-- Verify the API endpoint responds with `401 Unauthorized` without the correct secret.
+### Secured Cron Endpoint
+- Uses a shared secret header `x-maintenance-key` to prevent unauthorized calls.
 
-### Manual Verification
-- Change the retention setting in the UI and verify it persists.
-- Click "Cleanup Now" and verify the success notification.
+## Success Criteria
+- [ ] Audit logs older than X days are successfully removed when the cleanup runs.
+- [ ] Retention policy is configurable via the Admin UI.
+- [ ] Targeted security findings are resolved and verified.
