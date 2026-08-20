@@ -96,10 +96,7 @@ function AuditLogsPage() {
             Audit Log
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-lg">
-            '''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''
-                                        
-                                            
-                                            Run a real test action — like a patient appointment — and confirm it appears in /admin/audit with filters.
+            Complete transparency of administrative operations. Tracks access, modifications, and system events.
           </p>
         </div>
         <Button 
