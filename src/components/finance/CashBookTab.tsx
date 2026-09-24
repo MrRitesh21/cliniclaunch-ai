@@ -37,7 +37,11 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
   const doClose = useServerFn(closeCashDay);
   const getAudit = useServerFn(getAuditLogs);
 
-  const { data: cashData, isLoading: cashLoading, refetch: refetchCash } = useQuery({
+  const {
+    data: cashData,
+    isLoading: cashLoading,
+    refetch: refetchCash,
+  } = useQuery({
     queryKey: ["cash-day", orgId, clinicId, date],
     queryFn: () => getCash({ data: { organizationId: orgId, clinicId, date } }),
   });
@@ -92,7 +96,14 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
   }
 
   function exportDayBookPdf() {
-    const headers = ["Time/ID", "Type", "Source / Category", "Patient / Vendor", "Mode", "Net Amount"];
+    const headers = [
+      "Time/ID",
+      "Type",
+      "Source / Category",
+      "Patient / Vendor",
+      "Mode",
+      "Net Amount",
+    ];
     const rows = entries.map((r) => [
       r.invoice_number || r.id.slice(0, 8),
       r.entry_type.toUpperCase(),
@@ -135,11 +146,20 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-40 h-9" />
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-40 h-9"
+          />
           <Button variant="outline" size="sm" onClick={exportDayBookPdf}>
             <FileText className="size-4 mr-1.5" /> Day Book PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={() => downloadCsv(`daybook-${date}`, entries as any)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadCsv(`daybook-${date}`, entries as any)}
+          >
             <Download className="size-4 mr-1.5" /> Export CSV
           </Button>
         </div>
@@ -195,7 +215,10 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                 <h3 className="text-base font-semibold flex items-center gap-2">
                   Daily Cash Drawer Reconciliation
                   {closing && (
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    >
                       <Lock className="size-3 mr-1" /> Closed by Staff
                     </Badge>
                   )}
@@ -233,8 +256,16 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                   />
                 </div>
 
-                <Button onClick={submitClosing} disabled={closingBusy} className="w-full h-11 text-sm font-medium">
-                  {closingBusy ? "Closing day..." : closing ? "Update Cash Closing" : "Close Cash Day"}
+                <Button
+                  onClick={submitClosing}
+                  disabled={closingBusy}
+                  className="w-full h-11 text-sm font-medium"
+                >
+                  {closingBusy
+                    ? "Closing day..."
+                    : closing
+                      ? "Update Cash Closing"
+                      : "Close Cash Day"}
                 </Button>
               </div>
 
@@ -266,7 +297,8 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                         </Badge>
                       ) : (
                         <Badge variant="destructive" className="gap-1 px-3 py-1">
-                          <AlertTriangle className="size-3.5" /> Shortage -{inr(Math.abs(difference))}
+                          <AlertTriangle className="size-3.5" /> Shortage -
+                          {inr(Math.abs(difference))}
                         </Badge>
                       )}
                     </div>
@@ -274,8 +306,9 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                 </div>
 
                 <div className="mt-6 text-[11px] text-muted-foreground bg-background/60 p-3 rounded-lg border">
-                  💡 <strong>Audit Guarantee:</strong> Closing records are permanently logged in the audit trail with
-                  timestamp, user ID, and difference metrics for complete accounting transparency.
+                  💡 <strong>Audit Guarantee:</strong> Closing records are permanently logged in the
+                  audit trail with timestamp, user ID, and difference metrics for complete
+                  accounting transparency.
                 </div>
               </div>
             </div>
@@ -301,10 +334,15 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
 
           <Card className="divide-y overflow-hidden">
             {filteredEntries.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">No ledger transactions for this day.</div>
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No ledger transactions for this day.
+              </div>
             ) : (
               filteredEntries.map((r) => (
-                <div key={r.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/40 text-xs">
+                <div
+                  key={r.id}
+                  className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/40 text-xs"
+                >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div
                       className={`size-8 rounded-full flex items-center justify-center shrink-0 ${
@@ -320,7 +358,11 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                         <span className="font-medium text-foreground truncate">
                           {r.patient_name || r.vendor || "Direct Entry"}
                         </span>
-                        {r.invoice_number && <Badge variant="outline" className="text-[10px]">{r.invoice_number}</Badge>}
+                        {r.invoice_number && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {r.invoice_number}
+                          </Badge>
+                        )}
                         <Badge
                           variant={r.entry_type === "revenue" ? "secondary" : "outline"}
                           className="text-[10px] capitalize"
@@ -337,11 +379,16 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                   </div>
 
                   <div className="text-right shrink-0">
-                    <div className={`font-mono font-semibold text-sm ${r.entry_type === "revenue" ? "text-emerald-600" : "text-rose-600"}`}>
-                      {r.entry_type === "revenue" ? "+" : "-"}{inr(r.net_amount)}
+                    <div
+                      className={`font-mono font-semibold text-sm ${r.entry_type === "revenue" ? "text-emerald-600" : "text-rose-600"}`}
+                    >
+                      {r.entry_type === "revenue" ? "+" : "-"}
+                      {inr(r.net_amount)}
                     </div>
                     {Number(r.tax_amount) > 0 && (
-                      <div className="text-[10px] text-muted-foreground">GST: {inr(r.tax_amount)}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        GST: {inr(r.tax_amount)}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -357,7 +404,8 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
               <div>
                 <h3 className="text-sm font-medium">Immutable Audit Logs</h3>
                 <p className="text-xs text-muted-foreground">
-                  Complete record of financial mutations, expense creations, cash closings, and setting updates.
+                  Complete record of financial mutations, expense creations, cash closings, and
+                  setting updates.
                 </p>
               </div>
               <Badge variant="outline" className="text-[10px]">
@@ -368,10 +416,15 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
             {auditLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : (auditData?.logs.length ?? 0) === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">No audit actions recorded yet.</div>
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No audit actions recorded yet.
+              </div>
             ) : (
               auditData?.logs.map((log: any) => (
-                <div key={log.id} className="p-3.5 text-xs flex items-center justify-between gap-3 hover:bg-muted/40">
+                <div
+                  key={log.id}
+                  className="p-3.5 text-xs flex items-center justify-between gap-3 hover:bg-muted/40"
+                >
                   <div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="capitalize text-[10px]">
@@ -382,12 +435,18 @@ export function CashBookTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                         <span className="font-mono text-muted-foreground">({inr(log.amount)})</span>
                       )}
                     </div>
-                    {log.reason && <p className="text-muted-foreground mt-1 text-[11px]">{log.reason}</p>}
+                    {log.reason && (
+                      <p className="text-muted-foreground mt-1 text-[11px]">{log.reason}</p>
+                    )}
                   </div>
 
                   <div className="text-right text-[11px] text-muted-foreground shrink-0">
                     <div>{new Date(log.created_at).toLocaleString("en-IN")}</div>
-                    {log.actor_id && <div className="text-[10px] text-muted-foreground">Actor: {log.actor_id.slice(0, 8)}</div>}
+                    {log.actor_id && (
+                      <div className="text-[10px] text-muted-foreground">
+                        Actor: {log.actor_id.slice(0, 8)}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))

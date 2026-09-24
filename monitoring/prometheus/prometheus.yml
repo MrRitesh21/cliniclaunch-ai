@@ -4,19 +4,19 @@ global:
   scrape_timeout: 10s
 
 rule_files:
-  - 'alert.rules.yml'
+  - "alert.rules.yml"
 
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-            - 'alertmanager:9093'
+            - "alertmanager:9093"
 
 scrape_configs:
-  - job_name: 'backend'
-    metrics_path: '/metrics'
+  - job_name: "backend"
+    metrics_path: "/metrics"
     static_configs:
-      - targets: ['backend:3000', 'host.docker.internal:3000']
+      - targets: ["backend:3000", "host.docker.internal:3000"]
         labels:
-          environment: 'production'
-          service: 'saas-backend'
+          environment: "production"
+          service: "saas-backend"

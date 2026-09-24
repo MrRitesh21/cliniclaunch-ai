@@ -23,9 +23,16 @@ export function OfflineBanner() {
     <div className="sticky top-14 z-30 flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-900 dark:text-amber-200">
       <WifiOff className="size-3.5 shrink-0" />
       <span className="flex-1">
-        You're offline. Showing your last saved view — new bookings, edits and messages will send once you reconnect.
+        You're offline. Showing your last saved view — new bookings, edits and messages will send
+        once you reconnect.
       </span>
-      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={retry} disabled={retrying}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={retry}
+        disabled={retrying}
+      >
         <RefreshCw className={`size-3 mr-1 ${retrying ? "animate-spin" : ""}`} /> Retry
       </Button>
     </div>

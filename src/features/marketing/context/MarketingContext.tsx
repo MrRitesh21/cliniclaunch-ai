@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import type { MarketingTab, MarketingCampaign, CampaignChannel, CampaignType, CampaignStatus } from "../types";
+import type {
+  MarketingTab,
+  MarketingCampaign,
+  CampaignChannel,
+  CampaignType,
+  CampaignStatus,
+} from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { toast } from "sonner";
@@ -81,7 +87,10 @@ export function MarketingProvider({ children }: { children: React.ReactNode }) {
     try {
       const [rows, pRes] = await Promise.all([
         listCampaigns({ data: { organizationId: orgId } }),
-        supabase.from("patients").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+        supabase
+          .from("patients")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId),
       ]);
       setPatientCount(pRes.count ?? 0);
       setCampaigns((rows as any[]).map(mapRow));

@@ -25,7 +25,8 @@ export const Route = createFileRoute("/api/wa/cron")({
         const expected = process.env.CRON_KEY || process.env.VITE_CRON_KEY || "";
         if (!expected || provided !== expected) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -41,24 +42,44 @@ export const Route = createFileRoute("/api/wa/cron")({
           .limit(100);
 
         const logs = (pendingLogs ?? []) as Array<{
-          id: string; appointment_id: string | null; template_key: string; patient_phone: string; patient_name: string | null;
+          id: string;
+          appointment_id: string | null;
+          template_key: string;
+          patient_phone: string;
+          patient_name: string | null;
         }>;
-        const appointmentIds = [...new Set(logs.map((l) => l.appointment_id).filter((id): id is string => !!id))];
+        const appointmentIds = [
+          ...new Set(logs.map((l) => l.appointment_id).filter((id): id is string => !!id)),
+        ];
         const { data: pendingAppointments } = appointmentIds.length
           ? await sb
-            .from("appointments")
-            .select("id, clinic_id, patient_name, patient_phone, scheduled_at, appointment_type, clinics(slug, doctor_name)")
-            .in("id", appointmentIds)
+              .from("appointments")
+              .select(
+                "id, clinic_id, patient_name, patient_phone, scheduled_at, appointment_type, clinics(slug, doctor_name)",
+              )
+              .in("id", appointmentIds)
           : { data: [] };
         const appointmentById = new Map((pendingAppointments ?? []).map((a: any) => [a.id, a]));
 
         for (const log of logs) {
-          const a = log.appointment_id ? appointmentById.get(log.appointment_id) as {
-            id: string; clinic_id: string; patient_name: string | null; patient_phone: string | null; scheduled_at: string | null; appointment_type: string | null;
-            clinics: { slug: string | null; doctor_name: string | null } | null;
-          } | undefined : undefined;
+          const a = log.appointment_id
+            ? (appointmentById.get(log.appointment_id) as
+                | {
+                    id: string;
+                    clinic_id: string;
+                    patient_name: string | null;
+                    patient_phone: string | null;
+                    scheduled_at: string | null;
+                    appointment_type: string | null;
+                    clinics: { slug: string | null; doctor_name: string | null } | null;
+                  }
+                | undefined)
+            : undefined;
           if (!a) {
-            await sb.from("whatsapp_logs").update({ status: "failed", error: "appointment not found" }).eq("id", log.id);
+            await sb
+              .from("whatsapp_logs")
+              .update({ status: "failed", error: "appointment not found" })
+              .eq("id", log.id);
             pendingSummary.failed++;
             continue;
           }
@@ -75,18 +96,26 @@ export const Route = createFileRoute("/api/wa/cron")({
               patient_name: a.patient_name || log.patient_name || "",
               doctor_name: a.clinics?.doctor_name ?? "",
               date: dt.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" }),
-              time: dt.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" }),
+              time: dt.toLocaleTimeString("en-US", {
+                timeZone: "Asia/Kolkata",
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
               clinic_link: a.clinics?.slug ? `${origin}/c/${a.clinics.slug}` : "",
               consult_info: "",
               consult_link: a.appointment_type === "online" ? `${origin}/consult/${a.id}` : "",
             },
           });
-          await sb.from("whatsapp_logs").update({
-            status: res.ok ? "sent" : "failed",
-            error: res.error ?? null,
-            sent_at: res.ok ? new Date().toISOString() : null,
-          }).eq("id", log.id);
-          if (res.ok) pendingSummary.sent++; else pendingSummary.failed++;
+          await sb
+            .from("whatsapp_logs")
+            .update({
+              status: res.ok ? "sent" : "failed",
+              error: res.error ?? null,
+              sent_at: res.ok ? new Date().toISOString() : null,
+            })
+            .eq("id", log.id);
+          if (res.ok) pendingSummary.sent++;
+          else pendingSummary.failed++;
         }
 
         const ranges = [
@@ -110,20 +139,33 @@ export const Route = createFileRoute("/api/wa/cron")({
           },
         ] as const;
 
-        const summary: Record<string, { sent: number; skipped: number; failed: number }> = { scheduled: pendingSummary };
+        const summary: Record<string, { sent: number; skipped: number; failed: number }> = {
+          scheduled: pendingSummary,
+        };
 
         for (const r of ranges) {
           summary[r.key] = { sent: 0, skipped: 0, failed: 0 };
           const { data: appts } = await sb
             .from("appointments")
-            .select("id, clinic_id, patient_name, patient_phone, scheduled_at, status, clinics(slug, doctor_name)")
+            .select(
+              "id, clinic_id, patient_name, patient_phone, scheduled_at, status, clinics(slug, doctor_name)",
+            )
             .gte("scheduled_at", r.from.toISOString())
             .lte("scheduled_at", r.to.toISOString())
-            .in("status", r.statusFilter as unknown as ("cancelled" | "completed" | "confirmed" | "no_show" | "pending")[]);
+            .in(
+              "status",
+              r.statusFilter as unknown as (
+                "cancelled" | "completed" | "confirmed" | "no_show" | "pending"
+              )[],
+            );
 
           for (const a of (appts ?? []) as Array<{
-            id: string; clinic_id: string; patient_name: string; patient_phone: string;
-            scheduled_at: string; clinics: { slug: string; doctor_name: string } | null;
+            id: string;
+            clinic_id: string;
+            patient_name: string;
+            patient_phone: string;
+            scheduled_at: string;
+            clinics: { slug: string; doctor_name: string } | null;
           }>) {
             // Dedupe
             const { data: existing } = await sb
@@ -132,10 +174,17 @@ export const Route = createFileRoute("/api/wa/cron")({
               .eq("appointment_id", a.id)
               .eq("template_key", r.key)
               .maybeSingle();
-            if (existing) { summary[r.key].skipped++; continue; }
+            if (existing) {
+              summary[r.key].skipped++;
+              continue;
+            }
 
             const dt = new Date(a.scheduled_at);
-            const time = dt.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
+            const time = dt.toLocaleTimeString("en-US", {
+              timeZone: "Asia/Kolkata",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
             const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
             const clinicLink = a.clinics?.slug ? `${origin}/c/${a.clinics.slug}` : "";
 
@@ -149,7 +198,8 @@ export const Route = createFileRoute("/api/wa/cron")({
               variables: {
                 patient_name: a.patient_name,
                 doctor_name: a.clinics?.doctor_name ?? "",
-                time, clinic_link: clinicLink,
+                time,
+                clinic_link: clinicLink,
               },
             });
             if (res.ok) summary[r.key].sent++;
@@ -171,11 +221,16 @@ export const Route = createFileRoute("/api/wa/cron")({
             .select("id, clinic_id, name, phone, date_of_birth")
             .ilike("date_of_birth", `%-${todayMM}-${todayDD}`);
 
-          const today0 = new Date(now); today0.setHours(0, 0, 0, 0);
+          const today0 = new Date(now);
+          today0.setHours(0, 0, 0, 0);
           const today1 = new Date(today0.getTime() + 86400000);
 
           for (const p of (bPatients ?? []) as Array<{
-            id: string; clinic_id: string; name: string; phone: string; date_of_birth: string;
+            id: string;
+            clinic_id: string;
+            name: string;
+            phone: string;
+            date_of_birth: string;
           }>) {
             // Dedupe per patient per calendar day
             const { data: existing } = await sb
@@ -186,7 +241,10 @@ export const Route = createFileRoute("/api/wa/cron")({
               .gte("created_at", today0.toISOString())
               .lt("created_at", today1.toISOString())
               .maybeSingle();
-            if (existing) { summary["birthday_wishes"].skipped++; continue; }
+            if (existing) {
+              summary["birthday_wishes"].skipped++;
+              continue;
+            }
 
             const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
             const { data: clinic } = await sb
@@ -221,7 +279,8 @@ export const Route = createFileRoute("/api/wa/cron")({
         // Sends a reminder when due_date is exactly 7 days from now.
         summary["vaccination_reminder"] = { sent: 0, skipped: 0, failed: 0 };
         try {
-          const due0 = new Date(now + 7 * 86400000); due0.setHours(0, 0, 0, 0);
+          const due0 = new Date(now + 7 * 86400000);
+          due0.setHours(0, 0, 0, 0);
           const due1 = new Date(due0.getTime() + 86400000);
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,8 +291,12 @@ export const Route = createFileRoute("/api/wa/cron")({
             .lt("due_date", due1.toISOString());
 
           for (const v of (vaccinations ?? []) as Array<{
-            id: string; clinic_id: string; patient_name: string; patient_phone: string;
-            vaccine_name: string; due_date: string;
+            id: string;
+            clinic_id: string;
+            patient_name: string;
+            patient_phone: string;
+            vaccine_name: string;
+            due_date: string;
           }>) {
             const { data: existing } = await sb
               .from("whatsapp_logs")
@@ -244,7 +307,10 @@ export const Route = createFileRoute("/api/wa/cron")({
               .gte("created_at", due0.toISOString())
               .lt("created_at", due1.toISOString())
               .maybeSingle();
-            if (existing) { summary["vaccination_reminder"].skipped++; continue; }
+            if (existing) {
+              summary["vaccination_reminder"].skipped++;
+              continue;
+            }
 
             const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
             const { data: clinic } = await sb

@@ -14,7 +14,9 @@ export function requestContextMiddleware() {
     const incoming = req.headers[Header.requestId];
     const provided = Array.isArray(incoming) ? incoming[0] : incoming;
     const requestId =
-      provided && provided.length > 0 && provided.length <= INCOMING_ID_MAX ? provided : newRequestId();
+      provided && provided.length > 0 && provided.length <= INCOMING_ID_MAX
+        ? provided
+        : newRequestId();
 
     const ctx: RequestContext = {
       requestId,
@@ -28,7 +30,7 @@ export function requestContextMiddleware() {
     };
 
     res.setHeader(Header.requestId, requestId);
-    res.locals['requestContext'] = ctx;
+    res.locals["requestContext"] = ctx;
     runWithContext(ctx, () => next());
   };
 }

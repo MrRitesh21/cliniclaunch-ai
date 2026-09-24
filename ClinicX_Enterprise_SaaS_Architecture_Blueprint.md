@@ -5,52 +5,52 @@
 > thousands of clinics with high performance, reliability, and
 > maintainability.
 
-------------------------------------------------------------------------
+---
 
 # Executive Principles
 
--   Backward compatible changes only
--   Multi-tenant by design
--   API-first architecture
--   Feature-based modular structure
--   SOLID, DRY, KISS
--   Strict TypeScript
--   Optimistic UI
--   Event-driven architecture
--   Horizontal scalability
--   Security by default
--   Performance budgets enforced
+- Backward compatible changes only
+- Multi-tenant by design
+- API-first architecture
+- Feature-based modular structure
+- SOLID, DRY, KISS
+- Strict TypeScript
+- Optimistic UI
+- Event-driven architecture
+- Horizontal scalability
+- Security by default
+- Performance budgets enforced
 
-------------------------------------------------------------------------
+---
 
 # 21-Phase Enterprise Roadmap
 
 ## Phase 1 -- Foundation
 
--   Feature-based architecture
--   Shared design system
--   Central configuration
--   Logging
--   Error boundaries
--   Request context
+- Feature-based architecture
+- Shared design system
+- Central configuration
+- Logging
+- Error boundaries
+- Request context
 
 ## Phase 2 -- Performance
 
--   Route code splitting
--   Lazy loading
--   React.memo
--   useMemo / useCallback
--   Virtualized tables
--   Image optimization
--   Web Vitals
--   Bundle analysis
+- Route code splitting
+- Lazy loading
+- React.memo
+- useMemo / useCallback
+- Virtualized tables
+- Image optimization
+- Web Vitals
+- Bundle analysis
 
 ## Phase 3 -- Multi-Tenancy
 
--   Tenant middleware
--   Tenant-aware repositories
--   Row-level security
--   Zero tenant leakage
+- Tenant middleware
+- Tenant-aware repositories
+- Row-level security
+- Zero tenant leakage
 
 ## Phase 4 -- Repository Pattern
 
@@ -65,31 +65,31 @@ NotificationService
 
 ## Phase 6 -- API Layer
 
--   Validation
--   Authentication
--   Authorization
--   Compression
--   Rate limiting
--   Tracing
--   Versioning
+- Validation
+- Authentication
+- Authorization
+- Compression
+- Rate limiting
+- Tracing
+- Versioning
 
 ## Phase 7 -- Database
 
--   Proper indexes
--   Composite indexes
--   Cursor pagination
--   Read replica ready
--   Connection pooling
--   Query metrics
+- Proper indexes
+- Composite indexes
+- Cursor pagination
+- Read replica ready
+- Connection pooling
+- Query metrics
 
 ## Phase 8 -- Cache
 
--   Browser cache
--   CDN
--   Redis
--   Memory cache
--   SWR
--   Cache invalidation tags
+- Browser cache
+- CDN
+- Redis
+- Memory cache
+- SWR
+- Cache invalidation tags
 
 ## Phase 9 -- Queue System
 
@@ -119,29 +119,29 @@ Referrals - Loyalty - Coupons - Analytics
 
 ## Phase 14 -- Patient CRM
 
--   Timeline
--   Medical history
--   Files
--   Consent
--   Communication
--   Notes
+- Timeline
+- Medical history
+- Files
+- Consent
+- Communication
+- Notes
 
 ## Phase 15 -- Finance
 
--   Billing
--   Invoices
--   Expenses
--   GST
--   Reports
--   Profit & Loss
+- Billing
+- Invoices
+- Expenses
+- GST
+- Reports
+- Profit & Loss
 
 ## Phase 16 -- Inventory & Pharmacy
 
--   Stock
--   Vendors
--   Purchase orders
--   Barcode
--   Alerts
+- Stock
+- Vendors
+- Purchase orders
+- Barcode
+- Alerts
 
 ## Phase 17 -- Analytics
 
@@ -149,31 +149,31 @@ Dashboards: - Clinic - Doctor - Finance - Marketing - Operations
 
 ## Phase 18 -- Security
 
--   RBAC
--   JWT rotation
--   Audit logs
--   CSP
--   CSRF
--   XSS protection
--   Input validation
+- RBAC
+- JWT rotation
+- Audit logs
+- CSP
+- CSRF
+- XSS protection
+- Input validation
 
 ## Phase 19 -- DevOps
 
--   Docker
--   CI/CD
--   Health checks
--   Blue/Green deployment
--   Canary releases
--   Automatic rollback
+- Docker
+- CI/CD
+- Health checks
+- Blue/Green deployment
+- Canary releases
+- Automatic rollback
 
 ## Phase 20 -- Monitoring
 
--   OpenTelemetry
--   Structured logs
--   Metrics
--   Slow query dashboard
--   Crash reporting
--   Uptime monitoring
+- OpenTelemetry
+- Structured logs
+- Metrics
+- Slow query dashboard
+- Crash reporting
+- Uptime monitoring
 
 ## Phase 21 -- Scale to Millions
 
@@ -181,11 +181,11 @@ Targets: - 1M+ clinics - 100M+ patients - Horizontal scaling -
 Multi-region deployment - CDN - Edge caching - Read replicas - Queue
 workers - Autoscaling
 
-------------------------------------------------------------------------
+---
 
 # Recommended Folder Structure
 
-``` text
+```text
 src/
   app/
   features/
@@ -205,34 +205,34 @@ src/
   types/
 ```
 
-------------------------------------------------------------------------
+---
 
 # Coding Standards
 
--   Strict TypeScript
--   No `any`
--   Small reusable components
--   Repository + Service pattern
--   React Query for server state
--   Optimistic updates
--   Feature flags
--   Unit + Integration + E2E testing
+- Strict TypeScript
+- No `any`
+- Small reusable components
+- Repository + Service pattern
+- React Query for server state
+- Optimistic updates
+- Feature flags
+- Unit + Integration + E2E testing
 
-------------------------------------------------------------------------
+---
 
 # Performance Checklist
 
--   Lighthouse 98+
--   FCP \< 1s
--   LCP \< 1.5s
--   TTI \< 2s
--   API P95 \< 100ms
--   Virtualized lists
--   Lazy images
--   Code splitting
--   CDN delivery
+- Lighthouse 98+
+- FCP \< 1s
+- LCP \< 1.5s
+- TTI \< 2s
+- API P95 \< 100ms
+- Virtualized lists
+- Lazy images
+- Code splitting
+- CDN delivery
 
-------------------------------------------------------------------------
+---
 
 # Final Goal
 

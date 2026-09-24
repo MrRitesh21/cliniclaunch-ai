@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Megaphone,
   Sparkles,
@@ -41,7 +47,7 @@ export function CampaignBuilderView() {
   const [segment, setSegment] = useState("all_patients");
   const [subject, setSubject] = useState("Special Monsoon Health Offer");
   const [body, setBody] = useState(
-    "Hi {patient_name}, monsoon season increases fever & viral infection risk. Book a comprehensive health checkup with Dr. Ritesh at 20% OFF this week!"
+    "Hi {patient_name}, monsoon season increases fever & viral infection risk. Book a comprehensive health checkup with Dr. Ritesh at 20% OFF this week!",
   );
   const [ctaText, setCtaText] = useState("Book Appointment Now");
   const [ctaUrl, setCtaUrl] = useState("/book");
@@ -63,7 +69,11 @@ export function CampaignBuilderView() {
     if (!name.trim() || !body.trim()) return toast.error("Add a campaign name and message first");
     setBusy(true);
     const scheduled = scheduleTime ? new Date(scheduleTime).toISOString() : null;
-    await createCampaign({ ...basePayload(), status: scheduled ? "scheduled" : "draft", scheduled_at: scheduled });
+    await createCampaign({
+      ...basePayload(),
+      status: scheduled ? "scheduled" : "draft",
+      scheduled_at: scheduled,
+    });
     setBusy(false);
     setActiveTab("campaigns");
   };
@@ -77,24 +87,37 @@ export function CampaignBuilderView() {
     setActiveTab("campaigns");
   };
 
-
   return (
     <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Omnichannel Campaign Builder</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            Omnichannel Campaign Builder
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Design, preview, and dispatch targeted campaigns across WhatsApp, Email & SMS.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleSaveDraft} disabled={busy} variant="outline" size="sm" className="h-9 text-xs">
+          <Button
+            onClick={handleSaveDraft}
+            disabled={busy}
+            variant="outline"
+            size="sm"
+            className="h-9 text-xs"
+          >
             {scheduleTime ? "Schedule Campaign" : "Save Draft"}
           </Button>
-          <Button onClick={handleLaunchNow} disabled={busy} size="sm" className="h-9 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700">
-            <Send className="size-3.5" /> {busy ? "Dispatching…" : `Dispatch Now (${patientCount} patients)`}
+          <Button
+            onClick={handleLaunchNow}
+            disabled={busy}
+            size="sm"
+            className="h-9 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Send className="size-3.5" />{" "}
+            {busy ? "Dispatching…" : `Dispatch Now (${patientCount} patients)`}
           </Button>
         </div>
       </div>
@@ -105,14 +128,26 @@ export function CampaignBuilderView() {
           {/* Step 1: Basics & Channel */}
           <Card className="p-5 space-y-4">
             <h3 className="font-bold text-sm flex items-center gap-2">
-              <Badge variant="outline" className="size-5 rounded-full p-0 grid place-items-center text-xs">1</Badge>
+              <Badge
+                variant="outline"
+                className="size-5 rounded-full p-0 grid place-items-center text-xs"
+              >
+                1
+              </Badge>
               Campaign Setup & Channel
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="camp-name" className="text-xs">Campaign Name *</Label>
-                <Input id="camp-name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
+                <Label htmlFor="camp-name" className="text-xs">
+                  Campaign Name *
+                </Label>
+                <Input
+                  id="camp-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-9 text-xs"
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -140,7 +175,9 @@ export function CampaignBuilderView() {
                   type="button"
                   onClick={() => setChannel("whatsapp")}
                   className={`p-3 rounded-xl border flex items-center gap-2 font-medium transition ${
-                    channel === "whatsapp" ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold" : "border-border/60"
+                    channel === "whatsapp"
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                      : "border-border/60"
                   }`}
                 >
                   <MessageCircle className="size-4" /> WhatsApp
@@ -149,7 +186,9 @@ export function CampaignBuilderView() {
                   type="button"
                   onClick={() => setChannel("email")}
                   className={`p-3 rounded-xl border flex items-center gap-2 font-medium transition ${
-                    channel === "email" ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold" : "border-border/60"
+                    channel === "email"
+                      ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
+                      : "border-border/60"
                   }`}
                 >
                   <Mail className="size-4" /> Email
@@ -158,7 +197,9 @@ export function CampaignBuilderView() {
                   type="button"
                   onClick={() => setChannel("sms")}
                   className={`p-3 rounded-xl border flex items-center gap-2 font-medium transition ${
-                    channel === "sms" ? "border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold" : "border-border/60"
+                    channel === "sms"
+                      ? "border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold"
+                      : "border-border/60"
                   }`}
                 >
                   <Phone className="size-4" /> SMS
@@ -175,7 +216,9 @@ export function CampaignBuilderView() {
                   </SelectTrigger>
                   <SelectContent>
                     {SEGMENTS.map((s) => (
-                      <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                      <SelectItem key={s.key} value={s.key}>
+                        {s.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -199,47 +242,88 @@ export function CampaignBuilderView() {
           <Card className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm flex items-center gap-2">
-                <Badge variant="outline" className="size-5 rounded-full p-0 grid place-items-center text-xs">2</Badge>
+                <Badge
+                  variant="outline"
+                  className="size-5 rounded-full p-0 grid place-items-center text-xs"
+                >
+                  2
+                </Badge>
                 Message Composition
               </h3>
-              <Button onClick={() => setActiveTab("ai_writer")} size="sm" variant="ghost" className="h-7 text-xs text-purple-600 gap-1">
+              <Button
+                onClick={() => setActiveTab("ai_writer")}
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs text-purple-600 gap-1"
+              >
                 <Sparkles className="size-3" /> Auto-Write with AI
               </Button>
             </div>
 
             {channel === "email" && (
               <div className="space-y-1.5">
-                <Label htmlFor="camp-subj" className="text-xs">Email Subject Line</Label>
-                <Input id="camp-subj" value={subject} onChange={(e) => setSubject(e.target.value)} className="h-9 text-xs" />
+                <Label htmlFor="camp-subj" className="text-xs">
+                  Email Subject Line
+                </Label>
+                <Input
+                  id="camp-subj"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="h-9 text-xs"
+                />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="camp-body" className="text-xs">Message Content</Label>
-              <Textarea id="camp-body" rows={5} value={body} onChange={(e) => setBody(e.target.value)} className="text-xs" />
+              <Label htmlFor="camp-body" className="text-xs">
+                Message Content
+              </Label>
+              <Textarea
+                id="camp-body"
+                rows={5}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                className="text-xs"
+              />
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
                 <span className="text-[10px] text-muted-foreground">Variables:</span>
-                {["{patient_name}", "{doctor_name}", "{clinic_name}", "{appointment_time}"].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setBody((prev) => prev + " " + v)}
-                    className="px-2 py-0.5 rounded border text-[10px] font-mono hover:bg-muted"
-                  >
-                    {v}
-                  </button>
-                ))}
+                {["{patient_name}", "{doctor_name}", "{clinic_name}", "{appointment_time}"].map(
+                  (v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setBody((prev) => prev + " " + v)}
+                      className="px-2 py-0.5 rounded border text-[10px] font-mono hover:bg-muted"
+                    >
+                      {v}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
               <div className="space-y-1.5">
-                <Label htmlFor="cta-txt" className="text-xs">Call to Action (CTA) Button</Label>
-                <Input id="cta-txt" value={ctaText} onChange={(e) => setCtaText(e.target.value)} className="h-9 text-xs" />
+                <Label htmlFor="cta-txt" className="text-xs">
+                  Call to Action (CTA) Button
+                </Label>
+                <Input
+                  id="cta-txt"
+                  value={ctaText}
+                  onChange={(e) => setCtaText(e.target.value)}
+                  className="h-9 text-xs"
+                />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cta-url" className="text-xs">Target Link URL</Label>
-                <Input id="cta-url" value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} className="h-9 text-xs" />
+                <Label htmlFor="cta-url" className="text-xs">
+                  Target Link URL
+                </Label>
+                <Input
+                  id="cta-url"
+                  value={ctaUrl}
+                  onChange={(e) => setCtaUrl(e.target.value)}
+                  className="h-9 text-xs"
+                />
               </div>
             </div>
           </Card>
@@ -252,7 +336,9 @@ export function CampaignBuilderView() {
               <span className="font-bold text-xs flex items-center gap-1.5">
                 <Smartphone className="size-4 text-primary" /> Live {channel.toUpperCase()} Preview
               </span>
-              <Badge variant="outline" className="text-[10px] uppercase font-mono">{channel}</Badge>
+              <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                {channel}
+              </Badge>
             </div>
 
             {/* Smartphone device container */}
@@ -272,11 +358,15 @@ export function CampaignBuilderView() {
                   </div>
 
                   {channel === "email" && subject && (
-                    <p className="font-bold text-xs text-emerald-400 border-b border-slate-800 pb-1">{subject}</p>
+                    <p className="font-bold text-xs text-emerald-400 border-b border-slate-800 pb-1">
+                      {subject}
+                    </p>
                   )}
 
                   <p className="whitespace-pre-wrap leading-relaxed text-[11px] text-slate-200">
-                    {body.replace("{patient_name}", "Ramesh Sharma").replace("{doctor_name}", "Dr. Ritesh Verma")}
+                    {body
+                      .replace("{patient_name}", "Ramesh Sharma")
+                      .replace("{doctor_name}", "Dr. Ritesh Verma")}
                   </p>
                 </div>
 

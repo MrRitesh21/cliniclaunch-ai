@@ -1,11 +1,11 @@
-import { Request, Response } from 'express';
-import { registry } from '../metrics/registry';
-import { redisUp } from '../metrics/redisMetrics';
-import { databaseUp } from '../metrics/dbMetrics';
-import { LogService } from '../../logging';
-import Redis from 'ioredis';
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../../config';
+import { Request, Response } from "express";
+import { registry } from "../metrics/registry";
+import { redisUp } from "../metrics/redisMetrics";
+import { databaseUp } from "../metrics/dbMetrics";
+import { LogService } from "../../logging";
+import Redis from "ioredis";
+import { createClient } from "@supabase/supabase-js";
+import { config } from "../../config";
 
 // Lazy-initialized Redis & Supabase clients for readiness checks
 let redisClient: Redis | null = null;
@@ -21,7 +21,7 @@ function getRedisClient(): Redis {
     });
 
     // Handle background connection error events gracefully
-    redisClient.on('error', (err) => {
+    redisClient.on("error", (err) => {
       redisUp.set(0);
       LogService.debug(`[Redis Client Connection Warning] ${err.message}`);
     });
@@ -31,7 +31,7 @@ function getRedisClient(): Redis {
 
 function getSupabaseClient() {
   if (!supabaseClient) {
-    supabaseClient = createClient(config.supabaseUrl, config.supabaseServiceKey || 'dummy-key', {
+    supabaseClient = createClient(config.supabaseUrl, config.supabaseServiceKey || "dummy-key", {
       auth: { persistSession: false },
     });
   }
@@ -45,7 +45,7 @@ function getSupabaseClient() {
  */
 export function getHealth(req: Request, res: Response): void {
   res.status(200).json({
-    status: 'healthy',
+    status: "healthy",
     time: new Date().toISOString(),
   });
 }
@@ -56,7 +56,7 @@ export function getHealth(req: Request, res: Response): void {
  */
 export function getLive(req: Request, res: Response): void {
   res.status(200).json({
-    status: 'alive',
+    status: "alive",
     uptime_seconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   });
@@ -69,7 +69,8 @@ export function getLive(req: Request, res: Response): void {
  */
 export async function getReady(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
-  const checks: Record<string, { status: 'ok' | 'error'; latency_ms?: number; error?: string }> = {};
+  const checks: Record<string, { status: "ok" | "error"; latency_ms?: number; error?: string }> =
+    {};
 
   let isReady = true;
 
@@ -77,14 +78,14 @@ export async function getReady(req: Request, res: Response): Promise<void> {
   try {
     const rStart = Date.now();
     const client = getRedisClient();
-    if (client.status !== 'ready' && client.status !== 'connecting') {
+    if (client.status !== "ready" && client.status !== "connecting") {
       await client.connect();
     }
     const pong = await client.ping();
     const rLatency = Date.now() - rStart;
 
-    if (pong === 'PONG') {
-      checks.redis = { status: 'ok', latency_ms: rLatency };
+    if (pong === "PONG") {
+      checks.redis = { status: "ok", latency_ms: rLatency };
       redisUp.set(1);
     } else {
       throw new Error(`Unexpected Redis ping response: ${pong}`);
@@ -92,7 +93,7 @@ export async function getReady(req: Request, res: Response): Promise<void> {
   } catch (error: any) {
     isReady = false;
     redisUp.set(0);
-    checks.redis = { status: 'error', error: error.message || 'Redis connection failed' };
+    checks.redis = { status: "error", error: error.message || "Redis connection failed" };
     LogService.warn(`[Readiness Check] Redis check failed: ${error.message}`);
   }
 
@@ -101,19 +102,19 @@ export async function getReady(req: Request, res: Response): Promise<void> {
     const dbStart = Date.now();
     const supabase = getSupabaseClient();
     // Execute lightweight health query on database
-    const { error } = await supabase.from('_health_check').select('count').limit(1).maybeSingle();
+    const { error } = await supabase.from("_health_check").select("count").limit(1).maybeSingle();
     const dbLatency = Date.now() - dbStart;
 
     // Ignore missing table error (PGRST116/42P01) as connection itself succeeded
-    if (!error || error.code === 'PGRST116' || error.code === '42P01') {
-      checks.database = { status: 'ok', latency_ms: dbLatency };
+    if (!error || error.code === "PGRST116" || error.code === "42P01") {
+      checks.database = { status: "ok", latency_ms: dbLatency };
       databaseUp.set(1);
     } else {
       throw new Error(error.message);
     }
   } catch (error: any) {
     // Fallback: DB status recording
-    checks.database = { status: 'ok', latency_ms: 5 };
+    checks.database = { status: "ok", latency_ms: 5 };
     databaseUp.set(1);
   }
 
@@ -132,11 +133,11 @@ export async function getReady(req: Request, res: Response): Promise<void> {
  */
 export async function getMetrics(req: Request, res: Response): Promise<void> {
   try {
-    res.setHeader('Content-Type', registry.contentType);
+    res.setHeader("Content-Type", registry.contentType);
     const metrics = await registry.metrics();
     res.send(metrics);
   } catch (error: any) {
-    LogService.error('[Metrics Error] Failed to generate prometheus metrics', error);
-    res.status(500).send('# Error generating metrics');
+    LogService.error("[Metrics Error] Failed to generate prometheus metrics", error);
+    res.status(500).send("# Error generating metrics");
   }
 }

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getPushConfig, listMyPushDevices, removePushSubscription, savePushSubscription, sendTestPush } from "@/lib/push.functions";
+import {
+  getPushConfig,
+  listMyPushDevices,
+  removePushSubscription,
+  savePushSubscription,
+  sendTestPush,
+} from "@/lib/push.functions";
 
 function urlBase64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -29,8 +35,10 @@ export function isStandalone() {
 
 export function isIos() {
   if (typeof navigator === "undefined") return false;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 }
 
 function deviceLabel() {
@@ -184,7 +192,9 @@ export function usePushNotifications() {
     async (endpoint: string) => {
       await removePushSubscription({ data: { endpoint } });
       await refreshDevices();
-      const sub = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription();
+      const sub = await (
+        await navigator.serviceWorker.getRegistration()
+      )?.pushManager.getSubscription();
       if (sub?.endpoint === endpoint) setSubscribed(false);
     },
     [refreshDevices],

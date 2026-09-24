@@ -1,4 +1,11 @@
-import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  Link,
+  useRouterState,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import {
   LayoutDashboard,
@@ -37,7 +44,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/components/ui/theme-provider";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 
-
 export const Route = createFileRoute("/_admin")({
   ssr: false,
   beforeLoad: async () => {
@@ -59,7 +65,10 @@ type NavItem = { to: string; label: string; icon: React.ComponentType<{ classNam
 type NavSection = { title: string; items: NavItem[] };
 
 const NAV: NavSection[] = [
-  { title: "Overview", items: [{ to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }] },
+  {
+    title: "Overview",
+    items: [{ to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
   {
     title: "Doctors",
     items: [
@@ -105,9 +114,7 @@ const NAV: NavSection[] = [
   },
   {
     title: "Monitoring & Security",
-    items: [
-      { to: "/admin/monitoring", label: "Full System Monitoring", icon: Monitor },
-    ],
+    items: [{ to: "/admin/monitoring", label: "Full System Monitoring", icon: Monitor }],
   },
 ];
 
@@ -157,8 +164,12 @@ function AdminLayout() {
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-display font-semibold text-white text-[15px] tracking-tight">ClinicX</span>
-              <span className="text-[10px] uppercase tracking-[0.18em] text-white/50 mt-0.5">Admin Console</span>
+              <span className="font-display font-semibold text-white text-[15px] tracking-tight">
+                ClinicX
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/50 mt-0.5">
+                Admin Console
+              </span>
             </div>
           </Link>
           <button
@@ -193,7 +204,9 @@ function AdminLayout() {
                       {active && (
                         <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-gradient-to-b from-teal-300 to-cyan-500" />
                       )}
-                      <Icon className={`size-[15px] shrink-0 ${active ? "text-teal-300" : "text-white/50 group-hover:text-white/80"}`} />
+                      <Icon
+                        className={`size-[15px] shrink-0 ${active ? "text-teal-300" : "text-white/50 group-hover:text-white/80"}`}
+                      />
                       <span className="truncate">{item.label}</span>
                     </Link>
                   );
@@ -209,7 +222,9 @@ function AdminLayout() {
               {(adminUser?.name || adminUser?.email || "A").charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-medium text-white truncate">{adminUser?.name || "Admin"}</div>
+              <div className="text-[13px] font-medium text-white truncate">
+                {adminUser?.name || "Admin"}
+              </div>
               <div className="text-[11px] text-white/50 truncate">{adminUser?.email}</div>
             </div>
             <button
@@ -246,7 +261,9 @@ function AdminLayout() {
             <div className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
               <span className="text-muted-foreground/70 shrink-0">{crumb.section}</span>
               <ChevronRight className="size-3.5 text-muted-foreground/40 shrink-0" />
-              <span className="font-semibold text-foreground truncate font-display">{crumb.page}</span>
+              <span className="font-semibold text-foreground truncate font-display">
+                {crumb.page}
+              </span>
             </div>
           </div>
 
@@ -257,7 +274,9 @@ function AdminLayout() {
             >
               <Search className="size-3.5" />
               <span>Search doctors, plans...</span>
-              <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-background border border-border/60 font-mono">⌘K</kbd>
+              <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-background border border-border/60 font-mono">
+                ⌘K
+              </kbd>
             </button>
 
             <button

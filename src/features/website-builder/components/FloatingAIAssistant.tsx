@@ -11,7 +11,9 @@ export function FloatingAIAssistant() {
   const { isFloatingAIOpen, setIsFloatingAIOpen, patch, state } = useWebsiteBuilder();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<"hero" | "about" | "services" | "faq" | "seo" | "cta">("hero");
+  const [selectedTask, setSelectedTask] = useState<
+    "hero" | "about" | "services" | "faq" | "seo" | "cta"
+  >("hero");
 
   const quickActions = [
     { id: "hero", label: "Improve Hero Headline", icon: Sparkles },
@@ -44,19 +46,41 @@ export function FloatingAIAssistant() {
     } else if (selectedTask === "services") {
       patch({
         services: [
-          { name: "Comprehensive Medical Consultation", description: "In-depth health checkups and personalized care plans." },
-          { name: "Preventive Health Screening", description: "Advanced diagnostic evaluations for long-term health." },
-          { name: "Chronic Disease Management", description: "Specialized care for diabetes, hypertension, and heart health." },
-          { name: "Teleconsultation & Emergency Follow-ups", description: "Instant video & WhatsApp consultation options." },
+          {
+            name: "Comprehensive Medical Consultation",
+            description: "In-depth health checkups and personalized care plans.",
+          },
+          {
+            name: "Preventive Health Screening",
+            description: "Advanced diagnostic evaluations for long-term health.",
+          },
+          {
+            name: "Chronic Disease Management",
+            description: "Specialized care for diabetes, hypertension, and heart health.",
+          },
+          {
+            name: "Teleconsultation & Emergency Follow-ups",
+            description: "Instant video & WhatsApp consultation options.",
+          },
         ],
       });
       toast.success("AI generated Services!");
     } else if (selectedTask === "faq") {
       patch({
         faqs: [
-          { question: "How do I book an appointment?", answer: "Click 'Book Appointment' on the top bar to select a convenient date and time slot." },
-          { question: "Do you accept health insurance?", answer: "Yes, we accept major insurance plans and cashless mediclaim cards." },
-          { question: "What are the clinic operating hours?", answer: "Monday to Saturday, 9:00 AM to 7:00 PM." },
+          {
+            question: "How do I book an appointment?",
+            answer:
+              "Click 'Book Appointment' on the top bar to select a convenient date and time slot.",
+          },
+          {
+            question: "Do you accept health insurance?",
+            answer: "Yes, we accept major insurance plans and cashless mediclaim cards.",
+          },
+          {
+            question: "What are the clinic operating hours?",
+            answer: "Monday to Saturday, 9:00 AM to 7:00 PM.",
+          },
         ],
       });
       toast.success("AI generated Clinical FAQs!");
@@ -124,13 +148,25 @@ export function FloatingAIAssistant() {
 
           {/* Language / Tone pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-purple-500/10" onClick={() => setPrompt((p) => p + " [Tone: Professional]")}>
+            <Badge
+              variant="outline"
+              className="text-[10px] cursor-pointer hover:bg-purple-500/10"
+              onClick={() => setPrompt((p) => p + " [Tone: Professional]")}
+            >
               Professional
             </Badge>
-            <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-purple-500/10" onClick={() => setPrompt((p) => p + " [Tone: Warm & Welcoming]")}>
+            <Badge
+              variant="outline"
+              className="text-[10px] cursor-pointer hover:bg-purple-500/10"
+              onClick={() => setPrompt((p) => p + " [Tone: Warm & Welcoming]")}
+            >
               Warm & Welcoming
             </Badge>
-            <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-purple-500/10" onClick={() => setPrompt((p) => p + " [Language: Hindi]")}>
+            <Badge
+              variant="outline"
+              className="text-[10px] cursor-pointer hover:bg-purple-500/10"
+              onClick={() => setPrompt((p) => p + " [Language: Hindi]")}
+            >
               Hindi / Hinglish
             </Badge>
           </div>
@@ -140,7 +176,11 @@ export function FloatingAIAssistant() {
             disabled={loading}
             className="w-full h-10 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs gap-2 shadow-md shadow-purple-600/20"
           >
-            {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Sparkles className="size-4" />
+            )}
             <span>{loading ? "Generating Copy…" : "Apply AI Generation"}</span>
           </Button>
         </div>

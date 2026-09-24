@@ -27,7 +27,9 @@ export function optimizeImageUrl(url: string | null | undefined, maxWidth = 800)
  * Returns Edge Caching Directives for Cloudflare CDN & Vercel Free Tier Serverless.
  * Serves cached responses directly from Cloudflare's 300+ edge data centers in <10ms.
  */
-export function getFreeTierCacheHeaders(type: "public-page" | "static-asset" | "api"): Record<string, string> {
+export function getFreeTierCacheHeaders(
+  type: "public-page" | "static-asset" | "api",
+): Record<string, string> {
   switch (type) {
     case "public-page":
       return {

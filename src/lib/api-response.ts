@@ -17,7 +17,11 @@ export interface ApiResponse<T = unknown> {
   };
 }
 
-export function apiSuccess<T>(data: T, correlationId = "req-anon", durationMs?: number): ApiResponse<T> {
+export function apiSuccess<T>(
+  data: T,
+  correlationId = "req-anon",
+  durationMs?: number,
+): ApiResponse<T> {
   return {
     success: true,
     data,
@@ -33,7 +37,7 @@ export function apiError(
   message: string,
   code = "BAD_REQUEST",
   status = 400,
-  correlationId = "req-anon"
+  correlationId = "req-anon",
 ): Response {
   const payload: ApiResponse = {
     success: false,

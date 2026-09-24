@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import { logger } from "./logger";
 
 export interface StructuredLogContext {
   request_id?: string;
@@ -22,8 +22,15 @@ export class LogService {
     logger.warn(context || {}, message);
   }
 
-  public static error(message: string, error?: Error | unknown, context?: StructuredLogContext): void {
-    const errorDetails = error instanceof Error ? { err: { message: error.message, stack: error.stack } } : { err: error };
+  public static error(
+    message: string,
+    error?: Error | unknown,
+    context?: StructuredLogContext,
+  ): void {
+    const errorDetails =
+      error instanceof Error
+        ? { err: { message: error.message, stack: error.stack } }
+        : { err: error };
     logger.error({ ...context, ...errorDetails }, message);
   }
 

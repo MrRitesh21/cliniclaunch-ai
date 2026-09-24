@@ -37,7 +37,14 @@ function buildItems(clinic: Record<string, unknown> | null | undefined): MediaIt
   const push = (url: string | null, folder: MediaItem["folder"], name: string, id: string) => {
     if (!url) return;
     if (items.some((i) => i.url === url)) return;
-    items.push({ id, name: fileNameOf(url, name), url, folder, format: formatOf(url), createdAt: null });
+    items.push({
+      id,
+      name: fileNameOf(url, name),
+      url,
+      folder,
+      format: formatOf(url),
+      createdAt: null,
+    });
   };
 
   push(urlOf(clinic.logo_url), "brand", "logo", "brand-logo");
@@ -90,7 +97,10 @@ export function MediaLibraryView() {
 
   async function patchClinic(patch: Record<string, unknown>) {
     if (!clinicId) throw new Error("Clinic not loaded yet");
-    const { error } = await supabase.from("clinics").update(patch as never).eq("id", clinicId);
+    const { error } = await supabase
+      .from("clinics")
+      .update(patch as never)
+      .eq("id", clinicId);
     if (error) throw new Error(error.message);
   }
 
@@ -192,7 +202,11 @@ export function MediaLibraryView() {
 
         {/* Upload Button */}
         <label className="cursor-pointer">
-          <Button size="sm" disabled={uploading} className="h-9 text-xs font-semibold rounded-xl gap-1.5 pointer-events-none">
+          <Button
+            size="sm"
+            disabled={uploading}
+            className="h-9 text-xs font-semibold rounded-xl gap-1.5 pointer-events-none"
+          >
             <Upload className="size-4" />
             <span>{uploading ? "Uploading…" : "Upload Media Asset"}</span>
           </Button>
@@ -263,7 +277,9 @@ export function MediaLibraryView() {
             <div className="p-1 space-y-1">
               <p className="font-semibold text-xs truncate">{item.name}</p>
               <p className="text-[10px] text-muted-foreground capitalize">
-                {[item.folder, item.sizeKb ? `${item.sizeKb} KB` : null, item.createdAt].filter(Boolean).join(" · ")}
+                {[item.folder, item.sizeKb ? `${item.sizeKb} KB` : null, item.createdAt]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
 
@@ -275,7 +291,11 @@ export function MediaLibraryView() {
                 className="h-7 text-[11px] gap-1 px-2"
                 onClick={() => handleCopy(item.url, item.id)}
               >
-                {copiedId === item.id ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                {copiedId === item.id ? (
+                  <Check className="size-3 text-emerald-500" />
+                ) : (
+                  <Copy className="size-3" />
+                )}
                 <span>{copiedId === item.id ? "Copied" : "Copy URL"}</span>
               </Button>
 
@@ -296,7 +316,6 @@ export function MediaLibraryView() {
           </Card>
         )}
       </div>
-
     </div>
   );
 }

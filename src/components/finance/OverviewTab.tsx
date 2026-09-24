@@ -20,7 +20,13 @@ import { ArrowDown, ArrowUp, IndianRupee, TrendingUp, Users, Wallet } from "luci
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { getFinanceOverview } from "@/lib/finance.functions";
 import { CHART_COLORS, compactInr, inr, pretty } from "@/lib/finance-format";
@@ -35,7 +41,19 @@ const RANGES = [
 
 const day = (offset = 0) => new Date(Date.now() - offset * 864e5).toISOString().slice(0, 10);
 
-function Kpi({ title, value, change, icon, suffix }: { title: string; value: string; change?: number; icon?: React.ReactNode; suffix?: string }) {
+function Kpi({
+  title,
+  value,
+  change,
+  icon,
+  suffix,
+}: {
+  title: string;
+  value: string;
+  change?: number;
+  icon?: React.ReactNode;
+  suffix?: string;
+}) {
   const positive = (change ?? 0) >= 0;
   return (
     <Card className="p-4">
@@ -45,7 +63,9 @@ function Kpi({ title, value, change, icon, suffix }: { title: string; value: str
       </div>
       <div className="font-display text-2xl tracking-tight">{value}</div>
       {change !== undefined && (
-        <div className={`text-xs mt-1 flex items-center gap-1 ${positive ? "text-emerald-600" : "text-rose-600"}`}>
+        <div
+          className={`text-xs mt-1 flex items-center gap-1 ${positive ? "text-emerald-600" : "text-rose-600"}`}
+        >
           {positive ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
           {Math.abs(change)}% {suffix ?? "vs previous period"}
         </div>
@@ -54,7 +74,15 @@ function Kpi({ title, value, change, icon, suffix }: { title: string; value: str
   );
 }
 
-function Split({ title, data, kind }: { title: string; data: Array<{ key: string; amount: number; count: number; average: number }>; kind: "pie" | "bar" }) {
+function Split({
+  title,
+  data,
+  kind,
+}: {
+  title: string;
+  data: Array<{ key: string; amount: number; count: number; average: number }>;
+  kind: "pie" | "bar";
+}) {
   const rows = data.slice(0, 7).map((d) => ({ ...d, name: pretty(d.key) }));
   if (rows.length === 0) return null;
   return (
@@ -64,7 +92,14 @@ function Split({ title, data, kind }: { title: string; data: Array<{ key: string
         <ResponsiveContainer width="100%" height="100%">
           {kind === "pie" ? (
             <PieChart>
-              <Pie data={rows} dataKey="amount" nameKey="name" innerRadius="55%" outerRadius="85%" paddingAngle={2}>
+              <Pie
+                data={rows}
+                dataKey="amount"
+                nameKey="name"
+                innerRadius="55%"
+                outerRadius="85%"
+                paddingAngle={2}
+              >
                 {rows.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
@@ -75,7 +110,14 @@ function Split({ title, data, kind }: { title: string; data: Array<{ key: string
           ) : (
             <BarChart data={rows} margin={{ left: -14, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-18} textAnchor="end" height={54} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10 }}
+                interval={0}
+                angle={-18}
+                textAnchor="end"
+                height={54}
+              />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={compactInr} />
               <Tooltip formatter={(v: number) => inr(v)} />
               <Bar dataKey="amount" radius={[6, 6, 0, 0]} fill={CHART_COLORS[0]} />
@@ -87,7 +129,10 @@ function Split({ title, data, kind }: { title: string; data: Array<{ key: string
         {rows.map((r, i) => (
           <div key={r.key} className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-2 min-w-0">
-              <span className="size-2 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+              <span
+                className="size-2 rounded-full shrink-0"
+                style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+              />
               <span className="truncate">{r.name}</span>
             </span>
             <span className="text-muted-foreground shrink-0">
@@ -118,9 +163,18 @@ export function OverviewTab({ orgId, clinicId }: { orgId: string; clinicId: stri
   useEffect(() => {
     const channel = supabase
       .channel(`finance-ledger-${orgId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "finance_ledger", filter: `organization_id=eq.${orgId}` }, () => {
-        void refetch();
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "finance_ledger",
+          filter: `organization_id=eq.${orgId}`,
+        },
+        () => {
+          void refetch();
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
@@ -139,25 +193,56 @@ export function OverviewTab({ orgId, clinicId }: { orgId: string; clinicId: stri
           Every rupee below was recorded automatically from appointments, payments and expenses.
         </p>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40 h-9">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             {RANGES.map((r) => (
-              <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
+              <SelectItem key={r.key} value={r.key}>
+                {r.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi title="Today's revenue" value={inr(k.today)} change={k.yesterday ? Math.round(((k.today - k.yesterday) / k.yesterday) * 100) : undefined} suffix="vs yesterday" icon={<IndianRupee className="size-4" />} />
-        <Kpi title="Revenue (period)" value={inr(k.rangeRevenue)} change={k.revenueGrowth} icon={<TrendingUp className="size-4" />} />
-        <Kpi title="Expenses (period)" value={inr(k.rangeExpense)} change={k.expenseGrowth} icon={<Wallet className="size-4" />} />
-        <Kpi title="Net profit" value={inr(k.netProfit)} change={k.profitGrowth} icon={<IndianRupee className="size-4" />} />
+        <Kpi
+          title="Today's revenue"
+          value={inr(k.today)}
+          change={
+            k.yesterday ? Math.round(((k.today - k.yesterday) / k.yesterday) * 100) : undefined
+          }
+          suffix="vs yesterday"
+          icon={<IndianRupee className="size-4" />}
+        />
+        <Kpi
+          title="Revenue (period)"
+          value={inr(k.rangeRevenue)}
+          change={k.revenueGrowth}
+          icon={<TrendingUp className="size-4" />}
+        />
+        <Kpi
+          title="Expenses (period)"
+          value={inr(k.rangeExpense)}
+          change={k.expenseGrowth}
+          icon={<Wallet className="size-4" />}
+        />
+        <Kpi
+          title="Net profit"
+          value={inr(k.netProfit)}
+          change={k.profitGrowth}
+          icon={<IndianRupee className="size-4" />}
+        />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Kpi title="Average ticket" value={inr(k.averageTicket)} />
-        <Kpi title="Revenue per patient" value={inr(k.revenuePerPatient)} icon={<Users className="size-4" />} />
+        <Kpi
+          title="Revenue per patient"
+          value={inr(k.revenuePerPatient)}
+          icon={<Users className="size-4" />}
+        />
         <Kpi title="Net margin" value={`${k.margin}%`} />
         <Kpi title="Digital payments" value={`${k.digitalRatio}%`} />
       </div>
@@ -178,11 +263,27 @@ export function OverviewTab({ orgId, clinicId }: { orgId: string; clinicId: stri
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d: string) => d.slice(5)} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10 }}
+                tickFormatter={(d: string) => d.slice(5)}
+              />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={compactInr} />
               <Tooltip formatter={(v: number) => inr(v)} />
-              <Area type="monotone" dataKey="revenue" stroke={CHART_COLORS[0]} fill="url(#rev)" strokeWidth={2} />
-              <Area type="monotone" dataKey="expense" stroke={CHART_COLORS[5]} fill="url(#exp)" strokeWidth={2} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke={CHART_COLORS[0]}
+                fill="url(#rev)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="expense"
+                stroke={CHART_COLORS[5]}
+                fill="url(#exp)"
+                strokeWidth={2}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -198,10 +299,17 @@ export function OverviewTab({ orgId, clinicId }: { orgId: string; clinicId: stri
             <div className="divide-y">
               {data.doctors.slice(0, 8).map((d, i) => (
                 <div key={d.key} className="py-2.5 flex items-center gap-3">
-                  <Badge variant={i === 0 ? "default" : "outline"} className="size-6 justify-center p-0">{i + 1}</Badge>
+                  <Badge
+                    variant={i === 0 ? "default" : "outline"}
+                    className="size-6 justify-center p-0"
+                  >
+                    {i + 1}
+                  </Badge>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm truncate">{d.key}</div>
-                    <div className="text-xs text-muted-foreground">{d.count} consultations · avg {inr(d.average)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {d.count} consultations · avg {inr(d.average)}
+                    </div>
                   </div>
                   <div className="font-medium text-sm">{inr(d.amount)}</div>
                 </div>

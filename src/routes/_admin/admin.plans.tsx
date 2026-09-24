@@ -38,29 +38,36 @@ function PlansPage() {
   const deletePlanFn = useServerFn(deletePlan);
 
   // Queries
-  const { data: plans = [], isLoading: loadingPlans } = useQuery({ queryKey: ["admin-plans"], queryFn: () => getPlansFn() });
-  const { data: coupons = [], isLoading: loadingCoupons } = useQuery({ queryKey: ["admin-coupons"], queryFn: () => getCouponsFn() });
+  const { data: plans = [], isLoading: loadingPlans } = useQuery({
+    queryKey: ["admin-plans"],
+    queryFn: () => getPlansFn(),
+  });
+  const { data: coupons = [], isLoading: loadingCoupons } = useQuery({
+    queryKey: ["admin-coupons"],
+    queryFn: () => getCouponsFn(),
+  });
   const { data: modulesList = [] } = useQuery({
     queryKey: ["admin-modules"],
     queryFn: async () => {
       const { data } = await supabase.from("modules").select("*").order("sort_order");
       let list = (data ?? []) as any[];
-      if (!list.some(m => m.id === "seo")) {
+      if (!list.some((m) => m.id === "seo")) {
         list.push({
           id: "seo",
           name: "SEO & AI Ranking",
-          description: "Local SEO, Answer Engine & Generative Engine optimization to rank #1 on Google and AI search",
+          description:
+            "Local SEO, Answer Engine & Generative Engine optimization to rank #1 on Google and AI search",
           category: "Marketing",
           icon: "Search",
           is_core: false,
           is_available: true,
           min_plan: "starter",
           sort_order: 17,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         } as any);
       }
       return list;
-    }
+    },
   });
 
   // Plan Edit states
@@ -123,8 +130,7 @@ function PlansPage() {
   });
 
   const toggleCouponMut = useMutation({
-    mutationFn: (args: { code: string; active: boolean }) =>
-      toggleCouponFn({ data: args }),
+    mutationFn: (args: { code: string; active: boolean }) => toggleCouponFn({ data: args }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
       toast.success("Coupon status updated");
@@ -183,7 +189,9 @@ function PlansPage() {
     <div className="p-4 sm:p-6 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground font-display">Plans & Coupons</h1>
-        <p className="text-sm text-muted-foreground">Configure pricing tier features, values and active promo coupons.</p>
+        <p className="text-sm text-muted-foreground">
+          Configure pricing tier features, values and active promo coupons.
+        </p>
       </div>
 
       {/* Plans Section */}
@@ -197,10 +205,38 @@ function PlansPage() {
         {newPlanOpen && (
           <Card className="p-4 space-y-3 bg-muted/50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div><Label>Slug (id)</Label><Input value={newPlanSlug} placeholder="starter_plan" onChange={(e) => setNewPlanSlug(e.target.value)} /></div>
-              <div><Label>Display name</Label><Input value={newPlanName} placeholder="Starter" onChange={(e) => setNewPlanName(e.target.value)} /></div>
-              <div><Label>Monthly (INR)</Label><Input type="number" value={newPlanMonthly || ""} onChange={(e) => setNewPlanMonthly(Number(e.target.value))} /></div>
-              <div><Label>Yearly (INR)</Label><Input type="number" value={newPlanYearly || ""} onChange={(e) => setNewPlanYearly(Number(e.target.value))} /></div>
+              <div>
+                <Label>Slug (id)</Label>
+                <Input
+                  value={newPlanSlug}
+                  placeholder="starter_plan"
+                  onChange={(e) => setNewPlanSlug(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Display name</Label>
+                <Input
+                  value={newPlanName}
+                  placeholder="Starter"
+                  onChange={(e) => setNewPlanName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Monthly (INR)</Label>
+                <Input
+                  type="number"
+                  value={newPlanMonthly || ""}
+                  onChange={(e) => setNewPlanMonthly(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Yearly (INR)</Label>
+                <Input
+                  type="number"
+                  value={newPlanYearly || ""}
+                  onChange={(e) => setNewPlanYearly(Number(e.target.value))}
+                />
+              </div>
             </div>
             <Button
               size="sm"
@@ -213,7 +249,9 @@ function PlansPage() {
           </Card>
         )}
         {loadingPlans ? (
-          <div className="flex justify-center p-6"><Loader2 className="animate-spin size-6 text-primary" /></div>
+          <div className="flex justify-center p-6">
+            <Loader2 className="animate-spin size-6 text-primary" />
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((p: any) => {
@@ -230,30 +268,46 @@ function PlansPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-xs">Monthly Price (Original)</Label>
-                            <Input type="number" value={monthlyPrice} onChange={(e) => setMonthlyPrice(Number(e.target.value))} />
+                            <Input
+                              type="number"
+                              value={monthlyPrice}
+                              onChange={(e) => setMonthlyPrice(Number(e.target.value))}
+                            />
                           </div>
                           <div>
                             <Label className="text-xs">Monthly Price (Discounted)</Label>
-                            <Input 
-                              type="number" 
-                              value={discountedMonthlyPrice === null ? "" : discountedMonthlyPrice} 
+                            <Input
+                              type="number"
+                              value={discountedMonthlyPrice === null ? "" : discountedMonthlyPrice}
                               placeholder="None"
-                              onChange={(e) => setDiscountedMonthlyPrice(e.target.value === "" ? null : Number(e.target.value))} 
+                              onChange={(e) =>
+                                setDiscountedMonthlyPrice(
+                                  e.target.value === "" ? null : Number(e.target.value),
+                                )
+                              }
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-xs">Yearly Price (Original)</Label>
-                            <Input type="number" value={yearlyPrice} onChange={(e) => setYearlyPrice(Number(e.target.value))} />
+                            <Input
+                              type="number"
+                              value={yearlyPrice}
+                              onChange={(e) => setYearlyPrice(Number(e.target.value))}
+                            />
                           </div>
                           <div>
                             <Label className="text-xs">Yearly Price (Discounted)</Label>
-                            <Input 
-                              type="number" 
-                              value={discountedYearlyPrice === null ? "" : discountedYearlyPrice} 
+                            <Input
+                              type="number"
+                              value={discountedYearlyPrice === null ? "" : discountedYearlyPrice}
                               placeholder="None"
-                              onChange={(e) => setDiscountedYearlyPrice(e.target.value === "" ? null : Number(e.target.value))} 
+                              onChange={(e) =>
+                                setDiscountedYearlyPrice(
+                                  e.target.value === "" ? null : Number(e.target.value),
+                                )
+                              }
                             />
                           </div>
                         </div>
@@ -266,12 +320,17 @@ function PlansPage() {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs font-semibold block mb-1">Included Apps / Modules</Label>
+                          <Label className="text-xs font-semibold block mb-1">
+                            Included Apps / Modules
+                          </Label>
                           <div className="border rounded p-2 max-h-36 overflow-y-auto space-y-1 bg-background">
                             {modulesList.map((m: any) => {
                               const checked = selectedModuleIds.includes(m.id);
                               return (
-                                <label key={m.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer py-0.5 hover:bg-muted/50 rounded px-1">
+                                <label
+                                  key={m.id}
+                                  className="flex items-center gap-2 text-xs font-medium cursor-pointer py-0.5 hover:bg-muted/50 rounded px-1"
+                                >
                                   <input
                                     type="checkbox"
                                     checked={checked}
@@ -279,7 +338,9 @@ function PlansPage() {
                                       if (e.target.checked) {
                                         setSelectedModuleIds((prev) => [...prev, m.id]);
                                       } else {
-                                        setSelectedModuleIds((prev) => prev.filter((id) => id !== m.id));
+                                        setSelectedModuleIds((prev) =>
+                                          prev.filter((id) => id !== m.id),
+                                        );
                                       }
                                     }}
                                     className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 size-3.5"
@@ -297,7 +358,9 @@ function PlansPage() {
                           {p.discounted_monthly_price ? (
                             <>
                               <span>₹{p.discounted_monthly_price.toLocaleString("en-IN")}/mo</span>
-                              <span className="text-xs text-muted-foreground line-through">₹{p.monthly_price.toLocaleString("en-IN")}/mo</span>
+                              <span className="text-xs text-muted-foreground line-through">
+                                ₹{p.monthly_price.toLocaleString("en-IN")}/mo
+                              </span>
                             </>
                           ) : (
                             <span>₹{p.monthly_price.toLocaleString("en-IN")}/mo</span>
@@ -307,32 +370,43 @@ function PlansPage() {
                           {p.discounted_yearly_price ? (
                             <>
                               <span>₹{p.discounted_yearly_price.toLocaleString("en-IN")}/yr</span>
-                              <span className="line-through">₹{p.yearly_price.toLocaleString("en-IN")}/yr</span>
+                              <span className="line-through">
+                                ₹{p.yearly_price.toLocaleString("en-IN")}/yr
+                              </span>
                             </>
                           ) : (
                             <span>₹{p.yearly_price.toLocaleString("en-IN")}/yr</span>
                           )}
                         </div>
-                         <ul className="text-xs space-y-1 mt-4 text-muted-foreground list-disc list-inside">
+                        <ul className="text-xs space-y-1 mt-4 text-muted-foreground list-disc list-inside">
                           {(p.features ?? []).map((f: string, i: number) => (
                             <li key={i}>{f}</li>
                           ))}
                         </ul>
                         <div className="mt-4 pt-3 border-t">
-                          <div className="text-[11px] font-semibold text-foreground mb-1">Included Apps:</div>
+                          <div className="text-[11px] font-semibold text-foreground mb-1">
+                            Included Apps:
+                          </div>
                           {p.module_ids && p.module_ids.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {p.module_ids.map((modId: string) => {
-                                const modName = modulesList.find((m: any) => m.id === modId)?.name || modId;
+                                const modName =
+                                  modulesList.find((m: any) => m.id === modId)?.name || modId;
                                 return (
-                                  <Badge key={modId} variant="outline" className="text-[9px] py-0 px-1.5 font-normal">
+                                  <Badge
+                                    key={modId}
+                                    variant="outline"
+                                    className="text-[9px] py-0 px-1.5 font-normal"
+                                  >
                                     {modName}
                                   </Badge>
                                 );
                               })}
                             </div>
                           ) : (
-                            <span className="text-[10px] text-muted-foreground italic">No apps configured</span>
+                            <span className="text-[10px] text-muted-foreground italic">
+                              No apps configured
+                            </span>
                           )}
                         </div>
                       </div>
@@ -349,7 +423,9 @@ function PlansPage() {
                         >
                           Save
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingPlanId(null)}>Cancel</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingPlanId(null)}>
+                          Cancel
+                        </Button>
                       </>
                     ) : (
                       <Button
@@ -375,7 +451,11 @@ function PlansPage() {
                         className="text-rose-600 hover:text-rose-700 ml-auto"
                         disabled={deletePlanMut.isPending}
                         onClick={() => {
-                          if (confirm(`Delete plan "${p.name}"? This is blocked if any subscription still uses it.`)) {
+                          if (
+                            confirm(
+                              `Delete plan "${p.name}"? This is blocked if any subscription still uses it.`,
+                            )
+                          ) {
                             deletePlanMut.mutate(p.id);
                           }
                         }}
@@ -434,7 +514,7 @@ function PlansPage() {
                 />
               </div>
             </div>
-             <div className="space-y-1">
+            <div className="space-y-1">
               <Label htmlFor="maxUses">Max Uses</Label>
               <Input
                 id="maxUses"
@@ -451,14 +531,20 @@ function PlansPage() {
                 placeholder="E.g. offer_JHx..."
                 onChange={(e) => setRazorpayOfferId(e.target.value)}
               />
-              <p className="text-[10px] text-muted-foreground">Create the offer in Razorpay Dashboard first, then paste the ID here.</p>
+              <p className="text-[10px] text-muted-foreground">
+                Create the offer in Razorpay Dashboard first, then paste the ID here.
+              </p>
             </div>
             <Button
               className="w-full bg-primary hover:bg-primary/90"
               disabled={!couponCode || !discountVal || createCouponMut.isPending}
               onClick={() => createCouponMut.mutate()}
             >
-              {createCouponMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <Plus className="size-4 mr-1.5" />}
+              {createCouponMut.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Plus className="size-4 mr-1.5" />
+              )}
               Create Coupon
             </Button>
           </div>
@@ -483,23 +569,41 @@ function PlansPage() {
               </thead>
               <tbody className="divide-y">
                 {loadingCoupons ? (
-                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">Loading coupons…</td></tr>
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
+                      Loading coupons…
+                    </td>
+                  </tr>
                 ) : coupons.length === 0 ? (
-                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No coupons configured.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
+                      No coupons configured.
+                    </td>
+                  </tr>
                 ) : (
                   coupons.map((c: any) => (
                     <tr key={c.id} className="hover:bg-muted/50">
                       <td className="px-4 py-2 font-mono font-bold text-foreground">{c.code}</td>
                       <td className="px-4 py-2 text-foreground/80 capitalize">
-                        {c.discount_type === "percent" ? `${c.discount_value}%` : `₹${c.discount_value}`}
+                        {c.discount_type === "percent"
+                          ? `${c.discount_value}%`
+                          : `₹${c.discount_value}`}
                       </td>
-                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{c.razorpay_offer_id ?? "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground text-xs">{c.uses_count} / {c.max_uses}</td>
-                      <td className="px-4 py-2 text-muted-foreground text-xs">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                        {c.razorpay_offer_id ?? "—"}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground text-xs">
+                        {c.uses_count} / {c.max_uses}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground text-xs">
+                        {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}
+                      </td>
                       <td className="px-4 py-2 text-right">
                         <div className="flex justify-end items-center gap-2">
                           <button
-                            onClick={() => toggleCouponMut.mutate({ code: c.code, active: !c.is_active })}
+                            onClick={() =>
+                              toggleCouponMut.mutate({ code: c.code, active: !c.is_active })
+                            }
                             className="focus:outline-none"
                             title={c.is_active ? "Deactivate" : "Activate"}
                           >
@@ -511,7 +615,8 @@ function PlansPage() {
                           </button>
                           <button
                             onClick={() => {
-                              if (confirm(`Delete coupon ${c.code}?`)) deleteCouponMut.mutate(c.code);
+                              if (confirm(`Delete coupon ${c.code}?`))
+                                deleteCouponMut.mutate(c.code);
                             }}
                             className="text-rose-500 hover:text-rose-700 focus:outline-none"
                             title="Delete coupon"

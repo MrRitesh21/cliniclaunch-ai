@@ -41,3 +41,10 @@ supabase/.branches/
 supabase/.temp/
 
 .ideavo/project
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

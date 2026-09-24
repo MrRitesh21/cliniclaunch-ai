@@ -84,7 +84,11 @@ export async function marketingAnalytics(sb: Sb, orgId: string) {
       .gte("created_at", `${from}T00:00:00Z`)
       .limit(5000),
     sb.from("patients").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
-    sb.from("campaign_links").select("click_count, lead_count").eq("organization_id", orgId).limit(2000),
+    sb
+      .from("campaign_links")
+      .select("click_count, lead_count")
+      .eq("organization_id", orgId)
+      .limit(2000),
   ]);
 
   const camps = (campRes.data ?? []) as any[];
@@ -96,7 +100,9 @@ export async function marketingAnalytics(sb: Sb, orgId: string) {
   const spend = camps.reduce((s, c) => s + Number(c.spend ?? 0), 0);
   const delivered = camps.reduce((s, c) => s + Number(c.delivered_count ?? 0), 0);
   const opened = camps.reduce((s, c) => s + Number(c.opened_count ?? 0), 0);
-  const clicked = camps.reduce((s, c) => s + Number(c.clicked_count ?? 0), 0) + links.reduce((s, l) => s + Number(l.click_count ?? 0), 0);
+  const clicked =
+    camps.reduce((s, c) => s + Number(c.clicked_count ?? 0), 0) +
+    links.reduce((s, l) => s + Number(l.click_count ?? 0), 0);
   const booked = camps.reduce((s, c) => s + Number(c.booked_count ?? 0), 0);
   const attributedRevenue = camps.reduce((s, c) => s + Number(c.revenue_generated ?? 0), 0);
 
@@ -129,13 +135,31 @@ export async function marketingAnalytics(sb: Sb, orgId: string) {
 
   // Repeat retention: patients with >1 completed visit in the window.
   const perPatient = new Map<string, number>();
-  for (const r of ledger) if (r.patient_id) perPatient.set(r.patient_id, (perPatient.get(r.patient_id) ?? 0) + 1);
+  for (const r of ledger)
+    if (r.patient_id) perPatient.set(r.patient_id, (perPatient.get(r.patient_id) ?? 0) + 1);
   const repeat = [...perPatient.values()].filter((n) => n > 1).length;
 
-  const channelMap = new Map<string, { channel: string; sent: number; delivered: number; clicked: number; booked: number; revenue: number }>();
+  const channelMap = new Map<
+    string,
+    {
+      channel: string;
+      sent: number;
+      delivered: number;
+      clicked: number;
+      booked: number;
+      revenue: number;
+    }
+  >();
   for (const c of camps) {
     const key = c.channel || "whatsapp";
-    const cur = channelMap.get(key) ?? { channel: key, sent: 0, delivered: 0, clicked: 0, booked: 0, revenue: 0 };
+    const cur = channelMap.get(key) ?? {
+      channel: key,
+      sent: 0,
+      delivered: 0,
+      clicked: 0,
+      booked: 0,
+      revenue: 0,
+    };
     cur.sent += Number(c.recipient_count ?? 0);
     cur.delivered += Number(c.delivered_count ?? 0);
     cur.clicked += Number(c.clicked_count ?? 0);
@@ -223,7 +247,10 @@ export async function loyaltyOverview(sb: Sb, orgId: string) {
   const visitsByPatient = new Map<string, number>();
   for (const r of ledger) {
     if (!r.patient_id) continue;
-    revenueByPatient.set(r.patient_id, (revenueByPatient.get(r.patient_id) ?? 0) + Number(r.net_amount ?? 0));
+    revenueByPatient.set(
+      r.patient_id,
+      (revenueByPatient.get(r.patient_id) ?? 0) + Number(r.net_amount ?? 0),
+    );
     visitsByPatient.set(r.patient_id, (visitsByPatient.get(r.patient_id) ?? 0) + 1);
   }
 
@@ -258,11 +285,17 @@ export async function referralOverview(sb: Sb, orgId: string) {
   const [linkRes, leadRes, ledgerRes, clinicRes] = await Promise.all([
     sb
       .from("campaign_links")
-      .select("id, slug, label, target_path, utm_source, utm_medium, utm_campaign, click_count, lead_count, created_at")
+      .select(
+        "id, slug, label, target_path, utm_source, utm_medium, utm_campaign, click_count, lead_count, created_at",
+      )
       .eq("organization_id", orgId)
       .order("click_count", { ascending: false })
       .limit(200),
-    sb.from("leads").select("id, name, phone, source, status, value, created_at").eq("organization_id", orgId).limit(5000),
+    sb
+      .from("leads")
+      .select("id, name, phone, source, status, value, created_at")
+      .eq("organization_id", orgId)
+      .limit(5000),
     sb
       .from("finance_ledger")
       .select("net_amount, source")
@@ -277,11 +310,16 @@ export async function referralOverview(sb: Sb, orgId: string) {
   const ledger = (ledgerRes.data ?? []) as any[];
   const clinic = ((clinicRes.data ?? []) as any[])[0] ?? null;
 
-  const referralLeads = leads.filter((l) => /referr|refer|link|campaign/i.test(String(l.source ?? "")));
+  const referralLeads = leads.filter((l) =>
+    /referr|refer|link|campaign/i.test(String(l.source ?? "")),
+  );
   const converted = referralLeads.filter((l) => (l.status ?? "").toLowerCase() === "converted");
   const referralRevenue = converted.reduce((s, l) => s + Number(l.value ?? 0), 0);
 
-  const sourceMap = new Map<string, { source: string; leads: number; converted: number; value: number }>();
+  const sourceMap = new Map<
+    string,
+    { source: string; leads: number; converted: number; value: number }
+  >();
   for (const l of leads) {
     const key = l.source || "direct";
     const cur = sourceMap.get(key) ?? { source: key, leads: 0, converted: 0, value: 0 };
@@ -300,7 +338,9 @@ export async function referralOverview(sb: Sb, orgId: string) {
       linkLeads: links.reduce((s, l) => s + Number(l.lead_count ?? 0), 0),
       referralLeads: referralLeads.length,
       converted: converted.length,
-      conversionRate: referralLeads.length ? Math.round((converted.length / referralLeads.length) * 1000) / 10 : 0,
+      conversionRate: referralLeads.length
+        ? Math.round((converted.length / referralLeads.length) * 1000) / 10
+        : 0,
       revenue: Math.round(referralRevenue),
       avgTicket: converted.length ? Math.round(referralRevenue / converted.length) : 0,
       totalRevenue: Math.round(ledger.reduce((s, r) => s + Number(r.net_amount ?? 0), 0)),
@@ -335,7 +375,8 @@ export async function reviewsOverview(sb: Sb, orgId: string) {
   const reviews = (revRes.data ?? []) as any[];
   const approved = reviews.filter((r) => r.status === "approved");
   const avg = approved.length
-    ? Math.round((approved.reduce((s, r) => s + Number(r.rating ?? 0), 0) / approved.length) * 10) / 10
+    ? Math.round((approved.reduce((s, r) => s + Number(r.rating ?? 0), 0) / approved.length) * 10) /
+      10
     : 0;
 
   return {

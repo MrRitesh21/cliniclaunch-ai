@@ -2,8 +2,7 @@
 // Talks to the agency-provided Baileys HTTP service.
 // Never import this from client/route code — call via createServerFn handlers.
 
-const BAILEYS_URL =
-  (typeof process !== "undefined" && process.env.BAILEYS_URL) || "";
+const BAILEYS_URL = (typeof process !== "undefined" && process.env.BAILEYS_URL) || "";
 
 export type BaileysStatus = {
   id: string;
@@ -21,7 +20,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const text = await res.text();
   let body: unknown;
-  try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    body = { raw: text };
+  }
   if (!res.ok) {
     const msg = (body as { error?: string })?.error || `Baileys ${path} failed (${res.status})`;
     throw new Error(msg);
@@ -30,10 +33,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function baileysCreateSession(sessionId: string) {
-  return call<{ success: boolean; sessionId: string; ready: boolean }>(
-    "/api/sessions",
-    { method: "POST", body: JSON.stringify({ sessionId }) },
-  );
+  return call<{ success: boolean; sessionId: string; ready: boolean }>("/api/sessions", {
+    method: "POST",
+    body: JSON.stringify({ sessionId }),
+  });
 }
 
 export async function baileysPairingCode(sessionId: string, phone: string) {
@@ -41,13 +44,13 @@ export async function baileysPairingCode(sessionId: string, phone: string) {
   try {
     return await call<{ success: boolean; code?: string; pairingCode?: string }>(
       `/api/sessions/${encodeURIComponent(sessionId)}/pairing-code`,
-      { method: "POST", body: JSON.stringify({ phone: normalized }) }
+      { method: "POST", body: JSON.stringify({ phone: normalized }) },
     );
   } catch {
-    return await call<{ success: boolean; code?: string; pairingCode?: string }>(
-      "/api/sessions",
-      { method: "POST", body: JSON.stringify({ sessionId, phone: normalized, pairingCode: true }) }
-    ).catch(() => ({ success: false, code: undefined }));
+    return await call<{ success: boolean; code?: string; pairingCode?: string }>("/api/sessions", {
+      method: "POST",
+      body: JSON.stringify({ sessionId, phone: normalized, pairingCode: true }),
+    }).catch(() => ({ success: false, code: undefined }));
   }
 }
 
@@ -81,14 +84,11 @@ export async function baileysSend(
   const to = normalizePhone(phone);
   if (!to || !message) return { ok: false, error: "phone and message required" };
   try {
-    const res = await fetch(
-      `${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: to, message }),
-      },
-    );
+    const res = await fetch(`${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: to, message }),
+    });
     const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string };
     if (!res.ok || !data.success) return { ok: false, error: data.error || `HTTP ${res.status}` };
     return { ok: true };

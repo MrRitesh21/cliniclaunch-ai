@@ -3,6 +3,10 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
+if (typeof process !== "undefined" && process.env.NODE_ENV !== "test") {
+  import("./lib/queue/worker").then((m) => m.startWorkers()).catch(console.error);
+}
+
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
@@ -73,10 +77,13 @@ export default {
             `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>`,
             {
               status: 200,
-              headers: { "content-type": "image/svg+xml", "cache-control": "public, max-age=86400" },
-            }
+              headers: {
+                "content-type": "image/svg+xml",
+                "cache-control": "public, max-age=86400",
+              },
+            },
           ),
-          performance.now() - startTime
+          performance.now() - startTime,
         );
       }
 
@@ -102,7 +109,7 @@ export default {
                 },
               },
             ),
-            performance.now() - startTime
+            performance.now() - startTime,
           );
         }
 
@@ -121,7 +128,7 @@ export default {
                 },
               },
             ),
-            performance.now() - startTime
+            performance.now() - startTime,
           );
         }
         release = scale.endRequest;
@@ -146,9 +153,10 @@ export default {
 
       // 5. Edge cache policy — lets Cloudflare absorb public traffic so
       //    Supabase only ever sees cache misses.
-      const policy = normalized.status < 400 || normalized.status === 404
-        ? scale.edgeCachePolicy(request, url)
-        : null;
+      const policy =
+        normalized.status < 400 || normalized.status === 404
+          ? scale.edgeCachePolicy(request, url)
+          : null;
 
       if (policy) {
         const headers = new Headers(normalized.headers);
@@ -159,8 +167,12 @@ export default {
         }
         if (policy.vary) headers.set("vary", policy.vary);
         return applySecurityHeaders(
-          new Response(normalized.body, { status: normalized.status, statusText: normalized.statusText, headers }),
-          durationMs
+          new Response(normalized.body, {
+            status: normalized.status,
+            statusText: normalized.statusText,
+            headers,
+          }),
+          durationMs,
         );
       }
 
@@ -172,7 +184,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
         }),
-        performance.now() - startTime
+        performance.now() - startTime,
       );
     } finally {
       if (release && !released) {

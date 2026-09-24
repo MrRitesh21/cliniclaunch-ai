@@ -23,12 +23,18 @@ type Tier = {
 const TIERS: Array<{ test: (path: string) => boolean; tier: Tier }> = [
   // Writes that create rows / send messages — tightest budget.
   {
-    test: (p) => p.includes("/book") || p.includes("/walkin") || p.startsWith("/r/") || p.startsWith("/l/"),
+    test: (p) =>
+      p.includes("/book") || p.includes("/walkin") || p.startsWith("/r/") || p.startsWith("/l/"),
     tier: { name: "write", limit: 12, windowSeconds: 60 },
   },
   // Auth surfaces — brute-force protection.
   {
-    test: (p) => p.startsWith("/auth") || p.startsWith("/login") || p.startsWith("/register") || p.startsWith("/signup") || p.startsWith("/admin/login"),
+    test: (p) =>
+      p.startsWith("/auth") ||
+      p.startsWith("/login") ||
+      p.startsWith("/register") ||
+      p.startsWith("/signup") ||
+      p.startsWith("/admin/login"),
     tier: { name: "auth", limit: 10, windowSeconds: 60 },
   },
   // Webhooks and cron are signature/key verified inside the handler; keep a
@@ -174,13 +180,41 @@ export async function limitAction(
  * single phone number / email cycling hosts.
  */
 export const LIMIT_POLICIES = {
-  booking_ip: { limit: 20, windowSeconds: 900, message: "Too many booking attempts from this network. Please try again in a few minutes." },
-  booking_phone: { limit: 5, windowSeconds: 900, message: "You've made several booking requests already. Please call the clinic instead." },
-  consult_ip: { limit: 60, windowSeconds: 300, message: "Too many consult requests. Please wait a moment and refresh." },
-  auth_ip: { limit: 15, windowSeconds: 600, message: "Too many sign-in attempts from this network. Please try again in a few minutes." },
-  auth_identity: { limit: 8, windowSeconds: 600, message: "Too many attempts for this account. Please wait 10 minutes or reset your password." },
-  lead_ip: { limit: 15, windowSeconds: 600, message: "Too many requests from this network. Please try again shortly." },
-  lead_phone: { limit: 5, windowSeconds: 600, message: "Too many request attempts. Please try again in a few minutes." },
+  booking_ip: {
+    limit: 20,
+    windowSeconds: 900,
+    message: "Too many booking attempts from this network. Please try again in a few minutes.",
+  },
+  booking_phone: {
+    limit: 5,
+    windowSeconds: 900,
+    message: "You've made several booking requests already. Please call the clinic instead.",
+  },
+  consult_ip: {
+    limit: 60,
+    windowSeconds: 300,
+    message: "Too many consult requests. Please wait a moment and refresh.",
+  },
+  auth_ip: {
+    limit: 15,
+    windowSeconds: 600,
+    message: "Too many sign-in attempts from this network. Please try again in a few minutes.",
+  },
+  auth_identity: {
+    limit: 8,
+    windowSeconds: 600,
+    message: "Too many attempts for this account. Please wait 10 minutes or reset your password.",
+  },
+  lead_ip: {
+    limit: 15,
+    windowSeconds: 600,
+    message: "Too many requests from this network. Please try again shortly.",
+  },
+  lead_phone: {
+    limit: 5,
+    windowSeconds: 600,
+    message: "Too many request attempts. Please try again in a few minutes.",
+  },
 } as const;
 
 export type LimitPolicyName = keyof typeof LIMIT_POLICIES;
@@ -195,7 +229,6 @@ export async function callerIp(request?: Request): Promise<string> {
     return "anon";
   }
 }
-
 
 /**
  * Redis-backed check for a named policy. Returns the verdict; never throws.
@@ -217,7 +250,6 @@ export async function enforcePolicy(policy: LimitPolicyName, key: string): Promi
   const verdict = await checkPolicy(policy, key);
   if (!verdict.allowed) throw new Error(verdict.message);
 }
-
 
 /* ------------------------------------------------------------------ */
 /* Edge cache policy                                                   */
@@ -243,7 +275,10 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
   if (request.method !== "GET" && request.method !== "HEAD") return null;
 
   // Hashed build output and static media.
-  if (path.startsWith("/assets/") || /\.(png|jpg|jpeg|svg|webp|avif|ico|woff2?|js|css)$/i.test(path)) {
+  if (
+    path.startsWith("/assets/") ||
+    /\.(png|jpg|jpeg|svg|webp|avif|ico|woff2?|js|css)$/i.test(path)
+  ) {
     return IMMUTABLE;
   }
 
@@ -261,7 +296,11 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
   }
 
   // Preview / live-template renders are per-editor state, not public content.
-  if (url.searchParams.has("preview") || url.searchParams.has("tpl") || url.searchParams.has("tc")) {
+  if (
+    url.searchParams.has("preview") ||
+    url.searchParams.has("tpl") ||
+    url.searchParams.has("tc")
+  ) {
     return { cacheControl: "private, no-store" };
   }
 
@@ -270,8 +309,16 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
     // Booking/walk-in forms hold live slot availability — cache far shorter.
     const isLive = path.endsWith("/book") || path.endsWith("/walkin");
     return isLive
-      ? { cacheControl: "public, max-age=0, s-maxage=15, stale-while-revalidate=30", cdnCacheControl: "max-age=15", vary: "Accept-Encoding" }
-      : { cacheControl: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400", cdnCacheControl: "max-age=600", vary: "Accept-Encoding" };
+      ? {
+          cacheControl: "public, max-age=0, s-maxage=15, stale-while-revalidate=30",
+          cdnCacheControl: "max-age=15",
+          vary: "Accept-Encoding",
+        }
+      : {
+          cacheControl: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
+          cdnCacheControl: "max-age=600",
+          vary: "Accept-Encoding",
+        };
   }
 
   // Marketing / SEO pages — content changes rarely, cache hard at the edge.
@@ -280,9 +327,24 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
     path.startsWith("/compare/") ||
     path.startsWith("/clinic-software/") ||
     path.startsWith("/for/") ||
-    ["/about", "/features", "/services", "/faq", "/how-it-works", "/contact", "/privacy", "/terms", "/refund-policy", "/shipping-policy"].includes(path)
+    [
+      "/about",
+      "/features",
+      "/services",
+      "/faq",
+      "/how-it-works",
+      "/contact",
+      "/privacy",
+      "/terms",
+      "/refund-policy",
+      "/shipping-policy",
+    ].includes(path)
   ) {
-    return { cacheControl: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400", cdnCacheControl: "max-age=3600", vary: "Accept-Encoding" };
+    return {
+      cacheControl: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+      cdnCacheControl: "max-age=3600",
+      vary: "Accept-Encoding",
+    };
   }
 
   if (path === "/sitemap.xml" || path === "/robots.txt") {

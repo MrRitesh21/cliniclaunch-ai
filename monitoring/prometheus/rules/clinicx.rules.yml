@@ -34,7 +34,7 @@ groups:
           component: backend
         annotations:
           summary: "Application restarted"
-          description: "Uptime is {{ $value | printf \"%.0f\" }}s or the restart counter advanced. Expected after a deploy; investigate if unplanned (OOM kill is the usual cause on a 512 MB box)."
+          description: 'Uptime is {{ $value | printf "%.0f" }}s or the restart counter advanced. Expected after a deploy; investigate if unplanned (OOM kill is the usual cause on a 512 MB box).'
 
   # ---------------------------------------------------------------------------
   # Saturation
@@ -51,7 +51,7 @@ groups:
           component: backend
         annotations:
           summary: "Heap usage above 80%"
-          description: "Heap is at {{ $value | printf \"%.1f\" }}% for 5 minutes. A 512 MB instance OOM-kills shortly after this."
+          description: 'Heap is at {{ $value | printf "%.1f" }}% for 5 minutes. A 512 MB instance OOM-kills shortly after this.'
 
       - alert: HighCpuUsage
         expr: rate(clinicx_process_cpu_seconds_total[5m]) * 100 > 85
@@ -61,7 +61,7 @@ groups:
           component: backend
         annotations:
           summary: "CPU above 85%"
-          description: "Process CPU is {{ $value | printf \"%.1f\" }}% over 5 minutes."
+          description: 'Process CPU is {{ $value | printf "%.1f" }}% over 5 minutes.'
 
       - alert: EventLoopBlocked
         expr: clinicx_nodejs_eventloop_lag_p99_seconds > 0.25
@@ -109,7 +109,7 @@ groups:
           component: backend
         annotations:
           summary: "p95 latency above 1000ms"
-          description: "p95 is {{ $value | printf \"%.3f\" }}s over 5 minutes."
+          description: 'p95 is {{ $value | printf "%.3f" }}s over 5 minutes.'
 
       - alert: HighErrorRate
         expr: clinicx:http_error_ratio:5xx5m > 0.05
@@ -179,7 +179,7 @@ groups:
           component: database
         annotations:
           summary: "Database p95 query time above 1s"
-          description: "p95 query duration is {{ $value | printf \"%.3f\" }}s."
+          description: 'p95 query duration is {{ $value | printf "%.3f" }}s.'
 
   # ---------------------------------------------------------------------------
   # The monitoring stack watching itself

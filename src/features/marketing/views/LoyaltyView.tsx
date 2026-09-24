@@ -48,7 +48,8 @@ export function LoyaltyView() {
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Patient Loyalty</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Points are awarded automatically — 1 point per ₹100 of billed revenue. Tiers upgrade at 200 / 500 / 1000 points.
+          Points are awarded automatically — 1 point per ₹100 of billed revenue. Tiers upgrade at
+          200 / 500 / 1000 points.
         </p>
       </div>
 
@@ -63,8 +64,12 @@ export function LoyaltyView() {
           <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
             <Award className="size-3.5" /> Points outstanding
           </span>
-          <p className="text-2xl font-bold font-display text-amber-600">{k.totalPoints.toLocaleString("en-IN")}</p>
-          <span className="text-[10px] text-muted-foreground">≈ {inr(k.pointsValue)} of reward liability</span>
+          <p className="text-2xl font-bold font-display text-amber-600">
+            {k.totalPoints.toLocaleString("en-IN")}
+          </p>
+          <span className="text-[10px] text-muted-foreground">
+            ≈ {inr(k.pointsValue)} of reward liability
+          </span>
         </Card>
         <Card className="p-4 space-y-1">
           <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
@@ -78,7 +83,9 @@ export function LoyaltyView() {
             <Repeat className="size-3.5" /> Member repeat rate
           </span>
           <p className="text-2xl font-bold font-display text-blue-600">{k.repeatRate}%</p>
-          <span className="text-[10px] text-muted-foreground">{inr(k.membersRevenue)} member revenue</span>
+          <span className="text-[10px] text-muted-foreground">
+            {inr(k.membersRevenue)} member revenue
+          </span>
         </Card>
       </div>
 
@@ -103,7 +110,10 @@ export function LoyaltyView() {
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                      <div
+                        className="h-full bg-primary rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </div>
                 );
@@ -115,13 +125,18 @@ export function LoyaltyView() {
         <Card className="p-5 space-y-3 lg:col-span-2">
           <h3 className="font-bold text-sm">Top loyal patients</h3>
           {data.top.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-6 text-center">No loyalty activity recorded yet.</p>
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              No loyalty activity recorded yet.
+            </p>
           ) : (
             <div className="divide-y text-xs">
               {data.top.map((p) => (
                 <div key={p.patientId} className="py-2.5 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex items-center gap-2">
-                    <Badge variant="secondary" className={`text-[10px] shrink-0 ${TIER_STYLES[p.tier] ?? ""}`}>
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] shrink-0 ${TIER_STYLES[p.tier] ?? ""}`}
+                    >
                       {p.tier}
                     </Badge>
                     <span className="font-semibold truncate">{p.name}</span>

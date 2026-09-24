@@ -32,7 +32,8 @@ export async function autoSubmitClinicToGoogleImpl(clinicId: string): Promise<Gs
     throw new Error(error?.message || "Clinic not found");
   }
 
-  const appDomain = process.env.APP_URL || process.env.VITE_APP_URL || "https://clinicx.digiwil.com";
+  const appDomain =
+    process.env.APP_URL || process.env.VITE_APP_URL || "https://clinicx.digiwil.com";
   const host = clinic.custom_domain
     ? clinic.custom_domain.replace(/^https?:\/\//, "")
     : appDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");

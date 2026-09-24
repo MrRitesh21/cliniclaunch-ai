@@ -22,9 +22,14 @@ async function rzp<T>(path: string, init: RequestInit = {}): Promise<T> {
   return JSON.parse(body) as T;
 }
 
-export async function createOrGetPlan(planKey: string, params: { name: string; amount_paise: number; interval: "monthly" | "yearly" }) {
+export async function createOrGetPlan(
+  planKey: string,
+  params: { name: string; amount_paise: number; interval: "monthly" | "yearly" },
+) {
   // Try to reuse via notes marker; otherwise create.
-  const list = await rzp<{ items: Array<{ id: string; notes?: Record<string, string> }> }>(`/plans?count=100`);
+  const list = await rzp<{ items: Array<{ id: string; notes?: Record<string, string> }> }>(
+    `/plans?count=100`,
+  );
   const found = list.items.find((p) => p.notes?.digiclini_key === planKey);
   if (found) return found.id;
   const created = await rzp<{ id: string }>(`/plans`, {
@@ -42,12 +47,12 @@ export async function createOrGetPlan(planKey: string, params: { name: string; a
 export async function createSubscription(
   rzpPlanId: string,
   notes: Record<string, string>,
-  options?: { startAt?: number; upfrontAmountPaise?: number }
+  options?: { startAt?: number; upfrontAmountPaise?: number },
 ) {
   const offerId = notes.__offer_id;
   // Strip internal fields from notes (Razorpay notes are user-visible metadata).
   const cleanNotes = Object.fromEntries(Object.entries(notes).filter(([k]) => !k.startsWith("__")));
-  
+
   const body: Record<string, any> = {
     plan_id: rzpPlanId,
     // total_count is the number of billing cycles. Use a long horizon so

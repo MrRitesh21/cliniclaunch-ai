@@ -11,14 +11,44 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  MessageCircle, Send, ExternalLink, Loader2, Save,
-  CheckCircle2, Clock, XCircle, TrendingUp, Search,
-  Download, Users, Zap, FlaskConical, Syringe, Cake,
-  RefreshCw, Plus, Trash2, Pencil, Sparkles, FileText,
+  MessageCircle,
+  Send,
+  ExternalLink,
+  Loader2,
+  Save,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  TrendingUp,
+  Search,
+  Download,
+  Users,
+  Zap,
+  FlaskConical,
+  Syringe,
+  Cake,
+  RefreshCw,
+  Plus,
+  Trash2,
+  Pencil,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 import {
   DEFAULT_TEMPLATES,
@@ -38,7 +68,11 @@ import {
 import { AppGuard } from "@/components/app/AppGuard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/whatsapp")({
-  component: () => (<AppGuard appKey="whatsapp"><WhatsAppPage /></AppGuard>),
+  component: () => (
+    <AppGuard appKey="whatsapp">
+      <WhatsAppPage />
+    </AppGuard>
+  ),
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -71,12 +105,25 @@ const TEMPLATE_GROUPS: { label: string; icon: React.ReactNode; keys: WaTemplateK
   {
     label: "Appointment Flow",
     icon: <Clock className="size-4" />,
-    keys: ["appointment_alert", "appointment_received", "appointment_confirmed", "appointment_reminder", "walkin_doctor_alert", "walkin_confirmation"],
+    keys: [
+      "appointment_alert",
+      "appointment_received",
+      "appointment_confirmed",
+      "appointment_reminder",
+      "walkin_doctor_alert",
+      "walkin_confirmation",
+    ],
   },
   {
     label: "Clinical Events",
     icon: <FlaskConical className="size-4" />,
-    keys: ["lab_report_ready", "prescription_ready", "discharge_summary", "opd_token", "abnormal_report_alert"],
+    keys: [
+      "lab_report_ready",
+      "prescription_ready",
+      "discharge_summary",
+      "opd_token",
+      "abnormal_report_alert",
+    ],
   },
   {
     label: "Preventive Care",
@@ -92,10 +139,22 @@ const TEMPLATE_GROUPS: { label: string; icon: React.ReactNode; keys: WaTemplateK
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string | number; sub?: string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
   return (
     <Card className="p-4 flex gap-3 items-start">
-      <div className="size-9 rounded-lg bg-green-500/10 text-green-600 grid place-items-center shrink-0">{icon}</div>
+      <div className="size-9 rounded-lg bg-green-500/10 text-green-600 grid place-items-center shrink-0">
+        {icon}
+      </div>
       <div>
         <div className="text-2xl font-semibold leading-tight">{value}</div>
         <div className="text-xs text-muted-foreground">{label}</div>
@@ -114,19 +173,24 @@ function WhatsAppPage() {
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  
+
   // Test Wizard State
   const [testFor, setTestFor] = useState<TemplateRow | null>(null);
   const [testWizardOpen, setTestWizardOpen] = useState(false);
-  const [testForm, setTestForm] = useState({ phone: "", step: 1, sending: false, result: null as any });
-  
+  const [testForm, setTestForm] = useState({
+    phone: "",
+    step: 1,
+    sending: false,
+    result: null as any,
+  });
+
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", template_key: "", body: "" });
   const [savingCustom, setSavingCustom] = useState(false);
 
   async function handleRunTest() {
     if (!testFor || !testForm.phone || !org?.id) return;
-    setTestForm(prev => ({ ...prev, sending: true }));
+    setTestForm((prev) => ({ ...prev, sending: true }));
     try {
       const { sendTestWhatsAppFn } = await import("@/lib/whatsapp-test.functions");
       const res = await sendTestWhatsAppFn({
@@ -142,14 +206,14 @@ function WhatsAppPage() {
             clinic_name: clinic?.clinic_name || "ClinicX",
             consult_info: "Video Link: https://clinicx.app/join/test ",
             clinic_link: `https://clinicx.app/c/${clinic?.slug}`,
-          }
-        }
+          },
+        },
       });
-      setTestForm(prev => ({ ...prev, sending: false, step: 2, result: res }));
+      setTestForm((prev) => ({ ...prev, sending: false, step: 2, result: res }));
       toast.success("Test message triggered!");
       void load();
     } catch (err: any) {
-      setTestForm(prev => ({ ...prev, sending: false }));
+      setTestForm((prev) => ({ ...prev, sending: false }));
       toast.error(err.message || "Test failed");
     }
   }
@@ -160,7 +224,9 @@ function WhatsAppPage() {
     if (!customForm.body.trim()) return toast.error("Message content is required");
 
     setSavingCustom(true);
-    const key = (customForm.template_key.trim() || customForm.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")).replace(/^custom_/, "custom_");
+    const key = (
+      customForm.template_key.trim() || customForm.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")
+    ).replace(/^custom_/, "custom_");
     const fullKey = key.startsWith("custom_") ? key : `custom_${key}`;
 
     const { error } = await supabase.from("whatsapp_templates").insert({
@@ -184,7 +250,11 @@ function WhatsAppPage() {
     setLoading(true);
     await ensureDefaultTemplates(org.id);
     const [{ data: t }, { data: l }] = await Promise.all([
-      supabase.from("whatsapp_templates").select("*").eq("organization_id", org.id).order("template_key"),
+      supabase
+        .from("whatsapp_templates")
+        .select("*")
+        .eq("organization_id", org.id)
+        .order("template_key"),
       supabase
         .from("whatsapp_logs")
         .select("*")
@@ -197,7 +267,9 @@ function WhatsAppPage() {
     setLoading(false);
   }, [org?.id]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function saveTemplate(t: TemplateRow) {
     setSavingId(t.id);
@@ -237,14 +309,21 @@ function WhatsAppPage() {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const weekAgo = new Date(Date.now() - 7 * 86400000);
-    const sentToday = logs.filter((l) => l.status === "sent" && new Date(l.created_at) >= today).length;
-    const sentWeek = logs.filter((l) => l.status === "sent" && new Date(l.created_at) >= weekAgo).length;
+    const sentToday = logs.filter(
+      (l) => l.status === "sent" && new Date(l.created_at) >= today,
+    ).length;
+    const sentWeek = logs.filter(
+      (l) => l.status === "sent" && new Date(l.created_at) >= weekAgo,
+    ).length;
     const total = logs.length;
     const sent = logs.filter((l) => l.status === "sent").length;
     const rate = total > 0 ? Math.round((sent / total) * 100) : 0;
-    const pending = logs.filter((l) => ["queued", "pending", "scheduled"].includes(l.status)).length;
+    const pending = logs.filter((l) =>
+      ["queued", "pending", "scheduled"].includes(l.status),
+    ).length;
     return { sentToday, sentWeek, rate, pending };
   }, [logs]);
 
@@ -258,7 +337,9 @@ function WhatsAppPage() {
           </div>
           <div>
             <h1 className="font-display text-3xl">WhatsApp Automation</h1>
-            <p className="text-muted-foreground">Clinical-grade messaging — appointments, lab reports, vaccines, billing & more.</p>
+            <p className="text-muted-foreground">
+              Clinical-grade messaging — appointments, lab reports, vaccines, billing & more.
+            </p>
           </div>
         </div>
       </header>
@@ -266,9 +347,22 @@ function WhatsAppPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={<Send className="size-4" />} label="Sent today" value={stats.sentToday} />
-        <StatCard icon={<TrendingUp className="size-4" />} label="Sent this week" value={stats.sentWeek} />
-        <StatCard icon={<CheckCircle2 className="size-4" />} label="Success rate" value={`${stats.rate}%`} sub="of all messages" />
-        <StatCard icon={<Clock className="size-4" />} label="Pending / queued" value={stats.pending} />
+        <StatCard
+          icon={<TrendingUp className="size-4" />}
+          label="Sent this week"
+          value={stats.sentWeek}
+        />
+        <StatCard
+          icon={<CheckCircle2 className="size-4" />}
+          label="Success rate"
+          value={`${stats.rate}%`}
+          sub="of all messages"
+        />
+        <StatCard
+          icon={<Clock className="size-4" />}
+          label="Pending / queued"
+          value={stats.pending}
+        />
       </div>
 
       <Tabs defaultValue="connect">
@@ -287,9 +381,14 @@ function WhatsAppPage() {
           <div className="flex justify-between items-center flex-wrap gap-3 p-4 bg-muted/20 border rounded-2xl">
             <div>
               <h3 className="font-semibold text-base">WhatsApp Message Templates</h3>
-              <p className="text-xs text-muted-foreground">Customize pre-built clinical alerts or build custom broadcast templates.</p>
+              <p className="text-xs text-muted-foreground">
+                Customize pre-built clinical alerts or build custom broadcast templates.
+              </p>
             </div>
-            <Button onClick={() => setCustomModalOpen(true)} className="gap-1.5 font-semibold text-xs rounded-xl">
+            <Button
+              onClick={() => setCustomModalOpen(true)}
+              className="gap-1.5 font-semibold text-xs rounded-xl"
+            >
               <Plus className="size-4" /> Create Custom Template
             </Button>
           </div>
@@ -299,7 +398,9 @@ function WhatsAppPage() {
           ) : (
             <>
               {TEMPLATE_GROUPS.map((group) => {
-                const groupTemplates = templates.filter((t) => (group.keys as string[]).includes(t.template_key));
+                const groupTemplates = templates.filter((t) =>
+                  (group.keys as string[]).includes(t.template_key),
+                );
                 if (groupTemplates.length === 0) return null;
                 return (
                   <div key={group.label} className="space-y-3">
@@ -320,11 +421,20 @@ function WhatsAppPage() {
                                   </Badge>
                                 )}
                               </div>
-                              {meta && <p className="text-xs text-muted-foreground mt-0.5">{meta.description}</p>}
+                              {meta && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {meta.description}
+                                </p>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{t.is_active ? "Active" : "Paused"}</span>
-                              <Switch checked={t.is_active} onCheckedChange={(v) => updateLocal(t.id, { is_active: v })} />
+                              <span className="text-xs text-muted-foreground">
+                                {t.is_active ? "Active" : "Paused"}
+                              </span>
+                              <Switch
+                                checked={t.is_active}
+                                onCheckedChange={(v) => updateLocal(t.id, { is_active: v })}
+                              />
                             </div>
                           </div>
 
@@ -336,11 +446,28 @@ function WhatsAppPage() {
                           />
 
                           <div className="flex justify-end gap-2 pt-1">
-                            <Button size="sm" variant="ghost" onClick={() => { setTestFor(t); setTestWizardOpen(true); setTestForm({ phone: "", step: 1, sending: false, result: null }); }}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setTestFor(t);
+                                setTestWizardOpen(true);
+                                setTestForm({ phone: "", step: 1, sending: false, result: null });
+                              }}
+                            >
                               <FlaskConical className="size-3.5 mr-1" /> End-to-End Test
                             </Button>
-                            <Button size="sm" onClick={() => saveTemplate(t)} disabled={savingId === t.id}>
-                              {savingId === t.id ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+                            <Button
+                              size="sm"
+                              onClick={() => saveTemplate(t)}
+                              disabled={savingId === t.id}
+                            >
+                              {savingId === t.id ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <Save className="size-3.5" />
+                              )}{" "}
+                              Save
                             </Button>
                           </div>
                         </Card>
@@ -357,8 +484,8 @@ function WhatsAppPage() {
           <Card className="p-6">
             <h3 className="font-semibold text-base mb-4">Automation Workflows</h3>
             <ul className="divide-y divide-border/40">
-              {DEFAULT_TEMPLATES.map(def => (
-                <AutomationRow 
+              {DEFAULT_TEMPLATES.map((def) => (
+                <AutomationRow
                   key={def.key}
                   label={def.name}
                   trigger={def.description}
@@ -366,7 +493,7 @@ function WhatsAppPage() {
                   templates={templates}
                   logs={logs}
                   onToggle={(id, active) => {
-                    const t = templates.find(x => x.id === id);
+                    const t = templates.find((x) => x.id === id);
                     if (t) saveTemplate({ ...t, is_active: active });
                   }}
                   onCreate={createDefaultTemplate}
@@ -378,7 +505,7 @@ function WhatsAppPage() {
         </TabsContent>
 
         <TabsContent value="logs" className="mt-4">
-           <Card className="p-0 overflow-hidden">
+          <Card className="p-0 overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/40 border-b font-semibold">
                 <tr>
@@ -389,7 +516,7 @@ function WhatsAppPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map(l => (
+                {logs.map((l) => (
                   <tr key={l.id} className="border-b last:border-0">
                     <td className="p-3">{new Date(l.created_at).toLocaleString()}</td>
                     <td className="p-3">
@@ -398,7 +525,9 @@ function WhatsAppPage() {
                     </td>
                     <td className="p-3 max-w-xs truncate">{l.message}</td>
                     <td className="p-3">
-                      <Badge variant={l.status === "sent" ? "default" : "secondary"}>{l.status}</Badge>
+                      <Badge variant={l.status === "sent" ? "default" : "secondary"}>
+                        {l.status}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
@@ -417,24 +546,28 @@ function WhatsAppPage() {
               End-to-End WhatsApp Test
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
             {testForm.step === 1 ? (
               <div className="space-y-4">
                 <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl space-y-2">
                   <p className="text-xs font-semibold">Testing Template:</p>
-                  <p className="text-sm font-mono bg-background p-2 rounded border">{testFor?.name}</p>
+                  <p className="text-sm font-mono bg-background p-2 rounded border">
+                    {testFor?.name}
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="test-phone">Enter recipient phone number</Label>
-                  <Input 
+                  <Input
                     id="test-phone"
                     placeholder="e.g. +919876543210"
                     value={testForm.phone}
-                    onChange={e => setTestForm(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={(e) => setTestForm((prev) => ({ ...prev, phone: e.target.value }))}
                   />
-                  <p className="text-[10px] text-muted-foreground italic">We'll send a live test message to this number using clinical variables.</p>
+                  <p className="text-[10px] text-muted-foreground italic">
+                    We'll send a live test message to this number using clinical variables.
+                  </p>
                 </div>
               </div>
             ) : (
@@ -444,10 +577,14 @@ function WhatsAppPage() {
                 </div>
                 <div>
                   <h4 className="font-bold">Message Triggered Successfully</h4>
-                  <p className="text-xs text-muted-foreground mt-1">Check the recipient device for the message.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Check the recipient device for the message.
+                  </p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-xl text-left">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Status Log</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Status Log
+                  </p>
                   <div className="text-[11px] font-mono space-y-1">
                     <p>• Template: {testFor?.template_key}</p>
                     <p>• To: {testForm.phone}</p>
@@ -462,18 +599,30 @@ function WhatsAppPage() {
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {testForm.step === 1 ? (
               <>
-                <Button variant="ghost" onClick={() => setTestWizardOpen(false)} className="rounded-xl">Cancel</Button>
-                <Button 
-                  onClick={handleRunTest} 
+                <Button
+                  variant="ghost"
+                  onClick={() => setTestWizardOpen(false)}
+                  className="rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRunTest}
                   disabled={!testForm.phone || testForm.sending}
                   className="rounded-xl gap-2 px-6"
                 >
-                  {testForm.sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  {testForm.sending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
                   Send Test Message
                 </Button>
               </>
             ) : (
-              <Button onClick={() => setTestWizardOpen(false)} className="w-full rounded-xl">Done</Button>
+              <Button onClick={() => setTestWizardOpen(false)} className="w-full rounded-xl">
+                Done
+              </Button>
             )}
           </DialogFooter>
         </DialogContent>
@@ -485,7 +634,14 @@ function WhatsAppPage() {
 // ─── Automation row ────────────────────────────────────────────────────────────
 
 function AutomationRow({
-  label, trigger, templateKey, templates, logs, onToggle, onCreate, creatingKey,
+  label,
+  trigger,
+  templateKey,
+  templates,
+  logs,
+  onToggle,
+  onCreate,
+  creatingKey,
 }: {
   label: string;
   trigger: string;
@@ -508,27 +664,47 @@ function AutomationRow({
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium text-sm">{label}</span>
           {def?.audience && (
-            <Badge variant="outline" className="text-[10px] capitalize">{def.audience}</Badge>
+            <Badge variant="outline" className="text-[10px] capitalize">
+              {def.audience}
+            </Badge>
           )}
-          {!t && <Badge variant="secondary" className="text-[10px]">Not set up</Badge>}
+          {!t && (
+            <Badge variant="secondary" className="text-[10px]">
+              Not set up
+            </Badge>
+          )}
         </div>
         <div className="text-xs text-muted-foreground mt-0.5">{trigger}</div>
         {preview && (
           <p className="text-xs text-muted-foreground/80 mt-1 line-clamp-2 font-mono">{preview}</p>
         )}
         <div className="text-[11px] text-muted-foreground mt-1">
-          {sentCount > 0 ? `${sentCount} message${sentCount === 1 ? "" : "s"} sent so far` : "No messages sent yet"}
+          {sentCount > 0
+            ? `${sentCount} message${sentCount === 1 ? "" : "s"} sent so far`
+            : "No messages sent yet"}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 pt-0.5">
         {t ? (
           <>
-            <span className="text-xs text-muted-foreground">{t.is_active ? "Active" : "Paused"}</span>
+            <span className="text-xs text-muted-foreground">
+              {t.is_active ? "Active" : "Paused"}
+            </span>
             <Switch checked={t.is_active} onCheckedChange={(v) => onToggle(t.id, v)} />
           </>
         ) : (
-          <Button size="sm" variant="outline" disabled={creating} onClick={() => onCreate(templateKey)}>
-            {creating ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5 mr-1" />} Set up
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={creating}
+            onClick={() => onCreate(templateKey)}
+          >
+            {creating ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Plus className="size-3.5 mr-1" />
+            )}{" "}
+            Set up
           </Button>
         )}
       </div>

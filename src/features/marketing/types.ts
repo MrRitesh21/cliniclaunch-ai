@@ -30,7 +30,8 @@ export type CampaignType =
   | "medication_reminder"
   | "seasonal";
 
-export type CampaignStatus = "draft" | "scheduled" | "running" | "paused" | "completed" | "cancelled";
+export type CampaignStatus =
+  "draft" | "scheduled" | "running" | "paused" | "completed" | "cancelled";
 
 export interface MarketingCampaign {
   id: string;

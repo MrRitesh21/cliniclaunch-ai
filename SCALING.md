@@ -11,24 +11,25 @@ plan levels and environment variables.
 
 ## 1. Honest capacity of the current stack
 
-| Component | Current tier | Hard ceiling | Concurrent users it supports |
-|---|---|---|---|
-| Frontend / SSR | Cloudflare | Effectively unlimited edge, Workers CPU-bound per request | 15,000+ (edge-cached) |
-| Database | Supabase Free | 500MB DB, ~60 direct connections, 200 pooled, 5GB egress/mo | **~300–800** |
-| Redis | Render Free 512MB | Sleeps after 15min idle, no persistence guarantee, single node | ~2,000 |
-| WhatsApp bridge (Baileys) | Render Free 512MB | Sleeps after 15min idle, 1 instance, ~10–20 sessions before OOM | ~20 clinics |
+| Component                 | Current tier      | Hard ceiling                                                    | Concurrent users it supports |
+| ------------------------- | ----------------- | --------------------------------------------------------------- | ---------------------------- |
+| Frontend / SSR            | Cloudflare        | Effectively unlimited edge, Workers CPU-bound per request       | 15,000+ (edge-cached)        |
+| Database                  | Supabase Free     | 500MB DB, ~60 direct connections, 200 pooled, 5GB egress/mo     | **~300–800**                 |
+| Redis                     | Render Free 512MB | Sleeps after 15min idle, no persistence guarantee, single node  | ~2,000                       |
+| WhatsApp bridge (Baileys) | Render Free 512MB | Sleeps after 15min idle, 1 instance, ~10–20 sessions before OOM | ~20 clinics                  |
 
 **Bottleneck order:** Supabase connections → Render free-tier sleep → Baileys
 memory → Supabase egress.
 
 At 15,000 concurrent the free tier is short by roughly **20–50x**. The free tier
-is a valid place to *launch* and validate; it is not a place to *scale*.
+is a valid place to _launch_ and validate; it is not a place to _scale_.
 
 ---
 
 ## 2. What is already implemented (works on every tier)
 
 ### Edge caching — `src/lib/scale.server.ts` → `edgeCachePolicy()`
+
 Public clinic sites, marketing/SEO pages, and the sitemap now emit
 `s-maxage` + `stale-while-revalidate` with matching `Cloudflare-CDN-Cache-Control`.
 A cache miss serves stale content instantly while revalidating in the
@@ -42,33 +43,37 @@ Dashboards, `/admin`, `/consult`, `/api/*`, and any URL carrying
 serving one tenant's editor state to another visitor.
 
 ### Distributed rate limiting — `checkRequestLimit()`
+
 Previously the limiter used an in-process `Map`. Cloudflare runs many isolates
 and Render restarts containers, so "40 req/min" was really "40 per isolate" —
 essentially unlimited. Counters now live in Redis (sliding window, atomic
 `MULTI`), so the budget is global. Tiers:
 
-| Path class | Budget |
-|---|---|
-| Writes (`/book`, `/walkin`, review + lead capture) | 12 / min / IP |
-| Auth (`/auth`, `/login`, `/register`, `/admin/login`) | 10 / min / IP |
-| Webhooks + cron (signature-verified in handler) | 600 / min |
-| Server functions & `/api/*` | 120 / min / IP |
-| Public pages | 300 / min / IP |
+| Path class                                            | Budget         |
+| ----------------------------------------------------- | -------------- |
+| Writes (`/book`, `/walkin`, review + lead capture)    | 12 / min / IP  |
+| Auth (`/auth`, `/login`, `/register`, `/admin/login`) | 10 / min / IP  |
+| Webhooks + cron (signature-verified in handler)       | 600 / min      |
+| Server functions & `/api/*`                           | 120 / min / IP |
+| Public pages                                          | 300 / min / IP |
 
 Redis outage degrades to a local counter — **fail-soft, never fail-closed.**
 
 ### Per-identity action budgets — `limitAction()`
+
 `createBooking` now caps 5 bookings per phone per clinic per 15 minutes. Use the
 same helper for AI calls and WhatsApp sends — these are the operations that cost
 real money per invocation.
 
 ### Load shedding — `beginRequest()` / `endRequest()`
+
 Concurrency ceiling per instance (`MAX_IN_FLIGHT_REQUESTS`, default 120). Past the
 ceiling: fast `503` + `Retry-After: 2`. On a 512MB container this is where memory
 pressure begins; shedding a few requests is far cheaper than an OOM restart that
 drops every in-flight request with it.
 
 ### Availability caching
+
 `getBookedSlots` — the hottest query on the public site — is cached in Redis for
 20s and invalidated immediately by `createBooking`. Thousands of concurrent
 viewers of the same clinic/day collapse into one Supabase query. Correctness is
@@ -76,12 +81,14 @@ still guaranteed by the DB-level slot check, so a stale read can never create a
 double booking.
 
 ### Database indexes (applied)
+
 Composite/partial indexes on the real hot paths: per-doctor slot scans, org+date
 appointment and finance queries, the scheduled-WhatsApp cron scan, published-slug
 and custom-domain lookups, and `organization_members(user_id, organization_id)` —
 that last one runs inside nearly every RLS check on every request.
 
 ### Observability — `GET /api/public/healthz`
+
 Reports live Redis and database latency, in-flight saturation, and a
 `healthy | degraded | down` status. Point an uptime monitor at it and drain
 instances on `degraded` rather than waiting for `down`.
@@ -94,12 +101,15 @@ concurrent** (up from a few hundred), limited by Supabase connections.
 ## 3. Upgrade path
 
 ### Tier A — 0 to ~2,000 concurrent · **$0/mo** (current)
+
 Free tier, everything above enabled.
+
 - Set `REDIS_URL` in production or the cache silently degrades to per-isolate memory.
 - Free Render services sleep after 15 min idle: ping `/api/public/healthz` and the
   WhatsApp bridge every 10 min (Cloudflare Cron Trigger or cron-job.org).
 
-### Tier B — 2,000 to ~6,000 concurrent · **~$45/mo**
+### Tier B — 2,000 to ~~6,000 concurrent · **~~$45/mo**
+
 The single highest-leverage upgrade is Supabase.
 
 1. **Supabase Pro — $25/mo.** 8GB DB, daily backups, and critically **Supavisor
@@ -111,6 +121,7 @@ The single highest-leverage upgrade is Supabase.
 4. Raise `MAX_IN_FLIGHT_REQUESTS` to `250`.
 
 ### Tier C — 6,000 to 15,000+ concurrent · **~$300–600/mo**
+
 1. **Supabase read replica** (Pro add-on). Route all dashboard analytics, finance
    reports, and SEO reads to the replica; keep writes on primary.
 2. **Cloudflare Workers Paid — $5/mo** + Cloudflare Cache Reserve. Raises CPU
@@ -129,6 +140,7 @@ The single highest-leverage upgrade is Supabase.
    `finance_ledger`.
 
 ### Tier D — beyond 15,000 concurrent
+
 Supabase Team/Enterprise with dedicated compute + multi-region read replicas
 (`src/config/scaling.config.ts` already lists the intended regions), Postgres
 partitioning of `appointments` / `finance_ledger` by month, and ClickHouse or
@@ -138,13 +150,13 @@ Tinybird for analytics.
 
 ## 4. Environment variables that gate scale
 
-| Variable | Purpose | Tier |
-|---|---|---|
-| `REDIS_URL` | Distributed cache, rate limits, BullMQ. **Without it every limit is per-isolate.** | A |
-| `MAX_IN_FLIGHT_REQUESTS` | Load-shed ceiling (default 120) | A |
-| `SUPABASE_URL` | Point at the **Supavisor pooler** (`:6543`) once on Pro | B |
-| `BAILEYS_URL` | WhatsApp bridge; becomes a router URL at Tier C | C |
-| `CRON_KEY` | Protects the scheduled-automation endpoint | A |
+| Variable                 | Purpose                                                                            | Tier |
+| ------------------------ | ---------------------------------------------------------------------------------- | ---- |
+| `REDIS_URL`              | Distributed cache, rate limits, BullMQ. **Without it every limit is per-isolate.** | A    |
+| `MAX_IN_FLIGHT_REQUESTS` | Load-shed ceiling (default 120)                                                    | A    |
+| `SUPABASE_URL`           | Point at the **Supavisor pooler** (`:6543`) once on Pro                            | B    |
+| `BAILEYS_URL`            | WhatsApp bridge; becomes a router URL at Tier C                                    | C    |
+| `CRON_KEY`               | Protects the scheduled-automation endpoint                                         | A    |
 
 ---
 
@@ -166,16 +178,16 @@ connection ceiling and it is time for the next tier — not more code.
 
 Applied in code:
 
-| Change | Before | After |
-| --- | --- | --- |
-| `useOrganization` shared store (dedupe + 5 min TTL) | ~5 queries × every mounted consumer × every navigation | 1 fetch per user per 5 min |
-| React Query defaults (`staleTime` 5 min, no refocus/remount refetch) | refetch on every mount + tab focus | cache-first |
-| Router `defaultPreloadStaleTime` | `0` (preload always refetched) | `60s` |
-| Maintenance-status poll | 15s, background too | 10 min, visible tab only |
-| Queue board poll | 15s | 60s, visible tab only |
-| WhatsApp connect poll | 3s, forever | 6s, visible tab only, stops after 3 min |
-| Slot availability Redis cache | 20s | 60s (busted on every booking) |
-| `/api/public/healthz` DB probe | one query per probe | cached 30s in Redis |
+| Change                                                               | Before                                                 | After                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------- |
+| `useOrganization` shared store (dedupe + 5 min TTL)                  | ~5 queries × every mounted consumer × every navigation | 1 fetch per user per 5 min              |
+| React Query defaults (`staleTime` 5 min, no refocus/remount refetch) | refetch on every mount + tab focus                     | cache-first                             |
+| Router `defaultPreloadStaleTime`                                     | `0` (preload always refetched)                         | `60s`                                   |
+| Maintenance-status poll                                              | 15s, background too                                    | 10 min, visible tab only                |
+| Queue board poll                                                     | 15s                                                    | 60s, visible tab only                   |
+| WhatsApp connect poll                                                | 3s, forever                                            | 6s, visible tab only, stops after 3 min |
+| Slot availability Redis cache                                        | 20s                                                    | 60s (busted on every booking)           |
+| `/api/public/healthz` DB probe                                       | one query per probe                                    | cached 30s in Redis                     |
 
 ### Connection pooling (PgBouncer)
 

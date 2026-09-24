@@ -1,6 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, Menu, X, Sun, Moon, Monitor, Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
+import {
+  Stethoscope,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Monitor,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+} from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { CommandPalette } from "./CommandPalette";
@@ -18,7 +29,6 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => setMounted(true), []);
-
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -46,21 +56,26 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   const themeIcon = () => {
     if (!mounted) return <Monitor className="size-4 text-muted-foreground" />;
     switch (theme) {
-      case "light": return <Sun className="size-4 text-amber-500" />;
-      case "dark": return <Moon className="size-4 text-blue-400" />;
-      default: return <Monitor className="size-4 text-muted-foreground" />;
+      case "light":
+        return <Sun className="size-4 text-amber-500" />;
+      case "dark":
+        return <Moon className="size-4 text-blue-400" />;
+      default:
+        return <Monitor className="size-4 text-muted-foreground" />;
     }
   };
 
   const themeLabel = () => {
     if (!mounted) return "System theme";
     switch (theme) {
-      case "light": return "Light mode";
-      case "dark": return "Dark mode";
-      default: return "System theme";
+      case "light":
+        return "Light mode";
+      case "dark":
+        return "Dark mode";
+      default:
+        return "System theme";
     }
   };
-
 
   return (
     <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
@@ -70,13 +85,17 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           <span className="hidden sm:inline-flex items-center gap-1.5 font-medium text-foreground">
             <span className="size-1.5 rounded-full bg-success" /> New
           </span>
-          <span className="truncate">14-day free trial — clinic website and WhatsApp automation live in 5 minutes.</span>
-          <Link to="/demo" className="hidden sm:inline-flex items-center gap-1 font-medium text-primary hover:underline shrink-0">
+          <span className="truncate">
+            14-day free trial — clinic website and WhatsApp automation live in 5 minutes.
+          </span>
+          <Link
+            to="/demo"
+            className="hidden sm:inline-flex items-center gap-1 font-medium text-primary hover:underline shrink-0"
+          >
             See the demo <ArrowRight className="size-3" />
           </Link>
         </div>
       </div>
-
 
       {/* Main Header */}
       <header className="border-b border-border/40 bg-background/90 backdrop-blur-xl sticky top-0 left-0 right-0 z-40 w-full transition-all">
@@ -88,7 +107,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             >
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
-            <span className="font-display text-2xl font-bold tracking-tight text-foreground">ClinicX</span>
+            <span className="font-display text-2xl font-bold tracking-tight text-foreground">
+              ClinicX
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-muted-foreground">
@@ -102,11 +123,12 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 {n.label}
               </Link>
             ))}
-            <a href="/#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <a href="/#pricing" className="hover:text-foreground transition-colors">
+              Pricing
+            </a>
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-
             <Button
               variant="ghost"
               size="icon"
@@ -116,13 +138,18 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             >
               {themeIcon()}
             </Button>
-            
+
             <Link to="/login">
-              <Button variant="ghost" className="font-semibold text-sm">Sign in</Button>
+              <Button variant="ghost" className="font-semibold text-sm">
+                Sign in
+              </Button>
             </Link>
 
             <Link to="/demo">
-              <Button variant="outline" className="font-bold border-primary/40 text-primary hover:bg-primary/10 gap-1.5 h-9">
+              <Button
+                variant="outline"
+                className="font-bold border-primary/40 text-primary hover:bg-primary/10 gap-1.5 h-9"
+              >
                 <Sparkles className="size-3.5 text-amber-500" /> Live Demo
               </Button>
             </Link>
@@ -165,16 +192,24 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 {n.label}
               </Link>
             ))}
-            <a href="/#pricing" onClick={() => setOpen(false)} className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted text-foreground">
+            <a
+              href="/#pricing"
+              onClick={() => setOpen(false)}
+              className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted text-foreground"
+            >
               Pricing
             </a>
           </nav>
           <div className="pt-2 border-t flex flex-col gap-2">
             <Link to="/login" onClick={() => setOpen(false)}>
-              <Button variant="outline" className="w-full font-bold">Sign in</Button>
+              <Button variant="outline" className="w-full font-bold">
+                Sign in
+              </Button>
             </Link>
             <Link to="/demo" onClick={() => setOpen(false)}>
-              <Button className="w-full font-bold bg-primary text-primary-foreground">⚡ Try Live Demo</Button>
+              <Button className="w-full font-bold bg-primary text-primary-foreground">
+                ⚡ Try Live Demo
+              </Button>
             </Link>
           </div>
         </div>
@@ -195,46 +230,140 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 <span className="font-display text-xl font-bold">ClinicX</span>
               </div>
               <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                The modern operating system for independent doctors. Custom website, WhatsApp automation, EHR visit journals, and Razorpay GST billing.
+                The modern operating system for independent doctors. Custom website, WhatsApp
+                automation, EHR visit journals, and Razorpay GST billing.
               </p>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Product</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                Product
+              </h4>
               <ul className="space-y-2 text-xs font-medium text-muted-foreground">
-                <li><Link to="/features" className="hover:text-foreground">Features</Link></li>
-                <li><Link to="/how-it-works" className="hover:text-foreground">How it Works</Link></li>
-                <li><a href="/#pricing" className="hover:text-foreground">Pricing</a></li>
-                <li><Link to="/demo" className="hover:text-foreground text-primary font-bold">Live Demo</Link></li>
+                <li>
+                  <Link to="/features" className="hover:text-foreground">
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/how-it-works" className="hover:text-foreground">
+                    How it Works
+                  </Link>
+                </li>
+                <li>
+                  <a href="/#pricing" className="hover:text-foreground">
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <Link to="/demo" className="hover:text-foreground text-primary font-bold">
+                    Live Demo
+                  </Link>
+                </li>
               </ul>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Comparisons</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                Comparisons
+              </h4>
               <ul className="space-y-2 text-xs font-medium text-muted-foreground">
-                <li><Link to="/compare/$competitor" params={{ competitor: "practo" }} className="hover:text-foreground">ClinicX vs Practo</Link></li>
-                <li><Link to="/compare/$competitor" params={{ competitor: "clinicea" }} className="hover:text-foreground">ClinicX vs Clinicea</Link></li>
-                <li><Link to="/compare/$competitor" params={{ competitor: "eka-care" }} className="hover:text-foreground">ClinicX vs Eka Care</Link></li>
-                <li><Link to="/compare/$competitor" params={{ competitor: "paper" }} className="hover:text-foreground">ClinicX vs Paper Diary</Link></li>
+                <li>
+                  <Link
+                    to="/compare/$competitor"
+                    params={{ competitor: "practo" }}
+                    className="hover:text-foreground"
+                  >
+                    ClinicX vs Practo
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/compare/$competitor"
+                    params={{ competitor: "clinicea" }}
+                    className="hover:text-foreground"
+                  >
+                    ClinicX vs Clinicea
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/compare/$competitor"
+                    params={{ competitor: "eka-care" }}
+                    className="hover:text-foreground"
+                  >
+                    ClinicX vs Eka Care
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/compare/$competitor"
+                    params={{ competitor: "paper" }}
+                    className="hover:text-foreground"
+                  >
+                    ClinicX vs Paper Diary
+                  </Link>
+                </li>
               </ul>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Specialties</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                Specialties
+              </h4>
               <ul className="space-y-2 text-xs font-medium text-muted-foreground">
-                <li><Link to="/for/$specialty" params={{ specialty: "dermatologist" }} className="hover:text-foreground">Dermatologists</Link></li>
-                <li><Link to="/for/$specialty" params={{ specialty: "dentist" }} className="hover:text-foreground">Dentists</Link></li>
-                <li><Link to="/for/$specialty" params={{ specialty: "paediatrician" }} className="hover:text-foreground">Paediatricians</Link></li>
-                <li><Link to="/for/$specialty" params={{ specialty: "gynecologist" }} className="hover:text-foreground">Gynecologists</Link></li>
+                <li>
+                  <Link
+                    to="/for/$specialty"
+                    params={{ specialty: "dermatologist" }}
+                    className="hover:text-foreground"
+                  >
+                    Dermatologists
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/for/$specialty"
+                    params={{ specialty: "dentist" }}
+                    className="hover:text-foreground"
+                  >
+                    Dentists
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/for/$specialty"
+                    params={{ specialty: "paediatrician" }}
+                    className="hover:text-foreground"
+                  >
+                    Paediatricians
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/for/$specialty"
+                    params={{ specialty: "gynecologist" }}
+                    className="hover:text-foreground"
+                  >
+                    Gynecologists
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <p>© {new Date().getFullYear()} ClinicX. Built with care for independent practitioners across India.</p>
+            <p>
+              © {new Date().getFullYear()} ClinicX. Built with care for independent practitioners
+              across India.
+            </p>
             <div className="flex items-center gap-6 font-medium">
-              <Link to="/login" className="hover:text-foreground">Sign In</Link>
-              <Link to="/demo" className="hover:text-foreground text-primary font-bold">⚡ Try Demo Account</Link>
+              <Link to="/login" className="hover:text-foreground">
+                Sign In
+              </Link>
+              <Link to="/demo" className="hover:text-foreground text-primary font-bold">
+                ⚡ Try Demo Account
+              </Link>
             </div>
           </div>
         </div>

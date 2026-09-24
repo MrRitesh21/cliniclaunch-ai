@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { DoctorSteps } from "../components/DoctorSteps";
 
-
 export function OverviewView() {
   const {
     clinic,
@@ -98,7 +97,9 @@ export function OverviewView() {
             <span className="text-xl font-extrabold font-mono text-blue-600">96/100</span>
           </div>
           <Progress value={96} className="h-2 bg-blue-500/10" />
-          <p className="text-xs text-muted-foreground">Excellent layout structure and responsive component density.</p>
+          <p className="text-xs text-muted-foreground">
+            Excellent layout structure and responsive component density.
+          </p>
         </Card>
 
         {/* SEO Score */}
@@ -110,7 +111,9 @@ export function OverviewView() {
             <span className="text-xl font-extrabold font-mono text-emerald-600">92/100</span>
           </div>
           <Progress value={92} className="h-2 bg-emerald-500/10" />
-          <p className="text-xs text-muted-foreground">Meta tags, Schema.org medical markup & GSC pipeline ready.</p>
+          <p className="text-xs text-muted-foreground">
+            Meta tags, Schema.org medical markup & GSC pipeline ready.
+          </p>
         </Card>
 
         {/* Performance Score */}
@@ -122,7 +125,9 @@ export function OverviewView() {
             <span className="text-xl font-extrabold font-mono text-purple-600">98/100</span>
           </div>
           <Progress value={98} className="h-2 bg-purple-500/10" />
-          <p className="text-xs text-muted-foreground">Sub-100ms client interactions, compressed WebP images.</p>
+          <p className="text-xs text-muted-foreground">
+            Sub-100ms client interactions, compressed WebP images.
+          </p>
         </Card>
       </div>
 
@@ -170,8 +175,6 @@ export function OverviewView() {
 
       {/* Quick Tooling Actions & Health Checklist */}
       <div className="grid grid-cols-1 gap-6">
-
-
         {/* Website Audit Checklist */}
         <Card className="p-5 rounded-2xl border-border/50 space-y-3">
           <h3 className="text-sm font-bold tracking-tight">Website Audit Checklist</h3>
@@ -197,7 +200,12 @@ export function OverviewView() {
                 <CheckCircle2 className="size-4 text-blue-500" />
                 <span>Google Search Console Indexing</span>
               </div>
-              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => void triggerGscSubmission()}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[10px] px-2"
+                onClick={() => void triggerGscSubmission()}
+              >
                 Submit GSC
               </Button>
             </div>

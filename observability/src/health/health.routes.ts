@@ -27,11 +27,14 @@ export function healthRouter(): Router {
   });
 
   router.get(Route.live, (_req, res) => {
-    res.status(HTTP_STATUS.ok).set("Cache-Control", NO_STORE).json({
-      status: "alive",
-      pid: process.pid,
-      uptime_s: Math.round(process.uptime()),
-    });
+    res
+      .status(HTTP_STATUS.ok)
+      .set("Cache-Control", NO_STORE)
+      .json({
+        status: "alive",
+        pid: process.pid,
+        uptime_s: Math.round(process.uptime()),
+      });
   });
 
   router.get(Route.health, (_req, res) => {

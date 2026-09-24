@@ -20,7 +20,9 @@ function ServicesPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
       <h1 className="font-display text-4xl">Services</h1>
-      <p className="text-muted-foreground mt-2">Treatments and consultations offered at {clinic.clinic_name}.</p>
+      <p className="text-muted-foreground mt-2">
+        Treatments and consultations offered at {clinic.clinic_name}.
+      </p>
 
       {services.length === 0 ? (
         <Card className="p-10 mt-8 text-center text-muted-foreground">No services listed yet.</Card>
@@ -28,7 +30,9 @@ function ServicesPage() {
         <div className="grid sm:grid-cols-2 gap-3 mt-8">
           {services.map((s) => (
             <div key={s} className="rounded-xl border bg-card p-4 flex items-start gap-3">
-              <div className="size-6 shrink-0 rounded-full bg-accent text-primary grid place-items-center mt-0.5"><Check className="size-3.5" /></div>
+              <div className="size-6 shrink-0 rounded-full bg-accent text-primary grid place-items-center mt-0.5">
+                <Check className="size-3.5" />
+              </div>
               <span>{s}</span>
             </div>
           ))}

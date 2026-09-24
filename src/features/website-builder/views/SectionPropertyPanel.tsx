@@ -5,13 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { X, Sparkles, Sliders, Type, Layout, Eye } from "lucide-react";
 import { SECTION_LABELS, type SectionKey } from "@/components/site/types";
 import { SectionsMeta } from "@/components/site/registry";
 
 export function SectionPropertyPanel() {
-  const { selectedSectionKey, setSelectedSectionKey, state, patch, setIsFloatingAIOpen } = useWebsiteBuilder();
+  const { selectedSectionKey, setSelectedSectionKey, state, patch, setIsFloatingAIOpen } =
+    useWebsiteBuilder();
 
   if (!selectedSectionKey) return null;
 
@@ -57,7 +64,9 @@ export function SectionPropertyPanel() {
               Layout Style Variant
             </Label>
             <Select value={currentVariant} onValueChange={handleVariantChange}>
-              <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="text-xs rounded-xl h-10">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {meta.options.map((opt) => (
                   <SelectItem key={opt.id} value={opt.id}>

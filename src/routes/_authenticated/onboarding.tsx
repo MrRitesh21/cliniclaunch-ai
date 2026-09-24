@@ -613,10 +613,14 @@ function Onboarding() {
         try {
           const p = JSON.parse(raw);
           if (p.doctorName) return p.doctorName;
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       return (user?.user_metadata?.full_name as string | undefined)?.trim() || "";
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return "";
   })();
 
@@ -835,7 +839,9 @@ function Onboarding() {
                         <div className="font-display text-lg font-bold">
                           {price === 0 ? "Free" : `₹${price.toLocaleString()}`}
                           {price > 0 && (
-                            <span className="text-[11px] text-muted-foreground font-normal ml-0.5">/mo</span>
+                            <span className="text-[11px] text-muted-foreground font-normal ml-0.5">
+                              /mo
+                            </span>
                           )}
                         </div>
                       </div>
@@ -925,7 +931,9 @@ function Onboarding() {
                       >
                         <div
                           className={`size-4 rounded border grid place-items-center shrink-0 ${
-                            checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
+                            checked
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-muted-foreground/30"
                           }`}
                         >
                           {checked && <Check className="size-3" />}

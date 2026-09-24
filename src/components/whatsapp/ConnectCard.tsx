@@ -5,7 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QRCodeSVG } from "qrcode.react";
-import { Smartphone, Loader2, CheckCircle2, RefreshCw, Power, KeyRound, QrCode, Copy, Check } from "lucide-react";
+import {
+  Smartphone,
+  Loader2,
+  CheckCircle2,
+  RefreshCw,
+  Power,
+  KeyRound,
+  QrCode,
+  Copy,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getWhatsappPairingCode } from "@/lib/baileys.functions";
@@ -25,7 +35,13 @@ type Props = {
   disconnect: () => Promise<{ ok: boolean }>;
 };
 
-export function WhatsappConnectCard({ title = "Connect WhatsApp", description, getStatus, start, disconnect }: Props) {
+export function WhatsappConnectCard({
+  title = "Connect WhatsApp",
+  description,
+  getStatus,
+  start,
+  disconnect,
+}: Props) {
   const fetchPairingCodeFn = useServerFn(getWhatsappPairingCode);
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState(false);
@@ -39,11 +55,16 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
     try {
       const r = await getStatus();
       setStatus(r.status);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
   }, [getStatus]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   // Poll while pending / has QR — slower (6s), visibility-gated, and it gives up
   // after 3 minutes so an abandoned tab can't poll the bridge forever.
@@ -59,7 +80,6 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
     return () => clearInterval(t);
   }, [status, refresh]);
 
-
   async function handleStartQr() {
     setBusy(true);
     setPairingCode(null);
@@ -69,7 +89,9 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
       toast.success("Session started — scan QR code with WhatsApp");
     } catch (e) {
       toast.error((e as Error).message);
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleGetPairingCode() {
@@ -110,7 +132,9 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
       setStatus(null);
       setPairingCode(null);
       toast.success("WhatsApp disconnected");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   const connected = !!status?.ready;
@@ -130,7 +154,10 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
             <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
           </Badge>
         ) : status?.hasQr || pairingCode ? (
-          <Badge variant="outline" className="border-amber-500/30 text-amber-600 bg-amber-500/10 font-medium">
+          <Badge
+            variant="outline"
+            className="border-amber-500/30 text-amber-600 bg-amber-500/10 font-medium"
+          >
             Awaiting Pairing
           </Badge>
         ) : (
@@ -139,14 +166,25 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
       </div>
 
       {loading ? (
-        <div className="py-10 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div>
+        <div className="py-10 text-center text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…
+        </div>
       ) : connected ? (
         <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border bg-muted/30 p-4">
           <div>
-            <div className="font-semibold text-base">{status?.clientInfo?.name ?? "WhatsApp Account"}</div>
-            <div className="text-sm font-mono text-muted-foreground">+{status?.clientInfo?.phone}</div>
+            <div className="font-semibold text-base">
+              {status?.clientInfo?.name ?? "WhatsApp Account"}
+            </div>
+            <div className="text-sm font-mono text-muted-foreground">
+              +{status?.clientInfo?.phone}
+            </div>
           </div>
-          <Button variant="outline" onClick={handleDisconnect} disabled={busy} className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10">
+          <Button
+            variant="outline"
+            onClick={handleDisconnect}
+            disabled={busy}
+            className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+          >
             <Power className="h-4 w-4 mr-2" /> Disconnect Session
           </Button>
         </div>
@@ -188,19 +226,38 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
                     <p className="font-bold text-base">Scan QR to Link WhatsApp</p>
                     <ol className="list-decimal pl-5 space-y-1.5 text-xs text-muted-foreground">
                       <li>Open WhatsApp on your phone</li>
-                      <li>Tap <b>Menu ⋮</b> or <b>Settings</b> &rarr; <b>Linked devices</b></li>
-                      <li>Tap <b>Link a device</b> and point camera at QR code</li>
+                      <li>
+                        Tap <b>Menu ⋮</b> or <b>Settings</b> &rarr; <b>Linked devices</b>
+                      </li>
+                      <li>
+                        Tap <b>Link a device</b> and point camera at QR code
+                      </li>
                     </ol>
-                    <Button size="sm" variant="outline" onClick={refresh} className="mt-2 text-xs rounded-xl">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={refresh}
+                      className="mt-2 text-xs rounded-xl"
+                    >
                       <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh Status
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-6 border rounded-2xl bg-muted/20">
-                  <p className="text-xs text-muted-foreground mb-4">Click below to generate a new QR code for instant WhatsApp linking.</p>
-                  <Button onClick={handleStartQr} disabled={busy} className="rounded-xl font-semibold text-xs h-10 px-5">
-                    {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <QrCode className="h-4 w-4 mr-2" />}
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Click below to generate a new QR code for instant WhatsApp linking.
+                  </p>
+                  <Button
+                    onClick={handleStartQr}
+                    disabled={busy}
+                    className="rounded-xl font-semibold text-xs h-10 px-5"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <QrCode className="h-4 w-4 mr-2" />
+                    )}
                     Generate QR Code
                   </Button>
                 </div>
@@ -213,7 +270,9 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
             <div className="border p-5 rounded-2xl bg-card space-y-4">
               <div className="space-y-1">
                 <h3 className="font-bold text-sm">Link via Phone Number & 8-Digit Pairing Code</h3>
-                <p className="text-xs text-muted-foreground">Enter your WhatsApp phone number to generate an 8-character code.</p>
+                <p className="text-xs text-muted-foreground">
+                  Enter your WhatsApp phone number to generate an 8-character code.
+                </p>
               </div>
 
               <div className="flex gap-2 max-w-md">
@@ -228,7 +287,11 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
                   disabled={busy || !phoneInput.trim()}
                   className="rounded-xl font-semibold text-xs h-10 px-4 shrink-0 gap-1.5"
                 >
-                  {busy ? <Loader2 className="size-3.5 animate-spin" /> : <KeyRound className="size-3.5" />}
+                  {busy ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <KeyRound className="size-3.5" />
+                  )}
                   <span>Get Code</span>
                 </Button>
               </div>
@@ -245,7 +308,11 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
                       onClick={() => handleCopyCode(pairingCode)}
                       className="h-7 text-xs rounded-lg gap-1 border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
                     >
-                      {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                      {copied ? (
+                        <Check className="size-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
                       <span>{copied ? "Copied!" : "Copy Code"}</span>
                     </Button>
                   </div>
@@ -258,9 +325,18 @@ export function WhatsappConnectCard({ title = "Connect WhatsApp", description, g
                     <p className="font-semibold text-foreground">How to enter code on WhatsApp:</p>
                     <ol className="list-decimal pl-5 space-y-1">
                       <li>Open WhatsApp on your phone.</li>
-                      <li>Tap <b>Settings / Menu ⋮</b> &rarr; <b>Linked devices</b> &rarr; <b>Link a device</b>.</li>
-                      <li>Tap <b>"Link with phone number instead"</b> at the bottom.</li>
-                      <li>Enter the code <code className="font-mono font-bold text-emerald-600">{pairingCode}</code> when prompted.</li>
+                      <li>
+                        Tap <b>Settings / Menu ⋮</b> &rarr; <b>Linked devices</b> &rarr;{" "}
+                        <b>Link a device</b>.
+                      </li>
+                      <li>
+                        Tap <b>"Link with phone number instead"</b> at the bottom.
+                      </li>
+                      <li>
+                        Enter the code{" "}
+                        <code className="font-mono font-bold text-emerald-600">{pairingCode}</code>{" "}
+                        when prompted.
+                      </li>
                     </ol>
                   </div>
                 </div>

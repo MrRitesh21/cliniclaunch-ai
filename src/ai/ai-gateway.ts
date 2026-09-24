@@ -38,7 +38,7 @@ export class AIGateway {
     const provider: AIProvider = req.providerPreference || "gemini";
     // Simulated unified completion logic with fallback safety
     const generatedText = `[AI Response via ${provider}]: ${req.prompt.slice(0, 100)}...`;
-    
+
     this.cache.set(cacheKey, generatedText);
 
     return {

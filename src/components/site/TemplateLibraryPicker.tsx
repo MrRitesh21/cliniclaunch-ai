@@ -42,7 +42,7 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
         setLocked(state.locked);
         setNote(state.note);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -90,7 +90,8 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
 
       {locked && (
         <p className="text-xs rounded-lg bg-muted p-2.5">
-          Your template is managed by the clinicx team{note ? ` — ${note}` : ""}. Contact support to change it.
+          Your template is managed by the clinicx team{note ? ` — ${note}` : ""}. Contact support to
+          change it.
         </p>
       )}
 
@@ -103,19 +104,30 @@ export function TemplateLibraryPicker({ clinicId }: { clinicId: string }) {
               type="button"
               disabled={locked || busy !== null}
               onClick={() => pick(t.id)}
-              className={`relative text-left rounded-2xl border-2 overflow-hidden transition disabled:opacity-60 ${active ? "border-primary shadow-lg" : "border-border hover:border-primary/50"
-                }`}
+              className={`relative text-left rounded-2xl border-2 overflow-hidden transition disabled:opacity-60 ${
+                active ? "border-primary shadow-lg" : "border-border hover:border-primary/50"
+              }`}
             >
               <div className="aspect-[4/3] bg-muted">
                 {t.preview_image_url ? (
-                  <img src={t.preview_image_url} alt={`${t.name} preview`} className="size-full object-cover" loading="lazy" />
+                  <img
+                    src={t.preview_image_url}
+                    alt={`${t.name} preview`}
+                    className="size-full object-cover"
+                    loading="lazy"
+                  />
                 ) : (
-                  <div className="size-full" style={{ background: t.swatch ?? "linear-gradient(135deg,#e2e8f0,#94a3b8)" }} />
+                  <div
+                    className="size-full"
+                    style={{ background: t.swatch ?? "linear-gradient(135deg,#e2e8f0,#94a3b8)" }}
+                  />
                 )}
               </div>
               <div className="p-3 bg-background">
                 <p className="font-medium text-xs">{t.name}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{t.description || ""}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                  {t.description || ""}
+                </p>
               </div>
               {active && (
                 <span className="absolute top-2 right-2 size-6 rounded-full bg-primary text-primary-foreground grid place-items-center">

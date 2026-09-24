@@ -2,11 +2,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Copy, Stethoscope, FileText, MessageCircle, Megaphone } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  Copy,
+  Stethoscope,
+  FileText,
+  MessageCircle,
+  Megaphone,
+} from "lucide-react";
 import { AppGuard } from "@/components/app/AppGuard";
 import { EmptyState } from "@/components/app/EmptyState";
 import { useOrganization } from "@/hooks/useOrganization";
-import { runAssistant, listAssistantRuns, ASSISTANT_KINDS, type AssistantKind } from "@/lib/assistant.functions";
+import {
+  runAssistant,
+  listAssistantRuns,
+  ASSISTANT_KINDS,
+  type AssistantKind,
+} from "@/lib/assistant.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,31 +28,47 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/dashboard/assistant")({
-  component: () => (<AppGuard appKey="ai_assistant"><AssistantPage /></AppGuard>),
+  component: () => (
+    <AppGuard appKey="ai_assistant">
+      <AssistantPage />
+    </AppGuard>
+  ),
 });
 
 type Run = { id: string; kind: AssistantKind; prompt: string; output: string; created_at: string };
 
-const KINDS: Record<AssistantKind, {
-  label: string; icon: React.ComponentType<{ className?: string }>; hint: string; placeholder: string;
-}> = {
+const KINDS: Record<
+  AssistantKind,
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    hint: string;
+    placeholder: string;
+  }
+> = {
   triage: {
-    label: "Triage note", icon: Stethoscope,
+    label: "Triage note",
+    icon: Stethoscope,
     hint: "Turn a patient's reported complaint into an intake note with clarifying questions and red flags.",
-    placeholder: "45yo male, chest tightness for 2 days, worse on walking, no prior cardiac history…",
+    placeholder:
+      "45yo male, chest tightness for 2 days, worse on walking, no prior cardiac history…",
   },
   visit_summary: {
-    label: "Visit summary", icon: FileText,
+    label: "Visit summary",
+    icon: FileText,
     hint: "Clean up rough consultation notes into a structured record. Only reorganises what you wrote.",
     placeholder: "c/o fever 3 days, temp 101, throat red, started amox, review in 5 days…",
   },
   patient_message: {
-    label: "Patient message", icon: MessageCircle,
+    label: "Patient message",
+    icon: MessageCircle,
     hint: "Draft a short, simple WhatsApp message for the patient.",
-    placeholder: "Tell the patient their blood report is normal and they should continue the current medicine…",
+    placeholder:
+      "Tell the patient their blood report is normal and they should continue the current medicine…",
   },
   content: {
-    label: "Health content", icon: Megaphone,
+    label: "Health content",
+    icon: Megaphone,
     hint: "Patient-education content for your website or social media.",
     placeholder: "A short post about preventing dengue during monsoon…",
   },
@@ -66,7 +95,9 @@ function AssistantPage() {
       // History is non-essential — a failure here shouldn't block generating.
     }
   }
-  useEffect(() => { void loadRuns(); /* eslint-disable-next-line */ }, [orgId]);
+  useEffect(() => {
+    void loadRuns(); /* eslint-disable-next-line */
+  }, [orgId]);
 
   async function generate() {
     if (!orgId) return;
@@ -102,12 +133,19 @@ function AssistantPage() {
 
       <Card className="p-4 border-amber-500/40 bg-amber-500/5">
         <p className="text-sm">
-          <strong>Clinical safety.</strong> This assistant does not diagnose or prescribe. Everything it
-          produces is a draft for you to check and edit — you remain responsible for the final record.
+          <strong>Clinical safety.</strong> This assistant does not diagnose or prescribe.
+          Everything it produces is a draft for you to check and edit — you remain responsible for
+          the final record.
         </p>
       </Card>
 
-      <Tabs value={kind} onValueChange={(v) => { setKind(v as AssistantKind); setOutput(""); }}>
+      <Tabs
+        value={kind}
+        onValueChange={(v) => {
+          setKind(v as AssistantKind);
+          setOutput("");
+        }}
+      >
         <TabsList>
           {ASSISTANT_KINDS.map((k) => {
             const Icon = KINDS[k].icon;
@@ -125,9 +163,22 @@ function AssistantPage() {
           <Label>{active.label}</Label>
           <p className="text-xs text-muted-foreground mt-0.5">{active.hint}</p>
         </div>
-        <Textarea rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={active.placeholder} />
+        <Textarea
+          rows={5}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder={active.placeholder}
+        />
         <Button onClick={generate} disabled={running} className="gap-1.5">
-          {running ? <><Loader2 className="size-4 animate-spin" /> Generating…</> : <><Sparkles className="size-4" /> Generate draft</>}
+          {running ? (
+            <>
+              <Loader2 className="size-4 animate-spin" /> Generating…
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-4" /> Generate draft
+            </>
+          )}
         </Button>
       </Card>
 
@@ -146,8 +197,11 @@ function AssistantPage() {
       <div className="space-y-3">
         <p className="font-medium text-sm">Recent</p>
         {runs.length === 0 ? (
-          <EmptyState icon={<Sparkles className="size-6" />} title="Nothing generated yet"
-            description="Your last 20 drafts appear here." />
+          <EmptyState
+            icon={<Sparkles className="size-6" />}
+            title="Nothing generated yet"
+            description="Your last 20 drafts appear here."
+          />
         ) : (
           <Card className="divide-y">
             {runs.map((r) => (

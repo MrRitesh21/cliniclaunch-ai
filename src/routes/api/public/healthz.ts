@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-
 // Uptime / launch-readiness probe.
 // Returns 200 with a boolean map of which env-gated features are configured,
 // plus live dependency latency and instance load for external monitors
@@ -23,9 +22,7 @@ export const Route = createFileRoute("/api/public/healthz")({
           process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
           process.env.VITE_SUPABASE_ANON_KEY;
 
-        const redisConfigured = Boolean(
-          process.env.REDIS_URL || process.env.REDIS_HOST,
-        );
+        const redisConfigured = Boolean(process.env.REDIS_URL || process.env.REDIS_HOST);
         const redisActive = redisCache.isReady();
 
         const features = {
@@ -58,11 +55,16 @@ export const Route = createFileRoute("/api/public/healthz")({
         // seconds (or several monitors at once) can't turn the health check
         // itself into a steady stream of database queries.
         const probeDb = async () => {
-          const cachedProbe = redisActive ? await redisCache.get<number | null>("healthz:db") : null;
+          const cachedProbe = redisActive
+            ? await redisCache.get<number | null>("healthz:db")
+            : null;
           if (typeof cachedProbe === "number") return cachedProbe;
           const ms = await timed(async () => {
             const res = await fetch(`${supabaseUrl}/rest/v1/plans?select=id&limit=1`, {
-              headers: { apikey: supabasePublishable!, Authorization: `Bearer ${supabasePublishable}` },
+              headers: {
+                apikey: supabasePublishable!,
+                Authorization: `Bearer ${supabasePublishable}`,
+              },
               signal: AbortSignal.timeout(3000),
             });
             if (!res.ok) throw new Error(String(res.status));
@@ -75,7 +77,6 @@ export const Route = createFileRoute("/api/public/healthz")({
           redisActive ? timed(() => redisCache.set("healthz:ping", 1, 10)) : Promise.resolve(null),
           supabaseUrl && supabasePublishable ? probeDb() : Promise.resolve(null),
         ]);
-
 
         const load = currentLoad();
         const saturation = load.max > 0 ? load.inFlight / load.max : 0;
@@ -93,7 +94,11 @@ export const Route = createFileRoute("/api/public/healthz")({
             uptime_ms: Math.round(process.uptime?.() * 1000) || null,
             timestamp: new Date().toISOString(),
             latency: { redis_ms: redisLatencyMs, database_ms: dbLatencyMs },
-            load: { in_flight: load.inFlight, max_in_flight: load.max, saturation: Number(saturation.toFixed(3)) },
+            load: {
+              in_flight: load.inFlight,
+              max_in_flight: load.max,
+              saturation: Number(saturation.toFixed(3)),
+            },
             features,
           }),
           {

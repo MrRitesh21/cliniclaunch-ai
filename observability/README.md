@@ -30,13 +30,13 @@ aggregate that Prometheus scrapes. Business logic never imports prom-client.
 
 ## Memory budget (Render Free, 512 MB)
 
-| Component | Limit | Typical |
-|---|---|---|
-| Prometheus (7d, relabel-filtered) | 200 MB | 120–170 MB |
-| Grafana OSS (SQLite, alerting off) | 110 MB | 80–95 MB |
-| Alertmanager | 48 MB | 25–35 MB |
-| **monitoring total** | **358 MB** | **~230–300 MB** |
-| observability service (separate host) | 128 MB | 55–70 MB |
+| Component                             | Limit      | Typical         |
+| ------------------------------------- | ---------- | --------------- |
+| Prometheus (7d, relabel-filtered)     | 200 MB     | 120–170 MB      |
+| Grafana OSS (SQLite, alerting off)    | 110 MB     | 80–95 MB        |
+| Alertmanager                          | 48 MB      | 25–35 MB        |
+| **monitoring total**                  | **358 MB** | **~230–300 MB** |
+| observability service (separate host) | 128 MB     | 55–70 MB        |
 
 Backend overhead: ~20 MB RSS for the registry + Pino, and roughly 0.2–0.5% CPU —
 every metric write is a synchronous counter/histogram update with no I/O.
@@ -44,15 +44,18 @@ every metric write is a synchronous counter/histogram update with no I/O.
 ## Deploy
 
 **Telemetry service**
+
 ```bash
 cd observability
 cp .env.example .env      # fill TELEMETRY_INGEST_TOKEN, METRICS_TOKEN, SUPABASE_*, REDIS_URL
 docker compose up -d --build
 curl -s localhost:8081/ready | jq
 ```
+
 On Render: Docker service, health check path `/health`, port `8081`.
 
 **Monitoring stack**
+
 ```bash
 cd monitoring
 cp .env.example .env      # Grafana password, BACKEND_METRICS_HOST, METRICS_TOKEN, alert channels
@@ -60,18 +63,19 @@ cp .env.example .env      # Grafana password, BACKEND_METRICS_HOST, METRICS_TOKE
 docker compose up -d
 open http://localhost:3000   # Grafana, dashboards already provisioned
 ```
+
 `METRICS_TOKEN` must be identical in both `.env` files.
 
 ## Endpoints
 
-| Endpoint | Deps touched | Use |
-|---|---|---|
-| `GET /ping` | none (mounted before all middleware) | cron-job.org, UptimeRobot, Better Stack, GitHub Actions |
-| `GET /live` | none | container liveness |
-| `GET /health` | none | Render health check |
-| `GET /ready` | DB + Supabase + Redis (cached 10s) | load-balancer drain |
-| `GET /metrics` | none | Prometheus (token-protected) |
-| `POST /internal/ingest` | none | Workers runtime batches (token-protected) |
+| Endpoint                | Deps touched                         | Use                                                     |
+| ----------------------- | ------------------------------------ | ------------------------------------------------------- |
+| `GET /ping`             | none (mounted before all middleware) | cron-job.org, UptimeRobot, Better Stack, GitHub Actions |
+| `GET /live`             | none                                 | container liveness                                      |
+| `GET /health`           | none                                 | Render health check                                     |
+| `GET /ready`            | DB + Supabase + Redis (cached 10s)   | load-balancer drain                                     |
+| `GET /metrics`          | none                                 | Prometheus (token-protected)                            |
+| `POST /internal/ingest` | none                                 | Workers runtime batches (token-protected)               |
 
 ## Dashboards
 
@@ -104,14 +108,14 @@ so leave it false and read stdout.
 
 ## Troubleshooting
 
-| Symptom | Cause / fix |
-|---|---|
-| Prometheus target `DOWN` 401 | `METRICS_TOKEN` mismatch, or re-run `render-config.sh` after editing `.env` |
-| Dashboards empty | Recording rules need ~2 evaluation cycles (60s); check Status → Rules |
-| Prometheus OOM-restarts | Series growth. Tighten the `keep` regex in `prometheus.yml.tpl` |
-| `/ready` 503, `/health` 200 | A dependency is down by design — read the `checks` object |
-| Alerts fire but nothing arrives | `alertmanager_notifications_failed_total` → check webhook/SMTP creds |
-| Every log line lost on redeploy | Expected on ephemeral disk; ship stdout or mount a volume |
+| Symptom                         | Cause / fix                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| Prometheus target `DOWN` 401    | `METRICS_TOKEN` mismatch, or re-run `render-config.sh` after editing `.env` |
+| Dashboards empty                | Recording rules need ~2 evaluation cycles (60s); check Status → Rules       |
+| Prometheus OOM-restarts         | Series growth. Tighten the `keep` regex in `prometheus.yml.tpl`             |
+| `/ready` 503, `/health` 200     | A dependency is down by design — read the `checks` object                   |
+| Alerts fire but nothing arrives | `alertmanager_notifications_failed_total` → check webhook/SMTP creds        |
+| Every log line lost on redeploy | Expected on ephemeral disk; ship stdout or mount a volume                   |
 
 ## Upgrade path (no business-logic changes)
 

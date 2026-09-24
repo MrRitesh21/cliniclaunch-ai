@@ -3,6 +3,7 @@
 Preview was down (`SUPABASE_SERVICE_ROLE_KEY` was blocking startup) — already fixed. Now:
 
 ## Guardrails (given the deadline)
+
 - **No redesigns.** Light polish only: spacing, empty states, skeletons, mobile, error toasts.
 - **No new features.** Only fixes to existing flows.
 - **Every change verified** with a build check before moving on.
@@ -72,6 +73,7 @@ Preview was down (`SUPABASE_SERVICE_ROLE_KEY` was blocking startup) — already 
 ---
 
 ## Explicitly OUT of scope (post-launch)
+
 - Any redesign / new color system / typography change.
 - New modules or new business logic (only fixing existing).
 - Test coverage additions.
@@ -80,6 +82,7 @@ Preview was down (`SUPABASE_SERVICE_ROLE_KEY` was blocking startup) — already 
 ---
 
 ## Sequence I'll follow
+
 1. Phase 1 (blockers) — ~4 file additions.
 2. Phase 2 (booking) — highest customer visibility.
 3. Phase 4 (billing) — money path.
@@ -88,6 +91,7 @@ Preview was down (`SUPABASE_SERVICE_ROLE_KEY` was blocking startup) — already 
 6. Phase 6 (cross-cutting) as time allows.
 
 ## Questions before I start
+
 1. **Legal copy**: I can draft placeholder Privacy/Terms/Refund policies with your clinic name, or you can paste your own. Which?
 2. **Company details for legal pages**: business name, address, support email, GST if any?
 3. **Razorpay mode**: are live keys already in secrets, or should I keep test-mode wiring?

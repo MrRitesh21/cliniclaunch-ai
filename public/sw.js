@@ -1,17 +1,12 @@
 const CACHE_NAME = "clinicx-pwa-v4";
-const STATIC_ASSETS = [
-  "/",
-  "/manifest.webmanifest",
-  "/icon-512.png",
-  "/logo-icon.png",
-];
+const STATIC_ASSETS = ["/", "/manifest.webmanifest", "/icon-512.png", "/logo-icon.png"];
 
 // Install Event — pre-cache core static shell
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch(() => {});
-    })
+    }),
   );
   self.skipWaiting();
 });
@@ -25,9 +20,9 @@ self.addEventListener("activate", (event) => {
           if (key !== CACHE_NAME) {
             return caches.delete(key);
           }
-        })
+        }),
       );
-    })
+    }),
   );
   self.clients.claim();
 });
@@ -90,7 +85,7 @@ self.addEventListener("fetch", (event) => {
           statusText: "Service Unavailable",
           headers: new Headers({ "Content-Type": "text/plain" }),
         });
-      })
+      }),
   );
 });
 
@@ -131,7 +126,12 @@ function reportPushEvent(data, name) {
   return fetch("/api/public/push-event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nid: data.nid, token: data.ntoken, event: name, platform: devicePlatform() }),
+    body: JSON.stringify({
+      nid: data.nid,
+      token: data.ntoken,
+      event: name,
+      platform: devicePlatform(),
+    }),
     keepalive: true,
   }).catch(() => {});
 }
@@ -151,17 +151,17 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     Promise.all([
-    reportPushEvent(payload.data, "delivered"),
-    self.registration.showNotification(title, {
-      body: payload.body || "",
-      icon: payload.icon || "/icon-512.png",
-      badge: payload.badge || "/icon-512.png",
-      tag: payload.tag || undefined,
-      renotify: payload.renotify === true,
-      data: { ...(payload.data || {}), url },
-      actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : undefined,
-    }),
-    ])
+      reportPushEvent(payload.data, "delivered"),
+      self.registration.showNotification(title, {
+        body: payload.body || "",
+        icon: payload.icon || "/icon-512.png",
+        badge: payload.badge || "/icon-512.png",
+        tag: payload.tag || undefined,
+        renotify: payload.renotify === true,
+        data: { ...(payload.data || {}), url },
+        actions: Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : undefined,
+      }),
+    ]),
   );
 });
 
@@ -188,7 +188,7 @@ self.addEventListener("notificationclick", (event) => {
         }
       }
       await self.clients.openWindow(url);
-    })()
+    })(),
   );
 });
 
@@ -198,14 +198,18 @@ self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
     (async () => {
       const old = event.oldSubscription || (await self.registration.pushManager.getSubscription());
-      const key = (event.newSubscription && event.newSubscription.options.applicationServerKey) ||
+      const key =
+        (event.newSubscription && event.newSubscription.options.applicationServerKey) ||
         (old && old.options && old.options.applicationServerKey);
       if (!key) return;
       try {
-        await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+        await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
       } catch {
         /* the app will re-subscribe on next visit */
       }
-    })()
+    })(),
   );
 });

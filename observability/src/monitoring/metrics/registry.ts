@@ -11,13 +11,7 @@
  *  - Nothing here does I/O. Dependency gauges are written by the probe
  *    scheduler, not on scrape, so a slow Redis can never slow a scrape.
  */
-import {
-  Counter,
-  Gauge,
-  Histogram,
-  Registry,
-  collectDefaultMetrics,
-} from "prom-client";
+import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from "prom-client";
 import {
   DB_BUCKETS,
   DURATION_BUCKETS,

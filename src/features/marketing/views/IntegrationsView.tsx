@@ -2,7 +2,17 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plug, CheckCircle2, ExternalLink, ShieldCheck, Zap, MessageCircle, Mail, Globe, CreditCard } from "lucide-react";
+import {
+  Plug,
+  CheckCircle2,
+  ExternalLink,
+  ShieldCheck,
+  Zap,
+  MessageCircle,
+  Mail,
+  Globe,
+  CreditCard,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const INTEGRATIONS = [
@@ -12,7 +22,8 @@ const INTEGRATIONS = [
     category: "Messaging",
     icon: <MessageCircle className="size-5 text-emerald-500" />,
     status: "connected",
-    description: "Send automated appointment confirmations, prescription PDFs & broadcast blasts via WhatsApp.",
+    description:
+      "Send automated appointment confirmations, prescription PDFs & broadcast blasts via WhatsApp.",
   },
   {
     id: "meta",
@@ -20,7 +31,8 @@ const INTEGRATIONS = [
     category: "Paid Ads",
     icon: <Globe className="size-5 text-blue-500" />,
     status: "connected",
-    description: "Sync patient lead forms directly into ClinicX CRM to auto-trigger instant WhatsApp greetings.",
+    description:
+      "Sync patient lead forms directly into ClinicX CRM to auto-trigger instant WhatsApp greetings.",
   },
   {
     id: "google",
@@ -69,9 +81,12 @@ export function IntegrationsView() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Omnichannel Integrations Hub</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">
+          Omnichannel Integrations Hub
+        </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Connect your clinic marketing engine with WhatsApp, Meta Ads, Google Business, Payment Gateways & Webhooks.
+          Connect your clinic marketing engine with WhatsApp, Meta Ads, Google Business, Payment
+          Gateways & Webhooks.
         </p>
       </div>
 
@@ -84,14 +99,14 @@ export function IntegrationsView() {
                 <div className="p-2.5 rounded-xl bg-muted">{item.icon}</div>
                 <div>
                   <h3 className="font-bold text-sm text-foreground leading-tight">{item.name}</h3>
-                  <Badge variant="outline" className="text-[9px] mt-0.5">{item.category}</Badge>
+                  <Badge variant="outline" className="text-[9px] mt-0.5">
+                    {item.category}
+                  </Badge>
                 </div>
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {item.description}
-            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
 
             <div className="pt-3 border-t flex items-center justify-between">
               <Badge
@@ -102,7 +117,9 @@ export function IntegrationsView() {
                     : "bg-slate-500/10 text-slate-600 border-slate-500/30"
                 }`}
               >
-                <span className={`size-1.5 rounded-full ${item.status === "connected" ? "bg-emerald-500" : "bg-slate-400"}`} />
+                <span
+                  className={`size-1.5 rounded-full ${item.status === "connected" ? "bg-emerald-500" : "bg-slate-400"}`}
+                />
                 {item.status === "connected" ? "Connected" : "Available"}
               </Badge>
 

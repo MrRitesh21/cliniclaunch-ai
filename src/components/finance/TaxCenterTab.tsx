@@ -16,22 +16,64 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getTaxReportData } from "@/lib/finance.functions";
 import { downloadCsv, inr, printReport, tableHtml } from "@/lib/finance-format";
 
 const day = (offset = 0) => new Date(Date.now() - offset * 864e5).toISOString().slice(0, 10);
 
 const REPORTS_LIST = [
-  { key: "pnl", title: "Profit & Loss Statement", desc: "Complete summary of income vs operational expenditure" },
-  { key: "revenue", title: "Revenue Summary", desc: "Detailed breakdown by source, patient, and doctor" },
-  { key: "expense", title: "Expense Register", desc: "Categorized expense ledger with vendor details" },
-  { key: "gst", title: "GST Filing Report", desc: "Input & Output GST breakdown for GSTR-3B / GSTR-1" },
-  { key: "doctor", title: "Doctor Revenue Split", desc: "Doctor-wise revenue, consultation counts, and payouts" },
-  { key: "cashbook", title: "Cash Book Ledger", desc: "End-of-day cash closings and drawer balances" },
-  { key: "payment_mode", title: "Payment Mode Analytics", desc: "Cash vs Digital, UPI, Card, and Bank deposits" },
-  { key: "outstanding", title: "Outstanding Payments", desc: "Ageing report of unpaid patient invoices" },
-  { key: "monthly_closing", title: "Monthly Closing Statement", desc: "End of month CA consolidation summary" },
+  {
+    key: "pnl",
+    title: "Profit & Loss Statement",
+    desc: "Complete summary of income vs operational expenditure",
+  },
+  {
+    key: "revenue",
+    title: "Revenue Summary",
+    desc: "Detailed breakdown by source, patient, and doctor",
+  },
+  {
+    key: "expense",
+    title: "Expense Register",
+    desc: "Categorized expense ledger with vendor details",
+  },
+  {
+    key: "gst",
+    title: "GST Filing Report",
+    desc: "Input & Output GST breakdown for GSTR-3B / GSTR-1",
+  },
+  {
+    key: "doctor",
+    title: "Doctor Revenue Split",
+    desc: "Doctor-wise revenue, consultation counts, and payouts",
+  },
+  {
+    key: "cashbook",
+    title: "Cash Book Ledger",
+    desc: "End-of-day cash closings and drawer balances",
+  },
+  {
+    key: "payment_mode",
+    title: "Payment Mode Analytics",
+    desc: "Cash vs Digital, UPI, Card, and Bank deposits",
+  },
+  {
+    key: "outstanding",
+    title: "Outstanding Payments",
+    desc: "Ageing report of unpaid patient invoices",
+  },
+  {
+    key: "monthly_closing",
+    title: "Monthly Closing Statement",
+    desc: "End of month CA consolidation summary",
+  },
   { key: "yearly_closing", title: "Yearly Audit Closing", desc: "Annual financial ledger export" },
 ];
 
@@ -69,7 +111,14 @@ export function TaxCenterTab({ orgId, clinicId }: { orgId: string; clinicId: str
 
   function exportReport(repKey: string) {
     if (repKey === "gst") {
-      const headers = ["Invoice / Ref", "Date", "Category", "Gross (₹)", "GST Amount (₹)", "Net (₹)"];
+      const headers = [
+        "Invoice / Ref",
+        "Date",
+        "Category",
+        "Gross (₹)",
+        "GST Amount (₹)",
+        "Net (₹)",
+      ];
       const rows = ledgerRows.map((r: any) => [
         r.invoice_number || r.id.slice(0, 8),
         r.entry_date,
@@ -119,15 +168,22 @@ export function TaxCenterTab({ orgId, clinicId }: { orgId: string; clinicId: str
         <div className="flex items-start gap-3">
           <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-sm text-foreground">Advance Tax Estimator (FY 2026-27)</h3>
+            <h3 className="font-semibold text-sm text-foreground">
+              Advance Tax Estimator (FY 2026-27)
+            </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-              Based on your projected annual profit of <span className="font-semibold text-foreground">{inr(annualProjectedProfit)}</span>,
-              your estimated annual income tax liability is <span className="font-semibold text-foreground">{inr(estimatedAnnualTax)}</span>.
+              Based on your projected annual profit of{" "}
+              <span className="font-semibold text-foreground">{inr(annualProjectedProfit)}</span>,
+              your estimated annual income tax liability is{" "}
+              <span className="font-semibold text-foreground">{inr(estimatedAnnualTax)}</span>.
               Ensure quarterly instalments are remitted on time to avoid interest under Sec 234C.
             </p>
           </div>
         </div>
-        <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20 font-mono text-xs">
+        <Badge
+          variant="outline"
+          className="bg-amber-500/10 text-amber-700 border-amber-500/20 font-mono text-xs"
+        >
           Est. Quarterly: {inr(Math.round(estimatedAnnualTax / 4))}
         </Badge>
       </Card>
@@ -167,21 +223,29 @@ export function TaxCenterTab({ orgId, clinicId }: { orgId: string; clinicId: str
         <Card className="p-5">
           <h3 className="text-sm font-semibold mb-4 flex items-center justify-between">
             GST Classification Summary
-            <Badge variant="outline" className="text-[10px]">Medical Exemption Rules</Badge>
+            <Badge variant="outline" className="text-[10px]">
+              Medical Exemption Rules
+            </Badge>
           </h3>
           <div className="space-y-4 text-xs">
             <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 border">
               <div>
                 <div className="font-medium text-foreground">Doctor Consultations (GST Exempt)</div>
-                <div className="text-muted-foreground text-[11px]">Healthcare services are 0% GST exempt under Notification 12/2017</div>
+                <div className="text-muted-foreground text-[11px]">
+                  Healthcare services are 0% GST exempt under Notification 12/2017
+                </div>
               </div>
               <div className="font-mono font-semibold text-sm">{inr(exemptConsultations)}</div>
             </div>
 
             <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 border">
               <div>
-                <div className="font-medium text-foreground">Procedures &amp; Diagnostics (Taxable)</div>
-                <div className="text-muted-foreground text-[11px]">Cosmetic, lab referral &amp; pharmacy sales</div>
+                <div className="font-medium text-foreground">
+                  Procedures &amp; Diagnostics (Taxable)
+                </div>
+                <div className="text-muted-foreground text-[11px]">
+                  Cosmetic, lab referral &amp; pharmacy sales
+                </div>
               </div>
               <div className="font-mono font-semibold text-sm">{inr(taxableProcedures)}</div>
             </div>
@@ -192,10 +256,15 @@ export function TaxCenterTab({ orgId, clinicId }: { orgId: string; clinicId: str
           <h3 className="text-sm font-semibold mb-3">Advance Tax Instalment Schedule</h3>
           <div className="space-y-2">
             {quarterlySchedule.map((q) => (
-              <div key={q.quarter} className="p-2.5 rounded-lg border flex items-center justify-between text-xs">
+              <div
+                key={q.quarter}
+                className="p-2.5 rounded-lg border flex items-center justify-between text-xs"
+              >
                 <div>
                   <span className="font-medium">{q.quarter}</span>
-                  <div className="text-muted-foreground text-[10px]">Cumulative target: {q.pct} of tax</div>
+                  <div className="text-muted-foreground text-[10px]">
+                    Cumulative target: {q.pct} of tax
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-semibold text-sm">{inr(q.amount)}</div>
@@ -213,15 +282,21 @@ export function TaxCenterTab({ orgId, clinicId }: { orgId: string; clinicId: str
           <div>
             <h3 className="text-base font-semibold">CA-Ready Reports Hub</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Export standardized financial registers for audit, tax filing, and bank loans in 1-click.
+              Export standardized financial registers for audit, tax filing, and bank loans in
+              1-click.
             </p>
           </div>
-          <Badge variant="secondary" className="text-xs">10 Reports Available</Badge>
+          <Badge variant="secondary" className="text-xs">
+            10 Reports Available
+          </Badge>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {REPORTS_LIST.map((r) => (
-            <div key={r.key} className="p-3.5 rounded-xl border hover:border-primary/50 transition-colors flex items-center justify-between gap-3">
+            <div
+              key={r.key}
+              className="p-3.5 rounded-xl border hover:border-primary/50 transition-colors flex items-center justify-between gap-3"
+            >
               <div>
                 <h4 className="text-xs font-semibold text-foreground">{r.title}</h4>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{r.desc}</p>

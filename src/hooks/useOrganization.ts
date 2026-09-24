@@ -30,10 +30,33 @@ const EMPTY: Snapshot = {
 };
 
 const ALL_KNOWN_MODULES = [
-  "appointments", "queue", "consult", "consultation", "records", "emr", "prescriptions",
-  "pharmacy", "lab", "finance", "billing", "inventory", "doctors", "staff",
-  "website", "website_builder", "whatsapp", "reviews", "loyalty", "marketing", "seo",
-  "crm", "patients", "ai_assistant", "qr_checkin", "qr_appointment", "analytics",
+  "appointments",
+  "queue",
+  "consult",
+  "consultation",
+  "records",
+  "emr",
+  "prescriptions",
+  "pharmacy",
+  "lab",
+  "finance",
+  "billing",
+  "inventory",
+  "doctors",
+  "staff",
+  "website",
+  "website_builder",
+  "whatsapp",
+  "reviews",
+  "loyalty",
+  "marketing",
+  "seo",
+  "crm",
+  "patients",
+  "ai_assistant",
+  "qr_checkin",
+  "qr_appointment",
+  "analytics",
 ];
 
 /**
@@ -60,7 +83,6 @@ function publish(s: Snapshot) {
   listeners.forEach((l) => l(s));
 }
 
-
 async function fetchSnapshot(userId: string): Promise<Snapshot> {
   const { data: mem } = await supabase
     .from("organization_members")
@@ -73,30 +95,37 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
 
   const orgId = mem[0].organization_id;
 
-  const [{ data: orgRow }, { data: modRows }, { data: subRow }, { data: planRows }] = await Promise.all([
-    supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
-    supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
-    supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
-    supabase.from("plans").select("id, module_ids"),
-  ]);
+  const [{ data: orgRow }, { data: modRows }, { data: subRow }, { data: planRows }] =
+    await Promise.all([
+      supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
+      supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
+      supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
+      supabase.from("plans").select("id, module_ids"),
+    ]);
 
   const targetEnd = subRow?.current_period_end ?? subRow?.trial_ends_at;
   const periodEndMs = targetEnd ? new Date(targetEnd).getTime() : null;
   const periodElapsed = periodEndMs !== null && periodEndMs < Date.now();
   const statusActive =
-    !subRow || (subRow && (subRow.status === "active" || subRow.status === "trialing" || subRow.status === "past_due"));
+    !subRow ||
+    (subRow &&
+      (subRow.status === "active" || subRow.status === "trialing" || subRow.status === "past_due"));
   const statusCancelledNotElapsed =
     subRow &&
     ((subRow.status as string) === "cancelled" || (subRow.status as string) === "canceled") &&
     periodEndMs !== null &&
     !periodElapsed;
   const activePlanId =
-    (statusActive && !periodElapsed) || statusCancelledNotElapsed ? (subRow?.plan_id ?? "enterprise") : "enterprise";
+    (statusActive && !periodElapsed) || statusCancelledNotElapsed
+      ? (subRow?.plan_id ?? "enterprise")
+      : "enterprise";
 
   const ids = (modRows ?? []).map((m) => m.module_id);
   const plan = (planRows ?? []).find((p) => p.id === activePlanId);
   const planAllowed = plan?.module_ids ?? [];
-  const allowedSet = new Set(planAllowed.length > 0 ? [...planAllowed, ...ALL_KNOWN_MODULES] : ALL_KNOWN_MODULES);
+  const allowedSet = new Set(
+    planAllowed.length > 0 ? [...planAllowed, ...ALL_KNOWN_MODULES] : ALL_KNOWN_MODULES,
+  );
 
   return {
     org: orgRow ?? null,
@@ -123,8 +152,6 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
   }
   if (!force && cache && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
   if (inFlight) return inFlight;
-
-
 
   inFlight = fetchSnapshot(userId)
     .then((s) => {

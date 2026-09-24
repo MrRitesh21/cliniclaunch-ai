@@ -115,10 +115,7 @@ export const COMPETITORS: Competitor[] = [
     slug: "dochours",
     name: "DocHours",
     tagline: "Simple scheduler — missing the growth engine (SEO, reviews, WhatsApp).",
-    weaknesses: [
-      "Scheduling-only; no built-in EHR or billing",
-      "No SEO or review automation",
-    ],
+    weaknesses: ["Scheduling-only; no built-in EHR or billing", "No SEO or review automation"],
     our_wins: [
       "Full clinic OS — scheduling, EHR, billing, marketing in one",
       "Doctors don't need to stitch 5 tools together",
@@ -129,10 +126,7 @@ export const COMPETITORS: Competitor[] = [
     slug: "myopd",
     name: "MyOPD",
     tagline: "OPD-only tool — great for queues, weak on patient acquisition.",
-    weaknesses: [
-      "No public booking website out of the box",
-      "No review or WhatsApp automation",
-    ],
+    weaknesses: ["No public booking website out of the box", "No review or WhatsApp automation"],
     our_wins: [
       "Public website + online booking included from day one",
       "End-to-end: patient finds you → books → gets reminded → leaves review",
@@ -144,14 +138,29 @@ export const COMPETITORS: Competitor[] = [
 export const CITIES: City[] = [
   { slug: "delhi", name: "Delhi", state: "Delhi NCR", doctor_hint: "3,500+ private clinics" },
   { slug: "mumbai", name: "Mumbai", state: "Maharashtra", doctor_hint: "4,200+ private clinics" },
-  { slug: "bangalore", name: "Bangalore", state: "Karnataka", doctor_hint: "3,100+ private clinics" },
-  { slug: "hyderabad", name: "Hyderabad", state: "Telangana", doctor_hint: "2,400+ private clinics" },
+  {
+    slug: "bangalore",
+    name: "Bangalore",
+    state: "Karnataka",
+    doctor_hint: "3,100+ private clinics",
+  },
+  {
+    slug: "hyderabad",
+    name: "Hyderabad",
+    state: "Telangana",
+    doctor_hint: "2,400+ private clinics",
+  },
   { slug: "chennai", name: "Chennai", state: "Tamil Nadu", doctor_hint: "2,600+ private clinics" },
   { slug: "pune", name: "Pune", state: "Maharashtra", doctor_hint: "2,000+ private clinics" },
   { slug: "kolkata", name: "Kolkata", state: "West Bengal", doctor_hint: "1,900+ private clinics" },
   { slug: "ahmedabad", name: "Ahmedabad", state: "Gujarat", doctor_hint: "1,600+ private clinics" },
   { slug: "jaipur", name: "Jaipur", state: "Rajasthan", doctor_hint: "1,200+ private clinics" },
-  { slug: "lucknow", name: "Lucknow", state: "Uttar Pradesh", doctor_hint: "1,100+ private clinics" },
+  {
+    slug: "lucknow",
+    name: "Lucknow",
+    state: "Uttar Pradesh",
+    doctor_hint: "1,100+ private clinics",
+  },
   { slug: "chandigarh", name: "Chandigarh", state: "Punjab", doctor_hint: "800+ private clinics" },
   { slug: "kochi", name: "Kochi", state: "Kerala", doctor_hint: "900+ private clinics" },
 ];

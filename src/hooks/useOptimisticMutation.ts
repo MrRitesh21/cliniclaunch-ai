@@ -12,7 +12,7 @@ interface OptimisticMutationOptions<T, P> {
 
 export function useOptimisticMutation<T, P>(
   initialData: T,
-  options: OptimisticMutationOptions<T, P>
+  options: OptimisticMutationOptions<T, P>,
 ) {
   const [data, setData] = useState<T>(initialData);
   const [isPending, setIsPending] = useState(false);
@@ -21,7 +21,7 @@ export function useOptimisticMutation<T, P>(
     async (payload: P) => {
       const previousData = data;
       const optimisticData = options.onMutate(payload, previousData);
-      
+
       // Apply optimistic update immediately
       setData(optimisticData);
       setIsPending(true);
@@ -47,7 +47,7 @@ export function useOptimisticMutation<T, P>(
         }
       }
     },
-    [data, options]
+    [data, options],
   );
 
   return {

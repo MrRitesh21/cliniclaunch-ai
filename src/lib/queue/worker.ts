@@ -44,7 +44,9 @@ function maskEmail(email?: string) {
 // WhatsApp Worker Handler
 async function processWhatsAppJob(job: Job<WhatsAppJobData>) {
   const { sessionId, phone, message } = job.data;
-  console.log(`[BullMQ Worker] Processing WhatsApp message job ${job.id} for phone ${maskPhone(phone)}`);
+  console.log(
+    `[BullMQ Worker] Processing WhatsApp message job ${job.id} for phone ${maskPhone(phone)}`,
+  );
 
   const res = await baileysSend(sessionId, phone, message);
   if (!res.ok) {
@@ -68,7 +70,7 @@ async function processEmailJob(job: Job<EmailJobData>) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${resendApiKey}`,
+      Authorization: `Bearer ${resendApiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -94,15 +96,25 @@ let emailWorker: Worker | null = null;
 export function startWorkers() {
   try {
     if (!whatsappWorker) {
-      whatsappWorker = new Worker<WhatsAppJobData>("whatsapp-messages", processWhatsAppJob, workerConfig);
-      whatsappWorker.on("completed", (job) => console.log(`[Worker: WhatsApp] Job ${job.id} completed.`));
-      whatsappWorker.on("failed", (job, err) => console.error(`[Worker: WhatsApp] Job ${job?.id} failed:`, err.message));
+      whatsappWorker = new Worker<WhatsAppJobData>(
+        "whatsapp-messages",
+        processWhatsAppJob,
+        workerConfig,
+      );
+      whatsappWorker.on("completed", (job) =>
+        console.log(`[Worker: WhatsApp] Job ${job.id} completed.`),
+      );
+      whatsappWorker.on("failed", (job, err) =>
+        console.error(`[Worker: WhatsApp] Job ${job?.id} failed:`, err.message),
+      );
     }
 
     if (!emailWorker) {
       emailWorker = new Worker<EmailJobData>("email-notifications", processEmailJob, workerConfig);
       emailWorker.on("completed", (job) => console.log(`[Worker: Email] Job ${job.id} completed.`));
-      emailWorker.on("failed", (job, err) => console.error(`[Worker: Email] Job ${job?.id} failed:`, err.message));
+      emailWorker.on("failed", (job, err) =>
+        console.error(`[Worker: Email] Job ${job?.id} failed:`, err.message),
+      );
     }
 
     console.log("[BullMQ] All background workers started.");

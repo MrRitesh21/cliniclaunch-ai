@@ -4,15 +4,32 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAuditLogs } from "@/lib/admin.functions";
 import { deleteAuditLog } from "@/lib/audit-test.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ScrollText, Search, Filter, Calendar, RefreshCcw, Database, ShieldAlert, User, Activity, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  ScrollText,
+  Search,
+  Filter,
+  Calendar,
+  RefreshCcw,
+  Database,
+  ShieldAlert,
+  User,
+  Activity,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-
 
 export const Route = createFileRoute("/_admin/admin/audit")({
   component: AuditLogsPage,
@@ -22,9 +39,14 @@ function AuditLogsPage() {
   const fn = useServerFn(listAuditLogs);
   const deleteFn = useServerFn(deleteAuditLog);
   const queryClient = useQueryClient();
-  const { data: logs = [], isLoading, refetch, isFetching } = useQuery({ 
-    queryKey: ["admin-audit-logs"], 
-    queryFn: () => fn() 
+  const {
+    data: logs = [],
+    isLoading,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ["admin-audit-logs"],
+    queryFn: () => fn(),
   });
 
   const [search, setSearch] = useState("");
@@ -41,18 +63,17 @@ function AuditLogsPage() {
     },
   });
 
-
   const filteredLogs = useMemo(() => {
     return logs.filter((log: any) => {
-      const matchesSearch = 
+      const matchesSearch =
         log.admin_users?.name?.toLowerCase().includes(search.toLowerCase()) ||
         log.admin_users?.email?.toLowerCase().includes(search.toLowerCase()) ||
         log.action?.toLowerCase().includes(search.toLowerCase()) ||
         log.target_id?.toLowerCase().includes(search.toLowerCase()) ||
         log.metadata?.reason?.toLowerCase().includes(search.toLowerCase());
-      
+
       const matchesAction = actionFilter === "all" || log.action === actionFilter;
-      
+
       return matchesSearch && matchesAction;
     });
   }, [logs, search, actionFilter]);
@@ -96,17 +117,18 @@ function AuditLogsPage() {
             Audit Log
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-lg">
-            Complete transparency of administrative operations. Tracks access, modifications, and system events.
+            Complete transparency of administrative operations. Tracks access, modifications, and
+            system events.
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={() => refetch()} 
+        <Button
+          variant="outline"
+          onClick={() => refetch()}
           disabled={isFetching}
           className="bg-background shadow-sm h-11 px-5"
         >
-          <RefreshCcw className={`size-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-          {isFetching ? 'Syncing...' : 'Refresh Logs'}
+          <RefreshCcw className={`size-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Syncing..." : "Refresh Logs"}
         </Button>
       </div>
 
@@ -123,7 +145,7 @@ function AuditLogsPage() {
             <p className="text-xs text-muted-foreground mt-1">Last 100 system actions</p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-teal-500/[0.02] border-teal-500/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -133,7 +155,13 @@ function AuditLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-display">
-              {logs.filter((l: any) => l.action?.toLowerCase().includes('delete') || l.action?.toLowerCase().includes('suspend')).length}
+              {
+                logs.filter(
+                  (l: any) =>
+                    l.action?.toLowerCase().includes("delete") ||
+                    l.action?.toLowerCase().includes("suspend"),
+                ).length
+              }
             </div>
             <p className="text-xs text-muted-foreground mt-1">Deletions & suspensions</p>
           </CardContent>
@@ -160,13 +188,15 @@ function AuditLogsPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <CardTitle>History</CardTitle>
-              <CardDescription>Filtering {filteredLogs.length} of {logs.length} entries</CardDescription>
+              <CardDescription>
+                Filtering {filteredLogs.length} of {logs.length} entries
+              </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search admin, action, target..." 
+                <Input
+                  placeholder="Search admin, action, target..."
                   className="pl-9 bg-background h-10 border-border/60"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -179,8 +209,10 @@ function AuditLogsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Actions</SelectItem>
-                  {actionTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type.replace(/_/g, ' ')}</SelectItem>
+                  {actionTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type.replace(/_/g, " ")}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -198,7 +230,6 @@ function AuditLogsPage() {
                 <th className="text-left px-6 py-4 border-b">Context/Reason</th>
                 <th className="text-left px-6 py-4 border-b">Footprint</th>
                 <th className="text-right px-6 py-4 border-b">Actions</th>
-
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -208,7 +239,9 @@ function AuditLogsPage() {
                     <div className="flex flex-col items-center justify-center grayscale opacity-60">
                       <ScrollText className="size-12 mb-4 text-muted-foreground" />
                       <p className="text-lg font-medium">No records found</p>
-                      <p className="text-sm text-muted-foreground">Adjust your filters or search terms</p>
+                      <p className="text-sm text-muted-foreground">
+                        Adjust your filters or search terms
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -242,20 +275,27 @@ function AuditLogsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={getActionColor(log.action)} className="uppercase text-[10px] tracking-tight px-2 py-0.5 rounded-full font-bold">
-                      {log.action?.replace(/_/g, ' ')}
+                    <Badge
+                      variant={getActionColor(log.action)}
+                      className="uppercase text-[10px] tracking-tight px-2 py-0.5 rounded-full font-bold"
+                    >
+                      {log.action?.replace(/_/g, " ")}
                     </Badge>
                   </td>
                   <td className="px-6 py-4">
                     {log.target_type ? (
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold capitalize text-foreground">{log.target_type}</span>
+                        <span className="text-xs font-semibold capitalize text-foreground">
+                          {log.target_type}
+                        </span>
                         <code className="text-[10px] text-muted-foreground/80 font-mono mt-0.5 bg-muted/50 px-1 py-0.5 rounded border border-border/40 inline-block w-fit">
                           {log.target_id}
                         </code>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground/40 italic text-xs">— Global System —</span>
+                      <span className="text-muted-foreground/40 italic text-xs">
+                        — Global System —
+                      </span>
                     )}
                   </td>
                   <td className="px-6 py-4">
@@ -269,7 +309,9 @@ function AuditLogsPage() {
                           {JSON.stringify(log.metadata)}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground/30 text-xs italic">No additional context</span>
+                        <span className="text-muted-foreground/30 text-xs italic">
+                          No additional context
+                        </span>
                       )}
                     </div>
                   </td>
@@ -297,7 +339,6 @@ function AuditLogsPage() {
                     </Button>
                   </td>
                 </tr>
-
               ))}
             </tbody>
           </table>
@@ -306,4 +347,3 @@ function AuditLogsPage() {
     </div>
   );
 }
-

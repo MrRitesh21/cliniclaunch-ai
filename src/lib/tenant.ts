@@ -21,7 +21,11 @@ export class TenantScopeError extends Error {
  * Throws TenantScopeError if missing.
  */
 export function assertTenantScope(tenant: TenantContext): TenantContext {
-  if (!tenant.organizationId || typeof tenant.organizationId !== "string" || tenant.organizationId.trim() === "") {
+  if (
+    !tenant.organizationId ||
+    typeof tenant.organizationId !== "string" ||
+    tenant.organizationId.trim() === ""
+  ) {
     throw new TenantScopeError("Execution blocked: missing or invalid organizationId context");
   }
   return tenant;
@@ -32,7 +36,7 @@ export function assertTenantScope(tenant: TenantContext): TenantContext {
  */
 export function scopeQuery<T extends { eq: (col: string, val: any) => T }>(
   query: T,
-  tenant: TenantContext
+  tenant: TenantContext,
 ): T {
   assertTenantScope(tenant);
   let scoped = query.eq("organization_id", tenant.organizationId);

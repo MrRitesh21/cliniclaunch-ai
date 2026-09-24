@@ -36,9 +36,7 @@ export function VirtualTable<T extends { id?: string | number }>({
     }
     const q = search.toLowerCase();
     return data.filter((row) =>
-      Object.values(row as any).some(
-        (val) => val && String(val).toLowerCase().includes(q)
-      )
+      Object.values(row as any).some((val) => val && String(val).toLowerCase().includes(q)),
     );
   }, [data, search, searchFilter]);
 
@@ -82,26 +80,20 @@ export function VirtualTable<T extends { id?: string | number }>({
             <tbody className="divide-y">
               {visibleData.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="text-center py-8 text-muted-foreground"
-                  >
+                  <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">
                     No matching records found.
                   </td>
                 </tr>
               ) : (
                 visibleData.map((row, rowIdx) => (
-                  <tr
-                    key={row.id ?? rowIdx}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
+                  <tr key={row.id ?? rowIdx} className="hover:bg-muted/30 transition-colors">
                     {columns.map((col, colIdx) => (
                       <td key={colIdx} className="p-3">
                         {col.cell
                           ? col.cell(row)
                           : col.accessorKey
-                          ? String(row[col.accessorKey] ?? "—")
-                          : null}
+                            ? String(row[col.accessorKey] ?? "—")
+                            : null}
                       </td>
                     ))}
                   </tr>

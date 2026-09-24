@@ -28,10 +28,14 @@ export function PushAnalyticsCard() {
         <CardTitle className="flex items-center gap-2 text-base">
           <BarChart3 className="size-4" /> Notification performance
         </CardTitle>
-        <CardDescription>Last 30 days — how many alerts reached you and were acted on.</CardDescription>
+        <CardDescription>
+          Last 30 days — how many alerts reached you and were acted on.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {error && <p className="text-sm text-muted-foreground">Couldn't load analytics right now.</p>}
+        {error && (
+          <p className="text-sm text-muted-foreground">Couldn't load analytics right now.</p>
+        )}
         {!data && !error && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
 
         {data && (
@@ -54,25 +58,38 @@ export function PushAnalyticsCard() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">By device</p>
-                {data.byPlatform.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  By device
+                </p>
+                {data.byPlatform.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No data yet.</p>
+                )}
                 {data.byPlatform.map((row) => (
-                  <div key={row.platform} className="flex items-center justify-between text-sm py-1">
+                  <div
+                    key={row.platform}
+                    className="flex items-center justify-between text-sm py-1"
+                  >
                     <span className="capitalize">{row.platform}</span>
                     <span className="text-muted-foreground">
-                      {row.delivered}/{row.sent} delivered • {pct(row.clicked, row.delivered || row.sent)} clicked
+                      {row.delivered}/{row.sent} delivered •{" "}
+                      {pct(row.clicked, row.delivered || row.sent)} clicked
                     </span>
                   </div>
                 ))}
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">By plan</p>
-                {data.byPlan.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  By plan
+                </p>
+                {data.byPlan.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No data yet.</p>
+                )}
                 {data.byPlan.map((row) => (
                   <div key={row.plan} className="flex items-center justify-between text-sm py-1">
                     <span className="capitalize">{row.plan}</span>
                     <span className="text-muted-foreground">
-                      {row.delivered}/{row.sent} delivered • {pct(row.clicked, row.delivered || row.sent)} clicked
+                      {row.delivered}/{row.sent} delivered •{" "}
+                      {pct(row.clicked, row.delivered || row.sent)} clicked
                     </span>
                   </div>
                 ))}

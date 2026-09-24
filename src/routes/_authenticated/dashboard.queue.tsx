@@ -13,18 +13,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/dashboard/queue")({
-  component: () => (<AppGuard appKey="queue"><QueuePage /></AppGuard>),
+  component: () => (
+    <AppGuard appKey="queue">
+      <QueuePage />
+    </AppGuard>
+  ),
 });
 
 type Status = "waiting" | "serving" | "done" | "skipped";
 type Token = {
-  id: string; token_number: number; patient_id: string | null; patient_name: string;
-  patient_phone: string | null; status: Status; priority: boolean; note: string | null;
-  called_at: string | null; completed_at: string | null; created_at: string;
+  id: string;
+  token_number: number;
+  patient_id: string | null;
+  patient_name: string;
+  patient_phone: string | null;
+  status: Status;
+  priority: boolean;
+  note: string | null;
+  called_at: string | null;
+  completed_at: string | null;
+  created_at: string;
 };
 type PatientOpt = { id: string; name: string; phone: string | null };
 
@@ -56,11 +80,19 @@ function QueuePage() {
     if (!orgId) return;
     try {
       const [t, p] = await Promise.all([
-        supabase.from("queue_tokens" as any).select("*")
-          .eq("organization_id", orgId).eq("queue_date", date)
-          .order("priority", { ascending: false }).order("token_number")
-          .then(res => res.error ? { data: [] } : res),
-        supabase.from("patients").select("id, name, phone").eq("organization_id", orgId).order("name"),
+        supabase
+          .from("queue_tokens" as any)
+          .select("*")
+          .eq("organization_id", orgId)
+          .eq("queue_date", date)
+          .order("priority", { ascending: false })
+          .order("token_number")
+          .then((res) => (res.error ? { data: [] } : res)),
+        supabase
+          .from("patients")
+          .select("id, name, phone")
+          .eq("organization_id", orgId)
+          .order("name"),
       ]);
       setTokens((t.data as any[]) ?? []);
       setPatients((p.data as any[]) ?? []);
@@ -71,7 +103,9 @@ function QueuePage() {
       setLoading(false);
     }
   }
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [orgId]);
+  useEffect(() => {
+    void load(); /* eslint-disable-next-line */
+  }, [orgId]);
 
   // The waiting-room board and the front desk are usually two different
   // screens, so refresh periodically — but only while the tab is visible, and
@@ -90,7 +124,6 @@ function QueuePage() {
     /* eslint-disable-next-line */
   }, [orgId]);
 
-
   const waiting = useMemo(() => tokens.filter((t) => t.status === "waiting"), [tokens]);
   const serving = useMemo(() => tokens.find((t) => t.status === "serving") ?? null, [tokens]);
   const doneList = useMemo(() => tokens.filter((t) => t.status === "done"), [tokens]);
@@ -101,7 +134,8 @@ function QueuePage() {
     const called = tokens.filter((t) => t.called_at);
     if (called.length < 2) return null;
     const total = called.reduce(
-      (sum, t) => sum + (new Date(t.called_at!).getTime() - new Date(t.created_at).getTime()), 0,
+      (sum, t) => sum + (new Date(t.called_at!).getTime() - new Date(t.created_at).getTime()),
+      0,
     );
     return Math.round(total / called.length / 60000);
   }, [tokens]);
@@ -110,7 +144,10 @@ function QueuePage() {
     const patch: Record<string, unknown> = { status };
     if (status === "serving") patch.called_at = new Date().toISOString();
     if (status === "done" || status === "skipped") patch.completed_at = new Date().toISOString();
-    const { error } = await supabase.from("queue_tokens" as any).update(patch).eq("id", id);
+    const { error } = await supabase
+      .from("queue_tokens" as any)
+      .update(patch)
+      .eq("id", id);
     if (error) return toast.error(error.message);
     load();
   }
@@ -127,22 +164,33 @@ function QueuePage() {
 
   async function remove(id: string) {
     if (!confirm("Remove this token from the queue?")) return;
-    await supabase.from("queue_tokens" as any).delete().eq("id", id);
-    toast.success("Removed"); load();
+    await supabase
+      .from("queue_tokens" as any)
+      .delete()
+      .eq("id", id);
+    toast.success("Removed");
+    load();
   }
 
-  if (board) return <BoardView serving={serving} waiting={waiting} onExit={() => setBoard(false)} />;
+  if (board)
+    return <BoardView serving={serving} waiting={waiting} onExit={() => setBoard(false)} />;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-3xl">Queue</h1>
-          <p className="text-sm text-muted-foreground">Today's OPD tokens — {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-muted-foreground">
+            Today's OPD tokens — {new Date().toLocaleDateString()}
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBoard(true)}><Monitor className="size-4 mr-1" /> Waiting-room board</Button>
-          <Button onClick={() => setAdding(true)}><Plus className="size-4 mr-1" /> Issue token</Button>
+          <Button variant="outline" onClick={() => setBoard(true)}>
+            <Monitor className="size-4 mr-1" /> Waiting-room board
+          </Button>
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="size-4 mr-1" /> Issue token
+          </Button>
         </div>
       </div>
 
@@ -165,64 +213,112 @@ function QueuePage() {
         </Button>
       </Card>
 
-      {loading ? <Skeleton className="h-48 w-full" /> :
-        tokens.length === 0 ? (
-          <EmptyState icon={<ListOrdered className="size-6" />} title="No tokens issued today"
-            description="Issue a token when a walk-in patient arrives at the front desk." />
-        ) : (
-          <Card className="divide-y">
-            {tokens.map((t) => {
-              const s = STATUS[t.status];
-              return (
-                <div key={t.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-display text-xl tabular-nums w-12 shrink-0">#{t.token_number}</span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate">{t.patient_name}</span>
-                        <Badge className={s.color} variant="outline">{s.label}</Badge>
-                        {t.priority && <Badge variant="outline" className="bg-rose-500/15 text-rose-700 border-rose-500/30">Priority</Badge>}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {t.patient_phone || "—"} · issued {new Date(t.created_at).toLocaleTimeString()}
-                        {t.note ? ` · ${t.note}` : ""}
-                      </div>
+      {loading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : tokens.length === 0 ? (
+        <EmptyState
+          icon={<ListOrdered className="size-6" />}
+          title="No tokens issued today"
+          description="Issue a token when a walk-in patient arrives at the front desk."
+        />
+      ) : (
+        <Card className="divide-y">
+          {tokens.map((t) => {
+            const s = STATUS[t.status];
+            return (
+              <div
+                key={t.id}
+                className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-display text-xl tabular-nums w-12 shrink-0">
+                    #{t.token_number}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium truncate">{t.patient_name}</span>
+                      <Badge className={s.color} variant="outline">
+                        {s.label}
+                      </Badge>
+                      {t.priority && (
+                        <Badge
+                          variant="outline"
+                          className="bg-rose-500/15 text-rose-700 border-rose-500/30"
+                        >
+                          Priority
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {t.patient_phone || "—"} · issued{" "}
+                      {new Date(t.created_at).toLocaleTimeString()}
+                      {t.note ? ` · ${t.note}` : ""}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {t.status === "waiting" && (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => setStatus(t.id, "serving")}>
-                          <PhoneCall className="size-4 mr-1" /> Call
-                        </Button>
-                        <Button size="icon" variant="ghost" title="Skip" onClick={() => setStatus(t.id, "skipped")}>
-                          <SkipForward className="size-4" />
-                        </Button>
-                      </>
-                    )}
-                    {t.status === "serving" && (
-                      <Button size="sm" variant="outline" onClick={() => setStatus(t.id, "done")}>
-                        <Check className="size-4 mr-1" /> Done
-                      </Button>
-                    )}
-                    <Button size="icon" variant="ghost" onClick={() => remove(t.id)}><Trash2 className="size-4" /></Button>
-                  </div>
                 </div>
-              );
-            })}
-          </Card>
-        )}
+                <div className="flex gap-1 shrink-0">
+                  {t.status === "waiting" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setStatus(t.id, "serving")}
+                      >
+                        <PhoneCall className="size-4 mr-1" /> Call
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Skip"
+                        onClick={() => setStatus(t.id, "skipped")}
+                      >
+                        <SkipForward className="size-4" />
+                      </Button>
+                    </>
+                  )}
+                  {t.status === "serving" && (
+                    <Button size="sm" variant="outline" onClick={() => setStatus(t.id, "done")}>
+                      <Check className="size-4 mr-1" /> Done
+                    </Button>
+                  )}
+                  <Button size="icon" variant="ghost" onClick={() => remove(t.id)}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
 
       {adding && orgId && (
-        <IssueDialog orgId={orgId} date={date} patients={patients}
-          onClose={() => setAdding(false)} onSaved={() => { setAdding(false); load(); }} />
+        <IssueDialog
+          orgId={orgId}
+          date={date}
+          patients={patients}
+          onClose={() => setAdding(false)}
+          onSaved={() => {
+            setAdding(false);
+            load();
+          }}
+        />
       )}
     </div>
   );
 }
 
-function IssueDialog({ orgId, date, patients, onClose, onSaved }: {
-  orgId: string; date: string; patients: PatientOpt[]; onClose: () => void; onSaved: () => void;
+function IssueDialog({
+  orgId,
+  date,
+  patients,
+  onClose,
+  onSaved,
+}: {
+  orgId: string;
+  date: string;
+  patients: PatientOpt[];
+  onClose: () => void;
+  onSaved: () => void;
 }) {
   const [patientId, setPatientId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -237,9 +333,13 @@ function IssueDialog({ orgId, date, patients, onClose, onSaved }: {
     let errRes: any = null;
     try {
       const { error } = await supabase.from("queue_tokens" as any).insert({
-        organization_id: orgId, queue_date: date, patient_id: patientId,
-        patient_name: name.trim(), patient_phone: phone.trim() || null,
-        priority, note: note.trim() || null,
+        organization_id: orgId,
+        queue_date: date,
+        patient_id: patientId,
+        patient_name: name.trim(),
+        patient_phone: phone.trim() || null,
+        priority,
+        note: note.trim() || null,
       });
       errRes = error;
     } catch (e: any) {
@@ -256,36 +356,71 @@ function IssueDialog({ orgId, date, patients, onClose, onSaved }: {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Issue token</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Issue token</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div>
             <Label>Patient</Label>
-            <Select value={patientId ?? "__manual"} onValueChange={(v) => {
-              if (v === "__manual") return setPatientId(null);
-              setPatientId(v);
-              const p = patients.find((x) => x.id === v);
-              if (p) { setName(p.name); setPhone(p.phone ?? ""); }
-            }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={patientId ?? "__manual"}
+              onValueChange={(v) => {
+                if (v === "__manual") return setPatientId(null);
+                setPatientId(v);
+                const p = patients.find((x) => x.id === v);
+                if (p) {
+                  setName(p.name);
+                  setPhone(p.phone ?? "");
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__manual">— Type manually —</SelectItem>
-                {patients.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                {patients.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+            <div>
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
           </div>
-          <div><Label>Note</Label><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Fever, follow-up…" /></div>
+          <div>
+            <Label>Note</Label>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Fever, follow-up…"
+            />
+          </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={priority} onChange={(e) => setPriority(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={priority}
+              onChange={(e) => setPriority(e.target.checked)}
+            />
             Priority (elderly / emergency — jumps the line)
           </label>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>{saving ? "Issuing…" : "Issue token"}</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Issuing…" : "Issue token"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -294,12 +429,20 @@ function IssueDialog({ orgId, date, patients, onClose, onSaved }: {
 
 /** Full-bleed display for a waiting-room TV. Deliberately huge type and no
  *  patient phone numbers — this screen is visible to the whole room. */
-function BoardView({ serving, waiting, onExit }: {
-  serving: Token | null; waiting: Token[]; onExit: () => void;
+function BoardView({
+  serving,
+  waiting,
+  onExit,
+}: {
+  serving: Token | null;
+  waiting: Token[];
+  onExit: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-8 text-center">
-      <Button variant="ghost" className="absolute top-4 right-4" onClick={onExit}>Exit</Button>
+      <Button variant="ghost" className="absolute top-4 right-4" onClick={onExit}>
+        Exit
+      </Button>
       <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Now serving</p>
       <p className="font-display text-[22vw] leading-none tabular-nums">
         {serving ? serving.token_number : "—"}
@@ -309,11 +452,16 @@ function BoardView({ serving, waiting, onExit }: {
         <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground mb-3">Next up</p>
         <div className="flex justify-center gap-4 flex-wrap">
           {waiting.slice(0, 6).map((t) => (
-            <span key={t.id} className="font-display text-4xl tabular-nums px-5 py-3 rounded-2xl border">
+            <span
+              key={t.id}
+              className="font-display text-4xl tabular-nums px-5 py-3 rounded-2xl border"
+            >
               {t.token_number}
             </span>
           ))}
-          {waiting.length === 0 && <span className="text-muted-foreground text-xl">Queue is empty</span>}
+          {waiting.length === 0 && (
+            <span className="text-muted-foreground text-xl">Queue is empty</span>
+          )}
         </div>
       </div>
     </div>

@@ -48,8 +48,12 @@ export function AudienceView() {
       if (!orgId) return;
       setLoading(true);
       try {
-        const { data } = await supabase.from("patients").select("*").eq("organization_id", orgId).limit(50);
-        const mapped: PatientRecord[] = (data as any[] ?? []).map((p, idx) => ({
+        const { data } = await supabase
+          .from("patients")
+          .select("*")
+          .eq("organization_id", orgId)
+          .limit(50);
+        const mapped: PatientRecord[] = ((data as any[]) ?? []).map((p, idx) => ({
           id: p.id,
           name: p.name || `Patient #${idx + 1}`,
           phone: p.phone || "+919876500000",
@@ -90,7 +94,9 @@ export function AudienceView() {
       "data:text/csv;charset=utf-8," +
       ["Name,Phone,Email,Visits,LTV"].join(",") +
       "\n" +
-      filtered.map((p) => `"${p.name}","${p.phone}","${p.email || ""}","${p.visitCount}","${p.ltv}"`).join("\n");
+      filtered
+        .map((p) => `"${p.name}","${p.phone}","${p.email || ""}","${p.visitCount}","${p.ltv}"`)
+        .join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -113,10 +119,19 @@ export function AudienceView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleExportCSV} variant="outline" size="sm" className="h-9 text-xs gap-1">
+          <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            size="sm"
+            className="h-9 text-xs gap-1"
+          >
             <Download className="size-3.5" /> Export CSV
           </Button>
-          <Button onClick={() => setActiveTab("builder")} size="sm" className="h-9 text-xs font-semibold gap-1">
+          <Button
+            onClick={() => setActiveTab("builder")}
+            size="sm"
+            className="h-9 text-xs font-semibold gap-1"
+          >
             <MessageCircle className="size-3.5" /> Send Broadcast to Filtered
           </Button>
         </div>
@@ -140,7 +155,9 @@ export function AudienceView() {
               key={seg}
               onClick={() => setSegmentFilter(seg)}
               className={`px-3 py-1 rounded-lg uppercase text-xs font-medium transition ${
-                segmentFilter === seg ? "bg-background text-foreground shadow-xs font-semibold" : "text-muted-foreground"
+                segmentFilter === seg
+                  ? "bg-background text-foreground shadow-xs font-semibold"
+                  : "text-muted-foreground"
               }`}
             >
               {seg.replace("_", " ")}
@@ -184,7 +201,9 @@ export function AudienceView() {
                       {p.email && <p className="text-[10px] text-muted-foreground">{p.email}</p>}
                     </td>
                     <td className="p-3 font-medium">{p.visitCount} visits</td>
-                    <td className="p-3 font-semibold text-emerald-600">₹{p.ltv.toLocaleString()}</td>
+                    <td className="p-3 font-semibold text-emerald-600">
+                      ₹{p.ltv.toLocaleString()}
+                    </td>
                     <td className="p-3 text-muted-foreground">
                       {p.lastVisit ? new Date(p.lastVisit).toLocaleDateString() : "—"}
                     </td>

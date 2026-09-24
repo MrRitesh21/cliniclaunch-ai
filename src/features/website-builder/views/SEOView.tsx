@@ -7,7 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Search, Globe, Share2, CheckCircle2, Sparkles, AlertCircle, ArrowUpRight, Rocket } from "lucide-react";
+import {
+  Search,
+  Globe,
+  Share2,
+  CheckCircle2,
+  Sparkles,
+  AlertCircle,
+  ArrowUpRight,
+  Rocket,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export function SEOView() {
@@ -26,7 +35,8 @@ export function SEOView() {
         <div className="space-y-1">
           <h2 className="text-xl font-bold tracking-tight">SEO Center & Google Ranking</h2>
           <p className="text-xs text-muted-foreground">
-            Configure meta tags, OpenGraph cards, Schema.org medical markup & submit to Google Search Console.
+            Configure meta tags, OpenGraph cards, Schema.org medical markup & submit to Google
+            Search Console.
           </p>
         </div>
 
@@ -51,13 +61,16 @@ export function SEOView() {
         <Progress value={92} className="h-2 bg-emerald-500/20" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-            <CheckCircle2 className="size-3.5 text-emerald-500" /> Title length optimal (55/60 chars)
+            <CheckCircle2 className="size-3.5 text-emerald-500" /> Title length optimal (55/60
+            chars)
           </div>
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-            <CheckCircle2 className="size-3.5 text-emerald-500" /> Mobile friendly viewport configured
+            <CheckCircle2 className="size-3.5 text-emerald-500" /> Mobile friendly viewport
+            configured
           </div>
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-            <CheckCircle2 className="size-3.5 text-emerald-500" /> Schema.org MedicalBusiness structured data
+            <CheckCircle2 className="size-3.5 text-emerald-500" /> Schema.org MedicalBusiness
+            structured data
           </div>
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 className="size-3.5 text-emerald-500" /> OpenGraph & Twitter Card tags
@@ -134,9 +147,7 @@ export function SEOView() {
             <p className="text-base text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer leading-tight truncate">
               {title}
             </p>
-            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-              {desc}
-            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{desc}</p>
           </div>
 
           {/* Social Share Preview Card */}

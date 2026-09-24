@@ -53,7 +53,10 @@ export function PlanCompareTable({
               What's included
             </th>
             {plans.map((p) => (
-              <th key={p.id} className={`p-3 text-center align-top ${p.is_popular ? "bg-primary/5" : ""}`}>
+              <th
+                key={p.id}
+                className={`p-3 text-center align-top ${p.is_popular ? "bg-primary/5" : ""}`}
+              >
                 <div className="font-display text-base flex items-center justify-center gap-1.5">
                   {p.name}
                   {p.is_popular && <Badge className="text-[10px]">Popular</Badge>}
@@ -63,7 +66,9 @@ export function PlanCompareTable({
                   <span className="text-xs text-muted-foreground">/mo</span>
                 </div>
                 {currentPlanId === p.id && (
-                  <Badge variant="outline" className="mt-1 text-[10px]">Current</Badge>
+                  <Badge variant="outline" className="mt-1 text-[10px]">
+                    Current
+                  </Badge>
                 )}
               </th>
             ))}
@@ -72,14 +77,20 @@ export function PlanCompareTable({
         <tbody>
           {/* Usage limits */}
           <tr className="border-b bg-muted/20">
-            <td colSpan={plans.length + 1} className="p-2.5 pl-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <td
+              colSpan={plans.length + 1}
+              className="p-2.5 pl-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            >
               Limits
             </td>
           </tr>
           <tr className="border-b">
             <td className="p-3 text-muted-foreground">Patient records</td>
             {plans.map((p) => (
-              <td key={p.id} className={`p-3 text-center font-medium ${p.is_popular ? "bg-primary/5" : ""}`}>
+              <td
+                key={p.id}
+                className={`p-3 text-center font-medium ${p.is_popular ? "bg-primary/5" : ""}`}
+              >
                 {PLAN_LIMITS[p.id]?.patients ?? "—"}
               </td>
             ))}
@@ -87,7 +98,10 @@ export function PlanCompareTable({
           <tr className="border-b">
             <td className="p-3 text-muted-foreground">Staff seats</td>
             {plans.map((p) => (
-              <td key={p.id} className={`p-3 text-center font-medium ${p.is_popular ? "bg-primary/5" : ""}`}>
+              <td
+                key={p.id}
+                className={`p-3 text-center font-medium ${p.is_popular ? "bg-primary/5" : ""}`}
+              >
                 {PLAN_LIMITS[p.id]?.staff ?? "—"}
               </td>
             ))}
@@ -97,20 +111,31 @@ export function PlanCompareTable({
           {groupedModules.map((group) => (
             <Fragment key={group.category}>
               <tr className="border-b bg-muted/20">
-                <td colSpan={plans.length + 1} className="p-2.5 pl-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <td
+                  colSpan={plans.length + 1}
+                  className="p-2.5 pl-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
                   {group.category}
                 </td>
               </tr>
               {group.items.map((m) => (
-                <tr key={m.id} className="border-b last:border-b-0 hover:bg-muted/20 transition-colors">
+                <tr
+                  key={m.id}
+                  className="border-b last:border-b-0 hover:bg-muted/20 transition-colors"
+                >
                   <td className="p-3">
                     <div className="font-medium text-xs">{m.name}</div>
-                    <div className="text-[11px] text-muted-foreground line-clamp-1">{m.description}</div>
+                    <div className="text-[11px] text-muted-foreground line-clamp-1">
+                      {m.description}
+                    </div>
                   </td>
                   {plans.map((p) => {
                     const included = (p.module_ids ?? []).includes(m.id);
                     return (
-                      <td key={p.id} className={`p-3 text-center ${p.is_popular ? "bg-primary/5" : ""}`}>
+                      <td
+                        key={p.id}
+                        className={`p-3 text-center ${p.is_popular ? "bg-primary/5" : ""}`}
+                      >
                         {included ? (
                           <Check className="size-4 text-primary inline-block" />
                         ) : (

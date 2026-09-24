@@ -4,7 +4,13 @@ import { AppGuard } from "@/components/app/AppGuard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { OverviewTab } from "@/components/finance/OverviewTab";
@@ -72,18 +78,28 @@ function FinancePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-2xl sm:text-3xl tracking-tight font-bold">Finance &amp; Accounting</h1>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px]">
+            <h1 className="font-display text-2xl sm:text-3xl tracking-tight font-bold">
+              Finance &amp; Accounting
+            </h1>
+            <Badge
+              variant="secondary"
+              className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px]"
+            >
               <Sparkles className="size-3" /> Passive Assistant Active
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-foreground">Zero manual revenue entry</span> · Automated double-entry bookkeeping · Tax &amp; CA exports
+            <span className="font-semibold text-foreground">Zero manual revenue entry</span> ·
+            Automated double-entry bookkeeping · Tax &amp; CA exports
           </p>
 
           <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground flex-wrap">
-            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 font-medium gap-1">
-              <Layers className="size-3 text-emerald-600" /> Wired to: Appointments · Invoices · Pharmacy · Inventory · Expense OCR
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 font-medium gap-1"
+            >
+              <Layers className="size-3 text-emerald-600" /> Wired to: Appointments · Invoices ·
+              Pharmacy · Inventory · Expense OCR
             </Badge>
           </div>
         </div>

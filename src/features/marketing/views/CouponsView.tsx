@@ -12,7 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Copy, Trash2, Ticket } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,7 +61,8 @@ export function CouponsView() {
     queryFn: () => list({ data: { organizationId: organizationId! } }) as Promise<CouponRow[]>,
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["marketing-coupons", organizationId] });
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["marketing-coupons", organizationId] });
 
   const saveMut = useMutation({
     mutationFn: () =>
@@ -98,12 +105,18 @@ export function CouponsView() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Discount Coupons & Offers</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            Discount Coupons & Offers
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Create promo codes for check-ups, health packages and consultations. Share them in any campaign.
+            Create promo codes for check-ups, health packages and consultations. Share them in any
+            campaign.
           </p>
         </div>
-        <Button onClick={() => setShowCreate((v) => !v)} className="gap-1.5 text-xs font-semibold h-9">
+        <Button
+          onClick={() => setShowCreate((v) => !v)}
+          className="gap-1.5 text-xs font-semibold h-9"
+        >
           <Plus className="size-4" /> Create new coupon
         </Button>
       </div>
@@ -134,7 +147,9 @@ export function CouponsView() {
               <label className="font-medium text-muted-foreground">Discount type</label>
               <Select
                 value={form.discountType}
-                onValueChange={(v) => setForm({ ...form, discountType: v as "flat" | "percentage" })}
+                onValueChange={(v) =>
+                  setForm({ ...form, discountType: v as "flat" | "percentage" })
+                }
               >
                 <SelectTrigger className="h-9 text-xs mt-1">
                   <SelectValue />
@@ -185,12 +200,19 @@ export function CouponsView() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button onClick={() => setShowCreate(false)} variant="outline" size="sm" className="h-8 text-xs">
+            <Button
+              onClick={() => setShowCreate(false)}
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+            >
               Cancel
             </Button>
             <Button
               onClick={() => saveMut.mutate()}
-              disabled={saveMut.isPending || form.code.trim().length < 3 || form.title.trim().length < 2}
+              disabled={
+                saveMut.isPending || form.code.trim().length < 3 || form.title.trim().length < 2
+              }
               size="sm"
               className="h-8 text-xs font-semibold"
             >
@@ -219,7 +241,10 @@ export function CouponsView() {
           {(coupons ?? []).map((c) => (
             <Card key={c.id} className="p-5 space-y-4 border hover:border-primary/40 transition">
               <div className="flex items-center justify-between">
-                <Badge variant="outline" className="font-mono text-xs px-2.5 py-1 bg-muted font-bold tracking-wider">
+                <Badge
+                  variant="outline"
+                  className="font-mono text-xs px-2.5 py-1 bg-muted font-bold tracking-wider"
+                >
                   {c.code}
                 </Badge>
                 <Badge
@@ -237,7 +262,9 @@ export function CouponsView() {
               <div>
                 <h3 className="font-bold text-sm text-foreground">{c.title}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {c.discount_type === "percentage" ? `${c.discount_value}% off` : `Flat ₹${c.discount_value} off`}
+                  {c.discount_type === "percentage"
+                    ? `${c.discount_value}% off`
+                    : `Flat ₹${c.discount_value} off`}
                   {c.min_spend > 0 ? ` (min spend ₹${c.min_spend})` : ""}
                 </p>
                 {c.valid_until && (

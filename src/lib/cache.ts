@@ -25,11 +25,7 @@ class ScalableCache {
    * Get cached item or execute fetcher with Stale-While-Revalidate (SWR) pattern.
    * Order of evaluation: In-Memory LRU -> Upstash Redis REST -> DB Fetcher
    */
-  async getOrSet<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    ttlSeconds = 300
-  ): Promise<T> {
+  async getOrSet<T>(key: string, fetcher: () => Promise<T>, ttlSeconds = 300): Promise<T> {
     const now = Date.now();
     const entry = this.memoryMap.get(key) as CacheEntry<T> | undefined;
 
@@ -128,7 +124,7 @@ class ScalableCache {
   private revalidateInBackground<T>(
     key: string,
     fetcher: () => Promise<T>,
-    ttlSeconds: number
+    ttlSeconds: number,
   ): void {
     setTimeout(async () => {
       try {

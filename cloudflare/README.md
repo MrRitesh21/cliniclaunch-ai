@@ -11,14 +11,14 @@ Two layers work together:
 
 ## TTL matrix
 
-| Path | Edge TTL | Browser TTL | Serve stale while revalidating |
-|---|---|---|---|
-| `/c/*/book`, `/c/*/walkin` (live availability) | 15s | 0 | yes |
-| `/c/*` public clinic pages | 600s | 60s | yes |
-| `/`, `/compare/*`, `/clinic-software/*`, `/for/*`, legal + marketing | 3600s | 300s | yes |
-| `/sitemap.xml`, `/robots.txt` | 21600s | 3600s | yes |
-| `/assets/*`, static media | 1y immutable | 1y immutable | yes |
-| `/dashboard`, `/admin`, `/auth`, `/consult`, `/api/*`, `?preview`/`?tpl`/`?tc` | bypass | bypass | n/a |
+| Path                                                                           | Edge TTL     | Browser TTL  | Serve stale while revalidating |
+| ------------------------------------------------------------------------------ | ------------ | ------------ | ------------------------------ |
+| `/c/*/book`, `/c/*/walkin` (live availability)                                 | 15s          | 0            | yes                            |
+| `/c/*` public clinic pages                                                     | 600s         | 60s          | yes                            |
+| `/`, `/compare/*`, `/clinic-software/*`, `/for/*`, legal + marketing           | 3600s        | 300s         | yes                            |
+| `/sitemap.xml`, `/robots.txt`                                                  | 21600s       | 3600s        | yes                            |
+| `/assets/*`, static media                                                      | 1y immutable | 1y immutable | yes                            |
+| `/dashboard`, `/admin`, `/auth`, `/consult`, `/api/*`, `?preview`/`?tpl`/`?tc` | bypass       | bypass       | n/a                            |
 
 Booking pages get a deliberately tiny TTL: 15s absorbs a burst of concurrent
 viewers of the same clinic/day into one origin hit, while `getBookedSlots`

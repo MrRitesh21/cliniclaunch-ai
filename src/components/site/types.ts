@@ -42,20 +42,36 @@ export type SiteClinic = {
   section_hidden?: SectionKey[] | null;
   section_content?: Record<string, unknown> | null;
   installed_modules?: string[];
-  db_reviews?: Array<{ reviewer_name: string; rating: number; comment: string | null; created_at: string }>;
+  db_reviews?: Array<{
+    reviewer_name: string;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+  }>;
   medical_registration_no?: string | null;
 };
 
-export function hasModule(clinic: { installed_modules?: string[] } | null | undefined, key: string): boolean {
+export function hasModule(
+  clinic: { installed_modules?: string[] } | null | undefined,
+  key: string,
+): boolean {
   const mods = clinic?.installed_modules;
   // If we don't know (e.g. legacy loader), default to visible.
   if (!Array.isArray(mods)) return true;
   return mods.includes(key);
 }
 
-
 export const DEFAULT_SECTION_ORDER: SectionKey[] = [
-  "hero", "stats", "services", "about", "gallery", "team", "reviews", "faq", "cta", "contact",
+  "hero",
+  "stats",
+  "services",
+  "about",
+  "gallery",
+  "team",
+  "reviews",
+  "faq",
+  "cta",
+  "contact",
 ];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {

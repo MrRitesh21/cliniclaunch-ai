@@ -65,6 +65,7 @@ An enterprise-grade, memory-optimized monitoring system designed to run within a
 ## 🚀 Quick Start Guide
 
 ### 1. Launching the Backend Service
+
 ```bash
 cd backend
 npm install
@@ -73,20 +74,22 @@ npm start
 ```
 
 ### 2. Launching the Monitoring Stack
+
 ```bash
 cd monitoring
 docker-compose up -d
 ```
+
 Access Grafana at [http://localhost:3001](http://localhost:3001) (User: `admin`, Password: `admin_secure_password_123`).
 
 ---
 
 ## 🔗 Health Endpoints Summary
 
-| Endpoint | Target Audience | Behavior & SLA | DB / Redis Check? |
-| :--- | :--- | :--- | :--- |
-| `GET /health` | Render Cloud Probe | Returns `{"status":"healthy","time":"ISO"}` (<1ms) | ❌ No |
-| `GET /ready` | Load Balancer | Probes Redis PING & Supabase connection. Returns 200 or 503 |  Yes |
-| `GET /live` | Process Supervisor | Checks Node.js runtime process uptime | ❌ No |
-| `GET /ping` | External Cron / UptimeRobot | Returns `{"success":true,"timestamp":"ISO"}` (<5ms SLA) | ❌ No |
-| `GET /metrics` | Prometheus Scraper | Exposes `prom-client` metric registry | ❌ No |
+| Endpoint       | Target Audience             | Behavior & SLA                                              | DB / Redis Check? |
+| :------------- | :-------------------------- | :---------------------------------------------------------- | :---------------- |
+| `GET /health`  | Render Cloud Probe          | Returns `{"status":"healthy","time":"ISO"}` (<1ms)          | ❌ No             |
+| `GET /ready`   | Load Balancer               | Probes Redis PING & Supabase connection. Returns 200 or 503 | Yes               |
+| `GET /live`    | Process Supervisor          | Checks Node.js runtime process uptime                       | ❌ No             |
+| `GET /ping`    | External Cron / UptimeRobot | Returns `{"success":true,"timestamp":"ISO"}` (<5ms SLA)     | ❌ No             |
+| `GET /metrics` | Prometheus Scraper          | Exposes `prom-client` metric registry                       | ❌ No             |

@@ -3,7 +3,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, MessageCircle, Sparkles, Send, CheckCircle2, ThumbsUp, RefreshCw, Copy } from "lucide-react";
+import {
+  Star,
+  MessageCircle,
+  Sparkles,
+  Send,
+  CheckCircle2,
+  ThumbsUp,
+  RefreshCw,
+  Copy,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const REVIEWS_FEED = [
@@ -12,15 +21,18 @@ const REVIEWS_FEED = [
     author: "Rahul Saxena",
     rating: 5,
     date: "2 days ago",
-    comment: "Dr. Ritesh is extremely compassionate. The clinic is clean and appointment started right on time!",
-    reply: "Thank you Rahul ji for your kind words! We are delighted to serve you with top-quality healthcare.",
+    comment:
+      "Dr. Ritesh is extremely compassionate. The clinic is clean and appointment started right on time!",
+    reply:
+      "Thank you Rahul ji for your kind words! We are delighted to serve you with top-quality healthcare.",
   },
   {
     id: "rev-2",
     author: "Meenakshi Joshi",
     rating: 5,
     date: "4 days ago",
-    comment: "Very polite staff and accurate diagnosis. High-tech digital prescription was very helpful.",
+    comment:
+      "Very polite staff and accurate diagnosis. High-tech digital prescription was very helpful.",
     reply: null,
   },
   {
@@ -28,7 +40,8 @@ const REVIEWS_FEED = [
     author: "Vikas Malhotra",
     rating: 4,
     date: "1 week ago",
-    comment: "Good experience overall. Slight waiting time during peak evening hours but treatment was top notch.",
+    comment:
+      "Good experience overall. Slight waiting time during peak evening hours but treatment was top notch.",
     reply: null,
   },
 ];
@@ -47,8 +60,8 @@ export function ReviewsView() {
                 ...r,
                 reply: `Dear ${author}, thank you for taking the time to share your feedback with Ritesh Clinic! We are committed to providing exceptional care.`,
               }
-            : r
-        )
+            : r,
+        ),
       );
       setGeneratingFor(null);
       toast.success("AI Reply generated!");
@@ -69,7 +82,10 @@ export function ReviewsView() {
             Automate post-visit review collection and respond to patient reviews with AI.
           </p>
         </div>
-        <Button onClick={handleSendBatchRequest} className="gap-1.5 text-xs font-semibold h-9 bg-amber-600 hover:bg-amber-700">
+        <Button
+          onClick={handleSendBatchRequest}
+          className="gap-1.5 text-xs font-semibold h-9 bg-amber-600 hover:bg-amber-700"
+        >
           <Star className="size-3.5 fill-current" /> Request Reviews via WhatsApp
         </Button>
       </div>
@@ -77,9 +93,13 @@ export function ReviewsView() {
       {/* Rating Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Card className="p-4 space-y-1 bg-amber-500/10 border-amber-500/20">
-          <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">Average Rating</span>
+          <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+            Average Rating
+          </span>
           <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold font-display text-amber-900 dark:text-amber-100">4.9</span>
+            <span className="text-3xl font-bold font-display text-amber-900 dark:text-amber-100">
+              4.9
+            </span>
             <div className="flex text-amber-500">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="size-4 fill-current" />
@@ -102,7 +122,9 @@ export function ReviewsView() {
         </Card>
 
         <Card className="p-4 space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Private Feedback (&lt;3★)</span>
+          <span className="text-xs text-muted-foreground font-medium">
+            Private Feedback (&lt;3★)
+          </span>
           <p className="text-2xl font-bold font-display text-rose-500">2</p>
           <span className="text-[10px] text-muted-foreground">Intercepted internally</span>
         </Card>
@@ -138,7 +160,9 @@ export function ReviewsView() {
               {/* Reply Box */}
               {r.reply ? (
                 <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1">
-                  <span className="text-[10px] font-bold text-primary uppercase">Clinic Response:</span>
+                  <span className="text-[10px] font-bold text-primary uppercase">
+                    Clinic Response:
+                  </span>
                   <p className="text-muted-foreground">{r.reply}</p>
                 </div>
               ) : (
@@ -150,7 +174,11 @@ export function ReviewsView() {
                     variant="outline"
                     className="h-7 text-xs gap-1.5 text-purple-600 border-purple-500/30"
                   >
-                    {generatingFor === r.id ? <RefreshCw className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                    {generatingFor === r.id ? (
+                      <RefreshCw className="size-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-3" />
+                    )}
                     Generate AI Response
                   </Button>
                 </div>

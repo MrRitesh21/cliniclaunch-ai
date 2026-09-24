@@ -107,7 +107,10 @@ const DEMO_CLINIC = {
   avatar_url: "",
   logo_url: "",
   theme_color: "#2563eb",
-  services: [{ name: "Cardiac consultation", description: "Full history, ECG review and plan" }, { name: "Echocardiography" }],
+  services: [
+    { name: "Cardiac consultation", description: "Full history, ECG review and plan" },
+    { name: "Echocardiography" },
+  ],
   gallery: [],
   db_reviews: [{ reviewer_name: "Rahul S.", rating: 5, comment: "Explained everything clearly." }],
 };
@@ -150,14 +153,19 @@ function AdminTemplates() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      searchFn({ data: { q } }).then(setClinics).catch(() => setClinics([]));
+      searchFn({ data: { q } })
+        .then(setClinics)
+        .catch(() => setClinics([]));
     }, 250);
     return () => clearTimeout(t);
   }, [q]);
 
   const preview = useMemo(() => {
     if (!draft || draft.kind !== "custom_html") return null;
-    return compileCustomTemplate({ html_body: draft.html_body, css_body: draft.css_body }, DEMO_CLINIC as any);
+    return compileCustomTemplate(
+      { html_body: draft.html_body, css_body: draft.css_body },
+      DEMO_CLINIC as any,
+    );
   }, [draft]);
 
   async function save() {
@@ -180,7 +188,8 @@ function AdminTemplates() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this template? Clinics using it fall back to the built-in designs.")) return;
+    if (!confirm("Delete this template? Clinics using it fall back to the built-in designs."))
+      return;
     try {
       await delFn({ data: { id } });
       toast.success("Template deleted");
@@ -196,7 +205,9 @@ function AdminTemplates() {
       return;
     }
     try {
-      await assignFn({ data: { clinic_id: assignClinic, template_id: templateId, note: assignNote || null } });
+      await assignFn({
+        data: { clinic_id: assignClinic, template_id: templateId, note: assignNote || null },
+      });
       toast.success(templateId ? "Template assigned to clinic" : "Assignment removed");
       setAssignNote("");
       await reload();
@@ -213,7 +224,8 @@ function AdminTemplates() {
             <LayoutTemplate className="size-5" /> Website templates
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload custom HTML/CSS templates, publish them to the library, or force one onto a specific clinic.
+            Upload custom HTML/CSS templates, publish them to the library, or force one onto a
+            specific clinic.
           </p>
         </div>
         <Button onClick={() => setDraft({ ...EMPTY })} className="gap-2">
@@ -242,26 +254,50 @@ function AdminTemplates() {
                 <Card key={t.id} className="overflow-hidden">
                   <div className="aspect-[4/3] bg-muted">
                     {t.preview_image_url ? (
-                      <img src={t.preview_image_url} alt={`${t.name} preview`} className="size-full object-cover" loading="lazy" />
+                      <img
+                        src={t.preview_image_url}
+                        alt={`${t.name} preview`}
+                        className="size-full object-cover"
+                        loading="lazy"
+                      />
                     ) : (
-                      <div className="size-full" style={{ background: t.swatch ?? "linear-gradient(135deg,#e2e8f0,#94a3b8)" }} />
+                      <div
+                        className="size-full"
+                        style={{
+                          background: t.swatch ?? "linear-gradient(135deg,#e2e8f0,#94a3b8)",
+                        }}
+                      />
                     )}
                   </div>
                   <div className="p-4 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium text-sm">{t.name}</p>
-                      <Badge variant={t.is_active ? "default" : "secondary"} className="text-[10px]">
+                      <Badge
+                        variant={t.is_active ? "default" : "secondary"}
+                        className="text-[10px]"
+                      >
                         {t.is_active ? "Active" : "Draft"}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{t.description || "—"}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {t.description || "—"}
+                    </p>
                     <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
-                      <Badge variant="outline" className="text-[10px]">{t.kind === "custom_html" ? "Custom HTML" : "Preset"}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{t.is_global ? "In library" : "Assigned only"}</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {t.kind === "custom_html" ? "Custom HTML" : "Preset"}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {t.is_global ? "In library" : "Assigned only"}
+                      </Badge>
                       <span className="font-mono">/{t.slug}</span>
                     </div>
                     <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={() => setDraft({ ...t })}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 gap-1.5"
+                        onClick={() => setDraft({ ...t })}
+                      >
                         <Save className="size-3.5" /> Edit
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => remove(t.id)}>
@@ -282,7 +318,12 @@ function AdminTemplates() {
                 <Label className="text-xs">Find clinic</Label>
                 <div className="relative">
                   <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Doctor, clinic or slug" className="pl-8" />
+                  <Input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Doctor, clinic or slug"
+                    className="pl-8"
+                  />
                 </div>
                 <select
                   value={assignClinic}
@@ -311,10 +352,18 @@ function AdminTemplates() {
                     </option>
                   ))}
                 </select>
-                <Input value={assignNote} onChange={(e) => setAssignNote(e.target.value)} placeholder="Internal note (optional)" />
+                <Input
+                  value={assignNote}
+                  onChange={(e) => setAssignNote(e.target.value)}
+                  placeholder="Internal note (optional)"
+                />
               </div>
               <div className="space-y-2 flex flex-col justify-end">
-                <Button className="gap-2" disabled={!assignClinic || !assignTemplate} onClick={() => assign(assignTemplate)}>
+                <Button
+                  className="gap-2"
+                  disabled={!assignClinic || !assignTemplate}
+                  onClick={() => assign(assignTemplate)}
+                >
                   <Link2 className="size-4" /> Assign & lock
                 </Button>
                 <Button variant="outline" disabled={!assignClinic} onClick={() => assign(null)}>
@@ -323,13 +372,16 @@ function AdminTemplates() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              An assigned template overrides the doctor's own choice and locks the picker in their Website tab.
+              An assigned template overrides the doctor's own choice and locks the picker in their
+              Website tab.
             </p>
           </Card>
 
           <Card className="divide-y">
             {assignments.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground text-center">No per-clinic assignments.</p>
+              <p className="p-6 text-sm text-muted-foreground text-center">
+                No per-clinic assignments.
+              </p>
             ) : (
               assignments.map((a) => {
                 const tpl = templates.find((t) => t.id === a.template_id);
@@ -337,7 +389,9 @@ function AdminTemplates() {
                   <div key={a.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
                     <div>
                       <p className="text-sm font-medium">
-                        {a.clinic ? `${a.clinic.doctor_name} — ${a.clinic.clinic_name}` : a.clinic_id}
+                        {a.clinic
+                          ? `${a.clinic.doctor_name} — ${a.clinic.clinic_name}`
+                          : a.clinic_id}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {tpl?.name ?? a.template_id}
@@ -380,9 +434,16 @@ function AdminTemplates() {
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-semibold">{draft.id ? "Edit template" : "New template"}</h2>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setDraft(null)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setDraft(null)}>
+                  Cancel
+                </Button>
                 <Button onClick={save} disabled={saving} className="gap-2">
-                  {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Save
+                  {saving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Save className="size-4" />
+                  )}{" "}
+                  Save
                 </Button>
               </div>
             </div>
@@ -390,31 +451,53 @@ function AdminTemplates() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">Name</Label>
-                <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                <Input
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Slug</Label>
-                <Input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="lux-dental" />
+                <Input
+                  value={draft.slug}
+                  onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+                  placeholder="lux-dental"
+                />
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <Label className="text-xs">Description</Label>
-                <Input value={draft.description ?? ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                <Input
+                  value={draft.description ?? ""}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Preview image URL</Label>
-                <Input value={draft.preview_image_url ?? ""} onChange={(e) => setDraft({ ...draft, preview_image_url: e.target.value })} />
+                <Input
+                  value={draft.preview_image_url ?? ""}
+                  onChange={(e) => setDraft({ ...draft, preview_image_url: e.target.value })}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Accent color</Label>
-                <Input value={draft.theme_color ?? ""} onChange={(e) => setDraft({ ...draft, theme_color: e.target.value })} />
+                <Input
+                  value={draft.theme_color ?? ""}
+                  onChange={(e) => setDraft({ ...draft, theme_color: e.target.value })}
+                />
               </div>
               <div className="flex items-center gap-6 md:col-span-2">
                 <label className="flex items-center gap-2 text-sm">
-                  <Switch checked={draft.is_global} onCheckedChange={(v) => setDraft({ ...draft, is_global: v })} />
+                  <Switch
+                    checked={draft.is_global}
+                    onCheckedChange={(v) => setDraft({ ...draft, is_global: v })}
+                  />
                   Show in doctor library
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Switch checked={draft.is_active} onCheckedChange={(v) => setDraft({ ...draft, is_active: v })} />
+                  <Switch
+                    checked={draft.is_active}
+                    onCheckedChange={(v) => setDraft({ ...draft, is_active: v })}
+                  />
                   Active
                 </label>
                 <div className="flex items-center gap-2 text-sm">
@@ -422,7 +505,9 @@ function AdminTemplates() {
                   <Input
                     type="number"
                     value={draft.sort_order}
-                    onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setDraft({ ...draft, sort_order: Number(e.target.value) || 0 })
+                    }
                     className="w-20"
                   />
                 </div>
@@ -433,12 +518,16 @@ function AdminTemplates() {
               <p className="font-medium mb-1">Available placeholders</p>
               <div className="flex flex-wrap gap-1.5 font-mono">
                 {TEMPLATE_TOKENS.map((t) => (
-                  <span key={t} className="px-1.5 py-0.5 rounded bg-background border">{`{{${t}}}`}</span>
+                  <span
+                    key={t}
+                    className="px-1.5 py-0.5 rounded bg-background border"
+                  >{`{{${t}}}`}</span>
                 ))}
               </div>
               <p className="mt-2 text-muted-foreground">
-                Scripts, iframes and inline event handlers are stripped on save; CSS is scoped to the template container.
-                Use <span className="font-mono">{"{{book_url}}"}</span> so booking and lead capture keep working.
+                Scripts, iframes and inline event handlers are stripped on save; CSS is scoped to
+                the template container. Use <span className="font-mono">{"{{book_url}}"}</span> so
+                booking and lead capture keep working.
               </p>
             </div>
 

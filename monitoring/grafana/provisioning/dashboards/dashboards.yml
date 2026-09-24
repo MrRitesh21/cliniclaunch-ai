@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'SaaS Production Dashboards'
+  - name: "SaaS Production Dashboards"
     orgId: 1
-    folder: 'SaaS Architecture'
+    folder: "SaaS Architecture"
     type: file
     disableDeletion: false
     editable: true

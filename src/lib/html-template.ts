@@ -47,7 +47,10 @@ export function sanitizeTemplateHtml(input: string): string {
   html = html.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
 
   // Dangerous attributes
-  html = html.replace(/\s(srcdoc|formaction|xlink:href|ping)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  html = html.replace(
+    /\s(srcdoc|formaction|xlink:href|ping)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
+    "",
+  );
 
   // javascript:/vbscript:/non-image data: URLs
   html = html.replace(
@@ -83,7 +86,8 @@ export function scopeTemplateCss(css: string): string {
         .map((s) => {
           const sel = s.trim();
           if (!sel) return sel;
-          if (/^(html|body|:root)\b/i.test(sel)) return `${scope}${sel.replace(/^(html|body|:root)/i, "")}`.trim() || scope;
+          if (/^(html|body|:root)\b/i.test(sel))
+            return `${scope}${sel.replace(/^(html|body|:root)/i, "")}`.trim() || scope;
           return `${scope} ${sel}`;
         })
         .filter(Boolean)
@@ -92,9 +96,12 @@ export function scopeTemplateCss(css: string): string {
     });
 
   // Handle @media / @supports blocks separately so their inner selectors get scoped.
-  out = out.replace(/@(media|supports|container)([^{]+)\{([\s\S]*?)\}\s*\}/gi, (_m, at, cond, body) => {
-    return `@${at}${cond}{${scopeBlock(body + "}")}}`;
-  });
+  out = out.replace(
+    /@(media|supports|container)([^{]+)\{([\s\S]*?)\}\s*\}/gi,
+    (_m, at, cond, body) => {
+      return `@${at}${cond}{${scopeBlock(body + "}")}}`;
+    },
+  );
 
   return scopeBlock(out);
 }
@@ -137,11 +144,31 @@ export type TemplateTokenSource = {
 
 /** Tokens an admin can use inside an uploaded template. Shown in the admin UI. */
 export const TEMPLATE_TOKENS = [
-  "doctor_name", "clinic_name", "specialization", "qualification", "experience_years",
-  "bio", "hero_headline", "hero_subheadline", "about_text", "consultation_fee",
-  "phone", "email", "address", "avatar_url", "logo_url", "theme_color",
-  "registration_no", "book_url", "walkin_url", "contact_url", "services_url",
-  "services_html", "gallery_html", "reviews_html", "year",
+  "doctor_name",
+  "clinic_name",
+  "specialization",
+  "qualification",
+  "experience_years",
+  "bio",
+  "hero_headline",
+  "hero_subheadline",
+  "about_text",
+  "consultation_fee",
+  "phone",
+  "email",
+  "address",
+  "avatar_url",
+  "logo_url",
+  "theme_color",
+  "registration_no",
+  "book_url",
+  "walkin_url",
+  "contact_url",
+  "services_url",
+  "services_html",
+  "gallery_html",
+  "reviews_html",
+  "year",
 ] as const;
 
 function listOf(v: unknown): any[] {
@@ -155,15 +182,18 @@ export function buildTemplateTokens(c: TemplateTokenSource): Record<string, stri
 
   const services_html = services
     .map((s: any) => {
-      const title = typeof s === "string" ? s : s?.name ?? s?.title ?? "";
-      const desc = typeof s === "string" ? "" : s?.description ?? "";
-      const price = typeof s === "string" ? "" : s?.price ?? "";
+      const title = typeof s === "string" ? s : (s?.name ?? s?.title ?? "");
+      const desc = typeof s === "string" ? "" : (s?.description ?? "");
+      const price = typeof s === "string" ? "" : (s?.price ?? "");
       return `<div class="ct-service"><h3>${esc(title)}</h3>${desc ? `<p>${esc(desc)}</p>` : ""}${price ? `<span class="ct-price">${esc(price)}</span>` : ""}</div>`;
     })
     .join("");
 
   const gallery_html = gallery
-    .map((src: string) => `<img class="ct-gallery-img" src="${esc(src)}" alt="${esc(c.clinic_name)} photo" loading="lazy" />`)
+    .map(
+      (src: string) =>
+        `<img class="ct-gallery-img" src="${esc(src)}" alt="${esc(c.clinic_name)} photo" loading="lazy" />`,
+    )
     .join("");
 
   const reviews_html = reviews
@@ -204,7 +234,10 @@ export function buildTemplateTokens(c: TemplateTokenSource): Record<string, stri
 
 /** Replace {{token}} placeholders. Unknown tokens are removed. */
 export function renderTemplateHtml(html: string, tokens: Record<string, string>): string {
-  return String(html ?? "").replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_m, key: string) => tokens[key.toLowerCase()] ?? "");
+  return String(html ?? "").replace(
+    /\{\{\s*([a-z0-9_]+)\s*\}\}/gi,
+    (_m, key: string) => tokens[key.toLowerCase()] ?? "",
+  );
 }
 
 /** Full pipeline used by the public site and previews. */

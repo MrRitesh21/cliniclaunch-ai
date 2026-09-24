@@ -10,7 +10,6 @@ import type { MarketplaceTemplate, TemplateCategory } from "../types";
 import { allTemplates, categories } from "../data/templatesData";
 import { TemplateLivePreview } from "../components/TemplateLivePreview";
 
-
 export function TemplatesView() {
   const { state, applyTemplatePreset, applyThemePreset, clinic } = useWebsiteBuilder();
   const [selectedCat, setSelectedCat] = useState<TemplateCategory>("all");
@@ -45,10 +44,14 @@ export function TemplatesView() {
         <div className="space-y-1">
           <h2 className="text-xl font-bold tracking-tight">Template Marketplace</h2>
           <p className="text-xs text-muted-foreground">
-            Explore 40+ medical specialty templates. 1-click apply without losing your clinic content.
+            Explore 40+ medical specialty templates. 1-click apply without losing your clinic
+            content.
           </p>
         </div>
-        <Badge variant="outline" className="text-xs font-semibold px-3 py-1 bg-primary/10 text-primary border-primary/30">
+        <Badge
+          variant="outline"
+          className="text-xs font-semibold px-3 py-1 bg-primary/10 text-primary border-primary/30"
+        >
           {filteredTemplates.length} Templates Available
         </Badge>
       </div>
@@ -89,7 +92,9 @@ export function TemplatesView() {
                 }`}
               >
                 <span>{cat.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSel ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSel ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                >
                   {count}
                 </span>
               </button>
@@ -106,7 +111,9 @@ export function TemplatesView() {
             <Card
               key={tpl.id}
               className={`group overflow-hidden rounded-2xl border transition-all duration-300 hover:shadow-xl flex flex-col justify-between ${
-                isCurrent ? "border-2 border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border/60 hover:border-border bg-card"
+                isCurrent
+                  ? "border-2 border-primary ring-2 ring-primary/20 bg-primary/5"
+                  : "border-border/60 hover:border-border bg-card"
               }`}
             >
               {/* Live mini website preview rendered with this template preset */}
@@ -125,10 +132,14 @@ export function TemplatesView() {
                       {tpl.categoryLabel}
                     </Badge>
                     {tpl.isPopular && (
-                      <Badge className="bg-amber-500 text-black text-[9px] font-bold border-0">Popular</Badge>
+                      <Badge className="bg-amber-500 text-black text-[9px] font-bold border-0">
+                        Popular
+                      </Badge>
                     )}
                     {tpl.isNew && (
-                      <Badge className="bg-emerald-500 text-white text-[9px] font-bold border-0">New</Badge>
+                      <Badge className="bg-emerald-500 text-white text-[9px] font-bold border-0">
+                        New
+                      </Badge>
                     )}
                   </div>
 
@@ -141,12 +152,20 @@ export function TemplatesView() {
 
                 {/* Color Swatch Dots */}
                 <div className="absolute bottom-2.5 left-3 flex items-center gap-1.5 z-10 pointer-events-none">
-                  <span className="size-3 rounded-full border border-white/60 shadow-xs" style={{ backgroundColor: tpl.colorPreset.primary }} />
-                  <span className="size-3 rounded-full border border-white/60 shadow-xs" style={{ backgroundColor: tpl.colorPreset.secondary }} />
-                  <span className="size-3 rounded-full border border-white/60 shadow-xs" style={{ backgroundColor: tpl.colorPreset.accent }} />
+                  <span
+                    className="size-3 rounded-full border border-white/60 shadow-xs"
+                    style={{ backgroundColor: tpl.colorPreset.primary }}
+                  />
+                  <span
+                    className="size-3 rounded-full border border-white/60 shadow-xs"
+                    style={{ backgroundColor: tpl.colorPreset.secondary }}
+                  />
+                  <span
+                    className="size-3 rounded-full border border-white/60 shadow-xs"
+                    style={{ backgroundColor: tpl.colorPreset.accent }}
+                  />
                 </div>
               </div>
-
 
               {/* Body */}
               <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
@@ -204,7 +223,9 @@ export function TemplatesView() {
                 <button
                   onClick={() => setPreviewDevice("desktop")}
                   className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
-                    previewDevice === "desktop" ? "bg-background text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    previewDevice === "desktop"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Monitor className="size-3.5" /> Desktop
@@ -212,7 +233,9 @@ export function TemplatesView() {
                 <button
                   onClick={() => setPreviewDevice("tablet")}
                   className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
-                    previewDevice === "tablet" ? "bg-background text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    previewDevice === "tablet"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Tablet className="size-3.5" /> Tablet
@@ -220,7 +243,9 @@ export function TemplatesView() {
                 <button
                   onClick={() => setPreviewDevice("mobile")}
                   className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
-                    previewDevice === "mobile" ? "bg-background text-foreground font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    previewDevice === "mobile"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Smartphone className="size-3.5" /> Mobile
@@ -235,8 +260,8 @@ export function TemplatesView() {
                   previewDevice === "mobile"
                     ? "w-[375px] h-[520px] max-h-[60vh]"
                     : previewDevice === "tablet"
-                    ? "w-[768px] h-[520px] max-h-[62vh]"
-                    : "w-full h-[520px] max-h-[65vh]"
+                      ? "w-[768px] h-[520px] max-h-[62vh]"
+                      : "w-full h-[520px] max-h-[65vh]"
                 }`}
               >
                 <iframe
@@ -245,17 +270,22 @@ export function TemplatesView() {
                   title={`Live preview of ${previewTemplate.name}`}
                   className="w-full h-full border-0"
                 />
-
               </div>
             </div>
 
             {/* Modal Actions */}
             <div className="flex justify-between items-center pt-2 border-t shrink-0">
               <span className="text-xs text-muted-foreground hidden sm:inline">
-                Swapping templates updates layout & colors instantly while preserving all clinic text.
+                Swapping templates updates layout & colors instantly while preserving all clinic
+                text.
               </span>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setPreviewTemplate(null)} className="h-9 text-xs rounded-xl">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPreviewTemplate(null)}
+                  className="h-9 text-xs rounded-xl"
+                >
                   Close Preview
                 </Button>
                 <Button

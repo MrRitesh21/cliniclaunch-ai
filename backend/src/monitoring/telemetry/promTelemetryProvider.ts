@@ -1,13 +1,16 @@
-import { ITelemetryProvider, ITelemetrySpan, TelemetrySpanOptions } from './telemetry.interface';
-import { registry } from '../metrics/registry';
-import { httpRequestsTotal, httpRequestDurationSeconds } from '../metrics/httpMetrics';
-import { LogService } from '../../logging';
+import { ITelemetryProvider, ITelemetrySpan, TelemetrySpanOptions } from "./telemetry.interface";
+import { registry } from "../metrics/registry";
+import { httpRequestsTotal, httpRequestDurationSeconds } from "../metrics/httpMetrics";
+import { LogService } from "../../logging";
 
 class PromTelemetrySpan implements ITelemetrySpan {
   private startTime: number;
   private attributes: Record<string, string | number | boolean> = {};
 
-  constructor(private name: string, options?: TelemetrySpanOptions) {
+  constructor(
+    private name: string,
+    options?: TelemetrySpanOptions,
+  ) {
     this.startTime = Date.now();
     if (options?.attributes) {
       this.attributes = { ...options.attributes };
@@ -32,13 +35,13 @@ class PromTelemetrySpan implements ITelemetrySpan {
 export class PrometheusTelemetryProvider implements ITelemetryProvider {
   public recordMetric(name: string, value: number, labels?: Record<string, string>): void {
     const singleMetric = registry.getSingleMetric(name);
-    if (singleMetric && 'inc' in singleMetric) {
+    if (singleMetric && "inc" in singleMetric) {
       (singleMetric as any).inc(labels, value);
     }
   }
 
   public recordDuration(name: string, durationSec: number, labels?: Record<string, string>): void {
-    if (name === 'http_request_duration_seconds') {
+    if (name === "http_request_duration_seconds") {
       httpRequestDurationSeconds.observe(labels || {}, durationSec);
     }
   }

@@ -5,7 +5,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Palette, Search, Sparkles, MessageCircle, Mail, Phone, Copy, Send, Star } from "lucide-react";
+import {
+  Palette,
+  Search,
+  Sparkles,
+  MessageCircle,
+  Mail,
+  Phone,
+  Copy,
+  Send,
+  Star,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const TEMPLATES: MarketingTemplate[] = [
@@ -102,9 +112,12 @@ export function TemplatesView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Healthcare Template Gallery</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            Healthcare Template Gallery
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Pre-designed, high-converting templates for Dental, Dermatology, Pediatrics & General OPD.
+            Pre-designed, high-converting templates for Dental, Dermatology, Pediatrics & General
+            OPD.
           </p>
         </div>
       </div>
@@ -122,46 +135,64 @@ export function TemplatesView() {
         </div>
 
         <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-xl text-xs overflow-x-auto w-full sm:w-auto">
-          {["all", "General Physician", "Dental Clinic", "Dermatology & Skin", "Pediatrics"].map((sp) => (
-            <button
-              key={sp}
-              onClick={() => setSelectedSpecialty(sp)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
-                selectedSpecialty === sp ? "bg-background text-foreground shadow-xs font-semibold" : "text-muted-foreground"
-              }`}
-            >
-              {sp}
-            </button>
-          ))}
+          {["all", "General Physician", "Dental Clinic", "Dermatology & Skin", "Pediatrics"].map(
+            (sp) => (
+              <button
+                key={sp}
+                onClick={() => setSelectedSpecialty(sp)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                  selectedSpecialty === sp
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {sp}
+              </button>
+            ),
+          )}
         </div>
       </Card>
 
       {/* Grid of Templates */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((t) => (
-          <Card key={t.id} className="p-4 flex flex-col justify-between space-y-3 hover:border-primary/40 transition-all">
+          <Card
+            key={t.id}
+            className="p-4 flex flex-col justify-between space-y-3 hover:border-primary/40 transition-all"
+          >
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Badge variant="outline" className="text-[10px]">
                   {t.specialty}
                 </Badge>
                 {t.badge && (
-                  <Badge variant="secondary" className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <Badge
+                    variant="secondary"
+                    className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                  >
                     {t.badge}
                   </Badge>
                 )}
               </div>
 
               <h3 className="font-bold text-sm text-foreground">{t.title}</h3>
-              {t.subject && <p className="text-xs font-medium text-muted-foreground">Subject: {t.subject}</p>}
+              {t.subject && (
+                <p className="text-xs font-medium text-muted-foreground">Subject: {t.subject}</p>
+              )}
               <p className="text-xs text-muted-foreground line-clamp-3 bg-muted/30 p-2.5 rounded-xl italic">
                 "{t.body}"
               </p>
             </div>
 
             <div className="pt-2 border-t flex items-center justify-between gap-2">
-              <span className="text-[10px] text-muted-foreground uppercase font-mono">CTA: {t.cta}</span>
-              <Button onClick={() => handleUseTemplate(t)} size="sm" className="h-8 text-xs font-semibold gap-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-mono">
+                CTA: {t.cta}
+              </span>
+              <Button
+                onClick={() => handleUseTemplate(t)}
+                size="sm"
+                className="h-8 text-xs font-semibold gap-1"
+              >
                 <Send className="size-3" /> Use Template
               </Button>
             </div>

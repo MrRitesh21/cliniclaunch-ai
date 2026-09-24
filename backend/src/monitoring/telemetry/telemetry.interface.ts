@@ -1,6 +1,6 @@
 /**
  * Telemetry Abstraction Layer for Future OpenTelemetry Migration.
- * 
+ *
  * Business logic and middleware interact strictly with this interface.
  * Upgrading to OpenTelemetry SDK / OTel Collector / Loki / Tempo simply involves
  * swapping the underlying TelemetryProvider implementation, requiring zero changes

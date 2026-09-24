@@ -34,9 +34,12 @@ export function isDemoSession(): boolean {
 
 export function prohibitInDemo(actionName: string = "Deletion"): boolean {
   if (isDemoSession()) {
-    toast.error(`${actionName} is prohibited in Live Demo Mode. Please start your 14-day free trial to manage your own clinic!`, {
-      duration: 4000,
-    });
+    toast.error(
+      `${actionName} is prohibited in Live Demo Mode. Please start your 14-day free trial to manage your own clinic!`,
+      {
+        duration: 4000,
+      },
+    );
     return true;
   }
   return false;
@@ -58,10 +61,17 @@ export const CLEAN_DEMO_CLINIC_DATA = {
   address: "Suite 402, Medical Enclave, Bandra West, Mumbai",
   consultation_fee: 800,
   bio: "Leading specialist in clinical dermatology, laser therapy, and aesthetic treatments.",
-  about_text: "Dr. Sarah Jenkins has over 12 years of clinical experience in dermatology and non-invasive cosmetic skin procedures.",
-  services: ["Dermatology Consultation", "Acne Scar Therapy", "Laser Skin Resurfacing", "Chemical Peels"],
+  about_text:
+    "Dr. Sarah Jenkins has over 12 years of clinical experience in dermatology and non-invasive cosmetic skin procedures.",
+  services: [
+    "Dermatology Consultation",
+    "Acne Scar Therapy",
+    "Laser Skin Resurfacing",
+    "Chemical Peels",
+  ],
   hero_headline: "Advanced Dermatology & Aesthetic Care",
-  hero_subheadline: "Personalized clinical treatments with modern technology. Book your visit online in seconds.",
+  hero_subheadline:
+    "Personalized clinical treatments with modern technology. Book your visit online in seconds.",
   medical_registration_no: "GMC-2012-08412",
   avatar_url: null,
   logo_url: null,
@@ -86,14 +96,20 @@ export async function resetDemoClinicData(clinicId?: string) {
       targetId = demoClinics?.[0]?.id;
     }
     if (targetId) {
-      await supabase.from("clinics").update(CLEAN_DEMO_CLINIC_DATA as never).eq("id", targetId);
+      await supabase
+        .from("clinics")
+        .update(CLEAN_DEMO_CLINIC_DATA as never)
+        .eq("id", targetId);
     }
   } catch (e) {
     console.error("Failed to reset demo clinic data:", e);
   }
 }
 
-export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolean; message?: string }> {
+export async function ensureDemoAccountAndWorkspace(): Promise<{
+  success: boolean;
+  message?: string;
+}> {
   try {
     // Set demo session flags immediately
     setDemoSessionFlags();
@@ -110,7 +126,10 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
       });
 
       if (signInError) {
-        if (signInError.message.includes("Invalid login credentials") || signInError.message.includes("User not found")) {
+        if (
+          signInError.message.includes("Invalid login credentials") ||
+          signInError.message.includes("User not found")
+        ) {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: DEMO_CREDENTIALS.email,
             password: DEMO_CREDENTIALS.password,
@@ -128,10 +147,12 @@ export async function ensureDemoAccountAndWorkspace(): Promise<{ success: boolea
           currentUser = signUpData.user ?? undefined;
 
           if (!signUpData.session) {
-            const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
-              email: DEMO_CREDENTIALS.email,
-              password: DEMO_CREDENTIALS.password,
-            });
+            const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword(
+              {
+                email: DEMO_CREDENTIALS.email,
+                password: DEMO_CREDENTIALS.password,
+              },
+            );
             if (retryError) {
               return { success: false, message: retryError.message };
             }

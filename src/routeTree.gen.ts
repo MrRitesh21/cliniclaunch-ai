@@ -105,6 +105,7 @@ import { Route as AdminAdminDoctorsFlaggedRouteImport } from './routes/_admin/ad
 import { Route as AdminAdminDoctorsNewRouteImport } from './routes/_admin/admin.doctors.new'
 import { Route as AdminAdminSettingsSystemRouteImport } from './routes/_admin/admin.settings.system'
 import { Route as AdminAdminSettingsUsersRouteImport } from './routes/_admin/admin.settings.users'
+import { Route as AuthenticatedDashboardPatientsPatientIdRouteImport } from './routes/_authenticated/dashboard.patients.$patientId'
 import { Route as ApiPublicHooksRazorpayRouteImport } from './routes/api/public/hooks/razorpay'
 import { Route as ApiPublicHooksSeoAutopilotRouteImport } from './routes/api/public/hooks/seo-autopilot'
 import { Route as ApiPublicHooksWhatsappRouteImport } from './routes/api/public/hooks/whatsapp'
@@ -620,6 +621,12 @@ const AdminAdminSettingsUsersRoute = AdminAdminSettingsUsersRouteImport.update({
   path: '/admin/settings/users',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AuthenticatedDashboardPatientsPatientIdRoute =
+  AuthenticatedDashboardPatientsPatientIdRouteImport.update({
+    id: '/$patientId',
+    path: '/$patientId',
+    getParentRoute: () => AuthenticatedDashboardPatientsRoute,
+  } as any)
 const ApiPublicHooksRazorpayRoute = ApiPublicHooksRazorpayRouteImport.update({
   id: '/api/public/hooks/razorpay',
   path: '/api/public/hooks/razorpay',
@@ -702,7 +709,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
-  '/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
+  '/dashboard/patients': typeof AuthenticatedDashboardPatientsRouteWithChildren
   '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/dashboard/qr': typeof AuthenticatedDashboardQrRoute
@@ -731,6 +738,7 @@ export interface FileRoutesByFullPath {
   '/admin/doctors/new': typeof AdminAdminDoctorsNewRoute
   '/admin/settings/system': typeof AdminAdminSettingsSystemRoute
   '/admin/settings/users': typeof AdminAdminSettingsUsersRoute
+  '/dashboard/patients/$patientId': typeof AuthenticatedDashboardPatientsPatientIdRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
@@ -798,7 +806,7 @@ export interface FileRoutesByTo {
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
-  '/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
+  '/dashboard/patients': typeof AuthenticatedDashboardPatientsRouteWithChildren
   '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/dashboard/qr': typeof AuthenticatedDashboardQrRoute
@@ -827,6 +835,7 @@ export interface FileRoutesByTo {
   '/admin/doctors/new': typeof AdminAdminDoctorsNewRoute
   '/admin/settings/system': typeof AdminAdminSettingsSystemRoute
   '/admin/settings/users': typeof AdminAdminSettingsUsersRoute
+  '/dashboard/patients/$patientId': typeof AuthenticatedDashboardPatientsPatientIdRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
@@ -900,7 +909,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/_authenticated/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
-  '/_authenticated/dashboard/patients': typeof AuthenticatedDashboardPatientsRoute
+  '/_authenticated/dashboard/patients': typeof AuthenticatedDashboardPatientsRouteWithChildren
   '/_authenticated/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/_authenticated/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/_authenticated/dashboard/qr': typeof AuthenticatedDashboardQrRoute
@@ -929,6 +938,7 @@ export interface FileRoutesById {
   '/_admin/admin/doctors/new': typeof AdminAdminDoctorsNewRoute
   '/_admin/admin/settings/system': typeof AdminAdminSettingsSystemRoute
   '/_admin/admin/settings/users': typeof AdminAdminSettingsUsersRoute
+  '/_authenticated/dashboard/patients/$patientId': typeof AuthenticatedDashboardPatientsPatientIdRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
@@ -1030,6 +1040,7 @@ export interface FileRouteTypes {
     | '/admin/doctors/new'
     | '/admin/settings/system'
     | '/admin/settings/users'
+    | '/dashboard/patients/$patientId'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
@@ -1126,6 +1137,7 @@ export interface FileRouteTypes {
     | '/admin/doctors/new'
     | '/admin/settings/system'
     | '/admin/settings/users'
+    | '/dashboard/patients/$patientId'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
@@ -1227,6 +1239,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/doctors/new'
     | '/_admin/admin/settings/system'
     | '/_admin/admin/settings/users'
+    | '/_authenticated/dashboard/patients/$patientId'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
@@ -1950,6 +1963,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminSettingsUsersRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/_authenticated/dashboard/patients/$patientId': {
+      id: '/_authenticated/dashboard/patients/$patientId'
+      path: '/$patientId'
+      fullPath: '/dashboard/patients/$patientId'
+      preLoaderRoute: typeof AuthenticatedDashboardPatientsPatientIdRouteImport
+      parentRoute: typeof AuthenticatedDashboardPatientsRoute
+    }
     '/api/public/hooks/razorpay': {
       id: '/api/public/hooks/razorpay'
       path: '/api/public/hooks/razorpay'
@@ -2039,6 +2059,21 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
+interface AuthenticatedDashboardPatientsRouteChildren {
+  AuthenticatedDashboardPatientsPatientIdRoute: typeof AuthenticatedDashboardPatientsPatientIdRoute
+}
+
+const AuthenticatedDashboardPatientsRouteChildren: AuthenticatedDashboardPatientsRouteChildren =
+  {
+    AuthenticatedDashboardPatientsPatientIdRoute:
+      AuthenticatedDashboardPatientsPatientIdRoute,
+  }
+
+const AuthenticatedDashboardPatientsRouteWithChildren =
+  AuthenticatedDashboardPatientsRoute._addFileChildren(
+    AuthenticatedDashboardPatientsRouteChildren,
+  )
+
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardAppointmentsRoute: typeof AuthenticatedDashboardAppointmentsRoute
@@ -2054,7 +2089,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardMarketingRoute: typeof AuthenticatedDashboardMarketingRoute
   AuthenticatedDashboardModulesRoute: typeof AuthenticatedDashboardModulesRoute
   AuthenticatedDashboardNotificationsRoute: typeof AuthenticatedDashboardNotificationsRoute
-  AuthenticatedDashboardPatientsRoute: typeof AuthenticatedDashboardPatientsRoute
+  AuthenticatedDashboardPatientsRoute: typeof AuthenticatedDashboardPatientsRouteWithChildren
   AuthenticatedDashboardPharmacyRoute: typeof AuthenticatedDashboardPharmacyRoute
   AuthenticatedDashboardPrescriptionsRoute: typeof AuthenticatedDashboardPrescriptionsRoute
   AuthenticatedDashboardQrRoute: typeof AuthenticatedDashboardQrRoute
@@ -2088,7 +2123,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardModulesRoute: AuthenticatedDashboardModulesRoute,
     AuthenticatedDashboardNotificationsRoute:
       AuthenticatedDashboardNotificationsRoute,
-    AuthenticatedDashboardPatientsRoute: AuthenticatedDashboardPatientsRoute,
+    AuthenticatedDashboardPatientsRoute:
+      AuthenticatedDashboardPatientsRouteWithChildren,
     AuthenticatedDashboardPharmacyRoute: AuthenticatedDashboardPharmacyRoute,
     AuthenticatedDashboardPrescriptionsRoute:
       AuthenticatedDashboardPrescriptionsRoute,

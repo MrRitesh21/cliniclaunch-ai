@@ -3,6 +3,7 @@
 ## 🛠️ Common Issues & Remediation
 
 ### 1. High Memory Usage on Render Free (OOM Risk)
+
 - **Symptom**: Render instance restarts with error code `OOM-Killed`.
 - **Diagnosis**: Check `/metrics` memory gauges or Grafana System Health dashboard.
 - **Fix**:
@@ -11,6 +12,7 @@
   3. Ensure no memory leak in long-lived variables.
 
 ### 2. Prometheus Target Shows `DOWN`
+
 - **Symptom**: `up{job="backend"} == 0`.
 - **Fix**:
   1. Verify backend port `3000` is exposed.
@@ -18,6 +20,7 @@
   3. Curl `http://localhost:3000/metrics` directly to verify metrics endpoint response.
 
 ### 3. Alertmanager Notifications Not Delivering
+
 - **Symptom**: Alerts firing in Prometheus but no Telegram/Discord message received.
 - **Fix**:
   1. Check Alertmanager container logs: `docker logs saas_alertmanager`.

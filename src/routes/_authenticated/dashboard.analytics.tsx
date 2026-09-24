@@ -1,13 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart3, Users, CalendarCheck, Receipt, Star, Package,
-  FlaskConical, Download, TrendingUp, ArrowUpRight, ArrowDownRight,
-  ShieldCheck, Activity, Stethoscope, PieChart as PieChartIcon, Filter
+  BarChart3,
+  Users,
+  CalendarCheck,
+  Receipt,
+  Star,
+  Package,
+  FlaskConical,
+  Download,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  ShieldCheck,
+  Activity,
+  Stethoscope,
+  PieChart as PieChartIcon,
+  Filter,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { AppGuard } from "@/components/app/AppGuard";
 import { StatsCard } from "@/components/app/StatsCard";
@@ -83,7 +106,10 @@ function AnalyticsPage() {
         else if (timeRange === "90d") daysAgo = 90;
         else if (timeRange === "ytd") {
           const jan1 = new Date(now.getFullYear(), 0, 1);
-          daysAgo = Math.max(1, Math.ceil((now.getTime() - jan1.getTime()) / (1000 * 60 * 60 * 24)));
+          daysAgo = Math.max(
+            1,
+            Math.ceil((now.getTime() - jan1.getTime()) / (1000 * 60 * 60 * 24)),
+          );
         }
 
         const sinceDate = new Date();
@@ -92,14 +118,43 @@ function AnalyticsPage() {
         const sinceYMD = sinceISO.slice(0, 10);
 
         const [pats, newPats, apts, cons, invs, revs, items, labs, docList] = await Promise.all([
-          supabase.from("patients").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
-          supabase.from("patients").select("id", { count: "exact", head: true }).eq("organization_id", orgId).gte("created_at", sinceISO),
-          supabase.from("appointments").select("id, scheduled_at, status, doctor_id, doctor_name").eq("organization_id", orgId).gte("scheduled_at", sinceISO),
-          supabase.from("consultations" as any).select("id, created_at, doctor_id").eq("organization_id", orgId).gte("created_at", sinceISO),
-          supabase.from("patient_invoices" as any).select("id, issue_date, total, amount_paid, status").eq("organization_id", orgId).gte("issue_date", sinceYMD),
-          supabase.from("reviews" as any).select("rating, status").eq("organization_id", orgId),
-          supabase.from("inventory_items" as any).select("id, quantity, reorder_level").eq("organization_id", orgId),
-          supabase.from("lab_orders" as any).select("id, status").eq("organization_id", orgId).in("status", ["pending", "collected", "in_lab"]),
+          supabase
+            .from("patients")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId),
+          supabase
+            .from("patients")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .gte("created_at", sinceISO),
+          supabase
+            .from("appointments")
+            .select("id, scheduled_at, status, doctor_id, doctor_name")
+            .eq("organization_id", orgId)
+            .gte("scheduled_at", sinceISO),
+          supabase
+            .from("consultations" as any)
+            .select("id, created_at, doctor_id")
+            .eq("organization_id", orgId)
+            .gte("created_at", sinceISO),
+          supabase
+            .from("patient_invoices" as any)
+            .select("id, issue_date, total, amount_paid, status")
+            .eq("organization_id", orgId)
+            .gte("issue_date", sinceYMD),
+          supabase
+            .from("reviews" as any)
+            .select("rating, status")
+            .eq("organization_id", orgId),
+          supabase
+            .from("inventory_items" as any)
+            .select("id, quantity, reorder_level")
+            .eq("organization_id", orgId),
+          supabase
+            .from("lab_orders" as any)
+            .select("id, status")
+            .eq("organization_id", orgId)
+            .in("status", ["pending", "collected", "in_lab"]),
           supabase.from("doctors").select("id, name").eq("organization_id", orgId),
         ]);
 
@@ -149,7 +204,10 @@ function AnalyticsPage() {
           if (st === "cancelled") cancelled++;
         });
 
-        const statusBreakdown = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
+        const statusBreakdown = Object.entries(statusMap).map(([status, count]) => ({
+          status,
+          count,
+        }));
 
         // Top Services by revenue
         const invIds = invRows.map((i) => i.id);
@@ -175,12 +233,15 @@ function AnalyticsPage() {
         // Doctor OPD Leaderboard
         const docAgg: Record<string, { name: string; consultations: number; revenue: number }> = {};
         apptRows.forEach((a) => {
-          const name = a.doctor_name || (a.doctor_id ? doctorsMap.get(a.doctor_id) : null) || "Primary Doctor";
+          const name =
+            a.doctor_name || (a.doctor_id ? doctorsMap.get(a.doctor_id) : null) || "Primary Doctor";
           if (!docAgg[name]) docAgg[name] = { name, consultations: 0, revenue: 0 };
           if (a.status === "completed") docAgg[name].consultations++;
         });
 
-        const doctorLeaderboard = Object.values(docAgg).sort((a, b) => b.consultations - a.consultations);
+        const doctorLeaderboard = Object.values(docAgg).sort(
+          (a, b) => b.consultations - a.consultations,
+        );
 
         if (!active) return;
 
@@ -191,13 +252,19 @@ function AnalyticsPage() {
           completedAppts: completed,
           cancelledAppts: cancelled,
           consultations: consRows.length,
-          grossRevenue: invRows.filter((i) => i.status !== "void").reduce((s, i) => s + Number(i.amount_paid ?? 0), 0),
+          grossRevenue: invRows
+            .filter((i) => i.status !== "void")
+            .reduce((s, i) => s + Number(i.amount_paid ?? 0), 0),
           outstandingRevenue: invRows
             .filter((i) => i.status !== "void" && i.status !== "paid" && i.status !== "draft")
             .reduce((s, i) => s + (Number(i.total ?? 0) - Number(i.amount_paid ?? 0)), 0),
           reviewsCount: approvedRevs.length,
-          avgRating: approvedRevs.length ? approvedRevs.reduce((s, r) => s + r.rating, 0) / approvedRevs.length : 4.8,
-          lowStockItems: itemRows.filter((it) => Number(it.quantity) <= Number(it.reorder_level ?? 0)).length,
+          avgRating: approvedRevs.length
+            ? approvedRevs.reduce((s, r) => s + r.rating, 0) / approvedRevs.length
+            : 4.8,
+          lowStockItems: itemRows.filter(
+            (it) => Number(it.quantity) <= Number(it.reorder_level ?? 0),
+          ).length,
           pendingLabs: (labs.data as any[])?.length ?? 0,
           dailyData: Object.values(buckets),
           statusBreakdown,
@@ -271,12 +338,24 @@ function AnalyticsPage() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {r === "7d" ? "Last 7 Days" : r === "30d" ? "30 Days" : r === "90d" ? "90 Days" : "Year to Date"}
+                {r === "7d"
+                  ? "Last 7 Days"
+                  : r === "30d"
+                    ? "30 Days"
+                    : r === "90d"
+                      ? "90 Days"
+                      : "Year to Date"}
               </button>
             ))}
           </div>
 
-          <Button variant="outline" size="sm" onClick={exportReport} disabled={!data} className="gap-1.5 rounded-xl">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportReport}
+            disabled={!data}
+            className="gap-1.5 rounded-xl"
+          >
             <Download className="size-3.5" /> Export Report
           </Button>
         </div>
@@ -285,7 +364,9 @@ function AnalyticsPage() {
       {loading || !data ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-2xl" />
+            ))}
           </div>
           <Skeleton className="h-72 w-full rounded-2xl" />
         </div>
@@ -323,7 +404,9 @@ function AnalyticsPage() {
             </Card>
             <Card className="p-4 space-y-1 bg-muted/20">
               <span className="text-xs text-muted-foreground">Outstanding Pending</span>
-              <p className="text-xl font-bold text-amber-600">₹{data.outstandingRevenue.toLocaleString()}</p>
+              <p className="text-xl font-bold text-amber-600">
+                ₹{data.outstandingRevenue.toLocaleString()}
+              </p>
             </Card>
             <Card className="p-4 space-y-1 bg-muted/20">
               <span className="text-xs text-muted-foreground">Low Stock Inventory</span>
@@ -344,16 +427,24 @@ function AnalyticsPage() {
                   <h2 className="font-semibold text-base flex items-center gap-2">
                     <TrendingUp className="size-4 text-primary" /> Revenue & OPD Volume Trend
                   </h2>
-                  <p className="text-xs text-muted-foreground">Daily progression of clinic collections and patient visits</p>
+                  <p className="text-xs text-muted-foreground">
+                    Daily progression of clinic collections and patient visits
+                  </p>
                 </div>
-                <Badge variant="outline" className="text-[11px] bg-primary/5 text-primary border-primary/20">
+                <Badge
+                  variant="outline"
+                  className="text-[11px] bg-primary/5 text-primary border-primary/20"
+                >
                   Live Data
                 </Badge>
               </div>
 
               <div className="h-72 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <AreaChart
+                    data={data.dailyData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
                     <defs>
                       <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
@@ -365,17 +456,42 @@ function AnalyticsPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                    <XAxis dataKey="displayDate" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <XAxis
+                      dataKey="displayDate"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.9)", borderRadius: "12px", border: "none", color: "#fff", fontSize: "12px" }}
+                      contentStyle={{
+                        backgroundColor: "rgba(15, 23, 42, 0.9)",
+                        borderRadius: "12px",
+                        border: "none",
+                        color: "#fff",
+                        fontSize: "12px",
+                      }}
                       formatter={(val: any, name: string) => [
                         name === "revenue" ? `₹${Number(val).toLocaleString()}` : val,
                         name === "revenue" ? "Revenue (₹)" : "Appointments",
                       ]}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                    <Area type="monotone" dataKey="appts" stroke="#0284c7" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAppt)" />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#10b981"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#colorRev)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="appts"
+                      stroke="#0284c7"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#colorAppt)"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -387,7 +503,9 @@ function AnalyticsPage() {
                 <h2 className="font-semibold text-base flex items-center gap-2">
                   <BarChart3 className="size-4 text-emerald-500" /> Top Services Revenue
                 </h2>
-                <p className="text-xs text-muted-foreground">Highest grossing clinical procedures & consultations</p>
+                <p className="text-xs text-muted-foreground">
+                  Highest grossing clinical procedures & consultations
+                </p>
               </div>
 
               {data.topServices.length === 0 ? (
@@ -402,13 +520,20 @@ function AnalyticsPage() {
                     return (
                       <div key={ts.description} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="truncate max-w-[180px] font-medium text-foreground">{ts.description}</span>
-                          <span className="font-mono font-semibold text-primary">₹{ts.revenue.toLocaleString()}</span>
+                          <span className="truncate max-w-[180px] font-medium text-foreground">
+                            {ts.description}
+                          </span>
+                          <span className="font-mono font-semibold text-primary">
+                            ₹{ts.revenue.toLocaleString()}
+                          </span>
                         </div>
                         <div className="h-2 rounded-full bg-muted overflow-hidden">
                           <div
                             className="h-full bg-primary rounded-full transition-all duration-500"
-                            style={{ width: `${pct}%`, backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
+                            }}
                           />
                         </div>
                       </div>
@@ -427,7 +552,9 @@ function AnalyticsPage() {
                 <Stethoscope className="size-4 text-indigo-500" /> Doctor OPD Consultations
               </h2>
               {data.doctorLeaderboard.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No completed consultations in this period.</p>
+                <p className="text-xs text-muted-foreground">
+                  No completed consultations in this period.
+                </p>
               ) : (
                 <div className="divide-y text-sm">
                   {data.doctorLeaderboard.map((doc, idx) => (
@@ -438,7 +565,9 @@ function AnalyticsPage() {
                         </span>
                         <div>
                           <p className="font-medium text-foreground leading-tight">{doc.name}</p>
-                          <span className="text-xs text-muted-foreground">{doc.consultations} completed visits</span>
+                          <span className="text-xs text-muted-foreground">
+                            {doc.consultations} completed visits
+                          </span>
                         </div>
                       </div>
                       <Badge variant="secondary" className="font-mono font-medium">
@@ -456,17 +585,26 @@ function AnalyticsPage() {
                 <PieChartIcon className="size-4 text-amber-500" /> Appointment Status Ratio
               </h2>
               {data.statusBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No appointment data found for selected period.</p>
+                <p className="text-xs text-muted-foreground">
+                  No appointment data found for selected period.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {data.statusBreakdown.map((sb) => {
                     const pct = Math.round((sb.count / Math.max(1, data.appointments)) * 100);
                     return (
-                      <div key={sb.status} className="flex items-center justify-between text-sm p-2.5 rounded-xl bg-muted/30">
-                        <span className="capitalize font-medium text-foreground">{sb.status.replace("_", " ")}</span>
+                      <div
+                        key={sb.status}
+                        className="flex items-center justify-between text-sm p-2.5 rounded-xl bg-muted/30"
+                      >
+                        <span className="capitalize font-medium text-foreground">
+                          {sb.status.replace("_", " ")}
+                        </span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">{pct}%</span>
-                          <Badge variant="outline" className="font-mono">{sb.count}</Badge>
+                          <Badge variant="outline" className="font-mono">
+                            {sb.count}
+                          </Badge>
                         </div>
                       </div>
                     );

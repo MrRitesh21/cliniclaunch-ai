@@ -8,7 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle2, Clock, MapPin, QrCode, CalendarPlus, MessageCircle, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  MapPin,
+  QrCode,
+  CalendarPlus,
+  MessageCircle,
+  Loader2,
+} from "lucide-react";
 import { buildIcsDataUrl, buildWhatsAppShareUrl } from "@/lib/booking-share";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,7 +35,9 @@ export const Route = createFileRoute("/c/$slug/walkin")({
 
 function WalkinPage() {
   const { clinic } = ClinicRoute.useLoaderData();
-  const mods = Array.isArray((clinic as any).installed_modules) ? (clinic as any).installed_modules as string[] : null;
+  const mods = Array.isArray((clinic as any).installed_modules)
+    ? ((clinic as any).installed_modules as string[])
+    : null;
   const walkinOn = !mods || mods.includes("qr_appointment");
 
   const c = clinic as typeof clinic & {
@@ -43,7 +53,11 @@ function WalkinPage() {
   const weekendsOk = c.walkin_weekends_enabled ?? false;
   const maxPerSlot = c.walkin_max_per_slot ?? 3;
 
-  const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
   const dow = today.getDay();
   const isOpenToday = (dow !== 0 && dow !== 6) || weekendsOk;
 
@@ -56,8 +70,11 @@ function WalkinPage() {
   useEffect(() => {
     if (!walkinOn || !isOpenToday) return;
     const from = new Date(today);
-    const to = new Date(today); to.setHours(23, 59, 59, 999);
-    getBookedSlots({ data: { clinic_id: clinic.id, from: from.toISOString(), to: to.toISOString() } })
+    const to = new Date(today);
+    to.setHours(23, 59, 59, 999);
+    getBookedSlots({
+      data: { clinic_id: clinic.id, from: from.toISOString(), to: to.toISOString() },
+    })
       .then((rows) => {
         const counts: Record<string, number> = {};
         for (const r of rows ?? []) {
@@ -65,19 +82,32 @@ function WalkinPage() {
         }
         setBookedAt(counts);
       })
-      .catch(() => { /* ignore */ });
+      .catch(() => {
+        /* ignore */
+      });
   }, [clinic.id, isOpenToday, today, walkinOn]);
 
   const slots = useMemo(() => {
     if (!isOpenToday) return [];
     const [sh, sm] = startTime.split(":").map(Number);
     const [eh, em] = endTime.split(":").map(Number);
-    const start = new Date(today); start.setHours(sh, sm, 0, 0);
-    const end = new Date(today); end.setHours(eh, em, 0, 0);
+    const start = new Date(today);
+    start.setHours(sh, sm, 0, 0);
+    const end = new Date(today);
+    end.setHours(eh, em, 0, 0);
     const now = new Date();
-    const cutoff = new Date(Math.max(start.getTime(), Math.ceil(now.getTime() / (SLOT_MINUTES * 60_000)) * SLOT_MINUTES * 60_000));
+    const cutoff = new Date(
+      Math.max(
+        start.getTime(),
+        Math.ceil(now.getTime() / (SLOT_MINUTES * 60_000)) * SLOT_MINUTES * 60_000,
+      ),
+    );
     const out: Date[] = [];
-    for (let t = cutoff.getTime(); t + SLOT_MINUTES * 60_000 <= end.getTime(); t += SLOT_MINUTES * 60_000) {
+    for (
+      let t = cutoff.getTime();
+      t + SLOT_MINUTES * 60_000 <= end.getTime();
+      t += SLOT_MINUTES * 60_000
+    ) {
       const d = new Date(t);
       const count = bookedAt[d.toISOString()] ?? 0;
       if (count < maxPerSlot) out.push(d);
@@ -101,7 +131,9 @@ function WalkinPage() {
     );
   }
 
-  const [doctors, setDoctors] = useState<{ id: string; name: string; specialization?: string | null }[]>([]);
+  const [doctors, setDoctors] = useState<
+    { id: string; name: string; specialization?: string | null }[]
+  >([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
 
   useEffect(() => {
@@ -150,7 +182,9 @@ function WalkinPage() {
         try {
           const parsed = JSON.parse(msg);
           if (Array.isArray(parsed) && parsed[0]?.message) friendly = parsed[0].message;
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       toast.error(friendly);
     } finally {
@@ -200,7 +234,9 @@ function WalkinPage() {
               </Button>
             </a>
           </div>
-          <p className="text-xs text-muted-foreground">Please have a seat — the front desk will call you in.</p>
+          <p className="text-xs text-muted-foreground">
+            Please have a seat — the front desk will call you in.
+          </p>
         </Card>
       </main>
     );
@@ -233,7 +269,9 @@ function WalkinPage() {
           <form onSubmit={submit} className="space-y-4">
             {doctors.length > 0 && (
               <Card className="p-5 space-y-2">
-                <Label htmlFor="walkin-doctor" className="text-sm font-medium">Select Doctor</Label>
+                <Label htmlFor="walkin-doctor" className="text-sm font-medium">
+                  Select Doctor
+                </Label>
                 <select
                   id="walkin-doctor"
                   value={selectedDoctorId}
@@ -260,12 +298,17 @@ function WalkinPage() {
                       key={iso}
                       type="button"
                       onClick={() => setSelectedSlot(s)}
-                      className={`rounded-md border px-2 py-2 text-sm transition ${active
+                      className={`rounded-md border px-2 py-2 text-sm transition ${
+                        active
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-background hover:bg-muted"
-                        }`}
+                      }`}
                     >
-                      {s.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                      {s.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
                     </button>
                   );
                 })}
@@ -311,12 +354,22 @@ function WalkinPage() {
               </div>
             </Card>
 
-            <Button type="submit" size="lg" className="w-full" disabled={submitting || !selectedSlot}>
-              {submitting
-                ? <><Loader2 className="size-4 mr-1.5 animate-spin" />Checking in…</>
-                : selectedSlot
-                  ? `Check in for ${selectedSlot.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                  : "Pick a time"}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={submitting || !selectedSlot}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 mr-1.5 animate-spin" />
+                  Checking in…
+                </>
+              ) : selectedSlot ? (
+                `Check in for ${selectedSlot.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              ) : (
+                "Pick a time"
+              )}
             </Button>
           </form>
         )}

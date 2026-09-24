@@ -42,14 +42,21 @@ class QueueWorkerEngine {
       try {
         job.attempts++;
         // Execute background task based on type
-        console.info(`[Queue Worker] Processing ${job.type} job (${job.id}), attempt ${job.attempts}`);
+        console.info(
+          `[Queue Worker] Processing ${job.type} job (${job.id}), attempt ${job.attempts}`,
+        );
         await new Promise((res) => setTimeout(res, 50)); // Simulated async execution
       } catch (err) {
         if (job.attempts < job.maxAttempts) {
-          console.warn(`[Queue Worker] Retrying job ${job.id} (${job.attempts}/${job.maxAttempts})`);
+          console.warn(
+            `[Queue Worker] Retrying job ${job.id} (${job.attempts}/${job.maxAttempts})`,
+          );
           this.queue.push(job);
         } else {
-          console.error(`[Queue Worker] Job ${job.id} failed after ${job.maxAttempts} attempts:`, err);
+          console.error(
+            `[Queue Worker] Job ${job.id} failed after ${job.maxAttempts} attempts:`,
+            err,
+          );
         }
       }
     }

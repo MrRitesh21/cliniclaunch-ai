@@ -8,10 +8,16 @@ function teamFrom(clinic: SiteClinic): Member[] {
   const activeDocs = (clinic as unknown as { active_doctors?: any[] }).active_doctors;
   if (Array.isArray(activeDocs) && activeDocs.length > 0) {
     const ownerName = clinic.doctor_name;
-    const hasOwner = ownerName && activeDocs.some(d => (d.name || "").toLowerCase().includes(ownerName.toLowerCase()));
+    const hasOwner =
+      ownerName &&
+      activeDocs.some((d) => (d.name || "").toLowerCase().includes(ownerName.toLowerCase()));
     const out: Member[] = [];
     if (ownerName && !hasOwner) {
-      out.push({ name: clinic.doctor_name, role: clinic.specialization || "Primary Doctor", avatar: clinic.avatar_url });
+      out.push({
+        name: clinic.doctor_name,
+        role: clinic.specialization || "Primary Doctor",
+        avatar: clinic.avatar_url,
+      });
     }
     activeDocs.forEach((d) => {
       out.push({ name: d.name, role: d.specialization || "Consultant", avatar: d.avatar_url });
@@ -22,12 +28,21 @@ function teamFrom(clinic: SiteClinic): Member[] {
   const raw = (clinic as unknown as { team?: unknown }).team;
   if (Array.isArray(raw) && raw.length) return raw as Member[];
   return [
-    { name: clinic.doctor_name, role: clinic.specialization || "Doctor", avatar: clinic.avatar_url },
+    {
+      name: clinic.doctor_name,
+      role: clinic.specialization || "Doctor",
+      avatar: clinic.avatar_url,
+    },
   ];
 }
 
 function initials(name: string) {
-  return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 /** v1: Card grid */
@@ -43,7 +58,11 @@ export function TeamCards({ clinic }: Props) {
         {team.map((m, i) => (
           <div key={i} className="rounded-2xl border bg-card p-6 text-center">
             <div className="size-20 rounded-full mx-auto bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
-              {m.avatar ? <img src={m.avatar} alt={m.name} className="size-full object-cover" /> : <span className="font-medium">{initials(m.name)}</span>}
+              {m.avatar ? (
+                <img src={m.avatar} alt={m.name} className="size-full object-cover" />
+              ) : (
+                <span className="font-medium">{initials(m.name)}</span>
+              )}
             </div>
             <p className="font-medium mt-4">{m.name}</p>
             <p className="text-xs text-muted-foreground mt-1">{m.role}</p>
@@ -65,7 +84,11 @@ export function TeamRow({ clinic }: Props) {
           {team.map((m, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
-                {m.avatar ? <img src={m.avatar} alt={m.name} className="size-full object-cover" /> : <span className="text-xs font-medium">{initials(m.name)}</span>}
+                {m.avatar ? (
+                  <img src={m.avatar} alt={m.name} className="size-full object-cover" />
+                ) : (
+                  <span className="text-xs font-medium">{initials(m.name)}</span>
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium leading-tight">{m.name}</p>

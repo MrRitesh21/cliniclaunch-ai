@@ -55,7 +55,8 @@ const spanSample = z.object({
 
 const batchSchema = z.object({
   source: label,
-  samples: z.array(z.discriminatedUnion("type", [httpSample, errorSample, dbSample, spanSample]))
+  samples: z
+    .array(z.discriminatedUnion("type", [httpSample, errorSample, dbSample, spanSample]))
     .min(1)
     .max(MAX_SAMPLES),
 });
@@ -63,56 +64,52 @@ const batchSchema = z.object({
 export function ingestRouter(): Router {
   const router = Router();
 
-  router.post(
-    Route.ingest,
-    json({ limit: env.INGEST_MAX_BODY_BYTES }),
-    (req, res) => {
-      const header = req.headers[Header.ingestToken];
-      const provided = Array.isArray(header) ? header[0] : header;
-      if (!provided || !timingSafeEqualStr(provided, env.TELEMETRY_INGEST_TOKEN)) {
-        ingestRejectedTotal.inc({ [Label.reason]: "unauthorized" });
-        res.status(HTTP_STATUS.unauthorized).json({ error: "unauthorized" });
-        return;
-      }
+  router.post(Route.ingest, json({ limit: env.INGEST_MAX_BODY_BYTES }), (req, res) => {
+    const header = req.headers[Header.ingestToken];
+    const provided = Array.isArray(header) ? header[0] : header;
+    if (!provided || !timingSafeEqualStr(provided, env.TELEMETRY_INGEST_TOKEN)) {
+      ingestRejectedTotal.inc({ [Label.reason]: "unauthorized" });
+      res.status(HTTP_STATUS.unauthorized).json({ error: "unauthorized" });
+      return;
+    }
 
-      const parsed = batchSchema.safeParse(req.body);
-      if (!parsed.success) {
-        ingestRejectedTotal.inc({ [Label.reason]: "invalid_payload" });
-        res.status(HTTP_STATUS.badRequest).json({ error: "invalid_payload" });
-        return;
-      }
+    const parsed = batchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      ingestRejectedTotal.inc({ [Label.reason]: "invalid_payload" });
+      res.status(HTTP_STATUS.badRequest).json({ error: "invalid_payload" });
+      return;
+    }
 
-      const { source, samples } = parsed.data;
-      for (const sample of samples) {
-        switch (sample.type) {
-          case "http":
-            telemetry.recordHttpRequest({
-              method: sample.method,
-              route: sample.route,
-              status: sample.status,
-              durationMs: sample.duration_ms,
-              responseBytes: sample.bytes ?? 0,
-              slow: sample.duration_ms >= env.SLOW_REQUEST_MS,
-              source,
-            });
-            break;
-          case "error":
-            telemetry.recordError(sample.kind, sample.route ?? "unknown", source);
-            break;
-          case "db":
-            telemetry.recordDbQuery({ kind: sample.kind, durationMs: sample.duration_ms, source });
-            break;
-          case "span":
-            telemetry.recordSpan({ name: sample.name, durationMs: sample.duration_ms });
-            break;
-        }
+    const { source, samples } = parsed.data;
+    for (const sample of samples) {
+      switch (sample.type) {
+        case "http":
+          telemetry.recordHttpRequest({
+            method: sample.method,
+            route: sample.route,
+            status: sample.status,
+            durationMs: sample.duration_ms,
+            responseBytes: sample.bytes ?? 0,
+            slow: sample.duration_ms >= env.SLOW_REQUEST_MS,
+            source,
+          });
+          break;
+        case "error":
+          telemetry.recordError(sample.kind, sample.route ?? "unknown", source);
+          break;
+        case "db":
+          telemetry.recordDbQuery({ kind: sample.kind, durationMs: sample.duration_ms, source });
+          break;
+        case "span":
+          telemetry.recordSpan({ name: sample.name, durationMs: sample.duration_ms });
+          break;
       }
+    }
 
-      ingestBatchesTotal.inc({ [Label.source]: source });
-      logger.debug({ source, count: samples.length }, "telemetry batch accepted");
-      res.status(HTTP_STATUS.noContent).end();
-    },
-  );
+    ingestBatchesTotal.inc({ [Label.source]: source });
+    logger.debug({ source, count: samples.length }, "telemetry batch accepted");
+    res.status(HTTP_STATUS.noContent).end();
+  });
 
   return router;
 }

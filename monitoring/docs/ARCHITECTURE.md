@@ -42,13 +42,13 @@
 
 ## ⚡ Memory Footprint & Constraints Budget
 
-| Component | Target Memory | Hard Limit | Optimization Rationale |
-| :--- | :--- | :--- | :--- |
-| **Node Backend Monitoring** | ~15-25 MB | 30 MB | `prom-client` in-memory counters + Pino async buffer |
-| **Prometheus TSDB** | ~100-140 MB | 150 MB | Retention capped at 7 days / 2GB, 30s scrape interval |
-| **Grafana Server** | ~90-110 MB | 120 MB | Default plugins only, disabled telemetry & reporting |
-| **Alertmanager** | ~15-25 MB | 30 MB | Minimal route tree, ephemeral memory buffer |
-| **Total Monitoring Stack** | **~255-300 MB** | **350 MB** | **Fits comfortably within 512 MB Render Free limit** |
+| Component                   | Target Memory   | Hard Limit | Optimization Rationale                                |
+| :-------------------------- | :-------------- | :--------- | :---------------------------------------------------- |
+| **Node Backend Monitoring** | ~15-25 MB       | 30 MB      | `prom-client` in-memory counters + Pino async buffer  |
+| **Prometheus TSDB**         | ~100-140 MB     | 150 MB     | Retention capped at 7 days / 2GB, 30s scrape interval |
+| **Grafana Server**          | ~90-110 MB      | 120 MB     | Default plugins only, disabled telemetry & reporting  |
+| **Alertmanager**            | ~15-25 MB       | 30 MB      | Minimal route tree, ephemeral memory buffer           |
+| **Total Monitoring Stack**  | **~255-300 MB** | **350 MB** | **Fits comfortably within 512 MB Render Free limit**  |
 
 ---
 

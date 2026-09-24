@@ -10,7 +10,7 @@ export interface DeviceFingerprintPayload {
   browserVersion: string;
   os: string;
   osVersion: string;
-  deviceType: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+  deviceType: "desktop" | "mobile" | "tablet" | "unknown";
   platform: string;
   screenResolution: string;
   timezone: string;

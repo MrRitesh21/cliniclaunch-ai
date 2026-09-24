@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 import {
   httpRequestsTotal,
   httpRequestDurationSeconds,
@@ -6,12 +6,12 @@ import {
   httpConcurrentRequests,
   httpSlowRequestsTotal,
   httpErrorsTotal,
-} from '../metrics/httpMetrics';
-import { config } from '../../config';
+} from "../metrics/httpMetrics";
+import { config } from "../../config";
 
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Exclude /metrics and /ping endpoints from regular metrics collection to prevent pollution
-  if (req.path === '/metrics' || req.path === '/ping') {
+  if (req.path === "/metrics" || req.path === "/ping") {
     return next();
   }
 
@@ -19,9 +19,9 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   httpConcurrentRequests.inc();
 
   // Normalize route path for metrics labeling to avoid high cardinality
-  const route = req.route ? req.route.path : req.path || 'unmatched';
+  const route = req.route ? req.route.path : req.path || "unmatched";
 
-  res.on('finish', () => {
+  res.on("finish", () => {
     httpConcurrentRequests.dec();
 
     const diff = process.hrtime(startTime);
@@ -46,11 +46,11 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
         route,
         status,
       },
-      durationSec
+      durationSec,
     );
 
     // 3. Record Response Size
-    const contentLength = res.getHeader('content-length');
+    const contentLength = res.getHeader("content-length");
     if (contentLength) {
       const sizeBytes = parseInt(String(contentLength), 10);
       if (!isNaN(sizeBytes)) {
@@ -68,7 +68,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
 
     // 5. Record Errors (4xx, 5xx)
     if (res.statusCode >= 400) {
-      const errorType = res.statusCode >= 500 ? '5xx' : '4xx';
+      const errorType = res.statusCode >= 500 ? "5xx" : "4xx";
       httpErrorsTotal.inc({
         method: req.method,
         route,

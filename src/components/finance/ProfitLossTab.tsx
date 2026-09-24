@@ -12,13 +12,34 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDown, ArrowUp, IndianRupee, TrendingUp, Wallet, FileText, Download } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  IndianRupee,
+  TrendingUp,
+  Wallet,
+  FileText,
+  Download,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getFinanceOverview } from "@/lib/finance.functions";
-import { CHART_COLORS, compactInr, downloadCsv, inr, printReport, tableHtml } from "@/lib/finance-format";
+import {
+  CHART_COLORS,
+  compactInr,
+  downloadCsv,
+  inr,
+  printReport,
+  tableHtml,
+} from "@/lib/finance-format";
 
 const PERIODS = [
   { key: "daily", label: "Daily (Last 30 Days)", days: 29 },
@@ -65,7 +86,10 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
         <p><strong>Net Operating Profit:</strong> ${inr(kpis.netProfit)} (Net Margin: ${kpis.margin}%)</p>
       </div>
     `;
-    printReport(`Profit & Loss Statement (${from} to ${to})`, summaryHtml + tableHtml(headers, rows, 1));
+    printReport(
+      `Profit & Loss Statement (${from} to ${to})`,
+      summaryHtml + tableHtml(headers, rows, 1),
+    );
   }
 
   return (
@@ -93,7 +117,11 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
           <Button variant="outline" size="sm" onClick={exportPnlReportPdf}>
             <FileText className="size-4 mr-1.5" /> Print P&amp;L
           </Button>
-          <Button variant="outline" size="sm" onClick={() => downloadCsv(`pnl-${from}-${to}`, timeline as any)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadCsv(`pnl-${from}-${to}`, timeline as any)}
+          >
             <Download className="size-4 mr-1.5" /> CSV
           </Button>
         </div>
@@ -107,8 +135,14 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
             <IndianRupee className="size-4" />
           </div>
           <div className="font-display text-2xl mt-2 tracking-tight">{inr(kpis.rangeRevenue)}</div>
-          <div className={`text-xs mt-1.5 flex items-center gap-1 ${kpis.revenueGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-            {kpis.revenueGrowth >= 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+          <div
+            className={`text-xs mt-1.5 flex items-center gap-1 ${kpis.revenueGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+          >
+            {kpis.revenueGrowth >= 0 ? (
+              <ArrowUp className="size-3" />
+            ) : (
+              <ArrowDown className="size-3" />
+            )}
             {Math.abs(kpis.revenueGrowth)}% vs prior period
           </div>
         </Card>
@@ -118,23 +152,41 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
             <span>TOTAL EXPENSES</span>
             <Wallet className="size-4" />
           </div>
-          <div className="font-display text-2xl mt-2 tracking-tight text-rose-600">{inr(kpis.rangeExpense)}</div>
-          <div className={`text-xs mt-1.5 flex items-center gap-1 ${kpis.expenseGrowth <= 0 ? "text-emerald-600" : "text-amber-600"}`}>
-            {kpis.expenseGrowth > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+          <div className="font-display text-2xl mt-2 tracking-tight text-rose-600">
+            {inr(kpis.rangeExpense)}
+          </div>
+          <div
+            className={`text-xs mt-1.5 flex items-center gap-1 ${kpis.expenseGrowth <= 0 ? "text-emerald-600" : "text-amber-600"}`}
+          >
+            {kpis.expenseGrowth > 0 ? (
+              <ArrowUp className="size-3" />
+            ) : (
+              <ArrowDown className="size-3" />
+            )}
             {Math.abs(kpis.expenseGrowth)}% vs prior period
           </div>
         </Card>
 
-        <Card className={`p-4 border-l-4 ${isPositiveProfit ? "border-l-emerald-500" : "border-l-rose-500"}`}>
+        <Card
+          className={`p-4 border-l-4 ${isPositiveProfit ? "border-l-emerald-500" : "border-l-rose-500"}`}
+        >
           <div className="flex items-center justify-between text-muted-foreground text-xs">
             <span>NET PROFIT</span>
             <TrendingUp className="size-4" />
           </div>
-          <div className={`font-display text-2xl mt-2 tracking-tight ${isPositiveProfit ? "text-emerald-600" : "text-rose-600"}`}>
+          <div
+            className={`font-display text-2xl mt-2 tracking-tight ${isPositiveProfit ? "text-emerald-600" : "text-rose-600"}`}
+          >
             {inr(kpis.netProfit)}
           </div>
-          <div className={`text-xs mt-1.5 flex items-center gap-1 ${kpis.profitGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-            {kpis.profitGrowth >= 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+          <div
+            className={`text-xs mt-1.5 flex items-center gap-1 ${kpis.profitGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+          >
+            {kpis.profitGrowth >= 0 ? (
+              <ArrowUp className="size-3" />
+            ) : (
+              <ArrowDown className="size-3" />
+            )}
             {Math.abs(kpis.profitGrowth)}% profit growth
           </div>
         </Card>
@@ -166,11 +218,29 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d: string) => d.slice(5)} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10 }}
+                tickFormatter={(d: string) => d.slice(5)}
+              />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={compactInr} />
               <Tooltip formatter={(v: number) => inr(v)} />
-              <Area type="monotone" dataKey="revenue" name="Revenue" stroke={CHART_COLORS[0]} fill="url(#revGrad)" strokeWidth={2} />
-              <Area type="monotone" dataKey="expense" name="Expense" stroke={CHART_COLORS[5]} fill="url(#expGrad)" strokeWidth={2} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                name="Revenue"
+                stroke={CHART_COLORS[0]}
+                fill="url(#revGrad)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="expense"
+                name="Expense"
+                stroke={CHART_COLORS[5]}
+                fill="url(#expGrad)"
+                strokeWidth={2}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -184,10 +254,19 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={timeline} margin={{ left: -14, right: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d: string) => d.slice(5)} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(d: string) => d.slice(5)}
+                />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={compactInr} />
                 <Tooltip formatter={(v: number) => inr(v)} />
-                <Bar dataKey="profit" name="Net Profit" radius={[4, 4, 0, 0]} fill={CHART_COLORS[1]} />
+                <Bar
+                  dataKey="profit"
+                  name="Net Profit"
+                  radius={[4, 4, 0, 0]}
+                  fill={CHART_COLORS[1]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -200,12 +279,15 @@ export function ProfitLossTab({ orgId, clinicId }: { orgId: string; clinicId: st
               <p className="text-xs text-muted-foreground">No expenses recorded for this period.</p>
             ) : (
               expenseCategories.slice(0, 7).map((c, i) => {
-                const pct = kpis.rangeExpense > 0 ? Math.round((c.amount / kpis.rangeExpense) * 100) : 0;
+                const pct =
+                  kpis.rangeExpense > 0 ? Math.round((c.amount / kpis.rangeExpense) * 100) : 0;
                 return (
                   <div key={c.key} className="space-y-1">
                     <div className="flex justify-between text-xs font-medium">
                       <span>{c.key}</span>
-                      <span className="font-mono">{inr(c.amount)} ({pct}%)</span>
+                      <span className="font-mono">
+                        {inr(c.amount)} ({pct}%)
+                      </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                       <div

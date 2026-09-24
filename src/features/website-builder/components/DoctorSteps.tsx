@@ -20,7 +20,9 @@ export function DoctorSteps() {
   const { state, isPublished, setActiveTab, togglePublish } = useWebsiteBuilder();
 
   const hasBasics = Boolean(state.design_tokens.brandName?.trim());
-  const hasContent = Boolean(state.hero_headline?.trim() || state.about_text?.trim() || state.bio?.trim());
+  const hasContent = Boolean(
+    state.hero_headline?.trim() || state.about_text?.trim() || state.bio?.trim(),
+  );
   const hasContact = Boolean(state.public_phone?.trim() || state.public_email?.trim());
 
   const steps: Step[] = [
@@ -102,7 +104,9 @@ export function DoctorSteps() {
             >
               <div
                 className={`size-8 rounded-xl grid place-items-center shrink-0 ${
-                  step.done ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
+                  step.done
+                    ? "bg-emerald-500/15 text-emerald-600"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {step.done ? <Check className="size-4" /> : <Icon className="size-4" />}

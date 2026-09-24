@@ -43,7 +43,14 @@ const STATUS_BADGE: Record<CampaignStatus, string> = {
 };
 
 export function CampaignsView() {
-  const { campaigns, setActiveTab, duplicateCampaign, deleteCampaign, dispatchCampaign, patientCount } = useMarketing();
+  const {
+    campaigns,
+    setActiveTab,
+    duplicateCampaign,
+    deleteCampaign,
+    dispatchCampaign,
+    patientCount,
+  } = useMarketing();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
@@ -79,7 +86,10 @@ export function CampaignsView() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setActiveTab("builder")} className="gap-1.5 text-xs h-9 font-semibold">
+          <Button
+            onClick={() => setActiveTab("builder")}
+            className="gap-1.5 text-xs h-9 font-semibold"
+          >
             <Plus className="size-4" /> New Campaign
           </Button>
         </div>
@@ -105,7 +115,9 @@ export function CampaignsView() {
                 key={st}
                 onClick={() => setStatusFilter(st)}
                 className={`px-2.5 py-1 rounded-lg capitalize text-xs font-medium transition ${
-                  statusFilter === st ? "bg-background text-foreground shadow-xs font-semibold" : "text-muted-foreground"
+                  statusFilter === st
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground"
                 }`}
               >
                 {st}
@@ -120,7 +132,9 @@ export function CampaignsView() {
                 key={ch}
                 onClick={() => setChannelFilter(ch)}
                 className={`px-2.5 py-1 rounded-lg capitalize text-xs font-medium transition ${
-                  channelFilter === ch ? "bg-background text-foreground shadow-xs font-semibold" : "text-muted-foreground"
+                  channelFilter === ch
+                    ? "bg-background text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground"
                 }`}
               >
                 {ch}
@@ -136,7 +150,8 @@ export function CampaignsView() {
           <Megaphone className="size-10 text-muted-foreground mx-auto opacity-50" />
           <h3 className="font-bold text-sm">No campaigns match your filters</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Try resetting your search or channel filter, or launch a new campaign using the AI writer.
+            Try resetting your search or channel filter, or launch a new campaign using the AI
+            writer.
           </p>
           <Button onClick={() => setActiveTab("builder")} size="sm" className="gap-1.5">
             <Plus className="size-4" /> Create Campaign
@@ -153,25 +168,47 @@ export function CampaignsView() {
                     <Badge variant="outline" className="gap-1 text-[10px] uppercase font-semibold">
                       {CHANNEL_ICONS[c.channel]} {c.channel}
                     </Badge>
-                    <Badge variant="outline" className={`text-[10px] capitalize font-medium ${STATUS_BADGE[c.status]}`}>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] capitalize font-medium ${STATUS_BADGE[c.status]}`}
+                    >
                       {c.status}
                     </Badge>
                   </div>
-                  {c.subject && <p className="text-xs text-muted-foreground font-medium">{c.subject}</p>}
-                  <p className="text-xs text-muted-foreground line-clamp-1 italic max-w-2xl">"{c.body}"</p>
+                  {c.subject && (
+                    <p className="text-xs text-muted-foreground font-medium">{c.subject}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground line-clamp-1 italic max-w-2xl">
+                    "{c.body}"
+                  </p>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
                   {(c.status === "draft" || c.status === "scheduled") && (
-                    <Button onClick={() => void handleLaunch(c)} disabled={sendingId === c.id} size="sm" className="h-8 text-xs gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700">
+                    <Button
+                      onClick={() => void handleLaunch(c)}
+                      disabled={sendingId === c.id}
+                      size="sm"
+                      className="h-8 text-xs gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700"
+                    >
                       <Send className="size-3.5" /> {sendingId === c.id ? "Sending…" : "Dispatch"}
                     </Button>
                   )}
-                  <Button onClick={() => duplicateCampaign(c)} variant="outline" size="sm" className="h-8 text-xs gap-1">
+                  <Button
+                    onClick={() => duplicateCampaign(c)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                  >
                     <Copy className="size-3.5" /> Clone
                   </Button>
-                  <Button onClick={() => deleteCampaign(c.id)} variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10">
+                  <Button
+                    onClick={() => deleteCampaign(c.id)}
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-destructive hover:bg-destructive/10"
+                  >
                     <Trash2 className="size-3.5" />
                   </Button>
                 </div>
@@ -197,7 +234,9 @@ export function CampaignsView() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Generated Revenue</span>
-                  <span className="font-semibold text-emerald-600">₹{(c.revenue_generated || 0).toLocaleString()}</span>
+                  <span className="font-semibold text-emerald-600">
+                    ₹{(c.revenue_generated || 0).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </Card>

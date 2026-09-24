@@ -552,9 +552,7 @@ function BillingPage() {
                   Near limit. Upgrade to Growth for 1,000 patients.
                 </p>
               ) : sub.plan_id === "starter" ? (
-                <p className="text-xs text-muted-foreground">
-                  Upgrade when your clinic grows.
-                </p>
+                <p className="text-xs text-muted-foreground">Upgrade when your clinic grows.</p>
               ) : null}
             </div>
 
@@ -598,9 +596,7 @@ function BillingPage() {
                   Staff limit reached. Upgrade to add more seats.
                 </p>
               ) : sub.plan_id === "starter" ? (
-                <p className="text-xs text-muted-foreground">
-                  Upgrade to add staff members.
-                </p>
+                <p className="text-xs text-muted-foreground">Upgrade to add staff members.</p>
               ) : null}
             </div>
           </div>
@@ -660,11 +656,7 @@ function BillingPage() {
               <Card
                 key={p.id}
                 className={`p-6 flex flex-col transition-all relative border ${
-                  isPopular
-                    ? "border-primary"
-                    : isEnterprise
-                      ? "border-amber-300"
-                      : "border-border"
+                  isPopular ? "border-primary" : isEnterprise ? "border-amber-300" : "border-border"
                 } ${isCurrent ? "ring-2 ring-primary ring-offset-2" : ""}`}
               >
                 {isPopular && (
@@ -680,16 +672,28 @@ function BillingPage() {
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <div className="font-display text-base font-semibold">{p.name}</div>
                   {isCurrent && sub?.status === "trialing" && (
-                    <Badge variant="outline" className="text-[10px] border-amber-200 bg-amber-50 text-amber-700 font-medium">Trial</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-amber-200 bg-amber-50 text-amber-700 font-medium"
+                    >
+                      Trial
+                    </Badge>
                   )}
                   {isCurrent && sub?.status === "active" && (
-                    <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-medium">Active</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-medium"
+                    >
+                      Active
+                    </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">{p.tagline}</p>
                 <div className="mb-4">
                   <div className="flex items-baseline gap-1 flex-wrap">
-                    <span className="font-display text-2xl font-bold">{price === 0 ? "Free" : `₹${price.toLocaleString()}`}</span>
+                    <span className="font-display text-2xl font-bold">
+                      {price === 0 ? "Free" : `₹${price.toLocaleString()}`}
+                    </span>
                     {price > 0 && <span className="text-sm text-muted-foreground">/mo</span>}
                     {hasDiscount && (
                       <span className="text-xs text-muted-foreground line-through ml-1.5">
@@ -699,20 +703,30 @@ function BillingPage() {
                   </div>
                   {cycle === "yearly" && (
                     <span className="text-xs text-emerald-600 font-medium block mt-1">
-                      {`Saves ₹${((p.monthly_price * 12) - p.yearly_price).toLocaleString()} / year`}
+                      {`Saves ₹${(p.monthly_price * 12 - p.yearly_price).toLocaleString()} / year`}
                     </span>
                   )}
                 </div>
                 <ul className="space-y-2 text-sm flex-1 mb-6 border-t pt-4">
                   {((p.features as string[]) ?? []).map((f) => (
                     <li key={f} className="flex items-start gap-2 text-foreground">
-                      <Check className={`size-3.5 mt-0.5 shrink-0 ${isEnterprise ? "text-amber-500" : "text-primary"}`} />
+                      <Check
+                        className={`size-3.5 mt-0.5 shrink-0 ${isEnterprise ? "text-amber-500" : "text-primary"}`}
+                      />
                       <span>{f}</span>
                     </li>
                   ))}
                 </ul>
                 <Button
-                  variant={isCurrent && !isSubscriptionExpired ? "outline" : isPopular ? "default" : isEnterprise ? "default" : "secondary"}
+                  variant={
+                    isCurrent && !isSubscriptionExpired
+                      ? "outline"
+                      : isPopular
+                        ? "default"
+                        : isEnterprise
+                          ? "default"
+                          : "secondary"
+                  }
                   disabled={isCurrent && !isSubscriptionExpired}
                   onClick={() => setPendingPlan(p)}
                   className={`w-full mt-auto ${
@@ -726,11 +740,11 @@ function BillingPage() {
                   }`}
                 >
                   {isCurrent
-                    ? (isSubscriptionExpired
-                        ? "Renew Plan"
-                        : sub?.status === "trialing"
-                          ? "Current plan (Trial)"
-                          : "Current plan")
+                    ? isSubscriptionExpired
+                      ? "Renew Plan"
+                      : sub?.status === "trialing"
+                        ? "Current plan (Trial)"
+                        : "Current plan"
                     : "Upgrade / Select"}
                 </Button>
               </Card>

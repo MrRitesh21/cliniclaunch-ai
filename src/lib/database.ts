@@ -18,7 +18,7 @@ export interface PaginatedResult<T> {
 
 export function buildCursorQuery<T extends { id: string }>(
   items: T[],
-  limit = 20
+  limit = 20,
 ): PaginatedResult<T> {
   const hasMore = items.length > limit;
   const resultItems = hasMore ? items.slice(0, limit) : items;

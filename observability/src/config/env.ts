@@ -5,9 +5,7 @@
  */
 import { z } from "zod";
 
-const booleanish = z
-  .enum(["true", "false", "1", "0"])
-  .transform((v) => v === "true" || v === "1");
+const booleanish = z.enum(["true", "false", "1", "0"]).transform((v) => v === "true" || v === "1");
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -24,7 +22,10 @@ const schema = z.object({
   LOG_TO_FILE: booleanish.default("false"),
   LOG_ROTATION_FREQUENCY: z.enum(["hourly", "daily"]).default("daily"),
   LOG_ROTATION_MAX_FILES: z.coerce.number().int().min(1).max(90).default(7),
-  LOG_ROTATION_SIZE: z.string().regex(/^\d+[kmg]$/i).default("20m"),
+  LOG_ROTATION_SIZE: z
+    .string()
+    .regex(/^\d+[kmg]$/i)
+    .default("20m"),
 
   /** Bearer-equivalent shared secret required to POST telemetry batches. */
   TELEMETRY_INGEST_TOKEN: z.string().min(24),

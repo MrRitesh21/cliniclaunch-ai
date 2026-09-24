@@ -64,7 +64,15 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT", () => void shutdown("SIGINT"));
 
 process.on("unhandledRejection", (reason) => {
-  logger.error({ err: reason instanceof Error ? { message: reason.message, stack: reason.stack } : { value: String(reason) } }, "unhandled rejection");
+  logger.error(
+    {
+      err:
+        reason instanceof Error
+          ? { message: reason.message, stack: reason.stack }
+          : { value: String(reason) },
+    },
+    "unhandled rejection",
+  );
 });
 
 process.on("uncaughtException", (err) => {

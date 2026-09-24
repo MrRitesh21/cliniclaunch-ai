@@ -21,7 +21,10 @@ const METRIC_THRESHOLDS = {
   API: { good: 100, poor: 500 },
 };
 
-export function getRating(name: keyof typeof METRIC_THRESHOLDS, value: number): "good" | "needs-improvement" | "poor" {
+export function getRating(
+  name: keyof typeof METRIC_THRESHOLDS,
+  value: number,
+): "good" | "needs-improvement" | "poor" {
   const threshold = METRIC_THRESHOLDS[name] || METRIC_THRESHOLDS.API;
   if (value <= threshold.good) return "good";
   if (value <= threshold.poor) return "needs-improvement";
@@ -34,7 +37,7 @@ export function getRating(name: keyof typeof METRIC_THRESHOLDS, value: number): 
 export async function measureAsync<T>(
   label: string,
   fn: () => Promise<T>,
-  onComplete?: (metric: PerformanceMetric) => void
+  onComplete?: (metric: PerformanceMetric) => void,
 ): Promise<T> {
   const start = performance.now();
   try {
@@ -131,4 +134,3 @@ export function prefetchAsset(url: string, type: "script" | "style" | "fetch" = 
   link.href = url;
   document.head.appendChild(link);
 }
-

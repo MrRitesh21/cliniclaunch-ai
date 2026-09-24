@@ -7,11 +7,17 @@ import pino from "pino";
 import qrcode from "qrcode-terminal";
 import pkg from "@whiskeysockets/baileys";
 
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = pkg;
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+} = pkg;
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
 const CLINIC_ID = process.env.CLINIC_ID || "default";
-const WEBHOOK_URL = process.env.clinicx_WEBHOOK_URL || "https://clinicx.digiwil.com/api/public/hooks/whatsapp";
+const WEBHOOK_URL =
+  process.env.clinicx_WEBHOOK_URL || "https://clinicx.digiwil.com/api/public/hooks/whatsapp";
 const AUTH_BASE_DIR = process.env.AUTH_DIR || "/data/auth";
 const PORT = parseInt(process.env.PORT || "8080", 10);
 
@@ -28,7 +34,7 @@ type SessionState = {
   qr: string | null;
 };
 
-const sessions = new Map < string, SessionState> ();
+const sessions = new Map<string, SessionState>();
 
 function sign(body: string) {
   return "sha256=" + crypto.createHmac("sha256", BRIDGE_SECRET).update(body).digest("hex");
@@ -64,13 +70,23 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
   const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));
   fs.mkdirSync(sessionDir, { recursive: true });
 
-  const stateObj: SessionState = {
+  const stateObj: SessionState = existing || {
     id: sessionId,
     sock: null,
     status: "disconnected",
     phone: null,
     qr: null,
   };
+  
+  if (existing && existing.sock) {
+    try {
+      existing.sock.ev.removeAllListeners();
+      existing.sock.ws?.close();
+    } catch (err) {
+      logger.error({ sessionId, err: String(err) }, "Error cleaning up old socket");
+    }
+  }
+  
   sessions.set(sessionId, stateObj);
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
@@ -99,7 +115,12 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
       stateObj.qr = null;
       stateObj.phone = normalizeJid(sock.user?.id);
       logger.info({ sessionId, phone: stateObj.phone }, "✓ WhatsApp Connected");
-      postWebhook({ event: "status", status: "connected", session_id: sessionId, phone: stateObj.phone });
+      postWebhook({
+        event: "status",
+        status: "connected",
+        session_id: sessionId,
+        phone: stateObj.phone,
+      });
     }
     if (connection === "close") {
       stateObj.status = "disconnected";
@@ -131,7 +152,9 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("composing", remoteJid);
-      } catch { }
+      } catch (err) {
+        logger.debug({ err: String(err) }, "Failed to send presence composing");
+      }
 
       await postWebhook({
         event: "message",
@@ -147,7 +170,9 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("paused", remoteJid);
-      } catch { }
+      } catch (err) {
+        logger.debug({ err: String(err) }, "Failed to send presence paused");
+      }
     }
   });
 
@@ -163,7 +188,9 @@ try {
       void getOrCreateSession(folder);
     }
   }
-} catch { }
+} catch (err) {
+  logger.error({ err: String(err) }, "Failed to auto-restore sessions");
+}
 
 // Initialize default session if specified
 const defaultSessionId = process.env.DEFAULT_SESSION_ID || `user-${CLINIC_ID}`;
@@ -213,7 +240,11 @@ fastify.delete("/api/sessions/:sessionId", async (req, _reply) => {
   const { sessionId } = req.params as { sessionId: string };
   const sess = sessions.get(sessionId);
   if (sess?.sock) {
-    try { await sess.sock.logout(); } catch { }
+    try {
+      await sess.sock.logout();
+    } catch (err) {
+      logger.error({ sessionId, err: String(err) }, "Error logging out session");
+    }
   }
   sessions.delete(sessionId);
   const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));
@@ -251,7 +282,11 @@ fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
 fastify.post("/send", async (req, reply) => {
   let body: any = req.body;
   if (Buffer.isBuffer(body)) {
-    try { body = JSON.parse(body.toString("utf8")); } catch { body = {}; }
+    try {
+      body = JSON.parse(body.toString("utf8"));
+    } catch {
+      body = {};
+    }
   }
   const { to, text, sessionId } = body || {};
   const sid = sessionId || defaultSessionId;

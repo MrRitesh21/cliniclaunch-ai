@@ -30,7 +30,10 @@ export default defineTool({
       return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
     }
     if (!data) {
-      return { content: [{ type: "text", text: `No clinic found for slug "${slug}".` }], isError: true };
+      return {
+        content: [{ type: "text", text: `No clinic found for slug "${slug}".` }],
+        isError: true,
+      };
     }
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],

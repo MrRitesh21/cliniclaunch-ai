@@ -63,7 +63,10 @@ export function SetupChecklistCard({ clinic }: { clinic: ClinicLike | null | und
       key: "profile",
       label: "Complete your clinic profile",
       desc: "Your name, specialization and consultation fee",
-      done: !!clinic.doctor_name?.trim() && !!clinic.specialization?.trim() && (clinic.consultation_fee ?? 0) > 0,
+      done:
+        !!clinic.doctor_name?.trim() &&
+        !!clinic.specialization?.trim() &&
+        (clinic.consultation_fee ?? 0) > 0,
       to: "/dashboard/settings",
       search: { tab: "profile" },
     },
@@ -111,7 +114,9 @@ export function SetupChecklistCard({ clinic }: { clinic: ClinicLike | null | und
         <div className="flex-1 min-w-[200px]">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-display text-lg">Get your clinic live</h3>
-            <Badge variant="secondary">{done} of {steps.length} done</Badge>
+            <Badge variant="secondary">
+              {done} of {steps.length} done
+            </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Finish these steps and patients can book you online — no calls, no back and forth.
@@ -150,7 +155,9 @@ export function SetupChecklistCard({ clinic }: { clinic: ClinicLike | null | und
                     <Copy className="size-3.5" /> Copy link
                   </Button>
                   <a href={bookingUrl} target="_blank" rel="noreferrer" onClick={markShared}>
-                    <Button size="sm" variant="outline"><ExternalLink className="size-3.5" /> Open</Button>
+                    <Button size="sm" variant="outline">
+                      <ExternalLink className="size-3.5" /> Open
+                    </Button>
                   </a>
                 </div>
               </div>

@@ -3,7 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { submitClinicToGoogleServerFn } from "@/lib/gsc-pipeline.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { DEFAULT_SECTION_ORDER, type SectionKey, type SectionVariants } from "@/components/site/types";
+import {
+  DEFAULT_SECTION_ORDER,
+  type SectionKey,
+  type SectionVariants,
+} from "@/components/site/types";
 import { normalizeLeadPopup } from "@/components/clinic/lead-capture";
 import type { EditorState, WebsiteTab, DeviceMode, DesignTokens, PageItem } from "../types";
 
@@ -38,13 +42,55 @@ const defaultDesignTokens: DesignTokens = {
 
 const defaultPages: PageItem[] = [
   { id: "home", title: "Home", slug: "/", isSystem: true, status: "published", order: 1 },
-  { id: "about", title: "About Doctor", slug: "/about", isSystem: true, status: "published", order: 2 },
-  { id: "services", title: "Services", slug: "/services", isSystem: true, status: "published", order: 3 },
-  { id: "doctors", title: "Doctors & Team", slug: "/doctors", isSystem: true, status: "published", order: 4 },
-  { id: "gallery", title: "Facility Gallery", slug: "/gallery", isSystem: true, status: "published", order: 5 },
+  {
+    id: "about",
+    title: "About Doctor",
+    slug: "/about",
+    isSystem: true,
+    status: "published",
+    order: 2,
+  },
+  {
+    id: "services",
+    title: "Services",
+    slug: "/services",
+    isSystem: true,
+    status: "published",
+    order: 3,
+  },
+  {
+    id: "doctors",
+    title: "Doctors & Team",
+    slug: "/doctors",
+    isSystem: true,
+    status: "published",
+    order: 4,
+  },
+  {
+    id: "gallery",
+    title: "Facility Gallery",
+    slug: "/gallery",
+    isSystem: true,
+    status: "published",
+    order: 5,
+  },
   { id: "faq", title: "FAQ", slug: "/faq", isSystem: true, status: "published", order: 6 },
-  { id: "contact", title: "Contact", slug: "/contact", isSystem: true, status: "published", order: 7 },
-  { id: "privacy", title: "Privacy Policy", slug: "/privacy", isSystem: false, status: "draft", order: 8 },
+  {
+    id: "contact",
+    title: "Contact",
+    slug: "/contact",
+    isSystem: true,
+    status: "published",
+    order: 7,
+  },
+  {
+    id: "privacy",
+    title: "Privacy Policy",
+    slug: "/privacy",
+    isSystem: false,
+    status: "draft",
+    order: 8,
+  },
 ];
 
 type WebsiteBuilderContextType = {
@@ -80,7 +126,13 @@ type WebsiteBuilderContextType = {
 
 const WebsiteBuilderContext = createContext<WebsiteBuilderContextType | null>(null);
 
-export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; children: React.ReactNode }) {
+export function WebsiteBuilderProvider({
+  clinic,
+  children,
+}: {
+  clinic: any;
+  children: React.ReactNode;
+}) {
   const submitGscFn = useServerFn(submitClinicToGoogleServerFn);
   const [activeTab, setActiveTab] = useState<WebsiteTab>("overview");
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
@@ -99,17 +151,20 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
   // Initial State derived from clinic DB record
   const initialState = useMemo<EditorState>(() => {
     const c = clinic as Record<string, unknown>;
-    const order = Array.isArray(c?.section_order) && (c.section_order as unknown[]).length
-      ? (c.section_order as SectionKey[])
-      : DEFAULT_SECTION_ORDER;
+    const order =
+      Array.isArray(c?.section_order) && (c.section_order as unknown[]).length
+        ? (c.section_order as SectionKey[])
+        : DEFAULT_SECTION_ORDER;
     const hidden = Array.isArray(c?.section_hidden) ? (c.section_hidden as SectionKey[]) : [];
-    
+
     return {
       template: (c?.template as string) ?? "classic",
       theme_color: (c?.theme_color as string) ?? "#2563eb",
       section_order: order,
       section_hidden: hidden,
-      section_variants: (c?.section_variants && typeof c.section_variants === "object" ? c.section_variants : {}) as SectionVariants,
+      section_variants: (c?.section_variants && typeof c.section_variants === "object"
+        ? c.section_variants
+        : {}) as SectionVariants,
       hero_headline: (c?.hero_headline as string) ?? "",
       hero_subheadline: (c?.hero_subheadline as string) ?? "",
       about_text: (c?.about_text as string) ?? "",
@@ -159,15 +214,18 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
   }, [clinic]);
 
   // Patch function pushes to history stack
-  const patch = useCallback((partial: Partial<EditorState>) => {
-    setHistory((prev) => {
-      const nextState = { ...prev[historyIndex], ...partial };
-      const newHistory = prev.slice(0, historyIndex + 1);
-      return [...newHistory, nextState];
-    });
-    setHistoryIndex((prev) => prev + 1);
-    setDirty(true);
-  }, [historyIndex]);
+  const patch = useCallback(
+    (partial: Partial<EditorState>) => {
+      setHistory((prev) => {
+        const nextState = { ...prev[historyIndex], ...partial };
+        const newHistory = prev.slice(0, historyIndex + 1);
+        return [...newHistory, nextState];
+      });
+      setHistoryIndex((prev) => prev + 1);
+      setDirty(true);
+    },
+    [historyIndex],
+  );
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -268,35 +326,38 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
   }, [clinic, state]);
 
   // Publish toggle
-  const togglePublish = useCallback(async (next: boolean) => {
-    if (!clinic) return;
-    setPublishing(true);
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("clinics")
-      .update({ is_published: next, published_at: next ? now : null })
-      .eq("id", clinic.id);
-    setPublishing(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setIsPublished(next);
-    setPublishedAt(next ? now : null);
-    if (next) {
-      toast.success("Clinic website is now LIVE!", {
-        description: "Your site is accessible to patients worldwide.",
-      });
-      // Fire Google Search Console index request in background
-      try {
-        void submitGscFn({ data: { clinicId: clinic.id } });
-      } catch {}
-    } else {
-      toast.info("Website unpublished", {
-        description: "Your website is currently offline.",
-      });
-    }
-  }, [clinic, submitGscFn]);
+  const togglePublish = useCallback(
+    async (next: boolean) => {
+      if (!clinic) return;
+      setPublishing(true);
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("clinics")
+        .update({ is_published: next, published_at: next ? now : null })
+        .eq("id", clinic.id);
+      setPublishing(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setIsPublished(next);
+      setPublishedAt(next ? now : null);
+      if (next) {
+        toast.success("Clinic website is now LIVE!", {
+          description: "Your site is accessible to patients worldwide.",
+        });
+        // Fire Google Search Console index request in background
+        try {
+          void submitGscFn({ data: { clinicId: clinic.id } });
+        } catch {}
+      } else {
+        toast.info("Website unpublished", {
+          description: "Your website is currently offline.",
+        });
+      }
+    },
+    [clinic, submitGscFn],
+  );
 
   // Trigger GSC indexing
   const triggerGscSubmission = useCallback(async () => {
@@ -314,25 +375,31 @@ export function WebsiteBuilderProvider({ clinic, children }: { clinic: any; chil
   }, [clinic, submitGscFn]);
 
   // Apply Theme Preset
-  const applyThemePreset = useCallback((themeId: string, primaryColor: string) => {
-    patch({
-      theme_color: primaryColor,
-      design_tokens: {
-        ...state.design_tokens,
-        primaryColor,
-      },
-    });
-    toast.success(`Theme palette applied!`, { description: `Accent updated to ${primaryColor}` });
-  }, [patch, state.design_tokens]);
+  const applyThemePreset = useCallback(
+    (themeId: string, primaryColor: string) => {
+      patch({
+        theme_color: primaryColor,
+        design_tokens: {
+          ...state.design_tokens,
+          primaryColor,
+        },
+      });
+      toast.success(`Theme palette applied!`, { description: `Accent updated to ${primaryColor}` });
+    },
+    [patch, state.design_tokens],
+  );
 
   // Apply Template Preset
-  const applyTemplatePreset = useCallback((templateId: string, variants: Required<SectionVariants>) => {
-    patch({
-      template: templateId,
-      section_variants: variants,
-    });
-    toast.success(`Template "${templateId}" applied successfully!`);
-  }, [patch]);
+  const applyTemplatePreset = useCallback(
+    (templateId: string, variants: Required<SectionVariants>) => {
+      patch({
+        template: templateId,
+        section_variants: variants,
+      });
+      toast.success(`Template "${templateId}" applied successfully!`);
+    },
+    [patch],
+  );
 
   // Keyboard Shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Shift+Z)
   useEffect(() => {

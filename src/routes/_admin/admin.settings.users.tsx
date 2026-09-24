@@ -22,7 +22,10 @@ function AdminUsersPage() {
   const createUserFn = useServerFn(createAdminUser);
   const deleteUserFn = useServerFn(deleteAdminUser);
 
-  const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users-list"], queryFn: () => getUsersFn() });
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["admin-users-list"],
+    queryFn: () => getUsersFn(),
+  });
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"super_admin" | "support">("support");
@@ -68,7 +71,9 @@ function AdminUsersPage() {
           <Shield className="size-6 text-primary" />
           Admin Users
         </h1>
-        <p className="text-sm text-muted-foreground">Manage platform admin accounts and permissions. Only Super Admins can add or remove users.</p>
+        <p className="text-sm text-muted-foreground">
+          Manage platform admin accounts and permissions. Only Super Admins can add or remove users.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -76,12 +81,19 @@ function AdminUsersPage() {
         <Card className="p-4 sm:p-6 space-y-4 h-fit">
           <h3 className="text-lg font-semibold text-foreground font-display">Grant Admin Access</h3>
           <p className="text-xs text-muted-foreground -mt-2">
-            The person must already have a ClinicX account. Enter their email to grant a role — they sign in with their existing password.
+            The person must already have a ClinicX account. Enter their email to grant a role — they
+            sign in with their existing password.
           </p>
           <div className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="adminEmail">Account Email</Label>
-              <Input id="adminEmail" type="email" value={email} placeholder="teammate@clinicx.in" onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                id="adminEmail"
+                type="email"
+                value={email}
+                placeholder="teammate@clinicx.in"
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div>
               <Label>Access Role</Label>
@@ -99,7 +111,11 @@ function AdminUsersPage() {
               disabled={!email || createMut.isPending}
               onClick={() => createMut.mutate()}
             >
-              {createMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <Plus className="size-4 mr-1.5" />}
+              {createMut.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-1.5" />
+              ) : (
+                <Plus className="size-4 mr-1.5" />
+              )}
               Grant Access
             </Button>
           </div>
@@ -132,7 +148,9 @@ function AdminUsersPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "Never logged in"}
+                      {u.last_login_at
+                        ? new Date(u.last_login_at).toLocaleString()
+                        : "Never logged in"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button
@@ -141,7 +159,11 @@ function AdminUsersPage() {
                         className="text-rose-600 hover:text-rose-700"
                         disabled={deleteMut.isPending}
                         onClick={() => {
-                          if (confirm(`Are you sure you want to revoke admin permissions for ${u.name}?`)) {
+                          if (
+                            confirm(
+                              `Are you sure you want to revoke admin permissions for ${u.name}?`,
+                            )
+                          ) {
                             deleteMut.mutate(u.id);
                           }
                         }}

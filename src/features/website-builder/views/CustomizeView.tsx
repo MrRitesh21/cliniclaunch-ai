@@ -5,8 +5,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wand2, RefreshCw, Check, Sparkles, Sliders, Type, Palette, Square, Layers, AppWindow } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Wand2,
+  RefreshCw,
+  Check,
+  Sparkles,
+  Sliders,
+  Type,
+  Palette,
+  Square,
+  Layers,
+  AppWindow,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type SubTab = "brand" | "typography" | "colors" | "buttons" | "cards" | "spacing" | "animations";
@@ -35,7 +52,16 @@ export function CustomizeView() {
     toast.success("Harmonious color palette auto-generated!");
   }
 
-  const presetColors = ["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0284c7", "#4f46e5", "#0f172a"];
+  const presetColors = [
+    "#2563eb",
+    "#059669",
+    "#d97706",
+    "#dc2626",
+    "#7c3aed",
+    "#0284c7",
+    "#4f46e5",
+    "#0f172a",
+  ];
 
   return (
     <div className="space-y-6 pb-12">
@@ -43,7 +69,8 @@ export function CustomizeView() {
       <div className="space-y-1">
         <h2 className="text-xl font-bold tracking-tight">Design System & Global Tokens</h2>
         <p className="text-xs text-muted-foreground">
-          Framer-grade global design tokens. Edit typography, brand colors, button styles and responsive spacing.
+          Framer-grade global design tokens. Edit typography, brand colors, button styles and
+          responsive spacing.
         </p>
       </div>
 
@@ -76,9 +103,11 @@ export function CustomizeView() {
           );
         })}
       </div>
-      
+
       <div className="xl:hidden p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl mb-4">
-        <p className="text-[11px] text-blue-700 font-medium">Use a larger screen to see a live preview while you customize.</p>
+        <p className="text-[11px] text-blue-700 font-medium">
+          Use a larger screen to see a live preview while you customize.
+        </p>
       </div>
 
       {/* Tab Panels */}
@@ -140,11 +169,17 @@ export function CustomizeView() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Heading Font Family</Label>
                 <Select value={dt.headingFont} onValueChange={(v) => updateToken("headingFont", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Inter">Inter (Clean Modern)</SelectItem>
-                    <SelectItem value="Plus Jakarta Sans">Plus Jakarta Sans (Contemporary)</SelectItem>
-                    <SelectItem value="Playfair Display">Playfair Display (Luxury Editorial)</SelectItem>
+                    <SelectItem value="Plus Jakarta Sans">
+                      Plus Jakarta Sans (Contemporary)
+                    </SelectItem>
+                    <SelectItem value="Playfair Display">
+                      Playfair Display (Luxury Editorial)
+                    </SelectItem>
                     <SelectItem value="Outfit">Outfit (Geometric)</SelectItem>
                     <SelectItem value="Roboto">Roboto (Classic)</SelectItem>
                   </SelectContent>
@@ -154,7 +189,9 @@ export function CustomizeView() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Body Font Family</Label>
                 <Select value={dt.bodyFont} onValueChange={(v) => updateToken("bodyFont", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Inter">Inter</SelectItem>
                     <SelectItem value="Plus Jakarta Sans">Plus Jakarta Sans</SelectItem>
@@ -168,7 +205,9 @@ export function CustomizeView() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Font Weight</Label>
                 <Select value={dt.fontWeight} onValueChange={(v) => updateToken("fontWeight", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="500">Medium (500)</SelectItem>
                     <SelectItem value="600">SemiBold (600)</SelectItem>
@@ -181,7 +220,9 @@ export function CustomizeView() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Line Height</Label>
                 <Select value={dt.lineHeight} onValueChange={(v) => updateToken("lineHeight", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1.3">Tight (1.3)</SelectItem>
                     <SelectItem value="1.5">Normal (1.5)</SelectItem>
@@ -192,8 +233,13 @@ export function CustomizeView() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Letter Spacing</Label>
-                <Select value={dt.letterSpacing} onValueChange={(v) => updateToken("letterSpacing", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                <Select
+                  value={dt.letterSpacing}
+                  onValueChange={(v) => updateToken("letterSpacing", v)}
+                >
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="tight">Tight</SelectItem>
                     <SelectItem value="normal">Normal</SelectItem>
@@ -211,7 +257,9 @@ export function CustomizeView() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold">Color Palette</h3>
-                <p className="text-xs text-muted-foreground">Select primary brand color or generate palette.</p>
+                <p className="text-xs text-muted-foreground">
+                  Select primary brand color or generate palette.
+                </p>
               </div>
               <Button
                 size="sm"
@@ -235,7 +283,9 @@ export function CustomizeView() {
                       patch({ theme_color: color });
                     }}
                     className={`size-8 rounded-full border-2 transition-transform ${
-                      dt.primaryColor === color ? "scale-110 border-foreground shadow-md" : "border-transparent hover:scale-105"
+                      dt.primaryColor === color
+                        ? "scale-110 border-foreground shadow-md"
+                        : "border-transparent hover:scale-105"
                     }`}
                     style={{ backgroundColor: color }}
                   />
@@ -296,8 +346,13 @@ export function CustomizeView() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Corner Radius</Label>
-                <Select value={dt.buttonRadius} onValueChange={(v: any) => updateToken("buttonRadius", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                <Select
+                  value={dt.buttonRadius}
+                  onValueChange={(v: any) => updateToken("buttonRadius", v)}
+                >
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Square (0px)</SelectItem>
                     <SelectItem value="sm">Small (6px)</SelectItem>
@@ -310,8 +365,13 @@ export function CustomizeView() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Hover Micro-Animation</Label>
-                <Select value={dt.buttonHoverAnim} onValueChange={(v: any) => updateToken("buttonHoverAnim", v)}>
-                  <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+                <Select
+                  value={dt.buttonHoverAnim}
+                  onValueChange={(v: any) => updateToken("buttonHoverAnim", v)}
+                >
+                  <SelectTrigger className="text-xs rounded-xl h-10">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="scale">Scale Up (1.03x)</SelectItem>
                     <SelectItem value="lift">Lift (-2px Translate)</SelectItem>
@@ -330,10 +390,10 @@ export function CustomizeView() {
                   dt.buttonRadius === "full"
                     ? "rounded-full"
                     : dt.buttonRadius === "lg"
-                    ? "rounded-xl"
-                    : dt.buttonRadius === "md"
-                    ? "rounded-lg"
-                    : "rounded-sm"
+                      ? "rounded-xl"
+                      : dt.buttonRadius === "md"
+                        ? "rounded-lg"
+                        : "rounded-sm"
                 }`}
               >
                 Primary Button
@@ -344,10 +404,10 @@ export function CustomizeView() {
                   dt.buttonRadius === "full"
                     ? "rounded-full"
                     : dt.buttonRadius === "lg"
-                    ? "rounded-xl"
-                    : dt.buttonRadius === "md"
-                    ? "rounded-lg"
-                    : "rounded-sm"
+                      ? "rounded-xl"
+                      : dt.buttonRadius === "md"
+                        ? "rounded-lg"
+                        : "rounded-sm"
                 }`}
               >
                 Secondary Button
@@ -363,8 +423,13 @@ export function CustomizeView() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Card Border Radius</Label>
-              <Select value={dt.cardRadius} onValueChange={(v: any) => updateToken("cardRadius", v)}>
-                <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+              <Select
+                value={dt.cardRadius}
+                onValueChange={(v: any) => updateToken("cardRadius", v)}
+              >
+                <SelectTrigger className="text-xs rounded-xl h-10">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="md">Medium (8px)</SelectItem>
                   <SelectItem value="lg">Large (12px)</SelectItem>
@@ -377,7 +442,9 @@ export function CustomizeView() {
             <div className="flex items-center justify-between pt-2">
               <div>
                 <p className="text-xs font-semibold">Glassmorphism Backdrop Blur</p>
-                <p className="text-[11px] text-muted-foreground">Frosted glass effect on card components.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Frosted glass effect on card components.
+                </p>
               </div>
               <Switch
                 checked={dt.cardGlassmorphism}
@@ -394,8 +461,13 @@ export function CustomizeView() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Section Padding Density</Label>
-              <Select value={dt.spacingDensity} onValueChange={(v: any) => updateToken("spacingDensity", v)}>
-                <SelectTrigger className="text-xs rounded-xl h-10"><SelectValue /></SelectTrigger>
+              <Select
+                value={dt.spacingDensity}
+                onValueChange={(v: any) => updateToken("spacingDensity", v)}
+              >
+                <SelectTrigger className="text-xs rounded-xl h-10">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="compact">Compact (32px padding)</SelectItem>
                   <SelectItem value="normal">Normal (48px padding)</SelectItem>
@@ -414,7 +486,9 @@ export function CustomizeView() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold">Enable Smooth Micro-Animations</p>
-                <p className="text-[11px] text-muted-foreground">Subtle scroll reveals and smooth hover transitions.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Subtle scroll reveals and smooth hover transitions.
+                </p>
               </div>
               <Switch
                 checked={dt.animationsEnabled}

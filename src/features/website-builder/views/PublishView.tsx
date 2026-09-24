@@ -4,14 +4,41 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Rocket, History, RotateCcw, Globe, CheckCircle2, ShieldCheck, Clock, ExternalLink } from "lucide-react";
+import {
+  Rocket,
+  History,
+  RotateCcw,
+  Globe,
+  CheckCircle2,
+  ShieldCheck,
+  Clock,
+  ExternalLink,
+} from "lucide-react";
 import type { VersionLog } from "../types";
 import { toast } from "sonner";
 
 const defaultLogs: VersionLog[] = [
-  { id: "v1.4", version: "v1.4 (Current)", publishedAt: "2026-08-01 06:15", note: "Added Cardiology Doctor profile & new hero layout", author: "Dr. Ritesh" },
-  { id: "v1.3", version: "v1.3", publishedAt: "2026-07-28 14:20", note: "Updated services pricing & WhatsApp widget", author: "Dr. Ritesh" },
-  { id: "v1.2", version: "v1.2", publishedAt: "2026-07-15 09:45", note: "Initial clinic launch & SEO Google indexing", author: "Dr. Ritesh" },
+  {
+    id: "v1.4",
+    version: "v1.4 (Current)",
+    publishedAt: "2026-08-01 06:15",
+    note: "Added Cardiology Doctor profile & new hero layout",
+    author: "Dr. Ritesh",
+  },
+  {
+    id: "v1.3",
+    version: "v1.3",
+    publishedAt: "2026-07-28 14:20",
+    note: "Updated services pricing & WhatsApp widget",
+    author: "Dr. Ritesh",
+  },
+  {
+    id: "v1.2",
+    version: "v1.2",
+    publishedAt: "2026-07-15 09:45",
+    note: "Initial clinic launch & SEO Google indexing",
+    author: "Dr. Ritesh",
+  },
 ];
 
 export function PublishView() {
@@ -44,7 +71,8 @@ export function PublishView() {
       <div className="space-y-1">
         <h2 className="text-xl font-bold tracking-tight">Publish Center & Version History</h2>
         <p className="text-xs text-muted-foreground">
-          Deploy site updates to production, manage custom domains, and restore previous snapshot versions.
+          Deploy site updates to production, manage custom domains, and restore previous snapshot
+          versions.
         </p>
       </div>
 
@@ -67,7 +95,15 @@ export function PublishView() {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Live URL: <a href={publicUrl} target="_blank" rel="noreferrer" className="text-primary underline">{publicUrl}</a>
+              Live URL:{" "}
+              <a
+                href={publicUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline"
+              >
+                {publicUrl}
+              </a>
             </p>
           </div>
 
@@ -88,7 +124,9 @@ export function PublishView() {
         </div>
 
         <div className="space-y-1.5 pt-2">
-          <label className="text-xs font-semibold text-muted-foreground">Version Changelog Note (Optional)</label>
+          <label className="text-xs font-semibold text-muted-foreground">
+            Version Changelog Note (Optional)
+          </label>
           <Input
             placeholder="e.g. Updated consultation fees & added new doctors gallery"
             value={publishNote}
@@ -107,7 +145,10 @@ export function PublishView() {
 
         <div className="space-y-3">
           {logs.map((log) => (
-            <div key={log.id} className="p-4 rounded-xl border bg-card/60 flex items-center justify-between gap-4">
+            <div
+              key={log.id}
+              className="p-4 rounded-xl border bg-card/60 flex items-center justify-between gap-4"
+            >
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-xs font-mono">{log.version}</span>

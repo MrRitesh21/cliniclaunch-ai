@@ -2,13 +2,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /** Table row skeletons */
-export function SkeletonRows({ rows = 5, cols = 4, className }: { rows?: number; cols?: number; className?: string }) {
+export function SkeletonRows({
+  rows = 5,
+  cols = 4,
+  className,
+}: {
+  rows?: number;
+  cols?: number;
+  className?: string;
+}) {
   return (
     <div className={cn("space-y-0 divide-y", className)}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex items-center gap-4 p-4">
           {Array.from({ length: cols }).map((_, j) => (
-            <Skeleton key={j} className={`h-4 ${j === 0 ? "w-32" : j === cols - 1 ? "w-16" : "w-24"}`} />
+            <Skeleton
+              key={j}
+              className={`h-4 ${j === 0 ? "w-32" : j === cols - 1 ? "w-16" : "w-24"}`}
+            />
           ))}
         </div>
       ))}
@@ -75,7 +86,13 @@ export function AvatarInitials({ name, className }: { name: string; className?: 
     .join("");
   const color = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
   return (
-    <div className={cn("size-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0", color, className)}>
+    <div
+      className={cn(
+        "size-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0",
+        color,
+        className,
+      )}
+    >
       {initials || "?"}
     </div>
   );

@@ -1,8 +1,3 @@
 {
-  "ignore": [
-    "node_modules/**",
-    "dist/**",
-    ".output/**",
-    "whatsapp-bridge/**"
-  ]
+  "ignore": ["node_modules/**", "dist/**", ".output/**", "whatsapp-bridge/**"]
 }

@@ -12,7 +12,19 @@
       "type": "stat",
       "title": "Up",
       "gridPos": { "h": 4, "w": 3, "x": 0, "y": 0 },
-      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] } },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              }
+            }
+          ]
+        }
+      },
       "targets": [{ "expr": "up{job=\"clinicx-backend\"}", "refId": "A" }]
     },
     {
@@ -26,8 +38,17 @@
       "type": "stat",
       "title": "Version / build",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" }, "textMode": "name" },
-      "targets": [{ "expr": "clinicx_build_info", "legendFormat": "{{version}} · {{build}} · {{commit}}", "refId": "A" }]
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "textMode": "name"
+      },
+      "targets": [
+        {
+          "expr": "clinicx_build_info",
+          "legendFormat": "{{version}} · {{build}} · {{commit}}",
+          "refId": "A"
+        }
+      ]
     },
     {
       "type": "stat",
@@ -39,7 +60,19 @@
       "type": "stat",
       "title": "5xx rate",
       "gridPos": { "h": 4, "w": 3, "x": 15, "y": 0 },
-      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.01 }, { "color": "red", "value": 0.05 }] } } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
       "targets": [{ "expr": "clinicx:http_error_ratio:5xx5m", "refId": "A" }]
     },
     {
@@ -59,8 +92,19 @@
       "type": "timeseries",
       "title": "Request rate by status class",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 12, "stacking": { "mode": "normal" } } } },
-      "targets": [{ "expr": "sum by (status_class) (rate(clinicx_http_requests_total[5m]))", "legendFormat": "{{status_class}}", "refId": "A" }]
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 12, "stacking": { "mode": "normal" } }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (status_class) (rate(clinicx_http_requests_total[5m]))",
+          "legendFormat": "{{status_class}}",
+          "refId": "A"
+        }
+      ]
     },
     {
       "type": "timeseries",
@@ -89,8 +133,16 @@
       "gridPos": { "h": 7, "w": 8, "x": 8, "y": 12 },
       "fieldConfig": { "defaults": { "unit": "bytes" } },
       "targets": [
-        { "expr": "clinicx_nodejs_heap_size_used_bytes", "legendFormat": "heap used", "refId": "A" },
-        { "expr": "clinicx_nodejs_heap_size_total_bytes", "legendFormat": "heap total", "refId": "B" },
+        {
+          "expr": "clinicx_nodejs_heap_size_used_bytes",
+          "legendFormat": "heap used",
+          "refId": "A"
+        },
+        {
+          "expr": "clinicx_nodejs_heap_size_total_bytes",
+          "legendFormat": "heap total",
+          "refId": "B"
+        },
         { "expr": "clinicx_process_resident_memory_bytes", "legendFormat": "rss", "refId": "C" }
       ]
     },
@@ -99,8 +151,16 @@
       "title": "CPU + event-loop lag",
       "gridPos": { "h": 7, "w": 8, "x": 16, "y": 12 },
       "targets": [
-        { "expr": "rate(clinicx_process_cpu_seconds_total[5m])", "legendFormat": "cpu cores", "refId": "A" },
-        { "expr": "clinicx_nodejs_eventloop_lag_p99_seconds", "legendFormat": "loop lag p99 (s)", "refId": "B" }
+        {
+          "expr": "rate(clinicx_process_cpu_seconds_total[5m])",
+          "legendFormat": "cpu cores",
+          "refId": "A"
+        },
+        {
+          "expr": "clinicx_nodejs_eventloop_lag_p99_seconds",
+          "legendFormat": "loop lag p99 (s)",
+          "refId": "B"
+        }
       ]
     },
     {
@@ -108,7 +168,13 @@
       "title": "Slow requests (> threshold)",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 19 },
       "fieldConfig": { "defaults": { "unit": "reqps" } },
-      "targets": [{ "expr": "sum by (route) (rate(clinicx_http_slow_requests_total[5m]))", "legendFormat": "{{route}}", "refId": "A" }]
+      "targets": [
+        {
+          "expr": "sum by (route) (rate(clinicx_http_slow_requests_total[5m]))",
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ]
     },
     {
       "type": "table",
@@ -129,8 +195,19 @@
       "type": "timeseries",
       "title": "HTTP status codes",
       "gridPos": { "h": 7, "w": 24, "x": 0, "y": 26 },
-      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 20 } } },
-      "targets": [{ "expr": "sum by (status) (rate(clinicx_http_requests_total[5m]))", "legendFormat": "{{status}}", "refId": "A" }]
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 20 }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(clinicx_http_requests_total[5m]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }

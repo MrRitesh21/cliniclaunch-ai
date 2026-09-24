@@ -33,9 +33,12 @@ type NextAction = {
 
 /** Maps a failing check to the tab where a doctor can actually fix it. */
 function routeFor(key: string): { target: SeoActionTarget; ctaLabel: string } {
-  if (/title|description|og_|twitter|keywords|desc|meta/.test(key)) return { target: "content", ctaLabel: "Fix in Content & meta" };
-  if (/schema|faq|answers|structured|voice/.test(key)) return { target: "content", ctaLabel: "Generate with AI" };
-  if (/nap|hours|photos|addr|phone|slug|specialty|citation|gbp|reviews/.test(key)) return { target: "local", ctaLabel: "Open Local & Google" };
+  if (/title|description|og_|twitter|keywords|desc|meta/.test(key))
+    return { target: "content", ctaLabel: "Fix in Content & meta" };
+  if (/schema|faq|answers|structured|voice/.test(key))
+    return { target: "content", ctaLabel: "Generate with AI" };
+  if (/nap|hours|photos|addr|phone|slug|specialty|citation|gbp|reviews/.test(key))
+    return { target: "local", ctaLabel: "Open Local & Google" };
   if (/keyword|rank/.test(key)) return { target: "rankings", ctaLabel: "Open Rankings" };
   return { target: "advanced", ctaLabel: "Open Advanced" };
 }
@@ -58,47 +61,82 @@ export function SeoStartHere({
 
   const [busy, setBusy] = useState(false);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
-  const [live, setLive] = useState<{ ok: boolean; url: string; status: number; score: number; checks: LiveCheck[]; error?: string } | null>(null);
-  const [audit, setAudit] = useState<{ overall: number; findings: Record<string, Finding[]> } | null>(null);
+  const [live, setLive] = useState<{
+    ok: boolean;
+    url: string;
+    status: number;
+    score: number;
+    checks: LiveCheck[];
+    error?: string;
+  } | null>(null);
+  const [audit, setAudit] = useState<{
+    overall: number;
+    findings: Record<string, Finding[]>;
+  } | null>(null);
 
-  const publicUrl = getPublicClinicUrl(clinic, typeof window !== "undefined" ? window.location.origin : "");
+  const publicUrl = getPublicClinicUrl(
+    clinic,
+    typeof window !== "undefined" ? window.location.origin : "",
+  );
 
-  const run = useCallback(async (notify: boolean) => {
-    if (!clinic?.id) return;
-    setBusy(true);
-    try {
-      const [l, a] = await Promise.all([
-        runVerify({ data: { clinic_id: clinic.id } }),
-        runAudit({ data: { clinic_id: clinic.id } }),
-      ]);
-      setLive(l as any);
-      setAudit(a as any);
-      setCheckedAt(new Date());
-      if (notify) toast.success(`Checked your live website — score ${l.score}/100`);
-    } catch (e: any) {
-      if (notify) toast.error(e?.message ?? "Could not check your website right now");
-    } finally {
-      setBusy(false);
-    }
-  }, [clinic?.id, runVerify, runAudit]);
+  const run = useCallback(
+    async (notify: boolean) => {
+      if (!clinic?.id) return;
+      setBusy(true);
+      try {
+        const [l, a] = await Promise.all([
+          runVerify({ data: { clinic_id: clinic.id } }),
+          runAudit({ data: { clinic_id: clinic.id } }),
+        ]);
+        setLive(l as any);
+        setAudit(a as any);
+        setCheckedAt(new Date());
+        if (notify) toast.success(`Checked your live website — score ${l.score}/100`);
+      } catch (e: any) {
+        if (notify) toast.error(e?.message ?? "Could not check your website right now");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [clinic?.id, runVerify, runAudit],
+  );
 
-  useEffect(() => { void run(false); }, [run]);
+  useEffect(() => {
+    void run(false);
+  }, [run]);
 
   // Real score = what Google can actually see on the live page.
   const score = live?.score ?? null;
-  const scoreColor = score === null ? "text-muted-foreground" : score >= 80 ? "text-emerald-500" : score >= 50 ? "text-amber-500" : "text-rose-500";
+  const scoreColor =
+    score === null
+      ? "text-muted-foreground"
+      : score >= 80
+        ? "text-emerald-500"
+        : score >= 50
+          ? "text-amber-500"
+          : "text-rose-500";
 
   const actions: NextAction[] = [];
   for (const c of live?.checks ?? []) {
     if (c.passed) continue;
     const r = routeFor(c.key);
-    actions.push({ id: `live:${c.key}`, title: c.label, hint: "Google cannot see this on your live page yet.", ...r });
+    actions.push({
+      id: `live:${c.key}`,
+      title: c.label,
+      hint: "Google cannot see this on your live page yet.",
+      ...r,
+    });
   }
   for (const [, list] of Object.entries(audit?.findings ?? {})) {
     for (const f of list) {
       if (f.passed) continue;
       const r = routeFor(f.key);
-      actions.push({ id: `audit:${f.key}`, title: f.label, hint: f.fix ?? "Complete this to improve your ranking.", ...r });
+      actions.push({
+        id: `audit:${f.key}`,
+        title: f.label,
+        hint: f.fix ?? "Complete this to improve your ranking.",
+        ...r,
+      });
     }
   }
   const topActions = actions.slice(0, 6);
@@ -112,10 +150,23 @@ export function SeoStartHere({
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="relative size-32 shrink-0">
             <svg viewBox="0 0 120 120" className="size-full -rotate-90">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/20" />
+              <circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="8"
+                className="text-muted/20"
+              />
               {score !== null && (
                 <circle
-                  cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8"
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="8"
                   className={scoreColor}
                   strokeDasharray={`${(score / 100) * 327} 327`}
                   strokeLinecap="round"
@@ -138,28 +189,48 @@ export function SeoStartHere({
           <div className="flex-1 min-w-0 text-center sm:text-left space-y-2">
             <div className="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
               <h2 className="font-display text-2xl">Your live Google score</h2>
-              <Badge variant="outline" className="text-[10px]">Measured on your real page</Badge>
+              <Badge variant="outline" className="text-[10px]">
+                Measured on your real page
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              We open your public website exactly like Google does and check what it can actually read — title,
-              description, share preview and medical schema. No estimates.
+              We open your public website exactly like Google does and check what it can actually
+              read — title, description, share preview and medical schema. No estimates.
             </p>
             <p className="text-xs text-muted-foreground truncate">
               {publicUrl}
               {checkedAt && <> · last checked {checkedAt.toLocaleTimeString()}</>}
             </p>
             <div className="flex items-center gap-4 justify-center sm:justify-start flex-wrap pt-1 text-sm">
-              <span className="flex items-center gap-1.5"><Target className="size-4 text-blue-500" /><b>{keywordCount}</b> <span className="text-muted-foreground">keywords tracked</span></span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="size-4 text-emerald-500" /><b>{keywordsTop10}</b> <span className="text-muted-foreground">in Google top 10</span></span>
-              <span className="flex items-center gap-1.5"><AlertTriangle className="size-4 text-amber-500" /><b>{openTaskCount}</b> <span className="text-muted-foreground">checklist items left</span></span>
+              <span className="flex items-center gap-1.5">
+                <Target className="size-4 text-blue-500" />
+                <b>{keywordCount}</b>{" "}
+                <span className="text-muted-foreground">keywords tracked</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="size-4 text-emerald-500" />
+                <b>{keywordsTop10}</b>{" "}
+                <span className="text-muted-foreground">in Google top 10</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="size-4 text-amber-500" />
+                <b>{openTaskCount}</b>{" "}
+                <span className="text-muted-foreground">checklist items left</span>
+              </span>
             </div>
             <div className="flex items-center gap-2 justify-center sm:justify-start pt-2 flex-wrap">
               <Button size="sm" onClick={() => void run(true)} disabled={busy}>
-                {busy ? <Loader2 className="size-4 animate-spin mr-2" /> : <RefreshCw className="size-4 mr-2" />}
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="size-4 mr-2" />
+                )}
                 Re-check my website
               </Button>
               <a href={publicUrl} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="outline"><ExternalLink className="size-4 mr-2" /> View my website</Button>
+                <Button size="sm" variant="outline">
+                  <ExternalLink className="size-4 mr-2" /> View my website
+                </Button>
               </a>
             </div>
           </div>
@@ -172,11 +243,14 @@ export function SeoStartHere({
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">Google cannot open your website yet</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {live?.error ? live.error : `The page replied with status ${live?.status}.`} Publish your website first — SEO only works on a live page.
+              {live?.error ? live.error : `The page replied with status ${live?.status}.`} Publish
+              your website first — SEO only works on a live page.
             </p>
           </div>
           <Link to="/dashboard/website">
-            <Button size="sm" variant="outline">Open Website builder</Button>
+            <Button size="sm" variant="outline">
+              Open Website builder
+            </Button>
           </Link>
         </Card>
       )}
@@ -186,7 +260,9 @@ export function SeoStartHere({
         <div className="flex items-center justify-between mb-4 gap-2">
           <div>
             <h3 className="font-display text-lg">Do these next</h3>
-            <p className="text-xs text-muted-foreground">Ordered by impact. Each button takes you straight to the fix.</p>
+            <p className="text-xs text-muted-foreground">
+              Ordered by impact. Each button takes you straight to the fix.
+            </p>
           </div>
           {busy && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
         </div>
@@ -194,19 +270,30 @@ export function SeoStartHere({
         {!busy && topActions.length === 0 && (
           <div className="p-4 rounded-lg border bg-emerald-500/5 flex items-center gap-3">
             <CheckCircle2 className="size-5 text-emerald-500" />
-            <p className="text-sm">Everything we can check automatically is in place. Keep tracking keywords and publishing content.</p>
+            <p className="text-sm">
+              Everything we can check automatically is in place. Keep tracking keywords and
+              publishing content.
+            </p>
           </div>
         )}
 
         <div className="space-y-2">
           {topActions.map((a) => (
-            <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition">
+            <div
+              key={a.id}
+              className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition"
+            >
               <AlertTriangle className="size-4 mt-0.5 text-amber-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{a.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{a.hint}</p>
               </div>
-              <Button size="sm" variant="outline" className="shrink-0" onClick={() => onGoTo(a.target)}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => onGoTo(a.target)}
+              >
                 <Wand2 className="size-3.5 mr-1.5" /> {a.ctaLabel}
               </Button>
             </div>

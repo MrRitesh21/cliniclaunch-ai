@@ -34,13 +34,15 @@ export function NotificationSettingsCard() {
           <Bell className="size-4" /> Push notifications
         </CardTitle>
         <CardDescription>
-          Get appointment, booking and review alerts even when ClinicX is closed. Enable it once per device.
+          Get appointment, booking and review alerts even when ClinicX is closed. Enable it once per
+          device.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!push.supported && (
           <p className="text-sm text-muted-foreground">
-            This browser doesn't support web push. Everything else in ClinicX keeps working normally.
+            This browser doesn't support web push. Everything else in ClinicX keeps working
+            normally.
           </p>
         )}
 
@@ -52,8 +54,8 @@ export function NotificationSettingsCard() {
 
         {push.supported && push.configured && !push.serviceWorkerReady && (
           <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-            Notifications work in the published app. Open ClinicX in your browser (or install it) and try again — the
-            editor preview intentionally runs without a service worker.
+            Notifications work in the published app. Open ClinicX in your browser (or install it)
+            and try again — the editor preview intentionally runs without a service worker.
           </p>
         )}
 
@@ -63,8 +65,9 @@ export function NotificationSettingsCard() {
               <Share className="size-4" /> iPhone / iPad
             </p>
             <p className="mt-1 text-muted-foreground">
-              Apple only delivers background notifications to an installed app. Tap <strong>Share</strong> →{" "}
-              <strong>Add to Home Screen</strong>, then open ClinicX from the new icon and enable notifications there.
+              Apple only delivers background notifications to an installed app. Tap{" "}
+              <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open ClinicX from
+              the new icon and enable notifications there.
             </p>
           </div>
         )}
@@ -73,7 +76,11 @@ export function NotificationSettingsCard() {
           {push.subscribed ? (
             <>
               <Button variant="outline" onClick={() => void push.disable()} disabled={push.busy}>
-                {push.busy ? <Loader2 className="size-4 mr-2 animate-spin" /> : <BellOff className="size-4 mr-2" />}
+                {push.busy ? (
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                ) : (
+                  <BellOff className="size-4 mr-2" />
+                )}
                 Turn off on this device
               </Button>
               <Button
@@ -81,7 +88,9 @@ export function NotificationSettingsCard() {
                 onClick={async () => {
                   const res = await push.test();
                   toast[res.sent > 0 ? "success" : "error"](
-                    res.sent > 0 ? `Test sent to ${res.sent} device(s)` : "No device received the test",
+                    res.sent > 0
+                      ? `Test sent to ${res.sent} device(s)`
+                      : "No device received the test",
                   );
                 }}
               >
@@ -91,9 +100,15 @@ export function NotificationSettingsCard() {
           ) : (
             <Button
               onClick={handleEnable}
-              disabled={push.busy || !push.supported || !push.configured || !push.serviceWorkerReady}
+              disabled={
+                push.busy || !push.supported || !push.configured || !push.serviceWorkerReady
+              }
             >
-              {push.busy ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Bell className="size-4 mr-2" />}
+              {push.busy ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <Bell className="size-4 mr-2" />
+              )}
               Enable on this device
             </Button>
           )}
@@ -104,7 +119,9 @@ export function NotificationSettingsCard() {
 
         {push.devices.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your devices</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Your devices
+            </p>
             <ul className="divide-y rounded-lg border">
               {push.devices.map((d) => (
                 <li key={d.id} className="flex items-center gap-3 p-3">
@@ -114,7 +131,9 @@ export function NotificationSettingsCard() {
                     <Smartphone className="size-4 text-muted-foreground shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{d.device_label || "Unknown device"}</p>
+                    <p className="truncate text-sm font-medium">
+                      {d.device_label || "Unknown device"}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Added {new Date(d.created_at).toLocaleDateString()}
                     </p>

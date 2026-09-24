@@ -54,7 +54,7 @@ function WebsiteBuilderMainContent() {
             {activeTab === "domain" && <DomainView />}
             {activeTab === "settings" && <SettingsView />}
           </main>
-          
+
           {showSplitPreview && (
             <div className="hidden xl:flex w-[450px] border-l border-border/40 bg-muted/30 p-6 flex-col shrink-0">
               <div

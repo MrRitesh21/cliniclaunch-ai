@@ -4,12 +4,8 @@
  * from main HTTP request loops to ensure instant UI responsiveness (<50ms).
  */
 
-export type JobType = 
-  | "SEND_WHATSAPP"
-  | "SEND_EMAIL"
-  | "GENERATE_FINANCE_PDF"
-  | "SYNC_LOYALTY"
-  | "SEO_AI_GENERATE";
+export type JobType =
+  "SEND_WHATSAPP" | "SEND_EMAIL" | "GENERATE_FINANCE_PDF" | "SYNC_LOYALTY" | "SEO_AI_GENERATE";
 
 export type QueueJob<T = Record<string, unknown>> = {
   id: string;
@@ -67,13 +63,19 @@ class MicroTaskQueue {
       job.attempts += 1;
       await handler(job.payload);
     } catch (err) {
-      console.error(`[Queue] Error processing job ${job.id} (attempt ${job.attempts}/${job.maxAttempts}):`, err);
+      console.error(
+        `[Queue] Error processing job ${job.id} (attempt ${job.attempts}/${job.maxAttempts}):`,
+        err,
+      );
       if (job.attempts < job.maxAttempts) {
         // Exponential backoff re-queue
-        setTimeout(() => {
-          this.queue.push(job);
-          this.processNext();
-        }, Math.pow(2, job.attempts) * 1000);
+        setTimeout(
+          () => {
+            this.queue.push(job);
+            this.processNext();
+          },
+          Math.pow(2, job.attempts) * 1000,
+        );
       }
     } finally {
       this.processing = false;

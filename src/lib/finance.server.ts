@@ -31,13 +31,25 @@ export const REVENUE_SOURCES = [
   "invoice",
 ] as const;
 
-export const PAYMENT_MODES = ["cash", "upi", "card", "insurance", "tpa", "bank_transfer", "wallet"] as const;
+export const PAYMENT_MODES = [
+  "cash",
+  "upi",
+  "card",
+  "insurance",
+  "tpa",
+  "bank_transfer",
+  "wallet",
+] as const;
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "openai/gpt-5.6-sol";
 
 export function vendorKey(vendor: string): string {
-  return vendor.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return vendor
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 /** Keyword fallback so categorisation always works, even without AI credits. */
@@ -48,7 +60,10 @@ const KEYWORD_RULES: Array<[RegExp, ExpenseCategory]> = [
   [/water|aqua|jal/i, "Water"],
   [/internet|broadband|wifi|airtel|jio|bsnl|act fibernet/i, "Internet"],
   [/equipment|machine|monitor|autoclave|ultrasound|x-?ray|ecg/i, "Equipment"],
-  [/pharm|medical store|medico|drug|tablet|injection|syrup|apollo|medplus|netmeds/i, "Medicine Purchase"],
+  [
+    /pharm|medical store|medico|drug|tablet|injection|syrup|apollo|medplus|netmeds/i,
+    "Medicine Purchase",
+  ],
   [/glove|syringe|mask|cotton|bandage|gauze|sanitiz|consumable|disposab/i, "Consumables"],
   [/market|ad(s|vert)|google ads|meta|facebook|instagram|seo|flyer|banner/i, "Marketing"],
   [/repair|service|maintenance|plumb|carpent|paint/i, "Repairs"],
@@ -62,7 +77,10 @@ export function keywordCategory(text: string): ExpenseCategory | null {
 
 function safeJson<T>(raw: string): T | null {
   if (!raw) return null;
-  const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const cleaned = raw
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const start = cleaned.search(/[[{]/);
   if (start === -1) return null;
   const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
@@ -74,11 +92,14 @@ function safeJson<T>(raw: string): T | null {
 }
 
 async function gateway(messages: unknown[]): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY;
+  const key =
+    process.env.LOVABLE_API_KEY || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY;
   if (!key) {
     throw new Error("FREE_FALLBACK_TRIGGERED");
   }
-  const url = process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1/chat/completions" : AI_URL;
+  const url = process.env.OPENROUTER_API_KEY
+    ? "https://openrouter.ai/api/v1/chat/completions"
+    : AI_URL;
   const authHeader: Record<string, string> = process.env.OPENROUTER_API_KEY
     ? { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` }
     : { "Lovable-API-Key": key };
@@ -86,7 +107,10 @@ async function gateway(messages: unknown[]): Promise<string> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader },
-    body: JSON.stringify({ model: process.env.OPENROUTER_API_KEY ? "google/gemini-2.5-flash:free" : AI_MODEL, messages }),
+    body: JSON.stringify({
+      model: process.env.OPENROUTER_API_KEY ? "google/gemini-2.5-flash:free" : AI_MODEL,
+      messages,
+    }),
   });
   if (!res.ok) throw new Error(`AI request failed (${res.status})`);
   const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -107,9 +131,10 @@ function freeOcrScan(fileDataUrl: string, mime: string): ScannedBill {
 
   // 1. Amount Extraction (search for ₹, INR, RS, Total, Net, Amount)
   let amount: number | null = null;
-  const amountMatch = text.match(/(?:total|amount|net|rs|₹|grand total)\s*[:=]?\s*₹?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
-                      text.match(/₹\s*([\d,]+(?:\.\d{1,2})?)/) ||
-                      fileDataUrl.match(/(?:bill|inv|receipt|amt|rs|₹)[_\-]?([\d]+)/i);
+  const amountMatch =
+    text.match(/(?:total|amount|net|rs|₹|grand total)\s*[:=]?\s*₹?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+    text.match(/₹\s*([\d,]+(?:\.\d{1,2})?)/) ||
+    fileDataUrl.match(/(?:bill|inv|receipt|amt|rs|₹)[_\-]?([\d]+)/i);
   if (amountMatch && amountMatch[1]) {
     const parsedAmt = parseFloat(amountMatch[1].replace(/,/g, ""));
     if (parsedAmt > 0 && parsedAmt < 1000000) amount = parsedAmt;
@@ -126,10 +151,26 @@ function freeOcrScan(fileDataUrl: string, mime: string): ScannedBill {
   // 3. Vendor Extraction
   let vendor: string | null = null;
   const VENDORS = [
-    "Apollo Pharmacy", "Apollo Medical", "MedPlus", "Netmeds", "PharmEasy",
-    "Airtel", "Jio Fiber", "BSNL", "ACT Fibernet", "Tata Power", "BSES Discom",
-    "Reliance Smart", "Torrent Pharma", "Sun Pharma", "Cipla", "Lupin",
-    "Max Healthcare", "Fortis", "Dr Lal PathLabs", "Thyrocare"
+    "Apollo Pharmacy",
+    "Apollo Medical",
+    "MedPlus",
+    "Netmeds",
+    "PharmEasy",
+    "Airtel",
+    "Jio Fiber",
+    "BSNL",
+    "ACT Fibernet",
+    "Tata Power",
+    "BSES Discom",
+    "Reliance Smart",
+    "Torrent Pharma",
+    "Sun Pharma",
+    "Cipla",
+    "Lupin",
+    "Max Healthcare",
+    "Fortis",
+    "Dr Lal PathLabs",
+    "Thyrocare",
   ];
   for (const v of VENDORS) {
     if (new RegExp(v, "i").test(text) || new RegExp(v.split(" ")[0], "i").test(fileDataUrl)) {
@@ -140,7 +181,9 @@ function freeOcrScan(fileDataUrl: string, mime: string): ScannedBill {
 
   // 4. Date Extraction
   let date: string | null = null;
-  const dateMatch = text.match(/\b(\d{4}-\d{2}-\d{2})\b/) || text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+  const dateMatch =
+    text.match(/\b(\d{4}-\d{2}-\d{2})\b/) ||
+    text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
   if (dateMatch) {
     if (dateMatch[1] && dateMatch[1].length === 4) {
       date = dateMatch[1];
@@ -193,20 +236,27 @@ export async function aiScanBill(fileDataUrl: string, mime: string): Promise<Sca
           `"category":"<one of: ${EXPENSE_CATEGORIES.join(", ")}>"|null,"notes":string|null}. ` +
           `amount is the grand total in rupees. Keep notes under 120 characters.`,
       },
-      { role: "user", content: [{ type: "text", text: "Extract the expense details from this bill." }, block] },
+      {
+        role: "user",
+        content: [{ type: "text", text: "Extract the expense details from this bill." }, block],
+      },
     ]);
 
     const parsed = safeJson<ScannedBill>(raw);
     if (parsed) {
       const category =
-        EXPENSE_CATEGORIES.find((c) => c.toLowerCase() === String(parsed.category ?? "").toLowerCase()) ??
-        keywordCategory(`${parsed.vendor ?? ""} ${parsed.notes ?? ""}`);
+        EXPENSE_CATEGORIES.find(
+          (c) => c.toLowerCase() === String(parsed.category ?? "").toLowerCase(),
+        ) ?? keywordCategory(`${parsed.vendor ?? ""} ${parsed.notes ?? ""}`);
 
       return {
         vendor: parsed.vendor ?? null,
         amount: Number.isFinite(Number(parsed.amount)) ? Number(parsed.amount) : null,
         gst_amount: Number.isFinite(Number(parsed.gst_amount)) ? Number(parsed.gst_amount) : null,
-        date: typeof parsed.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date) ? parsed.date : null,
+        date:
+          typeof parsed.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)
+            ? parsed.date
+            : null,
         category: category ?? null,
         notes: parsed.notes ? String(parsed.notes).slice(0, 200) : null,
       };
@@ -219,9 +269,9 @@ export async function aiScanBill(fileDataUrl: string, mime: string): Promise<Sca
 }
 
 /** Narrative insights over pre-aggregated finance figures. */
-export async function aiInsights(summary: Record<string, unknown>): Promise<
-  Array<{ title: string; detail: string; severity: "info" | "good" | "warning" }>
-> {
+export async function aiInsights(
+  summary: Record<string, unknown>,
+): Promise<Array<{ title: string; detail: string; severity: "info" | "good" | "warning" }>> {
   const raw = await gateway([
     {
       role: "system",
@@ -233,7 +283,9 @@ export async function aiInsights(summary: Record<string, unknown>): Promise<
     },
     { role: "user", content: JSON.stringify(summary) },
   ]);
-  const parsed = safeJson<{ insights: Array<{ title: string; detail: string; severity: string }> }>(raw);
+  const parsed = safeJson<{ insights: Array<{ title: string; detail: string; severity: string }> }>(
+    raw,
+  );
   return (parsed?.insights ?? []).slice(0, 6).map((i) => ({
     title: String(i.title ?? "").slice(0, 80),
     detail: String(i.detail ?? "").slice(0, 240),

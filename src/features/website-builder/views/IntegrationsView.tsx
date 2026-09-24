@@ -4,18 +4,78 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plug, CheckCircle2, MessageCircle, MapPin, Video, Calendar, Search, Globe } from "lucide-react";
+import {
+  Plug,
+  CheckCircle2,
+  MessageCircle,
+  MapPin,
+  Video,
+  Calendar,
+  Search,
+  Globe,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { IntegrationItem } from "../types";
 
 const defaultIntegrations: IntegrationItem[] = [
-  { id: "ga4", name: "Google Analytics 4", category: "Analytics", iconName: "Globe", connected: true, configKey: "G-XXXXXXX", description: "Track patient web visitors and booking conversions." },
-  { id: "gsc", name: "Google Search Console", category: "SEO", iconName: "Search", connected: true, description: "Automatic index submissions and search ranking performance." },
-  { id: "pixel", name: "Meta Pixel (Facebook)", category: "Ads", iconName: "Plug", connected: false, description: "Track Facebook & Instagram ad campaign conversions." },
-  { id: "whatsapp", name: "WhatsApp Click-to-Chat", category: "Communication", iconName: "MessageCircle", connected: true, configKey: "+919876543210", description: "Allow patients to initiate instant WhatsApp chats from website." },
-  { id: "maps", name: "Google Maps Location", category: "Widget", iconName: "MapPin", connected: true, description: "Embed interactive map with turn-by-turn directions to clinic." },
-  { id: "youtube", name: "YouTube Video Embed", category: "Media", iconName: "Video", connected: false, description: "Showcase clinic virtual tour or doctor informational videos." },
-  { id: "calendly", name: "Calendly Widget", category: "Booking", iconName: "Calendar", connected: false, description: "Optional secondary calendar scheduling integration." },
+  {
+    id: "ga4",
+    name: "Google Analytics 4",
+    category: "Analytics",
+    iconName: "Globe",
+    connected: true,
+    configKey: "G-XXXXXXX",
+    description: "Track patient web visitors and booking conversions.",
+  },
+  {
+    id: "gsc",
+    name: "Google Search Console",
+    category: "SEO",
+    iconName: "Search",
+    connected: true,
+    description: "Automatic index submissions and search ranking performance.",
+  },
+  {
+    id: "pixel",
+    name: "Meta Pixel (Facebook)",
+    category: "Ads",
+    iconName: "Plug",
+    connected: false,
+    description: "Track Facebook & Instagram ad campaign conversions.",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp Click-to-Chat",
+    category: "Communication",
+    iconName: "MessageCircle",
+    connected: true,
+    configKey: "+919876543210",
+    description: "Allow patients to initiate instant WhatsApp chats from website.",
+  },
+  {
+    id: "maps",
+    name: "Google Maps Location",
+    category: "Widget",
+    iconName: "MapPin",
+    connected: true,
+    description: "Embed interactive map with turn-by-turn directions to clinic.",
+  },
+  {
+    id: "youtube",
+    name: "YouTube Video Embed",
+    category: "Media",
+    iconName: "Video",
+    connected: false,
+    description: "Showcase clinic virtual tour or doctor informational videos.",
+  },
+  {
+    id: "calendly",
+    name: "Calendly Widget",
+    category: "Booking",
+    iconName: "Calendar",
+    connected: false,
+    description: "Optional secondary calendar scheduling integration.",
+  },
 ];
 
 export function IntegrationsView() {
@@ -32,14 +92,16 @@ export function IntegrationsView() {
           return { ...item, connected: next };
         }
         return item;
-      })
+      }),
     );
   }
 
   function handleSaveConfig() {
     if (!configItem) return;
     setItems((prev) =>
-      prev.map((i) => (i.id === configItem.id ? { ...i, connected: true, configKey: keyInput } : i))
+      prev.map((i) =>
+        i.id === configItem.id ? { ...i, connected: true, configKey: keyInput } : i,
+      ),
     );
     setConfigItem(null);
     toast.success("Integration settings saved!");
@@ -51,7 +113,8 @@ export function IntegrationsView() {
       <div className="space-y-1">
         <h2 className="text-xl font-bold tracking-tight">Integrations & Third-Party Widgets</h2>
         <p className="text-xs text-muted-foreground">
-          Connect analytics trackers, Meta pixel, WhatsApp chat widgets, and Google Maps to your clinic site.
+          Connect analytics trackers, Meta pixel, WhatsApp chat widgets, and Google Maps to your
+          clinic site.
         </p>
       </div>
 
@@ -82,7 +145,9 @@ export function IntegrationsView() {
 
                 <div className="space-y-1">
                   <h3 className="font-bold text-sm leading-tight">{item.name}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {item.description}
+                  </p>
                 </div>
 
                 {item.configKey && (

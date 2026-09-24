@@ -17,16 +17,16 @@ The SaaS application integrates `@fingerprintjs/fingerprintjs` for browser and h
 ## 🛠️ Service Usage Example
 
 ```typescript
-import { fingerprintService } from './services/fingerprint/fingerprint.service';
+import { fingerprintService } from "./services/fingerprint/fingerprint.service";
 
 async function handleLogin(credentials: LoginCredentials) {
   // 1. Collect device fingerprint (cached or freshly generated)
   const fingerprint = await fingerprintService.getFingerprint();
 
   // 2. Submit to backend verify-login API
-  const response = await fetch('/api/devices/verify-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await fetch("/api/devices/verify-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...credentials,
       visitorId: fingerprint.visitorId,
@@ -41,7 +41,7 @@ async function handleLogin(credentials: LoginCredentials) {
 
   const result = await response.json();
   if (!result.allowed) {
-    alert('Login blocked: ' + result.message);
+    alert("Login blocked: " + result.message);
   }
 }
 ```

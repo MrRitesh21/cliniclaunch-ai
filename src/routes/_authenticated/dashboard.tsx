@@ -1,4 +1,11 @@
-import { createFileRoute, useNavigate, Link, Outlet, useRouterState, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  Link,
+  Outlet,
+  useRouterState,
+  useRouter,
+} from "@tanstack/react-router";
 import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -16,12 +23,44 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import {
-  Stethoscope, LayoutDashboard, Calendar, Users, Settings, LogOut, ExternalLink,
-  MessageSquare, Blocks, CreditCard, Palette, MessageCircle, Star, Megaphone, Box,
-  QrCode, Video, BarChart3, Receipt, FileText, FlaskConical, Menu,
-  ListOrdered, Pill, HeartPulse,
-  ChevronRight, Crown, Search, Sun, Moon, Monitor, Lock, AlertTriangle, Sparkles, Download,
-  PanelLeftClose, PanelLeftOpen, UserPlus,
+  Stethoscope,
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Settings,
+  LogOut,
+  ExternalLink,
+  MessageSquare,
+  Blocks,
+  CreditCard,
+  Palette,
+  MessageCircle,
+  Star,
+  Megaphone,
+  Box,
+  QrCode,
+  Video,
+  BarChart3,
+  Receipt,
+  FileText,
+  FlaskConical,
+  Menu,
+  ListOrdered,
+  Pill,
+  HeartPulse,
+  ChevronRight,
+  Crown,
+  Search,
+  Sun,
+  Moon,
+  Monitor,
+  Lock,
+  AlertTriangle,
+  Sparkles,
+  Download,
+  PanelLeftClose,
+  PanelLeftOpen,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
@@ -43,7 +82,8 @@ function getImpersonationCookie() {
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   validateSearch: (search: Record<string, unknown>): { change_password?: boolean } => ({
-    change_password: search.change_password === "true" || search.change_password === true ? true : undefined,
+    change_password:
+      search.change_password === "true" || search.change_password === true ? true : undefined,
   }),
   component: DashboardLayout,
 });
@@ -58,14 +98,19 @@ function SubscriptionExpiredView() {
           <Lock className="size-8" />
         </div>
       </div>
-      <h2 className="font-display text-2xl font-bold tracking-tight mb-2 text-foreground">Subscription Expired</h2>
+      <h2 className="font-display text-2xl font-bold tracking-tight mb-2 text-foreground">
+        Subscription Expired
+      </h2>
       <p className="text-sm text-muted-foreground max-w-md mb-8 leading-relaxed">
-        Your access to ClinicX has been suspended because your subscription has expired. 
-        Please renew your subscription to restore your clinic dashboard, booking website, and automation apps.
+        Your access to ClinicX has been suspended because your subscription has expired. Please
+        renew your subscription to restore your clinic dashboard, booking website, and automation
+        apps.
       </p>
-      
+
       <div className="grid gap-4 w-full max-w-sm border rounded-xl p-5 bg-card/50 backdrop-blur-sm mb-8 text-left border-border">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Locked Features Include:</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+          Locked Features Include:
+        </h3>
         <div className="space-y-3">
           <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
             <div className="size-2 rounded-full bg-destructive shrink-0" />
@@ -87,7 +132,7 @@ function SubscriptionExpiredView() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center">
-        <Button 
+        <Button
           onClick={() => navigate({ to: "/dashboard/billing" })}
           className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-md py-5"
         >
@@ -109,14 +154,17 @@ export function useClinic() {
 
     if (!user) {
       setClinic(null);
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }
 
     // Paint the last known clinic instantly, then revalidate in the background.
-    const cachedClinic = readCache<Clinic>(`clinic:${getImpersonationCookie() || user.id}`, 24 * 60 * 60 * 1000);
+    const cachedClinic = readCache<Clinic>(
+      `clinic:${getImpersonationCookie() || user.id}`,
+      24 * 60 * 60 * 1000,
+    );
     if (cachedClinic) setClinic(cachedClinic);
-
-
 
     (async () => {
       const targetId = getImpersonationCookie() || user.id;
@@ -141,7 +189,7 @@ export function useClinic() {
           await supabase.from("organization_members" as any).insert({
             organization_id: orgId,
             user_id: targetId,
-            role: "owner"
+            role: "owner",
           });
         }
       }
@@ -179,7 +227,7 @@ export function useClinic() {
             clinic_name: "My Medical Clinic",
             doctor_name: user.email?.split("@")[0] ?? "Dr. Doctor",
             slug: cleanSlug,
-            is_published: true
+            is_published: true,
           })
           .select("*")
           .maybeSingle();
@@ -189,12 +237,21 @@ export function useClinic() {
       if (clinicData) writeCache(`clinic:${targetId}`, clinicData);
       if (active) setClinic(clinicData);
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [isReady, user]);
   return clinic;
 }
 
-type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; module?: string; locked?: boolean };
+type NavItem = {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  module?: string;
+  locked?: boolean;
+};
 
 // Grouped nav sections
 const NAV_SECTIONS = [
@@ -202,7 +259,12 @@ const NAV_SECTIONS = [
     label: "Core",
     items: [
       { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-      { to: "/dashboard/appointments", label: "Appointments", icon: Calendar, module: "appointments" },
+      {
+        to: "/dashboard/appointments",
+        label: "Appointments",
+        icon: Calendar,
+        module: "appointments",
+      },
       { to: "/dashboard/qr", label: "QR & Walk-ins", icon: QrCode, module: "qr_appointment" },
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered, module: "queue" },
       { to: "/dashboard/leads", label: "Leads", icon: MessageSquare },
@@ -236,7 +298,12 @@ const NAV_SECTIONS = [
       { to: "/dashboard/consult", label: "Consult", icon: Video, module: "consultation" },
       { to: "/dashboard/assistant", label: "AI Assistant", icon: Sparkles, module: "ai_assistant" },
       { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
-      { to: "/dashboard/prescriptions", label: "Prescriptions", icon: FileText, module: "prescriptions" },
+      {
+        to: "/dashboard/prescriptions",
+        label: "Prescriptions",
+        icon: FileText,
+        module: "prescriptions",
+      },
       { to: "/dashboard/lab", label: "Lab", icon: FlaskConical, module: "lab" },
     ] as NavItem[],
   },
@@ -254,31 +321,49 @@ const NAV_SECTIONS = [
 const ALL_NAV_FLAT: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items as unknown as NavItem[]);
 
 // Primary tabs shown in mobile bottom bar
-const MOBILE_PRIMARY = ["/dashboard", "/dashboard/appointments", "/dashboard/patients", "/dashboard/leads", "/dashboard/modules"];
+const MOBILE_PRIMARY = [
+  "/dashboard",
+  "/dashboard/appointments",
+  "/dashboard/patients",
+  "/dashboard/leads",
+  "/dashboard/modules",
+];
 
-const NavLink = memo(({ item, active, isCollapsed }: { item: NavItem; active: boolean; isCollapsed?: boolean }) => {
-  return (
-    <Link
-      key={item.to}
-      to={item.to}
-      title={item.label}
-      preload="intent"
-      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-all ${
-        active
-          ? "nav-active font-medium"
-          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-      }`}
-    >
-      <item.icon className="size-4 shrink-0" />
-      <span className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}>{item.label}</span>
-      {item.locked ? (
-        <Lock className={`size-3 ml-auto shrink-0 opacity-50 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`} />
-      ) : (
-        active && <ChevronRight className={`size-3 ml-auto opacity-50 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`} />
-      )}
-    </Link>
-  );
-});
+const NavLink = memo(
+  ({ item, active, isCollapsed }: { item: NavItem; active: boolean; isCollapsed?: boolean }) => {
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        title={item.label}
+        preload="intent"
+        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-all ${
+          active
+            ? "nav-active font-medium"
+            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+        }`}
+      >
+        <item.icon className="size-4 shrink-0" />
+        <span
+          className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+        >
+          {item.label}
+        </span>
+        {item.locked ? (
+          <Lock
+            className={`size-3 ml-auto shrink-0 opacity-50 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+          />
+        ) : (
+          active && (
+            <ChevronRight
+              className={`size-3 ml-auto opacity-50 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+            />
+          )
+        )}
+      </Link>
+    );
+  },
+);
 
 NavLink.displayName = "NavLink";
 
@@ -314,14 +399,20 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
-      <div className={`h-14 flex items-center border-b shrink-0 px-3 ${isCollapsed ? "justify-center group-hover/mainsidebar:justify-between" : "justify-between"}`}>
+      <div
+        className={`h-14 flex items-center border-b shrink-0 px-3 ${isCollapsed ? "justify-center group-hover/mainsidebar:justify-between" : "justify-between"}`}
+      >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="size-7 rounded-md border border-border/20 grid place-items-center overflow-hidden shrink-0">
             <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
           </div>
           <div className={isCollapsed ? "hidden group-hover/mainsidebar:block" : "block"}>
-            <span className="font-display text-sm font-semibold leading-tight block truncate">{platformName}</span>
-            <span className="text-[9px] text-muted-foreground leading-none block">Practice Management</span>
+            <span className="font-display text-sm font-semibold leading-tight block truncate">
+              {platformName}
+            </span>
+            <span className="text-[9px] text-muted-foreground leading-none block">
+              Practice Management
+            </span>
           </div>
         </div>
 
@@ -331,7 +422,11 @@ function SidebarContent({
             className={`p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors hidden md:block ${isCollapsed ? "hidden group-hover/mainsidebar:block ml-auto" : "ml-auto"}`}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            {isCollapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
           </button>
         )}
       </div>
@@ -343,12 +438,19 @@ function SidebarContent({
           if (visible.length === 0) return null;
           return (
             <div key={section.label} onClick={onNavigate}>
-              <p className={`text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2 mb-1 ${isCollapsed ? "hidden group-hover/mainsidebar:block" : "block"}`}>
+              <p
+                className={`text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2 mb-1 ${isCollapsed ? "hidden group-hover/mainsidebar:block" : "block"}`}
+              >
                 {section.label}
               </p>
               <div className="space-y-0.5">
                 {visible.map((item) => (
-                  <NavLink key={item.to} item={item as NavItem} active={isActive(item.to, (item as NavItem).exact)} isCollapsed={isCollapsed} />
+                  <NavLink
+                    key={item.to}
+                    item={item as NavItem}
+                    active={isActive(item.to, (item as NavItem).exact)}
+                    isCollapsed={isCollapsed}
+                  />
                 ))}
               </div>
             </div>
@@ -368,19 +470,29 @@ function SidebarContent({
             <div className="size-8 rounded-full bg-primary/10 text-primary grid place-items-center text-xs font-bold shrink-0">
               {(profile?.full_name || clinic?.doctor_name)?.[0]?.toUpperCase() ?? "U"}
             </div>
-            <div className={`min-w-0 flex-1 ${isCollapsed ? "hidden group-hover/mainsidebar:block" : "block"}`}>
+            <div
+              className={`min-w-0 flex-1 ${isCollapsed ? "hidden group-hover/mainsidebar:block" : "block"}`}
+            >
               <p className="text-xs font-medium truncate text-foreground">
                 {profile?.full_name || clinic?.doctor_name || "User"}
               </p>
               <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1 capitalize">
                 {role === "owner" ? (
-                  <><Crown className="size-2.5" /> Owner</>
+                  <>
+                    <Crown className="size-2.5" /> Owner
+                  </>
                 ) : role === "admin" ? (
-                  <><Crown className="size-2.5" /> Admin</>
+                  <>
+                    <Crown className="size-2.5" /> Admin
+                  </>
                 ) : role === "doctor" ? (
-                  <><Crown className="size-2.5" /> Doctor</>
+                  <>
+                    <Crown className="size-2.5" /> Doctor
+                  </>
                 ) : (
-                  <><Users className="size-2.5" /> Staff</>
+                  <>
+                    <Users className="size-2.5" /> Staff
+                  </>
                 )}
               </p>
             </div>
@@ -396,13 +508,19 @@ function SidebarContent({
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
           >
             <ExternalLink className="size-4 shrink-0" />
-            <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>View public site</span>
+            <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>
+              View public site
+            </span>
           </a>
         )}
-        
+
         {/* Theme Segment Selector */}
         <div className="flex items-center gap-1 px-2 py-1 text-xs w-full justify-between">
-          <span className={`text-muted-foreground font-medium text-xs ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}>Theme</span>
+          <span
+            className={`text-muted-foreground font-medium text-xs ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+          >
+            Theme
+          </span>
           <div className="flex items-center gap-0.5 p-0.5 rounded-md border border-border/40 ml-auto">
             <button
               type="button"
@@ -430,7 +548,9 @@ function SidebarContent({
             className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-primary rounded-md hover:bg-muted transition-colors"
           >
             <Download className="size-4 shrink-0" />
-            <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>Install App</span>
+            <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>
+              Install App
+            </span>
           </button>
         )}
 
@@ -440,7 +560,9 @@ function SidebarContent({
           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <LogOut className="size-4 shrink-0" />
-          <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>Sign out</span>
+          <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>
+            Sign out
+          </span>
         </button>
       </div>
     </div>
@@ -457,12 +579,12 @@ function DashboardLayout() {
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const { change_password } = Route.useSearch();
- 
+
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
     queryFn: () => checkMaintenanceStatus(),
   });
- 
+
   const platformName = mStatus?.platform_name || "ClinicX";
 
   useEffect(() => {
@@ -485,7 +607,9 @@ function DashboardLayout() {
         if (data) setProfile(data);
       });
   }, [user]);
-  const publicClinicUrl = clinic?.slug ? getPublicClinicUrl(clinic, typeof window !== "undefined" ? window.location.origin : "") : "";
+  const publicClinicUrl = clinic?.slug
+    ? getPublicClinicUrl(clinic, typeof window !== "undefined" ? window.location.origin : "")
+    : "";
   const impersonatedDoctorId = typeof window !== "undefined" ? getImpersonationCookie() : null;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(() => {
@@ -510,9 +634,30 @@ function DashboardLayout() {
     // Default fallback permissions
     const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
       owner: ["*"],
-      admin: ["overview", "appointments", "qr_appointment", "leads", "patients", "website_builder", "whatsapp", "reviews", "seo", "doctors", "staff", "finance"],
+      admin: [
+        "overview",
+        "appointments",
+        "qr_appointment",
+        "leads",
+        "patients",
+        "website_builder",
+        "whatsapp",
+        "reviews",
+        "seo",
+        "doctors",
+        "staff",
+        "finance",
+      ],
       doctor: ["overview", "appointments", "qr_appointment", "patients"],
-      staff: ["overview", "appointments", "qr_appointment", "leads", "patients", "whatsapp", "reviews"],
+      staff: [
+        "overview",
+        "appointments",
+        "qr_appointment",
+        "leads",
+        "patients",
+        "whatsapp",
+        "reviews",
+      ],
     };
 
     let permissions = DEFAULT_ROLE_PERMISSIONS;
@@ -564,7 +709,10 @@ function DashboardLayout() {
   // at a time during idle time, and only once per session.
   useEffect(() => {
     if (!org || !filteredNav) return;
-    const targets = filteredNav.flatMap((s) => s.items).map((i) => i.to).filter((to) => !preloadedRoutes.has(to));
+    const targets = filteredNav
+      .flatMap((s) => s.items)
+      .map((i) => i.to)
+      .filter((to) => !preloadedRoutes.has(to));
     if (targets.length === 0) return;
 
     let cancelled = false;
@@ -578,7 +726,10 @@ function DashboardLayout() {
       const to = targets.shift();
       if (!to) return;
       preloadedRoutes.add(to);
-      void router.preloadRoute({ to }).catch(() => { }).then(() => idle(next));
+      void router
+        .preloadRoute({ to })
+        .catch(() => {})
+        .then(() => idle(next));
     };
     idle(next);
 
@@ -587,15 +738,34 @@ function DashboardLayout() {
     };
   }, [org, filteredNav, router]);
 
-
-
   // Flat list for mobile
   const flatNav = useMemo(() => {
     const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
       owner: ["*"],
-      admin: ["overview", "appointments", "qr_appointment", "leads", "patients", "website_builder", "whatsapp", "reviews", "seo", "doctors", "staff", "finance"],
+      admin: [
+        "overview",
+        "appointments",
+        "qr_appointment",
+        "leads",
+        "patients",
+        "website_builder",
+        "whatsapp",
+        "reviews",
+        "seo",
+        "doctors",
+        "staff",
+        "finance",
+      ],
       doctor: ["overview", "appointments", "qr_appointment", "patients"],
-      staff: ["overview", "appointments", "qr_appointment", "leads", "patients", "whatsapp", "reviews"],
+      staff: [
+        "overview",
+        "appointments",
+        "qr_appointment",
+        "leads",
+        "patients",
+        "whatsapp",
+        "reviews",
+      ],
     };
 
     let permissions = DEFAULT_ROLE_PERMISSIONS;
@@ -611,28 +781,31 @@ function DashboardLayout() {
     const userRole = role || "staff";
     const userPermissions = permissions[userRole] || DEFAULT_ROLE_PERMISSIONS[userRole] || [];
 
-    return ALL_NAV_FLAT
-      .map((n) => ({
-        ...n,
-        locked: !!n.module && org !== undefined && !planModuleIds.includes(n.module),
-      }))
-      .filter((n) => {
-        // Check module
-        if (n.module && org === undefined) return false;
-        if (n.module && !n.locked && !installedModuleIds.includes(n.module)) {
-          return false;
-        }
-        if (userRole === "owner") return true;
+    return ALL_NAV_FLAT.map((n) => ({
+      ...n,
+      locked: !!n.module && org !== undefined && !planModuleIds.includes(n.module),
+    })).filter((n) => {
+      // Check module
+      if (n.module && org === undefined) return false;
+      if (n.module && !n.locked && !installedModuleIds.includes(n.module)) {
+        return false;
+      }
+      if (userRole === "owner") return true;
 
-        const pathKey = n.to.replace("/dashboard", "").replace("/", "");
-        const permissionKey = pathKey === "" ? "overview" : pathKey;
+      const pathKey = n.to.replace("/dashboard", "").replace("/", "");
+      const permissionKey = pathKey === "" ? "overview" : pathKey;
 
-        return userPermissions.includes(permissionKey) || userPermissions.includes("*");
-      });
+      return userPermissions.includes(permissionKey) || userPermissions.includes("*");
+    });
   }, [installedModuleIds, planModuleIds, org, role]);
 
   // Show 4 primary items in the bottom tab bar, and make the 5th item "More"
-  const primaryMobileKeys = ["/dashboard", "/dashboard/appointments", "/dashboard/patients", "/dashboard/leads"];
+  const primaryMobileKeys = [
+    "/dashboard",
+    "/dashboard/appointments",
+    "/dashboard/patients",
+    "/dashboard/leads",
+  ];
   const primaryMobileNav = flatNav.filter((n) => primaryMobileKeys.includes(n.to));
   const moreMobileNav = flatNav.filter((n) => !primaryMobileKeys.includes(n.to));
   const totalTabsCount = Math.min(primaryMobileNav.length, 4) + 1;
@@ -680,7 +853,8 @@ function DashboardLayout() {
     window.location.href = "/login";
   }
 
-  const isActive = (to: string, exact?: boolean) => exact ? pathname === to : pathname.startsWith(to);
+  const isActive = (to: string, exact?: boolean) =>
+    exact ? pathname === to : pathname.startsWith(to);
 
   const isDemoUser = user?.email?.toLowerCase() === "demo@digiwil.com";
 
@@ -693,11 +867,14 @@ function DashboardLayout() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-surface">
       {isDemoUser && (
-        <div className={`bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}>
+        <div
+          className={`bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}
+        >
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="size-4 shrink-0 text-amber-300 animate-pulse" />
             <span className="truncate">
-              <strong>⚡ Live Demo Mode</strong> — Exploring Dr. Sarah Jenkins' workspace. Real database active!
+              <strong>⚡ Live Demo Mode</strong> — Exploring Dr. Sarah Jenkins' workspace. Real
+              database active!
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -721,11 +898,17 @@ function DashboardLayout() {
       )}
 
       {impersonatedDoctorId && clinic && (
-        <div className={`bg-rose-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-center sm:text-left z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}>
-          <span>⚠️ Admin Impersonation Mode: Viewing dashboard as Dr. <strong>{clinic.doctor_name}</strong> ({clinic.clinic_name})</span>
+        <div
+          className={`bg-rose-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-center sm:text-left z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}
+        >
+          <span>
+            ⚠️ Admin Impersonation Mode: Viewing dashboard as Dr.{" "}
+            <strong>{clinic.doctor_name}</strong> ({clinic.clinic_name})
+          </span>
           <button
             onClick={() => {
-              document.cookie = "impersonating_doctor_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+              document.cookie =
+                "impersonating_doctor_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
               window.location.href = "/admin/doctors";
             }}
             className="underline font-bold hover:text-rose-100 flex items-center gap-1 self-center sm:self-auto"
@@ -758,8 +941,10 @@ function DashboardLayout() {
             onToggleCollapse={toggleMainSidebar}
           />
         </aside>
- 
-        <main className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-16" : "md:pl-60"}`}>
+
+        <main
+          className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-16" : "md:pl-60"}`}
+        >
           {/* Mobile top bar */}
           <div className="md:hidden h-14 border-b flex items-center justify-between px-4 bg-background/95 backdrop-blur sticky top-0 z-20">
             <Link to="/dashboard" className="flex items-center gap-2">
@@ -817,14 +1002,24 @@ function DashboardLayout() {
                 </kbd>
               </button>
             </div>
-            
+
             <div className="flex items-center gap-3 shrink-0">
               <NotificationInbox />
-              <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => navigate({ to: "/dashboard/appointments" })}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden lg:flex"
+                onClick={() => navigate({ to: "/dashboard/appointments" })}
+              >
                 <Calendar className="size-4 mr-2" />
                 New Appointment
               </Button>
-              <Button variant="default" size="sm" className="hidden lg:flex" onClick={() => navigate({ to: "/dashboard/patients" })}>
+              <Button
+                variant="default"
+                size="sm"
+                className="hidden lg:flex"
+                onClick={() => navigate({ to: "/dashboard/patients" })}
+              >
                 <UserPlus className="size-4 mr-2" />
                 New Patient
               </Button>
@@ -833,7 +1028,9 @@ function DashboardLayout() {
 
           <OfflineBanner />
 
-          <div className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-4 sm:px-5 lg:px-6 pt-4 pb-24 md:pb-6"} page-enter`}>
+          <div
+            className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-4 sm:px-5 lg:px-6 pt-4 pb-24 md:pb-6"} page-enter`}
+          >
             {isSubscriptionExpired && pathname !== "/dashboard/billing" ? (
               <SubscriptionExpiredView />
             ) : (
@@ -846,7 +1043,7 @@ function DashboardLayout() {
             className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur"
             style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom))" }}
           >
-            <div 
+            <div
               className="grid"
               style={{ gridTemplateColumns: `repeat(${totalTabsCount}, minmax(0, 1fr))` }}
             >
@@ -860,14 +1057,16 @@ function DashboardLayout() {
                       active ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
-                    <div className={`grid place-items-center size-8 rounded-xl transition-all ${active ? "bg-primary/10 scale-110" : ""}`}>
+                    <div
+                      className={`grid place-items-center size-8 rounded-xl transition-all ${active ? "bg-primary/10 scale-110" : ""}`}
+                    >
                       <n.icon className="size-4.5" />
                     </div>
                     <span className="text-[10px] font-medium leading-none">{n.label}</span>
                   </Link>
                 );
               })}
-              
+
               {/* 5th Tab: More / Menu Trigger */}
               <button
                 type="button"
@@ -876,7 +1075,9 @@ function DashboardLayout() {
                   mobileMenuOpen ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-                <div className={`grid place-items-center size-8 rounded-xl transition-all ${mobileMenuOpen ? "bg-primary/10 scale-110" : ""}`}>
+                <div
+                  className={`grid place-items-center size-8 rounded-xl transition-all ${mobileMenuOpen ? "bg-primary/10 scale-110" : ""}`}
+                >
                   <Menu className="size-4.5" />
                 </div>
                 <span className="text-[10px] font-medium leading-none">More</span>
@@ -982,10 +1183,12 @@ function ProfileForm({
       {forceChangePassword && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 p-3.5 rounded-xl text-xs space-y-1">
           <p className="font-semibold flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
-            <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" /> Password Update Required
+            <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />{" "}
+            Password Update Required
           </p>
           <p className="text-muted-foreground leading-relaxed">
-            You logged in using a temporary password. Please create a new password below to secure your account.
+            You logged in using a temporary password. Please create a new password below to secure
+            your account.
           </p>
         </div>
       )}
@@ -996,7 +1199,12 @@ function ProfileForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-role">Role</Label>
-          <Input id="profile-role" value={role || "Staff"} disabled className="bg-muted capitalize font-semibold" />
+          <Input
+            id="profile-role"
+            value={role || "Staff"}
+            disabled
+            className="bg-muted capitalize font-semibold"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-name">Full Name</Label>

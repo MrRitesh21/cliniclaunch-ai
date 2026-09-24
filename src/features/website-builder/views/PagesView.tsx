@@ -5,7 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Layers, Plus, Copy, Pencil, Trash2, Globe, EyeOff, Lock, CheckCircle2 } from "lucide-react";
+import {
+  Layers,
+  Plus,
+  Copy,
+  Pencil,
+  Trash2,
+  Globe,
+  EyeOff,
+  Lock,
+  CheckCircle2,
+} from "lucide-react";
 import type { PageItem } from "../types";
 import { toast } from "sonner";
 
@@ -24,7 +34,9 @@ export function PagesView() {
 
   function handleAddPage() {
     if (!newPageTitle.trim()) return toast.error("Page title is required");
-    const slug = newPageSlug.trim() ? newPageSlug.trim() : `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
+    const slug = newPageSlug.trim()
+      ? newPageSlug.trim()
+      : `/${newPageTitle.toLowerCase().replace(/\s+/g, "-")}`;
     const newPg: PageItem = {
       id: `custom_${Date.now()}`,
       title: newPageTitle.trim(),
@@ -92,7 +104,11 @@ export function PagesView() {
             Manage clinic website pages, routes, draft statuses, and custom landing pages.
           </p>
         </div>
-        <Button size="sm" onClick={() => setIsAddOpen(true)} className="h-9 rounded-xl font-semibold text-xs gap-1.5">
+        <Button
+          size="sm"
+          onClick={() => setIsAddOpen(true)}
+          className="h-9 rounded-xl font-semibold text-xs gap-1.5"
+        >
           <Plus className="size-4" /> Add Custom Page
         </Button>
       </div>
@@ -114,7 +130,10 @@ export function PagesView() {
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm truncate">{pg.title}</p>
                     {pg.isSystem && (
-                      <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-muted-foreground border-border/60">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] py-0 px-1.5 text-muted-foreground border-border/60"
+                      >
                         System
                       </Badge>
                     )}

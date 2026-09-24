@@ -1,7 +1,7 @@
-import { app } from './app';
-import { config } from './config';
-import { LogService } from './logging';
-import http from 'http';
+import { app } from "./app";
+import { config } from "./config";
+import { LogService } from "./logging";
+import http from "http";
 
 const server = http.createServer(app);
 
@@ -19,16 +19,16 @@ server.listen(config.port, () => {
 const gracefulShutdown = (signal: string) => {
   LogService.warn(`Received ${signal}. Initiating graceful shutdown...`);
   server.close(() => {
-    LogService.info('HTTP server closed. Exiting process.');
+    LogService.info("HTTP server closed. Exiting process.");
     process.exit(0);
   });
 
   // Force shutdown after 10 seconds timeout
   setTimeout(() => {
-    LogService.error('Forceful shutdown triggered after timeout.');
+    LogService.error("Forceful shutdown triggered after timeout.");
     process.exit(1);
   }, 10000);
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

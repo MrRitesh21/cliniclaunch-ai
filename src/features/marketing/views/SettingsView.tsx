@@ -22,9 +22,12 @@ export function SettingsView() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Marketing Settings & Compliance</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">
+          Marketing Settings & Compliance
+        </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Configure sender identities, WhatsApp business numbers, email domains & patient consent rules.
+          Configure sender identities, WhatsApp business numbers, email domains & patient consent
+          rules.
         </p>
       </div>
 
@@ -38,12 +41,20 @@ export function SettingsView() {
           <div className="space-y-3 text-xs">
             <div className="space-y-1.5">
               <Label className="text-xs">Brand Sender Name</Label>
-              <Input value={senderName} onChange={(e) => setSenderName(e.target.value)} className="h-9 text-xs" />
+              <Input
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+                className="h-9 text-xs"
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs">Verified Domain Email</Label>
-              <Input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} className="h-9 text-xs font-mono" />
+              <Input
+                value={senderEmail}
+                onChange={(e) => setSenderEmail(e.target.value)}
+                className="h-9 text-xs font-mono"
+              />
             </div>
           </div>
         </Card>
@@ -57,13 +68,21 @@ export function SettingsView() {
           <div className="space-y-3 text-xs">
             <div className="space-y-1.5">
               <Label className="text-xs">WhatsApp Business Number</Label>
-              <Input value={waPhone} onChange={(e) => setWaPhone(e.target.value)} className="h-9 text-xs font-mono" />
+              <Input
+                value={waPhone}
+                onChange={(e) => setWaPhone(e.target.value)}
+                className="h-9 text-xs font-mono"
+              />
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t">
               <div>
-                <span className="font-semibold text-xs text-foreground block">Auto Opt-Out Footer</span>
-                <span className="text-[11px] text-muted-foreground">Attach "Reply STOP to unsubscribe" to broadcast messages</span>
+                <span className="font-semibold text-xs text-foreground block">
+                  Auto Opt-Out Footer
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Attach "Reply STOP to unsubscribe" to broadcast messages
+                </span>
               </div>
               <Switch checked={optOutFooter} onCheckedChange={setOptOutFooter} />
             </div>

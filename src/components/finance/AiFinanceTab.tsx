@@ -24,9 +24,27 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getBudgetsAndGoals, getFinanceIntelligence, getWhatsAppSummary, saveBudget, saveGoal } from "@/lib/finance.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getBudgetsAndGoals,
+  getFinanceIntelligence,
+  getWhatsAppSummary,
+  saveBudget,
+  saveGoal,
+} from "@/lib/finance.functions";
 import { inr, pretty } from "@/lib/finance-format";
 
 export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: string | null }) {
@@ -36,7 +54,9 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
 
   const [budgetCategory, setBudgetCategory] = useState("Marketing");
   const [budgetLimit, setBudgetLimit] = useState("");
-  const [goalType, setGoalType] = useState<"revenue" | "profit" | "patients" | "consultations" | "avg_bill">("revenue");
+  const [goalType, setGoalType] = useState<
+    "revenue" | "profit" | "patients" | "consultations" | "avg_bill"
+  >("revenue");
   const [goalTarget, setGoalTarget] = useState("");
   const [goalLabel, setGoalLabel] = useState("");
 
@@ -51,7 +71,11 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
     queryFn: () => getIntel({ data: { organizationId: orgId, clinicId } }),
   });
 
-  const { data: bgData, isLoading: bgLoading, refetch: refetchBG } = useQuery({
+  const {
+    data: bgData,
+    isLoading: bgLoading,
+    refetch: refetchBG,
+  } = useQuery({
     queryKey: ["budgets-goals", orgId],
     queryFn: () => getBG({ data: { organizationId: orgId } }),
   });
@@ -112,7 +136,8 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
     }
   }
 
-  if (intelLoading || bgLoading || !intelData || !bgData) return <Skeleton className="h-96 w-full" />;
+  if (intelLoading || bgLoading || !intelData || !bgData)
+    return <Skeleton className="h-96 w-full" />;
 
   const { insights, forecast, tax } = intelData;
   const { budgets, goals } = bgData;
@@ -167,13 +192,21 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-sm text-foreground">{item.title}</h3>
                       <Badge
-                        variant={item.severity === "good" ? "secondary" : item.severity === "warning" ? "destructive" : "outline"}
+                        variant={
+                          item.severity === "good"
+                            ? "secondary"
+                            : item.severity === "warning"
+                              ? "destructive"
+                              : "outline"
+                        }
                         className="text-[10px] capitalize"
                       >
                         {item.severity}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{item.detail}</p>
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                      {item.detail}
+                    </p>
                   </div>
                 </Card>
               ))
@@ -199,22 +232,36 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-xl border bg-muted/30">
                 <span className="text-xs text-muted-foreground font-medium">PREDICTED REVENUE</span>
-                <div className="font-display text-2xl mt-1 text-emerald-600">{inr(forecast.revenue.predicted)}</div>
+                <div className="font-display text-2xl mt-1 text-emerald-600">
+                  {inr(forecast.revenue.predicted)}
+                </div>
               </div>
 
               <div className="p-4 rounded-xl border bg-muted/30">
-                <span className="text-xs text-muted-foreground font-medium">PREDICTED EXPENSES</span>
-                <div className="font-display text-2xl mt-1 text-rose-600">{inr(forecast.expense.predicted)}</div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  PREDICTED EXPENSES
+                </span>
+                <div className="font-display text-2xl mt-1 text-rose-600">
+                  {inr(forecast.expense.predicted)}
+                </div>
               </div>
 
               <div className="p-4 rounded-xl border bg-muted/30">
-                <span className="text-xs text-muted-foreground font-medium">PROJECTED NET PROFIT</span>
-                <div className="font-display text-2xl mt-1 text-primary">{inr(forecast.profit)}</div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  PROJECTED NET PROFIT
+                </span>
+                <div className="font-display text-2xl mt-1 text-primary">
+                  {inr(forecast.profit)}
+                </div>
               </div>
 
               <div className="p-4 rounded-xl border bg-muted/30">
-                <span className="text-xs text-muted-foreground font-medium">EXPECTED PATIENT VOLUME</span>
-                <div className="font-display text-2xl mt-1">{forecast.patients.predicted} Patients</div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  EXPECTED PATIENT VOLUME
+                </span>
+                <div className="font-display text-2xl mt-1">
+                  {forecast.patients.predicted} Patients
+                </div>
               </div>
             </div>
           </Card>
@@ -232,14 +279,17 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {goals.length === 0 ? (
               <Card className="p-8 text-center text-sm text-muted-foreground col-span-2">
-                No financial goals set. Click &quot;New Goal&quot; to set monthly targets for revenue, profit, or patient volume.
+                No financial goals set. Click &quot;New Goal&quot; to set monthly targets for
+                revenue, profit, or patient volume.
               </Card>
             ) : (
               goals.map((g: any) => (
                 <Card key={g.id} className="p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold text-sm capitalize">{g.label || pretty(g.goal_type)} Target</h4>
+                      <h4 className="font-semibold text-sm capitalize">
+                        {g.label || pretty(g.goal_type)} Target
+                      </h4>
                       <p className="text-xs text-muted-foreground capitalize">{g.period} target</p>
                     </div>
                     <Badge variant={g.pct >= 100 ? "default" : "secondary"}>{g.pct}%</Badge>
@@ -247,8 +297,22 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs font-mono">
-                      <span>Current: {g.goal_type.includes("revenue") || g.goal_type.includes("profit") || g.goal_type.includes("bill") ? inr(g.current_value) : g.current_value}</span>
-                      <span>Target: {g.goal_type.includes("revenue") || g.goal_type.includes("profit") || g.goal_type.includes("bill") ? inr(g.target_value) : g.target_value}</span>
+                      <span>
+                        Current:{" "}
+                        {g.goal_type.includes("revenue") ||
+                        g.goal_type.includes("profit") ||
+                        g.goal_type.includes("bill")
+                          ? inr(g.current_value)
+                          : g.current_value}
+                      </span>
+                      <span>
+                        Target:{" "}
+                        {g.goal_type.includes("revenue") ||
+                        g.goal_type.includes("profit") ||
+                        g.goal_type.includes("bill")
+                          ? inr(g.target_value)
+                          : g.target_value}
+                      </span>
                     </div>
                     <Progress value={g.pct} className="h-2" />
                   </div>
@@ -270,11 +334,15 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {budgets.length === 0 ? (
               <Card className="p-8 text-center text-sm text-muted-foreground col-span-2">
-                No category budgets configured yet. Click &quot;Set Category Budget&quot; to track monthly spending limits.
+                No category budgets configured yet. Click &quot;Set Category Budget&quot; to track
+                monthly spending limits.
               </Card>
             ) : (
               budgets.map((b: any) => (
-                <Card key={b.id} className={`p-5 space-y-3 ${b.pct >= 100 ? "border-rose-500/50 bg-rose-500/5" : ""}`}>
+                <Card
+                  key={b.id}
+                  className={`p-5 space-y-3 ${b.pct >= 100 ? "border-rose-500/50 bg-rose-500/5" : ""}`}
+                >
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm">{b.category}</h4>
                     {b.pct >= 100 ? (
@@ -313,7 +381,8 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
             </DialogHeader>
             <div className="space-y-3 my-2">
               <p className="text-xs text-muted-foreground">
-                This report is automatically formatted for clinic owners and doctors. You can copy or send directly.
+                This report is automatically formatted for clinic owners and doctors. You can copy
+                or send directly.
               </p>
               <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border">
                 {waData.text}
@@ -323,7 +392,10 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
               <Button variant="outline" onClick={copyWaSummary}>
                 <Copy className="size-4 mr-1.5" /> Copy Text
               </Button>
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={sendWhatsAppDirect}>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={sendWhatsAppDirect}
+              >
                 <Send className="size-4 mr-1.5" /> Send via WhatsApp
               </Button>
             </DialogFooter>
@@ -342,21 +414,46 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
               <div>
                 <Label>Expense Category</Label>
                 <Select value={budgetCategory} onValueChange={setBudgetCategory}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {["Marketing", "Staff Salary", "Rent", "Electricity", "Water", "Internet", "Equipment", "Medicine Purchase", "Consumables", "Repairs", "Travel", "Miscellaneous"].map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    {[
+                      "Marketing",
+                      "Staff Salary",
+                      "Rent",
+                      "Electricity",
+                      "Water",
+                      "Internet",
+                      "Equipment",
+                      "Medicine Purchase",
+                      "Consumables",
+                      "Repairs",
+                      "Travel",
+                      "Miscellaneous",
+                    ].map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Monthly Limit (₹)</Label>
-                <Input type="number" min={0} value={budgetLimit} onChange={(e) => setBudgetLimit(e.target.value)} placeholder="e.g. 50000" />
+                <Input
+                  type="number"
+                  min={0}
+                  value={budgetLimit}
+                  onChange={(e) => setBudgetLimit(e.target.value)}
+                  placeholder="e.g. 50000"
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setBudgetModalOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setBudgetModalOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleSaveBudget}>Save Budget</Button>
             </DialogFooter>
           </DialogContent>
@@ -374,7 +471,9 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
               <div>
                 <Label>Goal Type</Label>
                 <Select value={goalType} onValueChange={(v: any) => setGoalType(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="revenue">Monthly Revenue</SelectItem>
                     <SelectItem value="profit">Monthly Net Profit</SelectItem>
@@ -386,15 +485,27 @@ export function AiFinanceTab({ orgId, clinicId }: { orgId: string; clinicId: str
               </div>
               <div>
                 <Label>Target Value</Label>
-                <Input type="number" min={0} value={goalTarget} onChange={(e) => setGoalTarget(e.target.value)} placeholder="e.g. 150000" />
+                <Input
+                  type="number"
+                  min={0}
+                  value={goalTarget}
+                  onChange={(e) => setGoalTarget(e.target.value)}
+                  placeholder="e.g. 150000"
+                />
               </div>
               <div>
                 <Label>Label / Description (Optional)</Label>
-                <Input value={goalLabel} onChange={(e) => setGoalLabel(e.target.value)} placeholder="e.g. Q3 Growth Milestone" />
+                <Input
+                  value={goalLabel}
+                  onChange={(e) => setGoalLabel(e.target.value)}
+                  placeholder="e.g. Q3 Growth Milestone"
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setGoalModalOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setGoalModalOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleSaveGoal}>Save Goal</Button>
             </DialogFooter>
           </DialogContent>

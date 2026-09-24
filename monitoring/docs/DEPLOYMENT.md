@@ -3,12 +3,15 @@
 ## 🚀 Deploying to Render Free Tier (512 MB RAM)
 
 ### 1. Environment Configuration
+
 On your Render Dashboard for the Web Service:
+
 - **Build Command**: `cd backend && npm install && npm run build`
 - **Start Command**: `cd backend && npm start`
 - **Health Check Path**: `/health`
 
 Add the environment variables specified in `backend/.env.example`:
+
 ```env
 PORT=3000
 NODE_ENV=production

@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Laptop, Smartphone, Tablet, Shield, ShieldAlert, CheckCircle, Trash2, LogOut, AlertTriangle, Key } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Laptop,
+  Smartphone,
+  Tablet,
+  Shield,
+  ShieldAlert,
+  CheckCircle,
+  Trash2,
+  LogOut,
+  AlertTriangle,
+  Key,
+} from "lucide-react";
 
 export interface UserDevice {
   id: string;
@@ -18,7 +29,7 @@ export interface UserDevice {
   };
 }
 
-export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_demo' }) => {
+export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = "usr_demo" }) => {
   const [devices, setDevices] = useState<UserDevice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,8 +38,8 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
     setTimeout(() => {
       setDevices([
         {
-          id: 'ud_1',
-          device_id: 'dev_1',
+          id: "ud_1",
+          device_id: "dev_1",
           is_trusted: true,
           is_blocked: false,
           login_count: 42,
@@ -36,15 +47,15 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
           risk_score: 10,
           risk_breakdown: { trusted_device: -30 },
           device: {
-            browser: 'Chrome 122.0',
-            os: 'macOS 14.3',
-            device_type: 'desktop',
-            screen_resolution: '2560x1440',
+            browser: "Chrome 122.0",
+            os: "macOS 14.3",
+            device_type: "desktop",
+            screen_resolution: "2560x1440",
           },
         },
         {
-          id: 'ud_2',
-          device_id: 'dev_2',
+          id: "ud_2",
+          device_id: "dev_2",
           is_trusted: false,
           is_blocked: false,
           login_count: 3,
@@ -52,10 +63,10 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
           risk_score: 50,
           risk_breakdown: { new_device: 20, new_country: 30 },
           device: {
-            browser: 'Safari 17.2',
-            os: 'iOS 17.3',
-            device_type: 'mobile',
-            screen_resolution: '393x852',
+            browser: "Safari 17.2",
+            os: "iOS 17.3",
+            device_type: "mobile",
+            screen_resolution: "393x852",
           },
         },
       ]);
@@ -65,13 +76,17 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
 
   const handleTrust = (deviceId: string) => {
     setDevices((prev) =>
-      prev.map((d) => (d.device_id === deviceId ? { ...d, is_trusted: true, risk_score: Math.max(0, d.risk_score - 30) } : d))
+      prev.map((d) =>
+        d.device_id === deviceId
+          ? { ...d, is_trusted: true, risk_score: Math.max(0, d.risk_score - 30) }
+          : d,
+      ),
     );
   };
 
   const handleBlock = (deviceId: string) => {
     setDevices((prev) =>
-      prev.map((d) => (d.device_id === deviceId ? { ...d, is_blocked: true, risk_score: 100 } : d))
+      prev.map((d) => (d.device_id === deviceId ? { ...d, is_blocked: true, risk_score: 100 } : d)),
     );
   };
 
@@ -88,11 +103,12 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
             Device Security & Active Sessions
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            Manage physical devices authorized to access your account and monitor security risk scores.
+            Manage physical devices authorized to access your account and monitor security risk
+            scores.
           </p>
         </div>
         <button
-          onClick={() => alert('All other sessions revoked successfully.')}
+          onClick={() => alert("All other sessions revoked successfully.")}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition-all"
         >
           <LogOut className="w-3.5 h-3.5" />
@@ -105,23 +121,29 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
       ) : (
         <div className="space-y-4">
           {devices.map((item) => {
-            const isDesktop = item.device?.device_type === 'desktop';
-            const isMobile = item.device?.device_type === 'mobile';
+            const isDesktop = item.device?.device_type === "desktop";
+            const isMobile = item.device?.device_type === "mobile";
 
             return (
               <div
                 key={item.id}
                 className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg border transition-all ${
                   item.is_blocked
-                    ? 'bg-rose-950/20 border-rose-800/50'
+                    ? "bg-rose-950/20 border-rose-800/50"
                     : item.is_trusted
-                    ? 'bg-emerald-950/20 border-emerald-800/40'
-                    : 'bg-slate-800/50 border-slate-700/60'
+                      ? "bg-emerald-950/20 border-emerald-800/40"
+                      : "bg-slate-800/50 border-slate-700/60"
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div className="p-3 bg-slate-800 rounded-lg border border-slate-700 text-indigo-400">
-                    {isDesktop ? <Laptop className="w-6 h-6" /> : isMobile ? <Smartphone className="w-6 h-6" /> : <Tablet className="w-6 h-6" />}
+                    {isDesktop ? (
+                      <Laptop className="w-6 h-6" />
+                    ) : isMobile ? (
+                      <Smartphone className="w-6 h-6" />
+                    ) : (
+                      <Tablet className="w-6 h-6" />
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -155,10 +177,10 @@ export const DeviceManagement: React.FC<{ userId?: string }> = ({ userId = 'usr_
                       <span
                         className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
                           item.risk_score >= 71
-                            ? 'bg-rose-500/20 text-rose-400'
+                            ? "bg-rose-500/20 text-rose-400"
                             : item.risk_score >= 31
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-emerald-500/20 text-emerald-400'
+                              ? "bg-amber-500/20 text-amber-400"
+                              : "bg-emerald-500/20 text-emerald-400"
                         }`}
                       >
                         {item.risk_score} / 100

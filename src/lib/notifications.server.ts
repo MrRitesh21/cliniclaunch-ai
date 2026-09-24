@@ -22,7 +22,9 @@ async function admin() {
 }
 
 /** Resolves the user's org + current plan so analytics can slice by plan. */
-export async function getUserPlanContext(userId: string): Promise<{ organizationId: string | null; planId: string | null }> {
+export async function getUserPlanContext(
+  userId: string,
+): Promise<{ organizationId: string | null; planId: string | null }> {
   const sb = await admin();
   const { data: mem } = await sb
     .from("organization_members")

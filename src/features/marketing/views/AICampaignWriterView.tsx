@@ -6,8 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Copy, Send, RefreshCw, Check, MessageCircle, Mail, Phone, Wand2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sparkles,
+  Copy,
+  Send,
+  RefreshCw,
+  Check,
+  MessageCircle,
+  Mail,
+  Phone,
+  Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const PROMPT_SUGGESTIONS = [
@@ -30,9 +46,12 @@ export function AICampaignWriterView() {
   const [generatedContent, setGeneratedContent] = useState({
     headline: "🩺 Diabetes & Sugar Control Drive: 20% OFF HbA1c Test!",
     subject: "Don't ignore high sugar levels! Book your preventive checkup today.",
-    whatsappBody: "Namaste {patient_name} ji! 🙏 High sugar levels hidden body organs ko damage kar sakte hain. Is monsoon, Dr. Ritesh Clinic pe HbA1c Test aur Complete Diabetes Screening pe 20% Discount payein. \n\n✅ Fasting Blood Sugar\n✅ HbA1c 3-Month Average\n✅ Doctor Consultation Included\n\nCall/Book online below! 🏥",
-    emailBody: "Dear {patient_name},\n\nDiabetes management requires regular monitoring. High blood sugar often develops without early symptoms. Protect your health with our Comprehensive Diabetes Checkup.\n\nPackage Includes:\n- HbA1c Test\n- Lipid Profile\n- Doctor OPD Consultation\n\nSpecial Price: ₹890 (Original ₹1200)",
-    smsBody: "Dr. Ritesh Clinic: Monsoon Diabetes Special! Get 20% OFF HbA1c Checkup & Consultation. Book: bit.ly/clinic-book",
+    whatsappBody:
+      "Namaste {patient_name} ji! 🙏 High sugar levels hidden body organs ko damage kar sakte hain. Is monsoon, Dr. Ritesh Clinic pe HbA1c Test aur Complete Diabetes Screening pe 20% Discount payein. \n\n✅ Fasting Blood Sugar\n✅ HbA1c 3-Month Average\n✅ Doctor Consultation Included\n\nCall/Book online below! 🏥",
+    emailBody:
+      "Dear {patient_name},\n\nDiabetes management requires regular monitoring. High blood sugar often develops without early symptoms. Protect your health with our Comprehensive Diabetes Checkup.\n\nPackage Includes:\n- HbA1c Test\n- Lipid Profile\n- Doctor OPD Consultation\n\nSpecial Price: ₹890 (Original ₹1200)",
+    smsBody:
+      "Dr. Ritesh Clinic: Monsoon Diabetes Special! Get 20% OFF HbA1c Checkup & Consultation. Book: bit.ly/clinic-book",
     cta: "Book Diabetes Checkup",
     hashtags: "#Healthcare #DiabetesCare #PreventiveHealth #ClinicX",
   });
@@ -44,11 +63,12 @@ export function AICampaignWriterView() {
       setGeneratedContent({
         headline: `🩺 Special ${prompt} Offer!`,
         subject: `Your Health Priority: ${prompt} at Ritesh Clinic`,
-        whatsappBody: language === "hinglish"
-          ? `Namaste {patient_name} ji! 🙏 Aapke health care ke liye Dr. Ritesh Clinic lekar aaya hai special ${prompt}.\n\n✅ Expert Consultation\n✅ Affordable Fees\n✅ 100% Care\n\nBook your slot today! 🏥`
-          : language === "hindi"
-          ? `नमस्कार {patient_name} जी! 🙏 आपके स्वास्थ्य की सुरक्षा के लिए रितेश क्लिनिक में ${prompt} का विशेष शिविर आयोजित किया जा रहा है। आज ही अपॉइंटमेंट बुक करें।`
-          : `Dear {patient_name},\n\nTake proactive care of your health with our special ${prompt} program. Schedule your consultation with Dr. Ritesh today!`,
+        whatsappBody:
+          language === "hinglish"
+            ? `Namaste {patient_name} ji! 🙏 Aapke health care ke liye Dr. Ritesh Clinic lekar aaya hai special ${prompt}.\n\n✅ Expert Consultation\n✅ Affordable Fees\n✅ 100% Care\n\nBook your slot today! 🏥`
+            : language === "hindi"
+              ? `नमस्कार {patient_name} जी! 🙏 आपके स्वास्थ्य की सुरक्षा के लिए रितेश क्लिनिक में ${prompt} का विशेष शिविर आयोजित किया जा रहा है। आज ही अपॉइंटमेंट बुक करें।`
+              : `Dear {patient_name},\n\nTake proactive care of your health with our special ${prompt} program. Schedule your consultation with Dr. Ritesh today!`,
         emailBody: `Dear {patient_name},\n\nWe are pleased to introduce our specialized ${prompt} program tailored for your wellness.\n\nKey Highlights:\n- Comprehensive Doctor Consultation\n- Digital Diagnostic Reports\n- Priority Appointment Slots\n\nBook online or call us today.`,
         smsBody: `Ritesh Clinic: ${prompt} offer available now! Book appointment: bit.ly/clinic-book`,
         cta: `Book ${prompt.slice(0, 15)}`,
@@ -98,7 +118,9 @@ export function AICampaignWriterView() {
           </h3>
 
           <div className="space-y-1.5">
-            <Label htmlFor="ai-prompt" className="text-xs">Describe Campaign / Specialty Topic</Label>
+            <Label htmlFor="ai-prompt" className="text-xs">
+              Describe Campaign / Specialty Topic
+            </Label>
             <Textarea
               id="ai-prompt"
               rows={3}
@@ -158,7 +180,11 @@ export function AICampaignWriterView() {
             disabled={generating}
             className="w-full h-10 font-semibold text-xs gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
           >
-            {generating ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            {generating ? (
+              <RefreshCw className="size-4 animate-spin" />
+            ) : (
+              <Sparkles className="size-4" />
+            )}
             Generate Campaign Content
           </Button>
         </Card>
@@ -167,7 +193,11 @@ export function AICampaignWriterView() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <span className="font-bold text-sm">Generated Omnichannel Copy</span>
-            <Button onClick={handleUseInBuilder} size="sm" className="h-8 text-xs font-semibold gap-1.5">
+            <Button
+              onClick={handleUseInBuilder}
+              size="sm"
+              className="h-8 text-xs font-semibold gap-1.5"
+            >
               <Send className="size-3.5" /> Use in Builder
             </Button>
           </div>
@@ -178,8 +208,18 @@ export function AICampaignWriterView() {
               <span className="font-bold text-xs flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                 <MessageCircle className="size-4" /> WhatsApp Broadcast Copy
               </span>
-              <Button onClick={() => handleCopy(generatedContent.whatsappBody)} size="sm" variant="ghost" className="h-7 text-xs gap-1">
-                {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />} Copy
+              <Button
+                onClick={() => handleCopy(generatedContent.whatsappBody)}
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1"
+              >
+                {copied ? (
+                  <Check className="size-3 text-emerald-600" />
+                ) : (
+                  <Copy className="size-3" />
+                )}{" "}
+                Copy
               </Button>
             </div>
             <p className="whitespace-pre-wrap text-xs text-foreground bg-background/80 p-3 rounded-xl border border-emerald-500/20 font-sans">
@@ -193,7 +233,14 @@ export function AICampaignWriterView() {
               <span className="font-bold text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
                 <Mail className="size-4" /> Email Subject & Body
               </span>
-              <Button onClick={() => handleCopy(`${generatedContent.subject}\n\n${generatedContent.emailBody}`)} size="sm" variant="ghost" className="h-7 text-xs gap-1">
+              <Button
+                onClick={() =>
+                  handleCopy(`${generatedContent.subject}\n\n${generatedContent.emailBody}`)
+                }
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1"
+              >
                 <Copy className="size-3" /> Copy
               </Button>
             </div>
@@ -209,7 +256,12 @@ export function AICampaignWriterView() {
               <span className="font-bold text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-400">
                 <Phone className="size-4" /> SMS Message (160 char limit)
               </span>
-              <Button onClick={() => handleCopy(generatedContent.smsBody)} size="sm" variant="ghost" className="h-7 text-xs gap-1">
+              <Button
+                onClick={() => handleCopy(generatedContent.smsBody)}
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1"
+              >
                 <Copy className="size-3" /> Copy
               </Button>
             </div>

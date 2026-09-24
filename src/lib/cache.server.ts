@@ -87,7 +87,7 @@ export async function withCache<T>(
   key: string,
   ttlSeconds: number,
   tags: string[],
-  fetcher: () => Promise<T>
+  fetcher: () => Promise<T>,
 ): Promise<T> {
   const cached = serverCache.get<T>(key);
   if (cached !== null) {

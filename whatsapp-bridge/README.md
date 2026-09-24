@@ -25,13 +25,13 @@ A standalone Node.js service that connects to WhatsApp via Baileys and bridges m
 
 ### Environment variables
 
-| Name | Required | Description |
-|---|---|---|
-| `BRIDGE_SECRET` | yes | A long random string. **Paste the same value into the ClinicX WhatsApp settings page** so HMAC matches both directions. Generate with `openssl rand -hex 32`. |
-| `CLINIC_ID` | yes | The clinic UUID from ClinicX (copy from the WhatsApp settings page). |
-| `clinicx_WEBHOOK_URL` | yes | `https://YOUR-clinicx-DOMAIN/api/public/whatsapp/incoming/{CLINIC_ID}` |
-| `AUTH_DIR` | no | Where Baileys stores session keys. Default: `/data/auth`. Must be on the persistent volume. |
-| `PORT` | no | Default `8080`. Railway sets this automatically. |
+| Name                  | Required | Description                                                                                                                                                   |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BRIDGE_SECRET`       | yes      | A long random string. **Paste the same value into the ClinicX WhatsApp settings page** so HMAC matches both directions. Generate with `openssl rand -hex 32`. |
+| `CLINIC_ID`           | yes      | The clinic UUID from ClinicX (copy from the WhatsApp settings page).                                                                                          |
+| `clinicx_WEBHOOK_URL` | yes      | `https://YOUR-clinicx-DOMAIN/api/public/whatsapp/incoming/{CLINIC_ID}`                                                                                        |
+| `AUTH_DIR`            | no       | Where Baileys stores session keys. Default: `/data/auth`. Must be on the persistent volume.                                                                   |
+| `PORT`                | no       | Default `8080`. Railway sets this automatically.                                                                                                              |
 
 ### Railway settings
 

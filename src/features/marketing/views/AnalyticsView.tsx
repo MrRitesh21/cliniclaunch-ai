@@ -49,7 +49,9 @@ export function AnalyticsView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Marketing ROI & Patient Acquisition</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">
+          Marketing ROI & Patient Acquisition
+        </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
           Live numbers from your campaigns, leads and finance ledger — no estimates.
         </p>
@@ -57,7 +59,9 @@ export function AnalyticsView() {
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Card className="p-4 space-y-1 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20">
-          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Marketing ROI</span>
+          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+            Marketing ROI
+          </span>
           <p className="text-3xl font-bold font-display text-emerald-900 dark:text-emerald-100">
             {k.roi > 0 ? `${k.roi}x` : "—"}
           </p>
@@ -68,7 +72,9 @@ export function AnalyticsView() {
 
         <Card className="p-4 space-y-1">
           <span className="text-xs text-muted-foreground font-medium">Cost per acquisition</span>
-          <p className="text-2xl font-bold font-display text-blue-600">{k.cac > 0 ? inr(k.cac) : "—"}</p>
+          <p className="text-2xl font-bold font-display text-blue-600">
+            {k.cac > 0 ? inr(k.cac) : "—"}
+          </p>
           <span className="text-[10px] text-muted-foreground font-medium">
             {k.newPatients} converted lead{k.newPatients === 1 ? "" : "s"} (12 months)
           </span>
@@ -97,7 +103,9 @@ export function AnalyticsView() {
             <h3 className="font-bold text-sm">Monthly campaign spend vs clinic revenue</h3>
             <p className="text-xs text-muted-foreground">Revenue comes from your finance ledger</p>
           </div>
-          <Badge variant="outline" className="text-[10px]">6 Months</Badge>
+          <Badge variant="outline" className="text-[10px]">
+            6 Months
+          </Badge>
         </div>
 
         <div className="h-64 w-full">
@@ -152,7 +160,9 @@ export function AnalyticsView() {
             <BarChart3 className="size-4 text-primary" /> Top campaigns by revenue
           </h3>
           {data.topCampaigns.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-6 text-center">No campaign revenue recorded yet.</p>
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              No campaign revenue recorded yet.
+            </p>
           ) : (
             <div className="divide-y text-xs">
               {data.topCampaigns.map((c) => (

@@ -1,6 +1,19 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDownUp, Bell, CheckCheck, ChevronRight, Inbox, Loader2, Mail, MailOpen, Search, Settings2, Trash2, X } from "lucide-react";
+import {
+  ArrowDownUp,
+  Bell,
+  CheckCheck,
+  ChevronRight,
+  Inbox,
+  Loader2,
+  Mail,
+  MailOpen,
+  Search,
+  Settings2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,7 +23,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   deleteNotifications,
   listNotifications,
@@ -41,9 +60,13 @@ export function NotificationInbox() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
-  const [undoAction, setUndoAction] = useState<{ type: "read" | "unread" | "delete"; ids: string[]; previousState: InboxItem[] } | null>(null);
+  const [undoAction, setUndoAction] = useState<{
+    type: "read" | "unread" | "delete";
+    ids: string[];
+    previousState: InboxItem[];
+  } | null>(null);
   const [detailItem, setDetailItem] = useState<InboxItem | null>(null);
-  
+
   const navigate = useNavigate();
 
   const load = useServerFn(listNotifications);
@@ -52,19 +75,22 @@ export function NotificationInbox() {
   const setRead = useServerFn(setNotificationsRead);
   const removeMany = useServerFn(deleteNotifications);
 
-  const refresh = useCallback(async (isInitial = true) => {
-    try {
-      if (isInitial) setLoading(true);
-      const res = await load({ data: { limit: 50 } });
-      setItems(res.items);
-      setUnread(res.unread);
-      setNextCursor(res.nextCursor);
-    } catch {
-      /* offline or signed out */
-    } finally {
-      if (isInitial) setLoading(false);
-    }
-  }, [load]);
+  const refresh = useCallback(
+    async (isInitial = true) => {
+      try {
+        if (isInitial) setLoading(true);
+        const res = await load({ data: { limit: 50 } });
+        setItems(res.items);
+        setUnread(res.unread);
+        setNextCursor(res.nextCursor);
+      } catch {
+        /* offline or signed out */
+      } finally {
+        if (isInitial) setLoading(false);
+      }
+    },
+    [load],
+  );
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMore) return;
@@ -98,7 +124,9 @@ export function NotificationInbox() {
   const handleOpen = async (item: InboxItem) => {
     setDetailItem(item);
     if (!item.read_at) {
-      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, read_at: new Date().toISOString() } : i)));
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, read_at: new Date().toISOString() } : i)),
+      );
       setUnread((n) => Math.max(0, n - 1));
       markRead({ data: { id: item.id, opened: true } }).catch(() => undefined);
     }
@@ -121,17 +149,21 @@ export function NotificationInbox() {
 
   const applyRead = async (ids: string[], read: boolean) => {
     if (!ids.length) return;
-    const previousState = items.filter(i => ids.includes(i.id)).map(i => ({ ...i }));
+    const previousState = items.filter((i) => ids.includes(i.id)).map((i) => ({ ...i }));
     const stamp = new Date().toISOString();
-    
-    setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, read_at: read ? (i.read_at ?? stamp) : null } : i)));
+
+    setItems((prev) =>
+      prev.map((i) =>
+        ids.includes(i.id) ? { ...i, read_at: read ? (i.read_at ?? stamp) : null } : i,
+      ),
+    );
     setUnread((n) => {
       const affected = items.filter((i) => ids.includes(i.id));
       const delta = affected.filter((i) => (read ? !i.read_at : i.read_at)).length;
       return Math.max(0, read ? n - delta : n + delta);
     });
     setSelected([]);
-    
+
     setUndoAction({ type: read ? "read" : "unread", ids, previousState });
     toast(read ? "Marked as read" : "Marked as unread", {
       action: {
@@ -147,13 +179,13 @@ export function NotificationInbox() {
   const handleDelete = async () => {
     const ids = selected;
     if (!ids.length) return;
-    const previousState = items.filter(i => ids.includes(i.id)).map(i => ({ ...i }));
+    const previousState = items.filter((i) => ids.includes(i.id)).map((i) => ({ ...i }));
     const removedUnread = items.filter((i) => ids.includes(i.id) && !i.read_at).length;
-    
+
     setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
     setUnread((n) => Math.max(0, n - removedUnread));
     setSelected([]);
-    
+
     setUndoAction({ type: "delete", ids, previousState });
     toast("Notifications deleted", {
       action: {
@@ -169,22 +201,28 @@ export function NotificationInbox() {
   const handleUndo = async () => {
     if (!undoAction) return;
     const { type, ids, previousState } = undoAction;
-    
+
     if (type === "delete") {
-      setItems((prev) => [...previousState, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-      const restoredUnread = previousState.filter(i => !i.read_at).length;
-      setUnread(n => n + restoredUnread);
+      setItems((prev) =>
+        [...previousState, ...prev].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        ),
+      );
+      const restoredUnread = previousState.filter((i) => !i.read_at).length;
+      setUnread((n) => n + restoredUnread);
     } else {
-      setItems((prev) => prev.map(i => {
-        const old = previousState.find(p => p.id === i.id);
-        return old ? { ...old } : i;
-      }));
-      const restoredUnread = previousState.filter(i => !i.read_at).length;
-      const currentUnread = items.filter(i => ids.includes(i.id) && !i.read_at).length;
-      setUnread(n => n + (restoredUnread - currentUnread));
+      setItems((prev) =>
+        prev.map((i) => {
+          const old = previousState.find((p) => p.id === i.id);
+          return old ? { ...old } : i;
+        }),
+      );
+      const restoredUnread = previousState.filter((i) => !i.read_at).length;
+      const currentUnread = items.filter((i) => ids.includes(i.id) && !i.read_at).length;
+      setUnread((n) => n + (restoredUnread - currentUnread));
       await setRead({ data: { ids, read: type === "unread" } }).catch(() => refresh(false));
     }
-    
+
     setUndoAction(null);
     toast.info("Action reversed");
   };
@@ -197,7 +235,10 @@ export function NotificationInbox() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = items.filter((i) => {
-      if (category === "unread" ? Boolean(i.read_at) : category !== "all" && i.category !== category) return false;
+      if (
+        category === "unread" ? Boolean(i.read_at) : category !== "all" && i.category !== category
+      )
+        return false;
       if (!q) return true;
       return `${i.title} ${i.body ?? ""} ${i.category}`.toLowerCase().includes(q);
     });
@@ -286,22 +327,42 @@ export function NotificationInbox() {
         {selected.length > 0 && (
           <div className="px-4 py-2 border-b bg-muted/40 flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-medium mr-auto">{selected.length} selected</span>
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => applyRead(selected, true)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => applyRead(selected, true)}
+            >
               <MailOpen className="size-3.5 mr-1" /> Read
             </Button>
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => applyRead(selected, false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => applyRead(selected, false)}
+            >
               <Mail className="size-3.5 mr-1" /> Unread
             </Button>
-            <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={handleDelete}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-destructive"
+              onClick={handleDelete}
+            >
               <Trash2 className="size-3.5 mr-1" /> Delete
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Clear selection" onClick={() => setSelected([])}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Clear selection"
+              onClick={() => setSelected([])}
+            >
               <X className="size-3.5" />
             </Button>
           </div>
         )}
 
-        <div 
+        <div
           className="flex-1 overflow-y-auto divide-y"
           onScroll={(e) => {
             const target = e.currentTarget;
@@ -321,7 +382,9 @@ export function NotificationInbox() {
             </p>
           )}
           {items.length > 0 && visible.length === 0 && (
-            <p className="p-6 text-sm text-muted-foreground text-center">No alerts match this search.</p>
+            <p className="p-6 text-sm text-muted-foreground text-center">
+              No alerts match this search.
+            </p>
           )}
           {visible.map((item) => (
             <div
@@ -346,10 +409,21 @@ export function NotificationInbox() {
                 aria-expanded={detailItem?.id === item.id}
               >
                 <div className="flex items-start gap-2">
-                  {!item.read_at && <span className="mt-1.5 size-2 rounded-full bg-primary shrink-0" aria-hidden="true" />}
+                  {!item.read_at && (
+                    <span
+                      className="mt-1.5 size-2 rounded-full bg-primary shrink-0"
+                      aria-hidden="true"
+                    />
+                  )}
                   <div className="min-w-0">
-                    <p className={`text-sm truncate ${!item.read_at ? "font-semibold" : "font-medium"}`}>{item.title}</p>
-                    {item.body && <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>}
+                    <p
+                      className={`text-sm truncate ${!item.read_at ? "font-semibold" : "font-medium"}`}
+                    >
+                      {item.title}
+                    </p>
+                    {item.body && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
+                    )}
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
                       {item.category} • {timeAgo(item.created_at)}
                     </p>
@@ -383,14 +457,19 @@ export function NotificationInbox() {
           <SheetContent side="right" className="w-full sm:max-w-sm p-0 flex flex-col">
             <SheetHeader className="px-4 py-4 border-b">
               <div className="flex items-center justify-between">
-                <Button variant="ghost" size="icon" onClick={() => setDetailItem(null)} aria-label="Back">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDetailItem(null)}
+                  aria-label="Back"
+                >
                   <X className="size-4" />
                 </Button>
                 <SheetTitle className="text-base font-semibold">Details</SheetTitle>
                 <div className="w-10" /> {/* spacer */}
               </div>
             </SheetHeader>
-            
+
             {detailItem && (
               <div className="flex-1 flex flex-col">
                 <div className="p-6 space-y-4">
@@ -399,16 +478,18 @@ export function NotificationInbox() {
                       {detailItem.category}
                     </p>
                     <h2 className="text-lg font-bold leading-tight">{detailItem.title}</h2>
-                    <p className="text-xs text-muted-foreground">{new Date(detailItem.created_at).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(detailItem.created_at).toLocaleString()}
+                    </p>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-4">
                     <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                       {detailItem.body || "No additional message content."}
                     </p>
-                    
+
                     {detailItem.url && (
                       <Button className="w-full" onClick={() => handleAction(detailItem)}>
                         View related content <ChevronRight className="ml-2 size-4" />
@@ -416,21 +497,25 @@ export function NotificationInbox() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="mt-auto p-4 border-t bg-muted/20 flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1" 
+                  <Button
+                    variant="outline"
+                    className="flex-1"
                     onClick={() => {
                       applyRead([detailItem.id], !detailItem.read_at);
                       setDetailItem(null);
                     }}
                   >
-                    {detailItem.read_at ? <Mail className="size-4 mr-2" /> : <MailOpen className="size-4 mr-2" />}
+                    {detailItem.read_at ? (
+                      <Mail className="size-4 mr-2" />
+                    ) : (
+                      <MailOpen className="size-4 mr-2" />
+                    )}
                     {detailItem.read_at ? "Mark unread" : "Mark read"}
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="text-destructive hover:bg-destructive/10"
                     onClick={() => {
                       setSelected([detailItem.id]);

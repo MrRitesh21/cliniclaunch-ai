@@ -8,7 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/app/EmptyState";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import {
   IndianRupee,
   TrendingUp,
@@ -48,7 +56,9 @@ function Tile({
   return (
     <Card className="p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
         <span className={`size-8 rounded-lg grid place-items-center ${tones[tone]}`}>
           <Icon className="size-4" />
         </span>
@@ -59,7 +69,17 @@ function Tile({
   );
 }
 
-function FunnelBar({ label, value, max, hint }: { label: string; value: number; max: number; hint?: string }) {
+function FunnelBar({
+  label,
+  value,
+  max,
+  hint,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  hint?: string;
+}) {
   const pct = max > 0 ? Math.max(3, Math.round((value / max) * 100)) : 3;
   return (
     <div className="space-y-1.5">
@@ -71,7 +91,10 @@ function FunnelBar({ label, value, max, hint }: { label: string; value: number; 
         </span>
       </div>
       <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full bg-primary/80 transition-all" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-primary/80 transition-all"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
@@ -127,8 +150,13 @@ export function GrowthHomeView() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Growth Home</h1>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px]">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
+              Growth Home
+            </h1>
+            <Badge
+              variant="secondary"
+              className="bg-primary/10 text-primary border-primary/20 gap-1 text-[11px]"
+            >
               <Store className="size-3" /> Clinic Commerce
             </Badge>
           </div>
@@ -137,7 +165,12 @@ export function GrowthHomeView() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => setActiveTab("templates")}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl text-xs"
+            onClick={() => setActiveTab("templates")}
+          >
             <Store className="size-3.5 mr-1.5" /> App Store
           </Button>
           <Button size="sm" className="rounded-xl text-xs" onClick={() => setActiveTab("builder")}>
@@ -148,8 +181,8 @@ export function GrowthHomeView() {
 
       {!hasAnyData && (
         <Card className="p-4 bg-amber-500/5 border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
-          No revenue, leads or bookings recorded in the last 30 days yet. As soon as appointments and invoices start
-          flowing, this dashboard fills itself — nothing to enter manually.
+          No revenue, leads or bookings recorded in the last 30 days yet. As soon as appointments
+          and invoices start flowing, this dashboard fills itself — nothing to enter manually.
         </Card>
       )}
 
@@ -168,7 +201,12 @@ export function GrowthHomeView() {
           tone={up ? "emerald" : "amber"}
           sub="Last 15 days vs previous 15"
         />
-        <Tile label="Avg ticket size" value={inr(sales.avgTicket)} icon={Target} sub="Per completed visit" />
+        <Tile
+          label="Avg ticket size"
+          value={inr(sales.avgTicket)}
+          icon={Target}
+          sub="Per completed visit"
+        />
         <Tile
           label="Reputation"
           value={reputation.avgRating ? `${reputation.avgRating}★` : "—"}
@@ -183,7 +221,9 @@ export function GrowthHomeView() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-sm">Revenue — last 30 days</h2>
-              <p className="text-[11px] text-muted-foreground">Auto-captured from appointments, invoices & pharmacy</p>
+              <p className="text-[11px] text-muted-foreground">
+                Auto-captured from appointments, invoices & pharmacy
+              </p>
             </div>
             <Badge variant="outline" className="text-[10px]">
               {inr(sales.last30)}
@@ -198,7 +238,11 @@ export function GrowthHomeView() {
                     <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  className="stroke-border/40"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(v: string) => v.slice(8)}
@@ -209,9 +253,19 @@ export function GrowthHomeView() {
                 <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={48} />
                 <Tooltip
                   formatter={(v: number) => inr(v)}
-                  contentStyle={{ fontSize: 12, borderRadius: 12, border: "1px solid hsl(var(--border))" }}
+                  contentStyle={{
+                    fontSize: 12,
+                    borderRadius: 12,
+                    border: "1px solid hsl(var(--border))",
+                  }}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" fill="url(#growthRev)" strokeWidth={2} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="hsl(var(--primary))"
+                  fill="url(#growthRev)"
+                  strokeWidth={2}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -223,7 +277,11 @@ export function GrowthHomeView() {
             <p className="text-[11px] text-muted-foreground">Leads → bookings → visits (30 days)</p>
           </div>
           <div className="space-y-3.5">
-            <FunnelBar label="Leads captured" value={funnel.leads} max={Math.max(funnel.leads, funnel.bookings, 1)} />
+            <FunnelBar
+              label="Leads captured"
+              value={funnel.leads}
+              max={Math.max(funnel.leads, funnel.bookings, 1)}
+            />
             <FunnelBar
               label="Appointments booked"
               value={funnel.bookings}
@@ -239,11 +297,15 @@ export function GrowthHomeView() {
           </div>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <div className="rounded-xl border p-2.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">No-shows</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                No-shows
+              </div>
               <div className="text-lg font-bold">{funnel.noShow}</div>
             </div>
             <div className="rounded-xl border p-2.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Cancelled</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Cancelled
+              </div>
               <div className="text-lg font-bold">{funnel.cancelled}</div>
             </div>
           </div>
@@ -265,12 +327,16 @@ export function GrowthHomeView() {
           </h2>
           {channels.length === 0 ? (
             <p className="text-xs text-muted-foreground py-6 text-center">
-              No leads yet. Publish your clinic website and share the booking link to start capturing sources.
+              No leads yet. Publish your clinic website and share the booking link to start
+              capturing sources.
             </p>
           ) : (
             <div className="space-y-2">
               {channels.map((c) => (
-                <div key={c.source} className="flex items-center justify-between text-xs border-b last:border-0 pb-2">
+                <div
+                  key={c.source}
+                  className="flex items-center justify-between text-xs border-b last:border-0 pb-2"
+                >
                   <span className="capitalize font-medium">{c.source.replace(/_/g, " ")}</span>
                   <Badge variant="secondary" className="text-[10px]">
                     {c.count} leads
@@ -287,15 +353,24 @@ export function GrowthHomeView() {
           </h2>
           {data.campaigns.length === 0 ? (
             <div className="py-5 text-center space-y-2">
-              <p className="text-xs text-muted-foreground">No campaigns yet — install a ready-made one in seconds.</p>
-              <Button size="sm" className="rounded-xl text-xs" onClick={() => setActiveTab("templates")}>
+              <p className="text-xs text-muted-foreground">
+                No campaigns yet — install a ready-made one in seconds.
+              </p>
+              <Button
+                size="sm"
+                className="rounded-xl text-xs"
+                onClick={() => setActiveTab("templates")}
+              >
                 Browse campaign apps
               </Button>
             </div>
           ) : (
             <div className="space-y-2">
               {data.campaigns.map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-2 text-xs border-b last:border-0 pb-2">
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between gap-2 text-xs border-b last:border-0 pb-2"
+                >
                   <div className="min-w-0">
                     <div className="font-medium truncate">{c.name}</div>
                     <div className="text-[10px] text-muted-foreground capitalize">

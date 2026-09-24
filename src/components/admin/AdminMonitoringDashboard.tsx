@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Activity,
   Cpu,
@@ -21,11 +21,11 @@ import {
   Clock,
   ChevronRight,
   TrendingUp,
-} from 'lucide-react';
-import { DeviceIntelligenceDashboard } from './DeviceIntelligenceDashboard';
+} from "lucide-react";
+import { DeviceIntelligenceDashboard } from "./DeviceIntelligenceDashboard";
 
 export const AdminMonitoringDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'system' | 'api' | 'security' | 'devices'>('system');
+  const [activeTab, setActiveTab] = useState<"system" | "api" | "security" | "devices">("system");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = () => {
@@ -48,7 +48,8 @@ export const AdminMonitoringDashboard: React.FC = () => {
             </span>
           </div>
           <p className="text-sm text-slate-400 mt-1">
-            Real-time memory budget, Prometheus metrics, Pino logger streams, security audit trails, and device intelligence.
+            Real-time memory budget, Prometheus metrics, Pino logger streams, security audit trails,
+            and device intelligence.
           </p>
         </div>
 
@@ -61,7 +62,7 @@ export const AdminMonitoringDashboard: React.FC = () => {
             onClick={handleRefresh}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold transition-all"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>
@@ -70,11 +71,11 @@ export const AdminMonitoringDashboard: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-800 space-x-2">
         <button
-          onClick={() => setActiveTab('system')}
+          onClick={() => setActiveTab("system")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === 'system'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            activeTab === "system"
+              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+              : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
           }`}
         >
           <Cpu className="w-4 h-4" />
@@ -82,11 +83,11 @@ export const AdminMonitoringDashboard: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('api')}
+          onClick={() => setActiveTab("api")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === 'api'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            activeTab === "api"
+              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+              : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
           }`}
         >
           <Zap className="w-4 h-4" />
@@ -94,11 +95,11 @@ export const AdminMonitoringDashboard: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('security')}
+          onClick={() => setActiveTab("security")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === 'security'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            activeTab === "security"
+              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+              : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
           }`}
         >
           <Shield className="w-4 h-4" />
@@ -106,11 +107,11 @@ export const AdminMonitoringDashboard: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('devices')}
+          onClick={() => setActiveTab("devices")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === 'devices'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            activeTab === "devices"
+              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
+              : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
           }`}
         >
           <Laptop className="w-4 h-4" />
@@ -119,7 +120,7 @@ export const AdminMonitoringDashboard: React.FC = () => {
       </div>
 
       {/* Tab 1: System Health */}
-      {activeTab === 'system' && (
+      {activeTab === "system" && (
         <div className="space-y-6">
           {/* Health Endpoints Status Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -172,36 +173,46 @@ export const AdminMonitoringDashboard: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-slate-300 mb-1">
                     <span>Process Resident Memory (RSS)</span>
-                    <span className="font-mono font-bold text-indigo-400">145 MB / 512 MB (28.3%)</span>
+                    <span className="font-mono font-bold text-indigo-400">
+                      145 MB / 512 MB (28.3%)
+                    </span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-indigo-500 h-full rounded-full" style={{ width: '28.3%' }} />
+                    <div className="bg-indigo-500 h-full rounded-full" style={{ width: "28.3%" }} />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex justify-between text-slate-300 mb-1">
                     <span>Node Heap Used</span>
-                    <span className="font-mono font-bold text-emerald-400">56 MB / 82 MB Heap Total</span>
+                    <span className="font-mono font-bold text-emerald-400">
+                      56 MB / 82 MB Heap Total
+                    </span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '68.2%' }} />
+                    <div
+                      className="bg-emerald-500 h-full rounded-full"
+                      style={{ width: "68.2%" }}
+                    />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex justify-between text-slate-300 mb-1">
                     <span>Monitoring Stack (Prometheus + Grafana + Alertmanager)</span>
-                    <span className="font-mono font-bold text-blue-400">280 MB Allocated in Docker</span>
+                    <span className="font-mono font-bold text-blue-400">
+                      280 MB Allocated in Docker
+                    </span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-500 h-full rounded-full" style={{ width: '54.6%' }} />
+                    <div className="bg-blue-500 h-full rounded-full" style={{ width: "54.6%" }} />
                   </div>
                 </div>
               </div>
 
               <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded text-[11px] text-indigo-300">
-                💡 Memory safe: Total monitoring footprint strictly constrained under 350 MB RAM budget.
+                💡 Memory safe: Total monitoring footprint strictly constrained under 350 MB RAM
+                budget.
               </div>
             </div>
 
@@ -215,7 +226,9 @@ export const AdminMonitoringDashboard: React.FC = () => {
                 <div className="p-3 bg-slate-800/60 rounded border border-slate-700/60">
                   <span className="text-[11px] text-slate-400">CPU Utilization</span>
                   <div className="text-xl font-extrabold text-slate-100 mt-1">12.4%</div>
-                  <span className="text-[10px] text-emerald-400 font-semibold">Overhead &lt;1%</span>
+                  <span className="text-[10px] text-emerald-400 font-semibold">
+                    Overhead &lt;1%
+                  </span>
                 </div>
 
                 <div className="p-3 bg-slate-800/60 rounded border border-slate-700/60">
@@ -226,9 +239,18 @@ export const AdminMonitoringDashboard: React.FC = () => {
               </div>
 
               <div className="space-y-2 text-xs text-slate-300 border-t border-slate-800 pt-3">
-                <div className="flex justify-between"><span>Node Runtime Version</span><span className="font-mono text-slate-400">v20.11.0</span></div>
-                <div className="flex justify-between"><span>App Version / Build</span><span className="font-mono text-slate-400">v1.0.0 (Build #101)</span></div>
-                <div className="flex justify-between"><span>Container Restarts</span><span className="font-mono text-emerald-400">0 restarts</span></div>
+                <div className="flex justify-between">
+                  <span>Node Runtime Version</span>
+                  <span className="font-mono text-slate-400">v20.11.0</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>App Version / Build</span>
+                  <span className="font-mono text-slate-400">v1.0.0 (Build #101)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Container Restarts</span>
+                  <span className="font-mono text-emerald-400">0 restarts</span>
+                </div>
               </div>
             </div>
           </div>
@@ -236,7 +258,7 @@ export const AdminMonitoringDashboard: React.FC = () => {
       )}
 
       {/* Tab 2: API Performance */}
-      {activeTab === 'api' && (
+      {activeTab === "api" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
@@ -286,7 +308,7 @@ export const AdminMonitoringDashboard: React.FC = () => {
       )}
 
       {/* Tab 3: Security & Audit Monitoring */}
-      {activeTab === 'security' && (
+      {activeTab === "security" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
@@ -311,19 +333,22 @@ export const AdminMonitoringDashboard: React.FC = () => {
             <div className="space-y-2 text-xs font-mono">
               <div className="p-2.5 bg-slate-950 border border-slate-800 rounded flex justify-between">
                 <div>
-                  <span className="text-indigo-400 font-bold">[BLOCK_DEVICE]</span> Admin blocked device dev_981
+                  <span className="text-indigo-400 font-bold">[BLOCK_DEVICE]</span> Admin blocked
+                  device dev_981
                 </div>
                 <span className="text-slate-500">2 mins ago</span>
               </div>
               <div className="p-2.5 bg-slate-950 border border-slate-800 rounded flex justify-between">
                 <div>
-                  <span className="text-emerald-400 font-bold">[TRUST_DEVICE]</span> User trusted device dev_102
+                  <span className="text-emerald-400 font-bold">[TRUST_DEVICE]</span> User trusted
+                  device dev_102
                 </div>
                 <span className="text-slate-500">14 mins ago</span>
               </div>
               <div className="p-2.5 bg-slate-950 border border-slate-800 rounded flex justify-between">
                 <div>
-                  <span className="text-amber-400 font-bold">[REVOKE_SESSION]</span> Revoked token family fam_331
+                  <span className="text-amber-400 font-bold">[REVOKE_SESSION]</span> Revoked token
+                  family fam_331
                 </div>
                 <span className="text-slate-500">40 mins ago</span>
               </div>
@@ -333,7 +358,7 @@ export const AdminMonitoringDashboard: React.FC = () => {
       )}
 
       {/* Tab 4: Device Intelligence */}
-      {activeTab === 'devices' && <DeviceIntelligenceDashboard />}
+      {activeTab === "devices" && <DeviceIntelligenceDashboard />}
     </div>
   );
 };

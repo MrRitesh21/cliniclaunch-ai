@@ -15,7 +15,16 @@ export interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon, trend, trendValue, description, loading, className }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon,
+  trend,
+  trendValue,
+  description,
+  loading,
+  className,
+}: StatCardProps) {
   if (loading) {
     return (
       <Card className={cn("p-5 space-y-3", className)}>
@@ -30,7 +39,12 @@ export function StatCard({ title, value, icon, trend, trendValue, description, l
   }
 
   return (
-    <Card className={cn("p-5 group hover:elevation-raised transition-all duration-300 hover:-translate-y-0.5", className)}>
+    <Card
+      className={cn(
+        "p-5 group hover:elevation-raised transition-all duration-300 hover:-translate-y-0.5",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         {icon && (
@@ -39,7 +53,7 @@ export function StatCard({ title, value, icon, trend, trendValue, description, l
           </div>
         )}
       </div>
-      
+
       <div className="flex items-baseline gap-2">
         <div className="text-2xl md:text-3xl font-display font-bold tracking-tight text-foreground">
           {value}
@@ -54,7 +68,7 @@ export function StatCard({ title, value, icon, trend, trendValue, description, l
                 "flex items-center font-medium",
                 trend === "up" && "text-success",
                 trend === "down" && "text-destructive",
-                trend === "neutral" && "text-muted-foreground"
+                trend === "neutral" && "text-muted-foreground",
               )}
             >
               {trend === "up" && <TrendingUp className="size-3.5 mr-1" />}

@@ -41,7 +41,7 @@ const defaultQueueOptions: QueueOptions = {
       delay: 2000, // 2s, 4s, 8s retries
     },
     removeOnComplete: { age: 86400, count: 1000 }, // Keep max 1000 completed jobs for 24h
-    removeOnFail: { age: 604800, count: 5000 },     // Keep max 5000 failed jobs for 7 days
+    removeOnFail: { age: 604800, count: 5000 }, // Keep max 5000 failed jobs for 7 days
   },
 };
 
@@ -80,7 +80,10 @@ export type CronJobData = {
   cronKey?: string;
 };
 
-export async function enqueueWhatsAppMessage(data: WhatsAppJobData, opts?: { delay?: number; priority?: number }) {
+export async function enqueueWhatsAppMessage(
+  data: WhatsAppJobData,
+  opts?: { delay?: number; priority?: number },
+) {
   if (!whatsappQueue) return null;
   try {
     return await whatsappQueue.add("send-whatsapp", data, {

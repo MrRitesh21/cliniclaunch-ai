@@ -88,7 +88,11 @@ function SortableSectionItem({
           onClick={onToggleHide}
           className="size-7 rounded-lg grid place-items-center text-muted-foreground hover:bg-muted"
         >
-          {isHidden ? <EyeOff className="size-3.5 text-amber-500" /> : <Eye className="size-3.5 text-emerald-500" />}
+          {isHidden ? (
+            <EyeOff className="size-3.5 text-amber-500" />
+          ) : (
+            <Eye className="size-3.5 text-emerald-500" />
+          )}
         </button>
         <SlidersHorizontal className="size-3.5 text-muted-foreground mr-1" />
       </div>
@@ -141,7 +145,9 @@ export function SectionsView() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm">Visual Sections</h3>
-            <span className="text-[11px] text-muted-foreground">{state.section_order.length} Active</span>
+            <span className="text-[11px] text-muted-foreground">
+              {state.section_order.length} Active
+            </span>
           </div>
 
           <div className="relative">
@@ -155,11 +161,18 @@ export function SectionsView() {
           </div>
 
           {/* Dnd Sortable List */}
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
             <SortableContext items={state.section_order} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
                 {state.section_order.map((key) => {
-                  if (searchQuery && !SECTION_LABELS[key]?.toLowerCase().includes(searchQuery.toLowerCase())) {
+                  if (
+                    searchQuery &&
+                    !SECTION_LABELS[key]?.toLowerCase().includes(searchQuery.toLowerCase())
+                  ) {
                     return null;
                   }
                   return (
@@ -195,8 +208,8 @@ export function SectionsView() {
             deviceMode === "mobile"
               ? "w-[375px] h-[667px]"
               : deviceMode === "tablet"
-              ? "w-[768px] h-[900px]"
-              : "w-full max-w-5xl h-full"
+                ? "w-[768px] h-[900px]"
+                : "w-full max-w-5xl h-full"
           }`}
         >
           {/* Canvas Browser Header */}
@@ -210,7 +223,11 @@ export function SectionsView() {
             <span className="text-[10px]">Live Preview</span>
           </div>
 
-          <iframe src={previewSrc} title="Live Website Preview" className="w-full flex-1 border-0" />
+          <iframe
+            src={previewSrc}
+            title="Live Website Preview"
+            className="w-full flex-1 border-0"
+          />
         </div>
       </div>
 

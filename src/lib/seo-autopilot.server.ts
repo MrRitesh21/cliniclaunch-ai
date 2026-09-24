@@ -1,5 +1,6 @@
 // Server-only autopilot runner shared between the cron endpoint and manual "run now" server fn.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { enqueueEmailJob } from "@/lib/queue/queues";
 
 type Cfg = Record<string, boolean>;
 const DEFAULT_CFG: Cfg = {
@@ -17,7 +18,12 @@ const DEFAULT_CFG: Cfg = {
   google_reviews_sync: true,
 };
 
-async function callAI(system: string, user: string, json = true, model = "google/gemini-3-flash-preview") {
+async function callAI(
+  system: string,
+  user: string,
+  json = true,
+  model = "google/gemini-3-flash-preview",
+) {
   const openrouterKey = process.env.OPENROUTER_API_KEY;
 
   if (openrouterKey) {
@@ -25,7 +31,7 @@ async function callAI(system: string, user: string, json = true, model = "google
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${openrouterKey}`,
+        Authorization: `Bearer ${openrouterKey}`,
         "HTTP-Referer": "https://clinicx.digiwil.com",
         "X-Title": "ClinicX",
       },
@@ -98,7 +104,10 @@ async function refreshRank(clinic: any) {
         let m;
         while ((m = re.exec(html)) !== null) hrefs.push(m[1].toLowerCase());
         const idx = hrefs.findIndex(
-          (h) => (domain && h.includes(domain)) || h.includes(`/c/${slug}`) || h.includes(`slug=${slug}`),
+          (h) =>
+            (domain && h.includes(domain)) ||
+            h.includes(`/c/${slug}`) ||
+            h.includes(`slug=${slug}`),
         );
         if (idx !== -1) position = idx + 1;
       }
@@ -197,10 +206,25 @@ async function runAudit(clinic: any) {
   const bio = (clinic.bio ?? "").length;
 
   const on_page = Math.round(
-    ((seo.meta_title ? 1 : 0) + (seo.meta_description ? 1 : 0) + (seo.keywords ? 1 : 0) + (bio >= 120 ? 1 : 0) + (clinic.qualification ? 1 : 0) + (clinic.public_phone || clinic.phone ? 1 : 0) + (clinic.public_address || clinic.address ? 1 : 0) + (gallery.length >= 3 ? 1 : 0) + (services.length >= 3 ? 1 : 0)) *
-    (100 / 9),
+    ((seo.meta_title ? 1 : 0) +
+      (seo.meta_description ? 1 : 0) +
+      (seo.keywords ? 1 : 0) +
+      (bio >= 120 ? 1 : 0) +
+      (clinic.qualification ? 1 : 0) +
+      (clinic.public_phone || clinic.phone ? 1 : 0) +
+      (clinic.public_address || clinic.address ? 1 : 0) +
+      (gallery.length >= 3 ? 1 : 0) +
+      (services.length >= 3 ? 1 : 0)) *
+      (100 / 9),
   );
-  const local = Math.round(((clinic.public_phone || clinic.phone ? 1 : 0) + (clinic.public_address || clinic.address ? 1 : 0) + (gallery.length >= 3 ? 1 : 0) + (clinic.specialization ? 1 : 0) + (clinic.slug ? 1 : 0)) * 20);
+  const local = Math.round(
+    ((clinic.public_phone || clinic.phone ? 1 : 0) +
+      (clinic.public_address || clinic.address ? 1 : 0) +
+      (gallery.length >= 3 ? 1 : 0) +
+      (clinic.specialization ? 1 : 0) +
+      (clinic.slug ? 1 : 0)) *
+      20,
+  );
   const aeo = 50;
   const geo = 50;
   const overall = Math.round((on_page + local + aeo + geo) / 4);
@@ -241,9 +265,14 @@ async function checkCitations(clinic: any) {
 }
 
 export async function runAutopilotForClinic(clinicId: string, ownerCheckUserId?: string) {
-  const { data: clinic } = await supabaseAdmin.from("clinics").select("*").eq("id", clinicId).maybeSingle();
+  const { data: clinic } = await supabaseAdmin
+    .from("clinics")
+    .select("*")
+    .eq("id", clinicId)
+    .maybeSingle();
   if (!clinic) throw new Error("Clinic not found");
-  if (ownerCheckUserId && (clinic as any).owner_id !== ownerCheckUserId) throw new Error("Unauthorized");
+  if (ownerCheckUserId && (clinic as any).owner_id !== ownerCheckUserId)
+    throw new Error("Unauthorized");
 
   const cfg: Cfg = { ...DEFAULT_CFG, ...((clinic as any).seo_autopilot || {}) };
   const summary: Record<string, unknown> = {};
@@ -259,7 +288,9 @@ export async function runAutopilotForClinic(clinicId: string, ownerCheckUserId?:
       const { syncClinicGoogleReviews } = await import("@/lib/google-reviews.server");
       const out = await syncClinicGoogleReviews((clinic as any).id);
       summary.google_reviews = { count: out.reviews.length };
-    } catch (e: any) { summary.google_reviews = { failed: e.message }; }
+    } catch (e: any) {
+      summary.google_reviews = { failed: e.message };
+    }
   }
 
   // ─── Auto-verify and submit sitemap to GSC ───────────────────────────────────
@@ -282,7 +313,9 @@ export async function runAutopilotForClinic(clinicId: string, ownerCheckUserId?:
         // Auto ping Google sitemap
         try {
           const sitemapUrl = `${targetUrl}/sitemap.xml`;
-          await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { mode: 'no-cors' });
+          await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, {
+            mode: "no-cors",
+          });
           summary.gsc_auto_submit = { status: "submitted", sitemap: sitemapUrl };
         } catch (e: any) {
           summary.gsc_auto_submit = { status: "ping_failed", error: e.message };
@@ -292,7 +325,9 @@ export async function runAutopilotForClinic(clinicId: string, ownerCheckUserId?:
       // If already verified, still submit sitemap periodically during autopilot run
       try {
         const sitemapUrl = `${clinic.gsc_site_url.replace(/\/+$/, "")}/sitemap.xml`;
-        await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { mode: 'no-cors' });
+        await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, {
+          mode: "no-cors",
+        });
         summary.gsc_auto_submit = { status: "re_submitted", sitemap: sitemapUrl };
       } catch (e: any) {
         summary.gsc_auto_submit = { status: "ping_failed", error: e.message };
@@ -304,7 +339,10 @@ export async function runAutopilotForClinic(clinicId: string, ownerCheckUserId?:
   if (cfg.weekly_blog && dow === 1) summary.blog = await weeklyBlog(clinic);
   if (cfg.weekly_email && dow === 0) summary.email = await weeklyEmail(clinic);
 
-  await supabaseAdmin.from("clinics").update({ seo_autopilot_last_run: new Date().toISOString() }).eq("id", clinicId);
+  await supabaseAdmin
+    .from("clinics")
+    .update({ seo_autopilot_last_run: new Date().toISOString() })
+    .eq("id", clinicId);
 
   return summary;
 }
@@ -324,16 +362,37 @@ async function autoFix(clinic: any) {
     changed++;
   }
   if (!patch.meta_description) {
-    patch.meta_description = `Book online with ${clinic.doctor_name ?? clinicName}, ${spec}${city ? ` in ${city}` : ""}. ${clinic.bio ? clinic.bio.slice(0, 90) : "Quality care, easy booking."}`.slice(0, 160);
+    patch.meta_description =
+      `Book online with ${clinic.doctor_name ?? clinicName}, ${spec}${city ? ` in ${city}` : ""}. ${clinic.bio ? clinic.bio.slice(0, 90) : "Quality care, easy booking."}`.slice(
+        0,
+        160,
+      );
     changed++;
   }
   if (!patch.keywords) {
-    patch.keywords = [spec.toLowerCase(), `${spec.toLowerCase()} near me`, city ? `${spec.toLowerCase()} in ${city.toLowerCase()}` : "", clinic.doctor_name].filter(Boolean).join(", ");
+    patch.keywords = [
+      spec.toLowerCase(),
+      `${spec.toLowerCase()} near me`,
+      city ? `${spec.toLowerCase()} in ${city.toLowerCase()}` : "",
+      clinic.doctor_name,
+    ]
+      .filter(Boolean)
+      .join(", ");
     changed++;
   }
-  const url = `https://${(clinic.custom_domain ?? "").trim() || `digiclini.vercel.app/c/${clinic.slug}`}`.replace(/\/+$/, "");
-  if (!patch.canonical_url) { patch.canonical_url = url; changed++; }
-  if (!patch.og_image) { patch.og_image = clinic.logo_url ?? clinic.avatar_url ?? null; if (patch.og_image) changed++; }
+  const url =
+    `https://${(clinic.custom_domain ?? "").trim() || `digiclini.vercel.app/c/${clinic.slug}`}`.replace(
+      /\/+$/,
+      "",
+    );
+  if (!patch.canonical_url) {
+    patch.canonical_url = url;
+    changed++;
+  }
+  if (!patch.og_image) {
+    patch.og_image = clinic.logo_url ?? clinic.avatar_url ?? null;
+    if (patch.og_image) changed++;
+  }
 
   // LocalBusiness JSON-LD
   const jsonLd = {
@@ -346,13 +405,19 @@ async function autoFix(clinic: any) {
     medicalSpecialty: spec,
     ...(clinic.logo_url ? { logo: clinic.logo_url } : {}),
   };
-  if (!patch.local_business_jsonld || JSON.stringify(patch.local_business_jsonld) !== JSON.stringify(jsonLd)) {
+  if (
+    !patch.local_business_jsonld ||
+    JSON.stringify(patch.local_business_jsonld) !== JSON.stringify(jsonLd)
+  ) {
     patch.local_business_jsonld = jsonLd;
     changed++;
   }
 
   if (changed > 0) {
-    await supabaseAdmin.from("clinics").update({ seo_config: patch as any }).eq("id", clinic.id);
+    await supabaseAdmin
+      .from("clinics")
+      .update({ seo_config: patch as any })
+      .eq("id", clinic.id);
   }
   return { changed };
 }
@@ -397,24 +462,34 @@ async function weeklyEmail(clinic: any) {
   if (!to) return { skipped: "no recipient" };
 
   const { data: audit } = await supabaseAdmin
-    .from("seo_audits").select("*")
+    .from("seo_audits")
+    .select("*")
     .eq("clinic_id", clinic.id)
     .order("created_at", { ascending: false })
     .limit(4);
   const { count: newBlog } = await supabaseAdmin
-    .from("seo_ai_content").select("id", { count: "exact", head: true })
-    .eq("clinic_id", clinic.id).eq("kind", "blog")
+    .from("seo_ai_content")
+    .select("id", { count: "exact", head: true })
+    .eq("clinic_id", clinic.id)
+    .eq("kind", "blog")
     .gte("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString());
   const { count: citations } = await supabaseAdmin
-    .from("seo_citations").select("id", { count: "exact", head: true })
+    .from("seo_citations")
+    .select("id", { count: "exact", head: true })
     .eq("clinic_id", clinic.id)
     .gte("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString());
   const { data: kws } = await supabaseAdmin
-    .from("seo_keywords").select("keyword, current_position")
-    .eq("clinic_id", clinic.id).limit(10);
+    .from("seo_keywords")
+    .select("keyword, current_position")
+    .eq("clinic_id", clinic.id)
+    .limit(10);
 
-  const rows = (audit ?? []).map((a: any) => `<li><b>${a.category.replace("_", " ")}</b>: ${a.score}/100</li>`).join("");
-  const kwRows = (kws ?? []).map((k: any) => `<li>${k.keyword} — ${k.current_position ?? "not ranked"}</li>`).join("");
+  const rows = (audit ?? [])
+    .map((a: any) => `<li><b>${a.category.replace("_", " ")}</b>: ${a.score}/100</li>`)
+    .join("");
+  const kwRows = (kws ?? [])
+    .map((k: any) => `<li>${k.keyword} — ${k.current_position ?? "not ranked"}</li>`)
+    .join("");
 
   const html = `
     <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
@@ -428,55 +503,16 @@ async function weeklyEmail(clinic: any) {
       <p style="color:#64748b;font-size:12px;margin-top:24px">Sent by ClinicX SEO Autopilot.</p>
     </div>`;
 
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const resendKey = process.env.RESEND_API_KEY;
-
-  if (resendKey) {
-    try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "ClinicX Autopilot <onboarding@resend.dev>",
-          to: [to],
-          subject: `Weekly SEO report — ${clinic.clinic_name ?? clinic.doctor_name}`,
-          html,
-        }),
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        return { failed: `resend API error (${res.status}): ${errText}` };
-      }
-      return { sent_to: to };
-    } catch (e: any) {
-      return { failed: e.message };
-    }
-  } else if (lovableKey) {
-    try {
-      const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": resendKey || "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "ClinicX Autopilot <onboarding@resend.dev>",
-          to: [to],
-          subject: `Weekly SEO report — ${clinic.clinic_name ?? clinic.doctor_name}`,
-          html,
-        }),
-      });
-      if (!res.ok) return { failed: `resend ${res.status}` };
-      return { sent_to: to };
-    } catch (e: any) {
-      return { failed: e.message };
-    }
-  } else {
-    return { failed: "email not configured" };
+  try {
+    await enqueueEmailJob({
+      to,
+      subject: `Weekly SEO report — ${clinic.clinic_name ?? clinic.doctor_name}`,
+      html,
+      clinicId: clinic.id,
+    });
+    return { sent_to: to, queued: true };
+  } catch (e: any) {
+    return { failed: e.message };
   }
 }
 

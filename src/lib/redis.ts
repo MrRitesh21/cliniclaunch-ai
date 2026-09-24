@@ -162,11 +162,7 @@ export const redisCache = {
     return true;
   },
 
-  async getOrSet<T>(
-    key: string,
-    fetchFn: () => Promise<T>,
-    ttlSeconds: number = 300,
-  ): Promise<T> {
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlSeconds: number = 300): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached !== null && cached !== undefined) {
       return cached;

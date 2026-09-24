@@ -108,21 +108,31 @@ export async function adminListTemplatesImpl() {
   await requireAdmin();
   const sb = await admin();
   const [{ data: templates }, { data: assignments }] = await Promise.all([
-    sb.from("site_templates").select(TPL_COLUMNS).order("sort_order", { ascending: true }).order("created_at", { ascending: false }),
+    sb
+      .from("site_templates")
+      .select(TPL_COLUMNS)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false }),
     sb.from("clinic_template_assignments").select("id, clinic_id, template_id, note, created_at"),
   ]);
 
   const clinicIds = (assignments ?? []).map((a: any) => a.clinic_id);
   let clinics: any[] = [];
   if (clinicIds.length) {
-    const { data } = await sb.from("clinics").select("id, slug, doctor_name, clinic_name").in("id", clinicIds);
+    const { data } = await sb
+      .from("clinics")
+      .select("id, slug, doctor_name, clinic_name")
+      .in("id", clinicIds);
     clinics = data ?? [];
   }
   const byId = new Map(clinics.map((c) => [c.id, c]));
 
   return {
     templates: templates ?? [],
-    assignments: (assignments ?? []).map((a: any) => ({ ...a, clinic: byId.get(a.clinic_id) ?? null })),
+    assignments: (assignments ?? []).map((a: any) => ({
+      ...a,
+      clinic: byId.get(a.clinic_id) ?? null,
+    })),
   };
 }
 
@@ -146,7 +156,10 @@ export async function adminSaveTemplateImpl(input: {
   const sb = await admin();
 
   const row: Record<string, unknown> = {
-    slug: input.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+    slug: input.slug
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-"),
     name: input.name.trim(),
     description: input.description?.trim() || null,
     kind: input.kind,
@@ -164,7 +177,12 @@ export async function adminSaveTemplateImpl(input: {
 
   let saved: any;
   if (input.id) {
-    const { data, error } = await sb.from("site_templates").update(row).eq("id", input.id).select(TPL_COLUMNS).maybeSingle();
+    const { data, error } = await sb
+      .from("site_templates")
+      .update(row)
+      .eq("id", input.id)
+      .select(TPL_COLUMNS)
+      .maybeSingle();
     if (error) throw new Error(error.message);
     saved = data;
   } else {
@@ -190,28 +208,34 @@ export async function adminDeleteTemplateImpl(id: string) {
   return { ok: true };
 }
 
-export async function adminAssignTemplateImpl(input: { clinic_id: string; template_id: string | null; note?: string | null }) {
+export async function adminAssignTemplateImpl(input: {
+  clinic_id: string;
+  template_id: string | null;
+  note?: string | null;
+}) {
   const me = await requireAdmin();
   const sb = await admin();
 
-  const { data: clinic } = await sb.from("clinics").select("id, slug").eq("id", input.clinic_id).maybeSingle();
+  const { data: clinic } = await sb
+    .from("clinics")
+    .select("id, slug")
+    .eq("id", input.clinic_id)
+    .maybeSingle();
   if (!clinic) throw new Error("Clinic not found");
 
   if (!input.template_id) {
     await sb.from("clinic_template_assignments").delete().eq("clinic_id", input.clinic_id);
   } else {
-    const { error } = await sb
-      .from("clinic_template_assignments")
-      .upsert(
-        {
-          clinic_id: input.clinic_id,
-          template_id: input.template_id,
-          note: input.note?.trim() || null,
-          assigned_by: me.id,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "clinic_id" },
-      );
+    const { error } = await sb.from("clinic_template_assignments").upsert(
+      {
+        clinic_id: input.clinic_id,
+        template_id: input.template_id,
+        note: input.note?.trim() || null,
+        assigned_by: me.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "clinic_id" },
+    );
     if (error) throw new Error(error.message);
   }
 
@@ -222,17 +246,33 @@ export async function adminAssignTemplateImpl(input: { clinic_id: string; templa
 export async function adminSearchClinicsImpl(q: string) {
   await requireAdmin();
   const sb = await admin();
-  let query = sb.from("clinics").select("id, slug, doctor_name, clinic_name").order("created_at", { ascending: false }).limit(25);
+  let query = sb
+    .from("clinics")
+    .select("id, slug, doctor_name, clinic_name")
+    .order("created_at", { ascending: false })
+    .limit(25);
   const term = q.trim();
-  if (term) query = query.or(`slug.ilike.%${term}%,doctor_name.ilike.%${term}%,clinic_name.ilike.%${term}%`);
+  if (term)
+    query = query.or(
+      `slug.ilike.%${term}%,doctor_name.ilike.%${term}%,clinic_name.ilike.%${term}%`,
+    );
   const { data } = await query;
   return data ?? [];
 }
 
 // --------------------------------------------------------------- doctor choice
 
-export async function setClinicTemplateChoiceImpl(sb: any, userId: string, clinicId: string, templateId: string | null) {
-  const { data: clinic, error } = await sb.from("clinics").select("id, slug").eq("id", clinicId).maybeSingle();
+export async function setClinicTemplateChoiceImpl(
+  sb: any,
+  userId: string,
+  clinicId: string,
+  templateId: string | null,
+) {
+  const { data: clinic, error } = await sb
+    .from("clinics")
+    .select("id, slug")
+    .eq("id", clinicId)
+    .maybeSingle();
   if (error) throw new Error(error.message);
   if (!clinic) throw new Error("Clinic not found or you don't have access");
 
@@ -243,9 +283,13 @@ export async function setClinicTemplateChoiceImpl(sb: any, userId: string, clini
     .select("id")
     .eq("clinic_id", clinicId)
     .maybeSingle();
-  if (forced) throw new Error("Your template is managed by the clinicx team and can't be changed here.");
+  if (forced)
+    throw new Error("Your template is managed by the clinicx team and can't be changed here.");
 
-  const { error: upErr } = await sb.from("clinics").update({ site_template_id: templateId }).eq("id", clinicId);
+  const { error: upErr } = await sb
+    .from("clinics")
+    .update({ site_template_id: templateId })
+    .eq("id", clinicId);
   if (upErr) throw new Error(upErr.message);
 
   await invalidateTemplateCaches(clinic.slug);
@@ -256,10 +300,15 @@ export async function getClinicTemplateStateImpl(clinicId: string) {
   const sb = await admin();
   const [{ data: clinic }, { data: assignment }] = await Promise.all([
     sb.from("clinics").select("site_template_id").eq("id", clinicId).maybeSingle(),
-    sb.from("clinic_template_assignments").select("template_id, note").eq("clinic_id", clinicId).maybeSingle(),
+    sb
+      .from("clinic_template_assignments")
+      .select("template_id, note")
+      .eq("clinic_id", clinicId)
+      .maybeSingle(),
   ]);
   return {
-    selected_template_id: (assignment?.template_id ?? clinic?.site_template_id ?? null) as string | null,
+    selected_template_id: (assignment?.template_id ?? clinic?.site_template_id ?? null) as
+      string | null,
     locked: Boolean(assignment),
     note: (assignment?.note ?? null) as string | null,
   };

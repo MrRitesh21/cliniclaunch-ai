@@ -23,7 +23,9 @@ export function StatsCard({
       </div>
       <div className="font-display text-2xl">{value}</div>
       {change !== undefined && (
-        <div className={`text-xs mt-1 flex items-center gap-1 ${positive ? "text-emerald-600" : "text-rose-600"}`}>
+        <div
+          className={`text-xs mt-1 flex items-center gap-1 ${positive ? "text-emerald-600" : "text-rose-600"}`}
+        >
           {positive ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
           {Math.abs(change)}% {changePeriod ?? ""}
         </div>

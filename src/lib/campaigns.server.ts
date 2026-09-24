@@ -5,15 +5,15 @@
 import { baileysSend, baileysStatus, clinicSessionId } from "./baileys.server";
 
 export type AudienceSegment =
-  | "all_patients"
-  | "recent_visitors"
-  | "lapsed_patients"
-  | "new_leads"
-  | "all_leads";
+  "all_patients" | "recent_visitors" | "lapsed_patients" | "new_leads" | "all_leads";
 
 export const AUDIENCE_SEGMENTS: { key: AudienceSegment; label: string; description: string }[] = [
   { key: "all_patients", label: "All patients", description: "Every patient in your CRM" },
-  { key: "recent_visitors", label: "Recent visitors (90 days)", description: "Seen in the last 3 months" },
+  {
+    key: "recent_visitors",
+    label: "Recent visitors (90 days)",
+    description: "Seen in the last 3 months",
+  },
   { key: "lapsed_patients", label: "Lapsed patients (180+ days)", description: "Due for a recall" },
   { key: "new_leads", label: "New leads", description: "Enquiries not yet contacted" },
   { key: "all_leads", label: "All leads", description: "Every enquiry ever captured" },
@@ -26,7 +26,10 @@ export interface Recipient {
   email: string | null;
 }
 
-export function renderTemplate(body: string, vars: Record<string, string | number | null | undefined>) {
+export function renderTemplate(
+  body: string,
+  vars: Record<string, string | number | null | undefined>,
+) {
   return body.replace(/\{(\w+)\}/g, (_m, k: string) => {
     const v = vars[k];
     return v === undefined || v === null ? "" : String(v);
@@ -138,7 +141,7 @@ export async function dispatchCampaign(
       } else if (canSend) {
         const res = await baileysSend(sessionId, r.phone, message);
         status = res.ok ? "sent" : "failed";
-        error = res.ok ? null : res.error ?? "send failed";
+        error = res.ok ? null : (res.error ?? "send failed");
       } else {
         status = "queued";
         error = "WhatsApp not connected";

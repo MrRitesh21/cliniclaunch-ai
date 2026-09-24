@@ -29,7 +29,10 @@ export function readCache<T>(key: string, maxAgeMs: number): T | null {
 export function writeCache<T>(key: string, value: T): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(PREFIX + key, JSON.stringify({ v: value, at: Date.now() } satisfies Envelope<T>));
+    window.localStorage.setItem(
+      PREFIX + key,
+      JSON.stringify({ v: value, at: Date.now() } satisfies Envelope<T>),
+    );
   } catch {
     // quota / private mode — cache is optional
   }

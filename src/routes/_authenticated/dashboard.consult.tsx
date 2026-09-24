@@ -1,10 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { 
-  Stethoscope, Plus, FileText, Calendar, Search, Trash2, Pencil, 
-  Printer, Sparkles, HeartPulse, Activity, Thermometer, ChevronRight,
-  TrendingUp, Users, Clock, AlertCircle, Info, Sparkle
+import {
+  Stethoscope,
+  Plus,
+  FileText,
+  Calendar,
+  Search,
+  Trash2,
+  Pencil,
+  Printer,
+  Sparkles,
+  HeartPulse,
+  Activity,
+  Thermometer,
+  ChevronRight,
+  TrendingUp,
+  Users,
+  Clock,
+  AlertCircle,
+  Info,
+  Sparkle,
 } from "lucide-react";
 import { AppGuard } from "@/components/app/AppGuard";
 import { EmptyState } from "@/components/app/EmptyState";
@@ -18,12 +34,28 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/dashboard/consult")({
-  component: () => (<AppGuard appKey="consultation"><ConsultPage /></AppGuard>),
+  component: () => (
+    <AppGuard appKey="consultation">
+      <ConsultPage />
+    </AppGuard>
+  ),
 });
 
 type Consultation = {
@@ -56,84 +88,148 @@ function getBpStatus(bp: string) {
   const sys = parseInt(sysStr);
   const dia = parseInt(diaStr);
   if (isNaN(sys) || isNaN(dia)) return null;
-  if (sys >= 140 || dia >= 90) return { label: "High BP", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
-  if (sys < 90 || dia < 60) return { label: "Low BP", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200" };
-  return { label: "Normal BP", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
+  if (sys >= 140 || dia >= 90)
+    return { label: "High BP", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
+  if (sys < 90 || dia < 60)
+    return {
+      label: "Low BP",
+      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200",
+    };
+  return {
+    label: "Normal BP",
+    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200",
+  };
 }
 
 function getTempStatus(temp: string) {
   if (!temp) return null;
   const t = parseFloat(temp);
   if (isNaN(t)) return null;
-  if (t >= 100.4) return { label: "High Fever", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
-  if (t >= 99.0) return { label: "Mild Fever", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20 border-amber-200" };
-  if (t < 95.0) return { label: "Hypothermia", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200" };
-  return { label: "Normal Temp", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
+  if (t >= 100.4)
+    return {
+      label: "High Fever",
+      color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200",
+    };
+  if (t >= 99.0)
+    return {
+      label: "Mild Fever",
+      color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20 border-amber-200",
+    };
+  if (t < 95.0)
+    return {
+      label: "Hypothermia",
+      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200",
+    };
+  return {
+    label: "Normal Temp",
+    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200",
+  };
 }
 
 function getPulseStatus(pulse: string) {
   if (!pulse) return null;
   const p = parseInt(pulse);
   if (isNaN(p)) return null;
-  if (p > 100) return { label: "High Pulse", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
-  if (p < 60) return { label: "Low Pulse", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200" };
-  return { label: "Normal Pulse", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
+  if (p > 100)
+    return {
+      label: "High Pulse",
+      color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200",
+    };
+  if (p < 60)
+    return {
+      label: "Low Pulse",
+      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200",
+    };
+  return {
+    label: "Normal Pulse",
+    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200",
+  };
 }
 
 // AI SOAP generator clinical templates
 const MEDICAL_KNOWLEDGE: Record<string, { history: string; exam: string; plan: string }> = {
   fever: {
-    history: "Patient reports high-grade fever spikes for 3 days, accompanied by chills, mild body ache, and generalized fatigue. No chest pain, difficulty breathing, or rash reported.",
+    history:
+      "Patient reports high-grade fever spikes for 3 days, accompanied by chills, mild body ache, and generalized fatigue. No chest pain, difficulty breathing, or rash reported.",
     exam: "Patient is conscious, alert, and oriented. Oropharynx is mildly congested. Chest is clear on auscultation. Abdomen soft, non-tender.",
-    plan: "1. Tab Paracetamol 650mg orally up to 4 times a day if temperature exceeds 99°F.\n2. Complete Bed Rest & high fluid intake (2-3 Litres/day).\n3. CBC and Widal test if fever persists beyond 5 days.\n4. Follow up in 3 days or sooner if red-flag symptoms arise."
+    plan: "1. Tab Paracetamol 650mg orally up to 4 times a day if temperature exceeds 99°F.\n2. Complete Bed Rest & high fluid intake (2-3 Litres/day).\n3. CBC and Widal test if fever persists beyond 5 days.\n4. Follow up in 3 days or sooner if red-flag symptoms arise.",
   },
   throat: {
-    history: "Patient presents with severe sore throat, difficulty swallowing solids, and persistent throat irritation for 2 days. Associated with dry cough.",
+    history:
+      "Patient presents with severe sore throat, difficulty swallowing solids, and persistent throat irritation for 2 days. Associated with dry cough.",
     exam: "Pharynx shows significant erythema. Tonsils are enlarged (Grade 2) with no visible purulent exudate. Bilateral cervical lymph nodes are tender on palpation.",
-    plan: "1. Warm saline gargles with Betadine gargle solution 3-4 times a day.\n2. Tab Amoxicillin 500mg 3 times a day for 5 days.\n3. Tab Levocetirizine 5mg at bedtime for throat congestion.\n4. Avoid cold/sour foods. Soft diet recommended."
+    plan: "1. Warm saline gargles with Betadine gargle solution 3-4 times a day.\n2. Tab Amoxicillin 500mg 3 times a day for 5 days.\n3. Tab Levocetirizine 5mg at bedtime for throat congestion.\n4. Avoid cold/sour foods. Soft diet recommended.",
   },
   cough: {
-    history: "Patient reports productive cough with yellowish sputum for 5 days. Mild chest discomfort during coughing. No hemoptysis or breathlessness.",
+    history:
+      "Patient reports productive cough with yellowish sputum for 5 days. Mild chest discomfort during coughing. No hemoptysis or breathlessness.",
     exam: "Mild throat congestion. Chest auscultation reveals bilateral rhonchi, no crepitations. SpO2: 98% on room air.",
-    plan: "1. Expectorant cough syrup 10ml thrice daily for 5 days.\n2. Tab Azithromycin 500mg once daily for 3 days.\n3. Steam inhalation twice daily.\n4. Drink warm water and maintain hydration. Follow up if dyspnea develops."
+    plan: "1. Expectorant cough syrup 10ml thrice daily for 5 days.\n2. Tab Azithromycin 500mg once daily for 3 days.\n3. Steam inhalation twice daily.\n4. Drink warm water and maintain hydration. Follow up if dyspnea develops.",
   },
   hypertension: {
-    history: "Patient is a known case of essential hypertension, presenting for a routine follow-up check. Complains of mild occipital headache and fatigue.",
+    history:
+      "Patient is a known case of essential hypertension, presenting for a routine follow-up check. Complains of mild occipital headache and fatigue.",
     exam: "BP checked twice in sitting position: 152/96 mmHg. CVS: S1 S2 heard, no murmurs. Lungs clear. No pedal edema.",
-    plan: "1. Continue current antihypertensive medication (Tab Telmisartan 40mg OD).\n2. Restrict dietary sodium intake to < 5g/day. Daily brisk walk for 30 minutes.\n3. Maintain a daily home BP log for 1 week.\n4. Follow up next week for dosage review."
+    plan: "1. Continue current antihypertensive medication (Tab Telmisartan 40mg OD).\n2. Restrict dietary sodium intake to < 5g/day. Daily brisk walk for 30 minutes.\n3. Maintain a daily home BP log for 1 week.\n4. Follow up next week for dosage review.",
   },
   diabetes: {
-    history: "Patient is a Type 2 diabetic. Presents for routine blood glucose check. Reports mild polyuria, nocturia, and dry mouth over the past 2 weeks.",
+    history:
+      "Patient is a Type 2 diabetic. Presents for routine blood glucose check. Reports mild polyuria, nocturia, and dry mouth over the past 2 weeks.",
     exam: "Weight: 82 kg. Feet examination: intact sensation, no active ulcers. CVS & Respiratory normal.",
-    plan: "1. Tab Metformin 500mg BD after meals.\n2. Strict diabetic diet (low glycemic index, no refined sugars).\n3. Schedule HbA1c, FBS, and PPBS. Eye and kidney profile evaluation.\n4. Walk 45 minutes daily. Return for review in 2 weeks."
+    plan: "1. Tab Metformin 500mg BD after meals.\n2. Strict diabetic diet (low glycemic index, no refined sugars).\n3. Schedule HbA1c, FBS, and PPBS. Eye and kidney profile evaluation.\n4. Walk 45 minutes daily. Return for review in 2 weeks.",
   },
   back: {
-    history: "Patient complains of sharp, localized lower back pain for 4 days after lifting a heavy object. Pain radiates to the gluteal region but not down the leg.",
+    history:
+      "Patient complains of sharp, localized lower back pain for 4 days after lifting a heavy object. Pain radiates to the gluteal region but not down the leg.",
     exam: "Tenderness on palpation of lumbar paraspinal muscles. Straight leg raise (SLR) test is negative bilaterally. Lumbar range of motion is restricted.",
-    plan: "1. Tab Aceclofenac 100mg + Paracetamol 325mg twice daily after food.\n2. Local application of Diclofenac pain relief gel 3 times daily.\n3. Avoid heavy lifting and forward bending. Use a firm mattress.\n4. Physiotherapy evaluation if pain persists past 10 days."
-  }
+    plan: "1. Tab Aceclofenac 100mg + Paracetamol 325mg twice daily after food.\n2. Local application of Diclofenac pain relief gel 3 times daily.\n3. Avoid heavy lifting and forward bending. Use a firm mattress.\n4. Physiotherapy evaluation if pain persists past 10 days.",
+  },
 };
 
 function generateSoapDraft(complaint: string, diagnosis: string) {
   const combined = `${complaint} ${diagnosis}`.toLowerCase();
-  
+
   let matchKey = "";
-  if (combined.includes("fever") || combined.includes("temp") || combined.includes("pyrexia")) matchKey = "fever";
-  else if (combined.includes("throat") || combined.includes("tonsil") || combined.includes("swallow")) matchKey = "throat";
-  else if (combined.includes("cough") || combined.includes("bronchitis") || combined.includes("sputum")) matchKey = "cough";
-  else if (combined.includes("bp") || combined.includes("hyper") || combined.includes("tension") || combined.includes("pressure")) matchKey = "hypertension";
-  else if (combined.includes("diab") || combined.includes("sugar") || combined.includes("glucose")) matchKey = "diabetes";
-  else if (combined.includes("back") || combined.includes("spine") || combined.includes("lumbar") || combined.includes("pain")) matchKey = "back";
-  
+  if (combined.includes("fever") || combined.includes("temp") || combined.includes("pyrexia"))
+    matchKey = "fever";
+  else if (
+    combined.includes("throat") ||
+    combined.includes("tonsil") ||
+    combined.includes("swallow")
+  )
+    matchKey = "throat";
+  else if (
+    combined.includes("cough") ||
+    combined.includes("bronchitis") ||
+    combined.includes("sputum")
+  )
+    matchKey = "cough";
+  else if (
+    combined.includes("bp") ||
+    combined.includes("hyper") ||
+    combined.includes("tension") ||
+    combined.includes("pressure")
+  )
+    matchKey = "hypertension";
+  else if (combined.includes("diab") || combined.includes("sugar") || combined.includes("glucose"))
+    matchKey = "diabetes";
+  else if (
+    combined.includes("back") ||
+    combined.includes("spine") ||
+    combined.includes("lumbar") ||
+    combined.includes("pain")
+  )
+    matchKey = "back";
+
   if (matchKey && MEDICAL_KNOWLEDGE[matchKey]) {
     return MEDICAL_KNOWLEDGE[matchKey];
   }
-  
+
   // Generic fallback generator
   return {
-    history: `Patient presents with chief complaint of "${complaint || 'symptoms'}" for a duration of several days. Condition is currently localized. No red-flag systemic symptoms reported.`,
+    history: `Patient presents with chief complaint of "${complaint || "symptoms"}" for a duration of several days. Condition is currently localized. No red-flag systemic symptoms reported.`,
     exam: `Patient is hemodynamically stable. Localized examination of the affected region shows mild tenderness and irritation. Lungs are clear, heart sounds normal.`,
-    plan: `1. Symptomatic relief medications as indicated for "${diagnosis || complaint}".\n2. Monitor symptoms and take adequate physical rest.\n3. Return immediately if symptoms worsen or complications arise.\n4. Follow up in 3 to 5 days.`
+    plan: `1. Symptomatic relief medications as indicated for "${diagnosis || complaint}".\n2. Monitor symptoms and take adequate physical rest.\n3. Return immediately if symptoms worsen or complications arise.\n4. Follow up in 3 to 5 days.`,
   };
 }
 
@@ -151,9 +247,22 @@ function ConsultPage() {
     if (!orgId) return;
     setLoading(true);
     const [{ data: c }, { data: p }, { data: a }] = await Promise.all([
-      supabase.from("consultations" as any).select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("patients").select("id, name, phone").eq("organization_id", orgId).order("name"),
-      supabase.from("appointments").select("id, patient_name, scheduled_at, status").eq("organization_id", orgId).order("scheduled_at", { ascending: false }).limit(100),
+      supabase
+        .from("consultations" as any)
+        .select("*")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("patients")
+        .select("id, name, phone")
+        .eq("organization_id", orgId)
+        .order("name"),
+      supabase
+        .from("appointments")
+        .select("id, patient_name, scheduled_at, status")
+        .eq("organization_id", orgId)
+        .order("scheduled_at", { ascending: false })
+        .limit(100),
     ]);
     setRows((c as any[]) ?? []);
     setPatients((p as any[]) ?? []);
@@ -161,7 +270,9 @@ function ConsultPage() {
     setLoading(false);
   }
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [orgId]);
+  useEffect(() => {
+    void load(); /* eslint-disable-next-line */
+  }, [orgId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -175,20 +286,26 @@ function ConsultPage() {
   }, [search, rows]);
 
   const stats = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const tIso = today.toISOString();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
     return {
       total: rows.length,
       today: rows.filter((r) => r.created_at >= tIso).length,
       month: rows.filter((r) => r.created_at >= monthStart).length,
-      followUps: rows.filter((r) => r.follow_up_date && r.follow_up_date >= today.toISOString().slice(0, 10)).length,
+      followUps: rows.filter(
+        (r) => r.follow_up_date && r.follow_up_date >= today.toISOString().slice(0, 10),
+      ).length,
     };
   }, [rows]);
 
   async function remove(id: string) {
     if (!confirm("Delete this consultation?")) return;
-    const { error } = await supabase.from("consultations" as any).delete().eq("id", id);
+    const { error } = await supabase
+      .from("consultations" as any)
+      .delete()
+      .eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
     load();
@@ -198,7 +315,7 @@ function ConsultPage() {
   function printConsultation(c: Consultation) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    
+
     let bmiStr = "";
     const w = parseFloat(c.weight ?? "");
     const h = parseFloat(c.height ?? "");
@@ -247,42 +364,66 @@ function ConsultPage() {
             <div><strong>Follow-up Date:</strong> ${c.follow_up_date ? new Date(c.follow_up_date).toLocaleDateString() : "None scheduled"}</div>
           </div>
 
-          ${(c.bp || c.pulse || c.temperature || c.weight || c.height) ? `
+          ${
+            c.bp || c.pulse || c.temperature || c.weight || c.height
+              ? `
           <div class="section-title">Patient Vitals & Measurements</div>
           <div class="vitals-bar">
-            ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${c.bp} mmHg</div></div>` : ''}
-            ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${c.pulse} bpm</div></div>` : ''}
-            ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${c.temperature} °F</div></div>` : ''}
-            ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${c.weight} kg</div></div>` : ''}
-            ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${c.height} cm</div></div>` : ''}
-            ${bmiStr ? `<div class="vitals-item"><div class="vitals-label">BMI</div><div class="vitals-val">${bmiStr}</div></div>` : ''}
+            ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${c.bp} mmHg</div></div>` : ""}
+            ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${c.pulse} bpm</div></div>` : ""}
+            ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${c.temperature} °F</div></div>` : ""}
+            ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${c.weight} kg</div></div>` : ""}
+            ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${c.height} cm</div></div>` : ""}
+            ${bmiStr ? `<div class="vitals-item"><div class="vitals-label">BMI</div><div class="vitals-val">${bmiStr}</div></div>` : ""}
           </div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${c.chief_complaint ? `
+          ${
+            c.chief_complaint
+              ? `
           <div class="section-title">Chief Complaint</div>
           <div class="content-block">${c.chief_complaint}</div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${c.history ? `
+          ${
+            c.history
+              ? `
           <div class="section-title">Medical History</div>
           <div class="content-block">${c.history}</div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${c.examination ? `
+          ${
+            c.examination
+              ? `
           <div class="section-title">Clinical Examination Findings</div>
           <div class="content-block">${c.examination}</div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${c.diagnosis ? `
+          ${
+            c.diagnosis
+              ? `
           <div class="section-title">Diagnosis</div>
           <div class="content-block" style="font-weight: 600; font-size: 16px; color: #1e3a8a;">${c.diagnosis}</div>
-          ` : ''}
+          `
+              : ""
+          }
 
-          ${c.treatment_plan ? `
+          ${
+            c.treatment_plan
+              ? `
           <div class="section-title">Treatment Plan & Recommendations</div>
           <div class="content-block">${c.treatment_plan}</div>
-          ` : ''}
+          `
+              : ""
+          }
 
           <div class="footer">
             <div>ClinicX Clinical Platform Summary</div>
@@ -305,7 +446,9 @@ function ConsultPage() {
       <div className="flex justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-3xl">Clinical Consultations</h1>
-          <p className="text-sm text-muted-foreground">EHR records, SOAP clinical notes, and patient treatment summaries.</p>
+          <p className="text-sm text-muted-foreground">
+            EHR records, SOAP clinical notes, and patient treatment summaries.
+          </p>
         </div>
         <Button onClick={() => setEditing("new")} className="shadow-md shadow-primary/10">
           <Plus className="size-4 mr-1" /> New consultation
@@ -313,19 +456,35 @@ function ConsultPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatsCard title="Total Visits" value={stats.total} icon={<FileText className="size-4 text-blue-600" />} />
-        <StatsCard title="Today" value={stats.today} icon={<Stethoscope className="size-4 text-emerald-600" />} />
-        <StatsCard title="This Month" value={stats.month} icon={<TrendingUp className="size-4 text-indigo-600" />} />
-        <StatsCard title="Follow-Ups Scheduled" value={stats.followUps} icon={<Calendar className="size-4 text-amber-600" />} />
+        <StatsCard
+          title="Total Visits"
+          value={stats.total}
+          icon={<FileText className="size-4 text-blue-600" />}
+        />
+        <StatsCard
+          title="Today"
+          value={stats.today}
+          icon={<Stethoscope className="size-4 text-emerald-600" />}
+        />
+        <StatsCard
+          title="This Month"
+          value={stats.month}
+          icon={<TrendingUp className="size-4 text-indigo-600" />}
+        />
+        <StatsCard
+          title="Follow-Ups Scheduled"
+          value={stats.followUps}
+          icon={<Calendar className="size-4 text-amber-600" />}
+        />
       </div>
 
       <div className="flex items-center gap-2 max-w-md">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search patient, diagnosis, complaint..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
+          <Input
+            placeholder="Search patient, diagnosis, complaint..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-card"
           />
         </div>
@@ -341,8 +500,16 @@ function ConsultPage() {
         <EmptyState
           icon={<Stethoscope className="size-8 text-muted-foreground" />}
           title={rows.length === 0 ? "No clinical consultations logged" : "No matching records"}
-          description={rows.length === 0 ? "Record doctor notes, patient vitals, diagnosis, and PDF print summaries." : "Refine your search parameters."}
-          action={rows.length === 0 ? { label: "Log New Consultation", onClick: () => setEditing("new") } : undefined}
+          description={
+            rows.length === 0
+              ? "Record doctor notes, patient vitals, diagnosis, and PDF print summaries."
+              : "Refine your search parameters."
+          }
+          action={
+            rows.length === 0
+              ? { label: "Log New Consultation", onClick: () => setEditing("new") }
+              : undefined
+          }
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -350,7 +517,10 @@ function ConsultPage() {
             const bpAlert = getBpStatus(c.bp ?? "");
             const tempAlert = getTempStatus(c.temperature ?? "");
             return (
-              <Card key={c.id} className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+              <Card
+                key={c.id}
+                className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group"
+              >
                 <div className="space-y-3">
                   <div className="flex justify-between items-start gap-2">
                     <div>
@@ -358,13 +528,21 @@ function ConsultPage() {
                         {c.patient_name}
                       </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Clock className="size-3" /> {new Date(c.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                        <Clock className="size-3" />{" "}
+                        {new Date(c.created_at).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
                       </div>
                     </div>
                     {c.diagnosis ? (
-                      <Badge className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 font-semibold">{c.diagnosis}</Badge>
+                      <Badge className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 font-semibold">
+                        {c.diagnosis}
+                      </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-muted-foreground">No diagnosis</Badge>
+                      <Badge variant="outline" className="text-muted-foreground">
+                        No diagnosis
+                      </Badge>
                     )}
                   </div>
 
@@ -372,12 +550,16 @@ function ConsultPage() {
                   {(c.bp || c.pulse || c.temperature) && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {c.bp && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 ${bpAlert?.color ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}`}>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 ${bpAlert?.color ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}`}
+                        >
                           <Activity className="size-2.5" /> BP: {c.bp}
                         </span>
                       )}
                       {c.temperature && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 ${tempAlert?.color ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}`}>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 ${tempAlert?.color ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}`}
+                        >
                           <Thermometer className="size-2.5" /> Temp: {c.temperature}°F
                         </span>
                       )}
@@ -398,21 +580,37 @@ function ConsultPage() {
 
                   {c.follow_up_date && (
                     <div className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10 self-start inline-flex items-center gap-1 font-medium">
-                      <Calendar className="size-3" /> Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}
+                      <Calendar className="size-3" /> Follow-up:{" "}
+                      {new Date(c.follow_up_date).toLocaleDateString()}
                     </div>
                   )}
                 </div>
 
                 <div className="flex justify-between items-center gap-2 mt-4 pt-3 border-t border-border/40">
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={() => setEditing(c)} className="h-8 text-xs">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditing(c)}
+                      className="h-8 text-xs"
+                    >
                       <Pencil className="size-3.5 mr-1" /> Edit Notes
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => printConsultation(c)} className="h-8 text-xs hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => printConsultation(c)}
+                      className="h-8 text-xs hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
+                    >
                       <Printer className="size-3.5 mr-1" /> Print Summary
                     </Button>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => remove(c.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => remove(c.id)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  >
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
@@ -429,7 +627,10 @@ function ConsultPage() {
           appts={appts}
           existing={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); load(); }}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
         />
       )}
     </div>
@@ -437,7 +638,12 @@ function ConsultPage() {
 }
 
 function ConsultSheet({
-  orgId, patients, appts, existing, onClose, onSaved,
+  orgId,
+  patients,
+  appts,
+  existing,
+  onClose,
+  onSaved,
 }: {
   orgId: string;
   patients: PatientOpt[];
@@ -448,9 +654,11 @@ function ConsultSheet({
 }) {
   const [patientId, setPatientId] = useState<string | null>(existing?.patient_id ?? null);
   const [patientName, setPatientName] = useState(existing?.patient_name ?? "");
-  const [appointmentId, setAppointmentId] = useState<string | null>(existing?.appointment_id ?? null);
+  const [appointmentId, setAppointmentId] = useState<string | null>(
+    existing?.appointment_id ?? null,
+  );
   const [activeTab, setActiveTab] = useState("vitals");
-  
+
   const [f, setF] = useState({
     chief_complaint: existing?.chief_complaint ?? "",
     history: existing?.history ?? "",
@@ -464,11 +672,9 @@ function ConsultSheet({
     height: existing?.height ?? "",
     follow_up_date: existing?.follow_up_date ?? "",
   });
-  
+
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
-
-
 
   // Vitals Warnings status
   const bpAlert = useMemo(() => getBpStatus(f.bp), [f.bp]);
@@ -480,17 +686,17 @@ function ConsultSheet({
     if (!f.chief_complaint.trim()) {
       return toast.error("Please enter a Chief Complaint to run AI Medical Copilot");
     }
-    
+
     setGenerating(true);
     // Emulate organic processing delay
     await new Promise((r) => setTimeout(r, 1400));
-    
+
     const draft = generateSoapDraft(f.chief_complaint, f.diagnosis);
     setF((prev) => ({
       ...prev,
       history: draft.history,
       examination: draft.exam,
-      treatment_plan: draft.plan
+      treatment_plan: draft.plan,
     }));
     setGenerating(false);
     toast.success("Clinical SOAP notes generated by AI copilot!");
@@ -514,9 +720,12 @@ function ConsultSheet({
       follow_up_date: f.follow_up_date || null,
     };
     const { error } = existing
-      ? await supabase.from("consultations" as any).update(payload).eq("id", existing.id)
+      ? await supabase
+          .from("consultations" as any)
+          .update(payload)
+          .eq("id", existing.id)
       : await supabase.from("consultations" as any).insert(payload);
-    
+
     if (!error && appointmentId) {
       // Mark appointment completed to trigger automatic revenue ledger & queue completion
       await supabase.from("appointments").update({ status: "completed" }).eq("id", appointmentId);
@@ -524,14 +733,15 @@ function ConsultSheet({
 
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(existing ? "Clinical record updated" : "Clinical record saved & appointment marked completed");
+    toast.success(
+      existing ? "Clinical record updated" : "Clinical record saved & appointment marked completed",
+    );
     onSaved();
   }
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto flex flex-col h-full p-0">
-        
         {/* Modal Header */}
         <div className="p-6 pb-4 border-b border-border/40 bg-zinc-50 dark:bg-zinc-900/40 shrink-0">
           <SheetHeader>
@@ -549,18 +759,28 @@ function ConsultSheet({
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-3 w-full mb-6">
-              <TabsTrigger value="vitals" className="text-xs">1. Patient & Vitals</TabsTrigger>
-              <TabsTrigger value="soap" className="text-xs">2. Clinical SOAP Notes</TabsTrigger>
-              <TabsTrigger value="treatment" className="text-xs">3. Plan & F/U</TabsTrigger>
+              <TabsTrigger value="vitals" className="text-xs">
+                1. Patient & Vitals
+              </TabsTrigger>
+              <TabsTrigger value="soap" className="text-xs">
+                2. Clinical SOAP Notes
+              </TabsTrigger>
+              <TabsTrigger value="treatment" className="text-xs">
+                3. Plan & F/U
+              </TabsTrigger>
             </TabsList>
 
             {/* TAB 1: Patient Details & Vitals */}
             <TabsContent value="vitals" className="space-y-5 focus-visible:outline-none">
               <Card className="p-4 border border-border/60 bg-muted/20 space-y-4">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5"><Users className="size-4 text-blue-600" /> Patient Selection</h4>
+                <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                  <Users className="size-4 text-blue-600" /> Patient Selection
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Select Patient</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Select Patient
+                    </Label>
                     <Select
                       value={patientId ?? "__manual"}
                       onValueChange={(v) => {
@@ -572,20 +792,27 @@ function ConsultSheet({
                         }
                       }}
                     >
-                      <SelectTrigger className="bg-background"><SelectValue placeholder="Select patient" /></SelectTrigger>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select patient" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__manual">— Type manually —</SelectItem>
                         {patients.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}{p.phone ? ` · ${p.phone}` : ""}</SelectItem>
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                            {p.phone ? ` · ${p.phone}` : ""}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Patient name</Label>
-                    <Input 
-                      value={patientName} 
-                      onChange={(e) => setPatientName(e.target.value)} 
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Patient name
+                    </Label>
+                    <Input
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
                       placeholder="e.g. Sarah Jenkins"
                       className="bg-background"
                     />
@@ -593,14 +820,23 @@ function ConsultSheet({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Linked Appointment (optional)</Label>
-                  <Select value={appointmentId ?? "__none"} onValueChange={(v) => setAppointmentId(v === "__none" ? null : v)}>
-                    <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Linked Appointment (optional)
+                  </Label>
+                  <Select
+                    value={appointmentId ?? "__none"}
+                    onValueChange={(v) => setAppointmentId(v === "__none" ? null : v)}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">None / Walk-in visit</SelectItem>
                       {appts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.patient_name} · {a.scheduled_at ? new Date(a.scheduled_at).toLocaleDateString() : "—"} · {a.status}
+                          {a.patient_name} ·{" "}
+                          {a.scheduled_at ? new Date(a.scheduled_at).toLocaleDateString() : "—"} ·{" "}
+                          {a.status}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -610,49 +846,51 @@ function ConsultSheet({
 
               {/* Vitals Grid */}
               <div className="space-y-4">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5"><Activity className="size-4 text-emerald-600" /> Patient Vitals & Measurements</h4>
+                <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                  <Activity className="size-4 text-emerald-600" /> Patient Vitals & Measurements
+                </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs font-medium">BP (mmHg)</Label>
-                    <Input 
-                      value={f.bp} 
-                      onChange={(e) => setF({ ...f, bp: e.target.value })} 
-                      placeholder="120/80" 
+                    <Input
+                      value={f.bp}
+                      onChange={(e) => setF({ ...f, bp: e.target.value })}
+                      placeholder="120/80"
                       className="font-mono bg-card"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-medium">Pulse (bpm)</Label>
-                    <Input 
-                      value={f.pulse} 
-                      onChange={(e) => setF({ ...f, pulse: e.target.value })} 
+                    <Input
+                      value={f.pulse}
+                      onChange={(e) => setF({ ...f, pulse: e.target.value })}
                       placeholder="72"
                       className="font-mono bg-card"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-medium">Temp (°F)</Label>
-                    <Input 
-                      value={f.temperature} 
-                      onChange={(e) => setF({ ...f, temperature: e.target.value })} 
+                    <Input
+                      value={f.temperature}
+                      onChange={(e) => setF({ ...f, temperature: e.target.value })}
                       placeholder="98.6"
                       className="font-mono bg-card"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-medium">Weight (kg)</Label>
-                    <Input 
-                      value={f.weight} 
-                      onChange={(e) => setF({ ...f, weight: e.target.value })} 
+                    <Input
+                      value={f.weight}
+                      onChange={(e) => setF({ ...f, weight: e.target.value })}
                       placeholder="70"
                       className="font-mono bg-card"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-medium">Height (cm)</Label>
-                    <Input 
-                      value={f.height} 
-                      onChange={(e) => setF({ ...f, height: e.target.value })} 
+                    <Input
+                      value={f.height}
+                      onChange={(e) => setF({ ...f, height: e.target.value })}
                       placeholder="175"
                       className="font-mono bg-card"
                     />
@@ -664,11 +902,25 @@ function ConsultSheet({
                   <div className="p-3 bg-blue-50/50 dark:bg-zinc-900 border border-blue-100 dark:border-zinc-800 rounded-lg flex items-start gap-2.5 text-xs text-muted-foreground mt-3">
                     <Activity className="size-4 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">Vitals Diagnostics:</span>
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                        Vitals Diagnostics:
+                      </span>
                       <div className="flex flex-wrap gap-2 mt-1.5">
-                        {bpAlert && <Badge className={`text-[10px] font-semibold border ${bpAlert.color}`}>{bpAlert.label}</Badge>}
-                        {tempAlert && <Badge className={`text-[10px] font-semibold border ${tempAlert.color}`}>{tempAlert.label}</Badge>}
-                        {pulseAlert && <Badge className={`text-[10px] font-semibold border ${pulseAlert.color}`}>{pulseAlert.label}</Badge>}
+                        {bpAlert && (
+                          <Badge className={`text-[10px] font-semibold border ${bpAlert.color}`}>
+                            {bpAlert.label}
+                          </Badge>
+                        )}
+                        {tempAlert && (
+                          <Badge className={`text-[10px] font-semibold border ${tempAlert.color}`}>
+                            {tempAlert.label}
+                          </Badge>
+                        )}
+                        {pulseAlert && (
+                          <Badge className={`text-[10px] font-semibold border ${pulseAlert.color}`}>
+                            {pulseAlert.label}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -685,11 +937,13 @@ function ConsultSheet({
             {/* TAB 2: SOAP Notes */}
             <TabsContent value="soap" className="space-y-5 focus-visible:outline-none">
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5"><FileText className="size-4 text-indigo-600" /> Clinical SOAP Documentation</h4>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={generateSoapNotes} 
+                <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                  <FileText className="size-4 text-indigo-600" /> Clinical SOAP Documentation
+                </h4>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={generateSoapNotes}
                   disabled={generating || !f.chief_complaint}
                   className="h-8 bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300 border-purple-200 dark:border-purple-900/60 hover:bg-purple-100 gap-1 font-semibold shadow-inner"
                 >
@@ -697,7 +951,8 @@ function ConsultSheet({
                     <>🪄 Writing SOAP notes...</>
                   ) : (
                     <>
-                      <Sparkle className="size-3.5 fill-purple-600 text-purple-600 animate-pulse" /> AI SOAP Copilot
+                      <Sparkle className="size-3.5 fill-purple-600 text-purple-600 animate-pulse" />{" "}
+                      AI SOAP Copilot
                     </>
                   )}
                 </Button>
@@ -707,12 +962,14 @@ function ConsultSheet({
                 <div className="space-y-1.5">
                   <div className="flex justify-between">
                     <Label className="text-xs font-semibold">Chief Complaint *</Label>
-                    <span className="text-[10px] text-muted-foreground">e.g. Cough and Fever, Sore Throat</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      e.g. Cough and Fever, Sore Throat
+                    </span>
                   </div>
-                  <Textarea 
-                    rows={2} 
-                    value={f.chief_complaint} 
-                    onChange={(e) => setF({ ...f, chief_complaint: e.target.value })} 
+                  <Textarea
+                    rows={2}
+                    value={f.chief_complaint}
+                    onChange={(e) => setF({ ...f, chief_complaint: e.target.value })}
                     placeholder="Describe patient's symptoms and complaints..."
                     className="bg-card"
                   />
@@ -721,19 +978,19 @@ function ConsultSheet({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">Diagnosis</Label>
-                    <Input 
-                      value={f.diagnosis} 
-                      onChange={(e) => setF({ ...f, diagnosis: e.target.value })} 
+                    <Input
+                      value={f.diagnosis}
+                      onChange={(e) => setF({ ...f, diagnosis: e.target.value })}
                       placeholder="e.g. Acute Tonsillitis"
                       className="bg-card"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">Medical History</Label>
-                    <Textarea 
-                      rows={2} 
-                      value={f.history} 
-                      onChange={(e) => setF({ ...f, history: e.target.value })} 
+                    <Textarea
+                      rows={2}
+                      value={f.history}
+                      onChange={(e) => setF({ ...f, history: e.target.value })}
                       placeholder="Prior conditions, family history, chronic illnesses..."
                       className="bg-card"
                     />
@@ -742,10 +999,10 @@ function ConsultSheet({
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Examination Findings</Label>
-                  <Textarea 
-                    rows={2} 
-                    value={f.examination} 
-                    onChange={(e) => setF({ ...f, examination: e.target.value })} 
+                  <Textarea
+                    rows={2}
+                    value={f.examination}
+                    onChange={(e) => setF({ ...f, examination: e.target.value })}
                     placeholder="Describe findings from chest auscultation, throat check, local tenderness, etc..."
                     className="bg-card"
                   />
@@ -753,7 +1010,9 @@ function ConsultSheet({
               </div>
 
               <div className="pt-4 flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab("vitals")}><ChevronRight className="size-4 rotate-180 mr-1" /> Back</Button>
+                <Button variant="outline" onClick={() => setActiveTab("vitals")}>
+                  <ChevronRight className="size-4 rotate-180 mr-1" /> Back
+                </Button>
                 <Button onClick={() => setActiveTab("treatment")} className="gap-1">
                   Continue to Treatment <ChevronRight className="size-4" />
                 </Button>
@@ -763,13 +1022,15 @@ function ConsultSheet({
             {/* TAB 3: Treatment & Follow-up */}
             <TabsContent value="treatment" className="space-y-5 focus-visible:outline-none">
               <div className="space-y-4">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5"><HeartPulse className="size-4 text-red-600" /> Treatment Plan & Recommendations</h4>
+                <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                  <HeartPulse className="size-4 text-red-600" /> Treatment Plan & Recommendations
+                </h4>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Treatment Plan</Label>
-                  <Textarea 
-                    rows={5} 
-                    value={f.treatment_plan} 
-                    onChange={(e) => setF({ ...f, treatment_plan: e.target.value })} 
+                  <Textarea
+                    rows={5}
+                    value={f.treatment_plan}
+                    onChange={(e) => setF({ ...f, treatment_plan: e.target.value })}
                     placeholder="Enter prescribed medications, dosages, dietary restrictions, rest recommendations..."
                     className="bg-card font-mono text-sm leading-relaxed"
                   />
@@ -777,26 +1038,31 @@ function ConsultSheet({
 
                 <div className="space-y-1.5 max-w-sm">
                   <Label className="text-xs font-semibold">Follow-up Date</Label>
-                  <Input 
-                    type="date" 
-                    value={f.follow_up_date} 
-                    onChange={(e) => setF({ ...f, follow_up_date: e.target.value })} 
+                  <Input
+                    type="date"
+                    value={f.follow_up_date}
+                    onChange={(e) => setF({ ...f, follow_up_date: e.target.value })}
                     className="bg-card cursor-pointer"
                   />
                 </div>
               </div>
 
               <div className="pt-8 flex justify-between border-t border-border/40">
-                <Button variant="outline" onClick={() => setActiveTab("soap")}><ChevronRight className="size-4 rotate-180 mr-1" /> Back</Button>
+                <Button variant="outline" onClick={() => setActiveTab("soap")}>
+                  <ChevronRight className="size-4 rotate-180 mr-1" /> Back
+                </Button>
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={onClose}>Cancel</Button>
-                  <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save Consultation"}</Button>
+                  <Button variant="ghost" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button onClick={save} disabled={saving}>
+                    {saving ? "Saving…" : "Save Consultation"}
+                  </Button>
                 </div>
               </div>
             </TabsContent>
           </Tabs>
         </div>
-
       </SheetContent>
     </Sheet>
   );

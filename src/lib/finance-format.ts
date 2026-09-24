@@ -1,8 +1,14 @@
 export const inr = (n: number) =>
-  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(n) || 0);
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(n) || 0);
 
 export const compactInr = (n: number) =>
-  new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(Number(n) || 0);
+  new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(
+    Number(n) || 0,
+  );
 
 export const PRETTY: Record<string, string> = {
   walkin: "Walk-in",
@@ -24,7 +30,8 @@ export const PRETTY: Record<string, string> = {
   unspecified: "Unspecified",
 };
 
-export const pretty = (k: string) => PRETTY[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+export const pretty = (k: string) =>
+  PRETTY[k] ?? k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 export const CHART_COLORS = [
   "hsl(var(--primary))",
@@ -44,7 +51,10 @@ export function downloadCsv(filename: string, rows: Array<Record<string, unknown
     const s = v === null || v === undefined ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
+  const csv = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
+  ].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -75,9 +85,14 @@ export function printReport(title: string, bodyHtml: string) {
 }
 
 export function tableHtml(headers: string[], rows: Array<Array<string | number>>, numericFrom = 1) {
-  const th = headers.map((h, i) => `<th class="${i >= numericFrom ? "num" : ""}">${h}</th>`).join("");
+  const th = headers
+    .map((h, i) => `<th class="${i >= numericFrom ? "num" : ""}">${h}</th>`)
+    .join("");
   const tr = rows
-    .map((r) => `<tr>${r.map((c, i) => `<td class="${i >= numericFrom ? "num" : ""}">${c}</td>`).join("")}</tr>`)
+    .map(
+      (r) =>
+        `<tr>${r.map((c, i) => `<td class="${i >= numericFrom ? "num" : ""}">${c}</td>`).join("")}</tr>`,
+    )
     .join("");
   return `<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
 }

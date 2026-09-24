@@ -1,20 +1,20 @@
-import { Router } from 'express';
-import { getHealth, getReady, getLive, getMetrics } from '../health/healthController';
-import { pingHandler } from '../middlewares/pingMiddleware';
+import { Router } from "express";
+import { getHealth, getReady, getLive, getMetrics } from "../health/healthController";
+import { pingHandler } from "../middlewares/pingMiddleware";
 
 export const monitoringRouter = Router();
 
 // Render health endpoint
-monitoringRouter.get('/health', getHealth);
+monitoringRouter.get("/health", getHealth);
 
 // Readiness probe for Redis & Supabase
-monitoringRouter.get('/ready', getReady);
+monitoringRouter.get("/ready", getReady);
 
 // Liveness probe for Node.js process
-monitoringRouter.get('/live', getLive);
+monitoringRouter.get("/live", getLive);
 
 // External cron monitoring endpoint (<5ms, low overhead)
-monitoringRouter.get('/ping', pingHandler);
+monitoringRouter.get("/ping", pingHandler);
 
 // Prometheus scrape endpoint
-monitoringRouter.get('/metrics', getMetrics);
+monitoringRouter.get("/metrics", getMetrics);

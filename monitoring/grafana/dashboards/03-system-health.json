@@ -8,14 +8,22 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         { "expr": "nodejs_heap_size_used_bytes / (1024 * 1024)", "legendFormat": "Heap Used (MB)" },
-        { "expr": "process_resident_memory_bytes / (1024 * 1024)", "legendFormat": "Process RSS (MB)" }
+        {
+          "expr": "process_resident_memory_bytes / (1024 * 1024)",
+          "legendFormat": "Process RSS (MB)"
+        }
       ]
     },
     {
       "title": "CPU Usage (%)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "targets": [{ "expr": "rate(process_cpu_seconds_total[5m]) * 100", "legendFormat": "CPU Utilization (%)" }]
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+          "legendFormat": "CPU Utilization (%)"
+        }
+      ]
     },
     {
       "title": "Node Event Loop Lag (Seconds)",

@@ -22,15 +22,16 @@ Phase 2 (Distributed Tracing & Logs):
 ## 📝 Step-by-Step Code Migration
 
 ### Step 1: Implement `OTelTelemetryProvider`
+
 Create a new provider implementing the `ITelemetryProvider` interface:
 
 ```typescript
-import { trace, metrics } from '@opentelemetry/api';
-import { ITelemetryProvider, ITelemetrySpan } from './telemetry.interface';
+import { trace, metrics } from "@opentelemetry/api";
+import { ITelemetryProvider, ITelemetrySpan } from "./telemetry.interface";
 
 export class OTelTelemetryProvider implements ITelemetryProvider {
-  private tracer = trace.getTracer('saas-backend');
-  private meter = metrics.getMeter('saas-backend');
+  private tracer = trace.getTracer("saas-backend");
+  private meter = metrics.getMeter("saas-backend");
 
   startSpan(name: string): ITelemetrySpan {
     const otelSpan = this.tracer.startSpan(name);
@@ -61,6 +62,7 @@ export class OTelTelemetryProvider implements ITelemetryProvider {
 ```
 
 ### Step 2: Swap Provider Instance
+
 In `backend/src/monitoring/telemetry/promTelemetryProvider.ts` (or factory):
 
 ```typescript

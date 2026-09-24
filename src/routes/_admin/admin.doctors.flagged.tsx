@@ -31,7 +31,9 @@ function FlaggedDoctorsPage() {
           <AlertTriangle className="size-6 text-red-500" />
           Flagged / Suspended Doctors
         </h1>
-        <p className="text-sm text-muted-foreground">Doctors whose access has been temporarily suspended. Total: {rows.length}</p>
+        <p className="text-sm text-muted-foreground">
+          Doctors whose access has been temporarily suspended. Total: {rows.length}
+        </p>
       </div>
 
       <Card className="overflow-hidden">
@@ -49,10 +51,18 @@ function FlaggedDoctorsPage() {
             </thead>
             <tbody className="divide-y">
               {isLoading && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">Loading…</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
+                    Loading…
+                  </td>
+                </tr>
               )}
               {!isLoading && rows.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground/70">No suspended doctors. All clear!</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
+                    No suspended doctors. All clear!
+                  </td>
+                </tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/50">

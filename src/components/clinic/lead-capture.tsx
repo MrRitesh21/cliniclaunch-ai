@@ -3,7 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Phone, Sparkles, X } from "lucide-react";
 import { submitLead } from "@/lib/leads";
@@ -44,7 +50,9 @@ export function normalizeLeadPopup(raw: unknown): LeadPopupConfig {
   return {
     ...DEFAULT_LEAD_POPUP,
     ...r,
-    delaySeconds: Number.isFinite(Number(r.delaySeconds)) ? Number(r.delaySeconds) : DEFAULT_LEAD_POPUP.delaySeconds,
+    delaySeconds: Number.isFinite(Number(r.delaySeconds))
+      ? Number(r.delaySeconds)
+      : DEFAULT_LEAD_POPUP.delaySeconds,
   };
 }
 
@@ -52,7 +60,12 @@ function fill(text: string, doctorName: string, offer: string) {
   return text.replace(/\{offer\}/g, offer).replace(/\{doctor\}/g, doctorName);
 }
 
-export function LeadCapture({ clinicId, slug, doctorName, config }: {
+export function LeadCapture({
+  clinicId,
+  slug,
+  doctorName,
+  config,
+}: {
   clinicId: string;
   slug: string;
   doctorName: string;
@@ -77,9 +90,14 @@ export function LeadCapture({ clinicId, slug, doctorName, config }: {
       sessionStorage.setItem(STORAGE_KEY(slug), "1");
       setPopup(true);
     };
-    const onMouseLeave = (e: MouseEvent) => { if (e.clientY <= 0) fire(); };
-    const onScroll = () => { if (window.scrollY > window.innerHeight * 1.2) fire(); };
-    const timer = cfg.delaySeconds > 0 ? window.setTimeout(fire, cfg.delaySeconds * 1000) : undefined;
+    const onMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) fire();
+    };
+    const onScroll = () => {
+      if (window.scrollY > window.innerHeight * 1.2) fire();
+    };
+    const timer =
+      cfg.delaySeconds > 0 ? window.setTimeout(fire, cfg.delaySeconds * 1000) : undefined;
     if (cfg.exitIntent) document.addEventListener("mouseleave", onMouseLeave);
     if (cfg.scrollTrigger) window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
@@ -89,8 +107,15 @@ export function LeadCapture({ clinicId, slug, doctorName, config }: {
     };
   }, [slug, cfg.enabled, cfg.delaySeconds, cfg.exitIntent, cfg.scrollTrigger]);
 
-  function openCallback() { setSource("callback"); setOpen(true); }
-  function openOffer() { setSource("offer"); setPopup(false); setOpen(true); }
+  function openCallback() {
+    setSource("callback");
+    setOpen(true);
+  }
+  function openOffer() {
+    setSource("offer");
+    setPopup(false);
+    setOpen(true);
+  }
 
   return (
     <>
@@ -111,33 +136,68 @@ export function LeadCapture({ clinicId, slug, doctorName, config }: {
 
       {/* Exit-intent popup */}
       {popup && (
-        <div className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={() => setPopup(false)}>
-          <div onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md rounded-2xl bg-background border shadow-2xl p-6 sm:p-7 animate-in zoom-in-95">
-            <button onClick={() => setPopup(false)} aria-label="Close"
-              className="absolute top-3 right-3 size-8 rounded-full grid place-items-center text-muted-foreground hover:bg-muted">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setPopup(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl bg-background border shadow-2xl p-6 sm:p-7 animate-in zoom-in-95"
+          >
+            <button
+              onClick={() => setPopup(false)}
+              aria-label="Close"
+              className="absolute top-3 right-3 size-8 rounded-full grid place-items-center text-muted-foreground hover:bg-muted"
+            >
               <X className="size-4" />
             </button>
             <div className="size-12 rounded-xl bg-primary/10 text-primary grid place-items-center">
               <Sparkles className="size-6" />
             </div>
             <h3 className="font-display text-2xl mt-4">{fill(cfg.headline, doctorName, offer)}</h3>
-            <p className="text-muted-foreground mt-2 text-sm">{fill(cfg.subtext, doctorName, offer)}</p>
-            <Button className="w-full mt-5" size="lg" onClick={openOffer}>{cfg.ctaLabel}</Button>
-            <button onClick={() => setPopup(false)} className="block mx-auto mt-3 text-xs text-muted-foreground hover:text-foreground">{cfg.dismissLabel}</button>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {fill(cfg.subtext, doctorName, offer)}
+            </p>
+            <Button className="w-full mt-5" size="lg" onClick={openOffer}>
+              {cfg.ctaLabel}
+            </Button>
+            <button
+              onClick={() => setPopup(false)}
+              className="block mx-auto mt-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              {cfg.dismissLabel}
+            </button>
           </div>
         </div>
       )}
 
       {/* Lead form dialog */}
-      <LeadDialog open={open} onOpenChange={setOpen} clinicId={clinicId} source={source} doctorName={doctorName} offer={offer} />
+      <LeadDialog
+        open={open}
+        onOpenChange={setOpen}
+        clinicId={clinicId}
+        source={source}
+        doctorName={doctorName}
+        offer={offer}
+      />
     </>
   );
 }
 
-function LeadDialog({ open, onOpenChange, clinicId, source, doctorName, offer }: {
-  open: boolean; onOpenChange: (v: boolean) => void; clinicId: string;
-  source: "callback" | "offer"; doctorName: string; offer?: string | null;
+function LeadDialog({
+  open,
+  onOpenChange,
+  clinicId,
+  source,
+  doctorName,
+  offer,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  clinicId: string;
+  source: "callback" | "offer";
+  doctorName: string;
+  offer?: string | null;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
@@ -151,7 +211,9 @@ function LeadDialog({ open, onOpenChange, clinicId, source, doctorName, offer }:
       await submitLead({ clinic_id: clinicId, name, phone, message, source, email: "" });
       toast.success("Thanks! We'll call you back shortly.");
       onOpenChange(false);
-      setName(""); setPhone(""); setMessage("");
+      setName("");
+      setPhone("");
+      setMessage("");
     } catch (err) {
       toast.error((err as Error).message || "Something went wrong");
     } finally {
@@ -159,12 +221,11 @@ function LeadDialog({ open, onOpenChange, clinicId, source, doctorName, offer }:
     }
   }
 
-  const title = source === "offer"
-    ? `Claim ${offer || "your offer"}`
-    : "Request a free callback";
-  const desc = source === "offer"
-    ? `Leave your number — ${doctorName} will reach out to confirm.`
-    : `Pop in your details and the clinic will call you back to schedule your visit.`;
+  const title = source === "offer" ? `Claim ${offer || "your offer"}` : "Request a free callback";
+  const desc =
+    source === "offer"
+      ? `Leave your number — ${doctorName} will reach out to confirm.`
+      : `Pop in your details and the clinic will call you back to schedule your visit.`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,20 +237,46 @@ function LeadDialog({ open, onOpenChange, clinicId, source, doctorName, offer }:
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div>
             <Label htmlFor="lead-name">Your name</Label>
-            <Input id="lead-name" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+            <Input
+              id="lead-name"
+              required
+              maxLength={100}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+            />
           </div>
           <div>
             <Label htmlFor="lead-phone">Phone</Label>
-            <Input id="lead-phone" required type="tel" maxLength={20} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" />
+            <Input
+              id="lead-phone"
+              required
+              type="tel"
+              maxLength={20}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 98765 43210"
+            />
           </div>
           <div>
-            <Label htmlFor="lead-msg">What can we help with? <span className="text-muted-foreground">(optional)</span></Label>
-            <Textarea id="lead-msg" rows={3} maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Briefly describe your concern" />
+            <Label htmlFor="lead-msg">
+              What can we help with? <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Textarea
+              id="lead-msg"
+              rows={3}
+              maxLength={500}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Briefly describe your concern"
+            />
           </div>
           <Button type="submit" className="w-full" size="lg" disabled={submitting}>
             {submitting ? "Sending…" : source === "offer" ? "Claim now" : "Request callback"}
           </Button>
-          <p className="text-xs text-muted-foreground text-center">Your details are private and only shared with the clinic.</p>
+          <p className="text-xs text-muted-foreground text-center">
+            Your details are private and only shared with the clinic.
+          </p>
         </form>
       </DialogContent>
     </Dialog>

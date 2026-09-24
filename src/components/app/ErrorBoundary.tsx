@@ -47,7 +47,8 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.props.fallbackTitle || "Something went wrong"}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {this.state.error?.message || "An unexpected error occurred while rendering this section."}
+              {this.state.error?.message ||
+                "An unexpected error occurred while rendering this section."}
             </p>
           </div>
           <Button onClick={this.handleReset} size="sm" variant="outline" className="gap-2">

@@ -3,6 +3,7 @@
 ## 🌐 Endpoints Overview
 
 ### 1. `POST /api/devices/verify-login`
+
 Verifies browser fingerprint payload during login. Evaluates 4-tier risk score, registers session, and logs audit events.
 
 ```json
@@ -29,13 +30,17 @@ Verifies browser fingerprint payload during login. Evaluates 4-tier risk score, 
 ```
 
 ### 2. `GET /api/devices`
+
 Fetches user's active device list.
 
 ### 3. `POST /api/devices/trust` & `POST /api/devices/block`
+
 Marks device as trusted or blocked.
 
 ### 4. `POST /api/devices/sessions/revoke`
+
 Revokes individual session or entire `token_family_id` (OAuth refresh token rotation).
 
 ### 5. `GET /api/security/stats`
+
 Fetches real-time tenant security statistics.

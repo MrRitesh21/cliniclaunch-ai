@@ -23,7 +23,9 @@ export function ReferralsView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Patient Referral Program</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            Patient Referral Program
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Turn happy patients into clinic advocates with 1-click WhatsApp referral sharing.
           </p>
@@ -56,7 +58,9 @@ export function ReferralsView() {
         <Card className="p-4 space-y-1">
           <span className="text-xs text-muted-foreground font-medium">Rewards Paid</span>
           <p className="text-2xl font-bold font-display text-purple-600">₹6,200</p>
-          <span className="text-[10px] text-purple-600 font-medium">₹100 per successful referral</span>
+          <span className="text-[10px] text-purple-600 font-medium">
+            ₹100 per successful referral
+          </span>
         </Card>
       </div>
 
@@ -66,7 +70,9 @@ export function ReferralsView() {
           <h3 className="font-bold text-sm flex items-center gap-2">
             <Trophy className="size-4 text-amber-500" /> Top Patient Advocates (Leaderboard)
           </h3>
-          <Badge variant="outline" className="text-[10px]">This Month</Badge>
+          <Badge variant="outline" className="text-[10px]">
+            This Month
+          </Badge>
         </div>
 
         <div className="divide-y">
@@ -78,10 +84,10 @@ export function ReferralsView() {
                     ref.rank === 1
                       ? "bg-amber-500 text-white"
                       : ref.rank === 2
-                      ? "bg-slate-400 text-white"
-                      : ref.rank === 3
-                      ? "bg-amber-700 text-white"
-                      : "bg-muted text-muted-foreground"
+                        ? "bg-slate-400 text-white"
+                        : ref.rank === 3
+                          ? "bg-amber-700 text-white"
+                          : "bg-muted text-muted-foreground"
                   }`}
                 >
                   #{ref.rank}

@@ -5,7 +5,11 @@ type ClinicUrlParts = {
 };
 
 export function getPublicClinicUrl(clinic: ClinicUrlParts, origin = "") {
-  const customDomain = clinic.custom_domain?.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const customDomain = clinic.custom_domain
+    ?.trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "");
 
   if (customDomain && clinic.domain_status === "verified") {
     return `https://${customDomain}`;

@@ -2,7 +2,7 @@
  * Backend Device & Security Module TypeScript Definitions
  */
 
-export type SecuritySeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type SecuritySeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export interface GlobalDeviceRecord {
   id: string;
@@ -102,7 +102,7 @@ export interface AuditLogRecord {
 
 export interface RiskEvaluationResult {
   score: number; // 0-100
-  level: 'LOW' | 'MEDIUM' | 'HIGH';
+  level: "LOW" | "MEDIUM" | "HIGH";
   breakdown: RiskFactorBreakdown;
   confidence: number; // 0-100
 }

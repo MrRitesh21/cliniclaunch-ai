@@ -61,6 +61,7 @@ Configure in both Preview and Production unless noted:
 For self-hosted production or containerized VPS deployment:
 
 1. **Docker Compose Setup**:
+
    ```bash
    # Development / testing stack
    docker compose up -d --build

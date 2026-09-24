@@ -20,7 +20,12 @@ interface LogPayload {
 class Logger {
   private isProd = typeof process !== "undefined" && process.env?.NODE_ENV === "production";
 
-  private format(level: LogLevel, message: string, context?: Record<string, unknown>, err?: Error): LogPayload {
+  private format(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, unknown>,
+    err?: Error,
+  ): LogPayload {
     return {
       level,
       message,

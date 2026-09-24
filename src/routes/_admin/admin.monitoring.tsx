@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { AdminMonitoringDashboard } from '@/components/admin/AdminMonitoringDashboard';
+import { createFileRoute } from "@tanstack/react-router";
+import { AdminMonitoringDashboard } from "@/components/admin/AdminMonitoringDashboard";
 
-export const Route = createFileRoute('/_admin/admin/monitoring')({
+export const Route = createFileRoute("/_admin/admin/monitoring")({
   component: AdminMonitoringRoute,
 });
 

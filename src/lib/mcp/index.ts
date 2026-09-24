@@ -2,7 +2,7 @@ import { auth, defineMcp } from "@lovable.dev/mcp-js";
 import echoTool from "./tools/echo";
 import getClinicTool from "./tools/get-clinic";
 
-const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
+const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "https://mock.supabase.co";
 
 export default defineMcp({
   name: "clinicx-mcp",

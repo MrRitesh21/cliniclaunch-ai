@@ -66,9 +66,7 @@ export function MarketingSidebarNav() {
   return (
     <aside
       className={`border-r border-border/40 bg-card/70 backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out z-30 ${
-        isCollapsed
-          ? "w-16 hover:w-64 group/mktgsidebar shadow-xl hover:bg-card/95"
-          : "w-64"
+        isCollapsed ? "w-16 hover:w-64 group/mktgsidebar shadow-xl hover:bg-card/95" : "w-64"
       }`}
     >
       <div className="p-2.5 space-y-1">
@@ -81,14 +79,19 @@ export function MarketingSidebarNav() {
             className={`p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ${isCollapsed ? "hidden group-hover/mktgsidebar:block ml-auto" : "ml-auto"}`}
             title={isCollapsed ? "Expand Marketing Sidebar" : "Collapse to Icon Rail"}
           >
-            {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            {isCollapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
           </button>
         </div>
 
         <nav className="space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id || (activeTab === "builder" && item.id === "campaigns");
+            const isActive =
+              activeTab === item.id || (activeTab === "builder" && item.id === "campaigns");
             return (
               <button
                 key={item.id}
@@ -101,8 +104,12 @@ export function MarketingSidebarNav() {
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`size-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
-                  <span className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/mktgsidebar:inline" : "inline"}`}>
+                  <Icon
+                    className={`size-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`}
+                  />
+                  <span
+                    className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/mktgsidebar:inline" : "inline"}`}
+                  >
                     {item.label}
                   </span>
                 </div>
@@ -114,8 +121,8 @@ export function MarketingSidebarNav() {
                       isActive
                         ? "bg-primary-foreground/20 text-primary-foreground"
                         : item.badge === "AI"
-                        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                        : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                          : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                     }`}
                   >
                     {item.badge}
@@ -129,7 +136,9 @@ export function MarketingSidebarNav() {
 
       {/* Footer Info */}
       <div className="p-2.5 border-t border-border/40 bg-muted/20">
-        <div className={`p-3 rounded-xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20 text-xs ${isCollapsed ? "hidden group-hover/mktgsidebar:block" : "block"}`}>
+        <div
+          className={`p-3 rounded-xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20 text-xs ${isCollapsed ? "hidden group-hover/mktgsidebar:block" : "block"}`}
+        >
           <p className="font-semibold text-foreground">ClinicX Growth Engine</p>
           <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
             Omnichannel patient acquisition, retention & review automation.

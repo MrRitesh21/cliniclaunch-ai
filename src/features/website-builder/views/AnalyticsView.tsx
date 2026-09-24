@@ -104,10 +104,32 @@ export function AnalyticsView() {
               <XAxis dataKey="day" stroke="#888888" fontSize={11} />
               <YAxis stroke="#888888" fontSize={11} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#0f172a", borderRadius: "12px", border: "none", color: "#fff", fontSize: "12px" }}
+                contentStyle={{
+                  backgroundColor: "#0f172a",
+                  borderRadius: "12px",
+                  border: "none",
+                  color: "#fff",
+                  fontSize: "12px",
+                }}
               />
-              <Area type="monotone" dataKey="visitors" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorVis)" name="Visitors" />
-              <Area type="monotone" dataKey="bookings" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorBook)" name="Bookings" />
+              <Area
+                type="monotone"
+                dataKey="visitors"
+                stroke="#2563eb"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorVis)"
+                name="Visitors"
+              />
+              <Area
+                type="monotone"
+                dataKey="bookings"
+                stroke="#10b981"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorBook)"
+                name="Bookings"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -120,7 +142,10 @@ export function AnalyticsView() {
           {trafficSources.map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.source} className="flex items-center justify-between p-3 rounded-xl border bg-muted/20 text-xs">
+              <div
+                key={item.source}
+                className="flex items-center justify-between p-3 rounded-xl border bg-muted/20 text-xs"
+              >
                 <div className="flex items-center gap-2.5">
                   <Icon className="size-4 text-primary" />
                   <span className="font-semibold">{item.source}</span>

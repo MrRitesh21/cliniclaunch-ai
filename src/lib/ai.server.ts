@@ -35,7 +35,7 @@ export async function callAI(opts: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${openrouterKey}`,
+        Authorization: `Bearer ${openrouterKey}`,
         "HTTP-Referer": "https://clinicx.digiwil.com",
         "X-Title": "ClinicX",
       },
@@ -70,7 +70,8 @@ export async function callAI(opts: {
     body: JSON.stringify(body),
   });
   if (res.status === 429) throw new Error("AI rate limit — try again in a minute.");
-  if (res.status === 402) throw new Error("AI credits exhausted — please add credits in workspace billing.");
+  if (res.status === 402)
+    throw new Error("AI credits exhausted — please add credits in workspace billing.");
   if (!res.ok) {
     const t = await res.text().catch(() => "");
     throw new Error(`AI gateway ${res.status}: ${t.slice(0, 200)}`);

@@ -30,7 +30,11 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
       if (!active) return;
       setMod((m ?? null) as Module | null);
       if (s) {
-        const { data: p } = await supabase.from("plans").select("*").eq("id", (s as Subscription).plan_id).maybeSingle();
+        const { data: p } = await supabase
+          .from("plans")
+          .select("*")
+          .eq("id", (s as Subscription).plan_id)
+          .maybeSingle();
         if (active) setPlan((p ?? null) as Plan | null);
       }
     })();
@@ -62,7 +66,9 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const Icon = (mod ? ((Icons as any)[mod.icon] as React.ComponentType<{ className?: string }>) : Package) ?? Package;
+  const Icon =
+    (mod ? ((Icons as any)[mod.icon] as React.ComponentType<{ className?: string }>) : Package) ??
+    Package;
   const allowed = plan?.module_ids?.includes(appKey) ?? false;
 
   return (
@@ -71,9 +77,7 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
         <div className="size-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
           {allowed ? <Icon className="size-8" /> : <Lock className="size-8" />}
         </div>
-        <h2 className="font-display text-2xl font-bold mb-2">
-          {mod?.name ?? "Module Not Active"}
-        </h2>
+        <h2 className="font-display text-2xl font-bold mb-2">{mod?.name ?? "Module Not Active"}</h2>
         <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
           {mod?.description ?? "This feature is not currently enabled for your clinic workspace."}
         </p>

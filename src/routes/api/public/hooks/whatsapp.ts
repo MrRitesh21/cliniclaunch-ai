@@ -126,8 +126,7 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
         try {
           const rawBody = await request.text();
           const signature =
-            request.headers.get("x-bridge-signature") ??
-            request.headers.get("x-hub-signature-256");
+            request.headers.get("x-bridge-signature") ?? request.headers.get("x-hub-signature-256");
           if (!verifyBridgeSignature(rawBody, signature)) {
             return new Response("Invalid signature", { status: 401 });
           }

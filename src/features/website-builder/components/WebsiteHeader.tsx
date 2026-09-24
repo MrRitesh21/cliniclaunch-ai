@@ -62,7 +62,9 @@ export function WebsiteHeader() {
                   : "bg-amber-500/10 text-amber-600 border-amber-500/30"
               }`}
             >
-              <span className={`size-1.5 rounded-full mr-1 inline-block ${isPublished ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+              <span
+                className={`size-1.5 rounded-full mr-1 inline-block ${isPublished ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`}
+              />
               {isPublished ? "Live" : "Draft"}
             </Badge>
           </div>

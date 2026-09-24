@@ -80,7 +80,9 @@ function Overview() {
   } | null>(null);
 
   const [todayAppts, setTodayAppts] = useState<TodayAppointment[]>([]);
-  const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "confirmed" | "completed">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "confirmed" | "completed">(
+    "all",
+  );
   const [loadingAppts, setLoadingAppts] = useState(true);
 
   const updateStatusFn = useServerFn(updateAppointmentStatus);
@@ -112,59 +114,54 @@ function Overview() {
     weekEnd.setDate(weekEnd.getDate() + 7);
     const todayDateStr = now.toISOString().slice(0, 10);
 
-    const [
-      todayRes,
-      completedRes,
-      pendingRes,
-      weekRes,
-      allApptsRes,
-      todayListRes,
-      queueRes
-    ] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinic.id)
-        .gte("scheduled_at", startOfDay.toISOString())
-        .lte("scheduled_at", endOfDay.toISOString()),
-      supabase
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinic.id)
-        .gte("scheduled_at", startOfDay.toISOString())
-        .lte("scheduled_at", endOfDay.toISOString())
-        .eq("status", "completed"),
-      supabase
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinic.id)
-        .eq("status", "pending"),
-      supabase
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinic.id)
-        .gte("scheduled_at", now.toISOString())
-        .lte("scheduled_at", weekEnd.toISOString()),
-      supabase.from("appointments").select("patient_phone").eq("clinic_id", clinic.id),
-      supabase
-        .from("appointments")
-        .select("id, patient_name, patient_phone, patient_age, patient_gender, scheduled_at, status, appointment_type, problem, source")
-        .eq("clinic_id", clinic.id)
-        .gte("scheduled_at", startOfDay.toISOString())
-        .lte("scheduled_at", endOfDay.toISOString())
-        .order("scheduled_at", { ascending: true }),
-      clinic.organization_id
-        ? supabase
-            .from("queue_tokens" as any)
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", clinic.organization_id)
-            .eq("queue_date", todayDateStr)
-            .eq("status", "waiting")
-        : Promise.resolve({ count: 0 }),
-    ]);
+    const [todayRes, completedRes, pendingRes, weekRes, allApptsRes, todayListRes, queueRes] =
+      await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .gte("scheduled_at", startOfDay.toISOString())
+          .lte("scheduled_at", endOfDay.toISOString()),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .gte("scheduled_at", startOfDay.toISOString())
+          .lte("scheduled_at", endOfDay.toISOString())
+          .eq("status", "completed"),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .eq("status", "pending"),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinic.id)
+          .gte("scheduled_at", now.toISOString())
+          .lte("scheduled_at", weekEnd.toISOString()),
+        supabase.from("appointments").select("patient_phone").eq("clinic_id", clinic.id),
+        supabase
+          .from("appointments")
+          .select(
+            "id, patient_name, patient_phone, patient_age, patient_gender, scheduled_at, status, appointment_type, problem, source",
+          )
+          .eq("clinic_id", clinic.id)
+          .gte("scheduled_at", startOfDay.toISOString())
+          .lte("scheduled_at", endOfDay.toISOString())
+          .order("scheduled_at", { ascending: true }),
+        clinic.organization_id
+          ? supabase
+              .from("queue_tokens" as any)
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", clinic.organization_id)
+              .eq("queue_date", todayDateStr)
+              .eq("status", "waiting")
+          : Promise.resolve({ count: 0 }),
+      ]);
 
     const uniquePhones = new Set(
-      (allApptsRes.data ?? []).map((r: any) => r.patient_phone).filter(Boolean)
+      (allApptsRes.data ?? []).map((r: any) => r.patient_phone).filter(Boolean),
     );
 
     const completedCount = completedRes.count ?? 0;
@@ -191,7 +188,10 @@ function Overview() {
     fetchDashboardData();
   }, [clinic?.id, online]);
 
-  const handleUpdateStatus = async (id: string, status: "confirmed" | "completed" | "cancelled") => {
+  const handleUpdateStatus = async (
+    id: string,
+    status: "confirmed" | "completed" | "cancelled",
+  ) => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       toast.error("You're offline — reconnect and try again", {
         action: { label: "Retry", onClick: () => handleUpdateStatus(id, status) },
@@ -201,9 +201,7 @@ function Overview() {
     try {
       await updateStatusFn({ data: { id, status } });
       toast.success(`Appointment marked as ${status}`);
-      setTodayAppts((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status } : a))
-      );
+      setTodayAppts((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
       if (status === "completed") {
         setStats((prev) =>
           prev
@@ -212,7 +210,7 @@ function Overview() {
                 todayCompleted: prev.todayCompleted + 1,
                 todayRevenue: prev.todayRevenue + (clinic?.consultation_fee ?? 500),
               }
-            : null
+            : null,
         );
       }
     } catch (err: any) {
@@ -228,7 +226,7 @@ function Overview() {
 
   const url = getPublicClinicUrl(
     clinic,
-    typeof window !== "undefined" ? window.location.origin : ""
+    typeof window !== "undefined" ? window.location.origin : "",
   );
 
   const getGreetingName = () => {
@@ -252,7 +250,10 @@ function Overview() {
     <div className="space-y-4">
       {usingCachedStats && (
         <div className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-2">
-          <span>Offline — showing your last saved totals. Patient details stay hidden until you reconnect.</span>
+          <span>
+            Offline — showing your last saved totals. Patient details stay hidden until you
+            reconnect.
+          </span>
           <Button variant="outline" size="sm" className="h-7 text-xs" onClick={fetchDashboardData}>
             <RefreshCw className="size-3 mr-1" /> Retry
           </Button>
@@ -305,45 +306,45 @@ function Overview() {
         }
       />
 
-        {/* Quick Toolbar Shortcuts */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-border/60">
-          <Link
-            to="/dashboard/prescriptions"
-            className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-primary/5 hover:border-primary/30 transition-all text-xs font-medium text-foreground"
-          >
-            <div className="size-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 grid place-items-center">
-              <FileText className="size-4" />
-            </div>
-            <span>New E-Prescription</span>
-          </Link>
-          <Link
-            to="/dashboard/assistant"
-            className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-purple/5 hover:border-purple/30 transition-all text-xs font-medium text-foreground"
-          >
-            <div className="size-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 grid place-items-center">
-              <Sparkles className="size-4" />
-            </div>
-            <span>AI SOAP Assistant</span>
-          </Link>
-          <Link
-            to="/dashboard/qr"
-            className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-emerald/5 hover:border-emerald/30 transition-all text-xs font-medium text-foreground"
-          >
-            <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center">
-              <QrCode className="size-4" />
-            </div>
-            <span>Walk-in QR Stand</span>
-          </Link>
-          <Link
-            to="/dashboard/whatsapp"
-            className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-amber/5 hover:border-amber/30 transition-all text-xs font-medium text-foreground"
-          >
-            <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center">
-              <MessageSquare className="size-4" />
-            </div>
-            <span>WhatsApp Bot Status</span>
-          </Link>
-        </div>
+      {/* Quick Toolbar Shortcuts */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-border/60">
+        <Link
+          to="/dashboard/prescriptions"
+          className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-primary/5 hover:border-primary/30 transition-all text-xs font-medium text-foreground"
+        >
+          <div className="size-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 grid place-items-center">
+            <FileText className="size-4" />
+          </div>
+          <span>New E-Prescription</span>
+        </Link>
+        <Link
+          to="/dashboard/assistant"
+          className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-purple/5 hover:border-purple/30 transition-all text-xs font-medium text-foreground"
+        >
+          <div className="size-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 grid place-items-center">
+            <Sparkles className="size-4" />
+          </div>
+          <span>AI SOAP Assistant</span>
+        </Link>
+        <Link
+          to="/dashboard/qr"
+          className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-emerald/5 hover:border-emerald/30 transition-all text-xs font-medium text-foreground"
+        >
+          <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center">
+            <QrCode className="size-4" />
+          </div>
+          <span>Walk-in QR Stand</span>
+        </Link>
+        <Link
+          to="/dashboard/whatsapp"
+          className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-amber/5 hover:border-amber/30 transition-all text-xs font-medium text-foreground"
+        >
+          <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center">
+            <MessageSquare className="size-4" />
+          </div>
+          <span>WhatsApp Bot Status</span>
+        </Link>
+      </div>
       {/* End Quick Toolbar Shortcuts */}
 
       <SetupChecklistCard clinic={clinic} />
@@ -366,7 +367,11 @@ function Overview() {
             title="Waiting Room Queue"
             value={stats.waitingQueue}
             description="Patients waiting at clinic"
-            className={stats.waitingQueue > 0 ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20" : ""}
+            className={
+              stats.waitingQueue > 0
+                ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20"
+                : ""
+            }
           />
           <StatCard
             icon={<AlertCircle className="size-4" />}
@@ -484,7 +489,9 @@ function Overview() {
                 minute: "2-digit",
               });
               const cleanPhone = a.patient_phone ? a.patient_phone.replace(/[^\d]/g, "") : "";
-              const waUrl = cleanPhone ? `https://wa.me/${cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone}` : null;
+              const waUrl = cleanPhone
+                ? `https://wa.me/${cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone}`
+                : null;
 
               return (
                 <div
@@ -513,7 +520,10 @@ function Overview() {
                         )}
                         <StatusBadge status={a.status} />
                         {a.source === "walkin" && (
-                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                          >
                             Walk-in QR
                           </Badge>
                         )}
@@ -521,10 +531,13 @@ function Overview() {
 
                       {a.problem ? (
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          <span className="font-medium text-foreground">Complaint:</span> {a.problem}
+                          <span className="font-medium text-foreground">Complaint:</span>{" "}
+                          {a.problem}
                         </p>
                       ) : (
-                        <p className="text-xs text-muted-foreground italic">No symptoms mentioned</p>
+                        <p className="text-xs text-muted-foreground italic">
+                          No symptoms mentioned
+                        </p>
                       )}
 
                       <p className="text-[11px] text-muted-foreground font-mono">
@@ -579,7 +592,10 @@ function Overview() {
                         <CheckCircle2 className="size-3.5" /> Done
                       </Button>
                     ) : (
-                      <Badge variant="secondary" className="text-xs text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
+                      >
                         ✓ Completed
                       </Badge>
                     )}
@@ -622,8 +638,10 @@ function Overview() {
 const COLOR_MAP: Record<string, string> = {
   blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200/50",
   amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200/50",
-  emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200/50",
-  purple: "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200/50",
+  emerald:
+    "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200/50",
+  purple:
+    "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200/50",
 };
 
 function QuickActionCard({
@@ -643,10 +661,14 @@ function QuickActionCard({
     <Link to={to}>
       <Card className="p-5 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group h-full flex flex-col justify-between">
         <div>
-          <div className={`size-10 rounded-xl grid place-items-center mb-3 border ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}>
+          <div
+            className={`size-10 rounded-xl grid place-items-center mb-3 border ${COLOR_MAP[color] ?? COLOR_MAP.blue}`}
+          >
             {icon}
           </div>
-          <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{label}</h3>
+          <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+            {label}
+          </h3>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
         </div>
         <div className="flex items-center gap-1 mt-4 text-xs font-semibold text-primary group-hover:translate-x-1 transition-transform">

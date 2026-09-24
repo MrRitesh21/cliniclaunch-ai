@@ -60,9 +60,16 @@ function concat(...parts: Uint8Array[]): Uint8Array {
 }
 
 async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, length: number) {
-  const key = await crypto.subtle.importKey("raw", ikm as unknown as ArrayBuffer, "HKDF", false, ["deriveBits"]);
+  const key = await crypto.subtle.importKey("raw", ikm as unknown as ArrayBuffer, "HKDF", false, [
+    "deriveBits",
+  ]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "HKDF", hash: "SHA-256", salt: salt as unknown as ArrayBuffer, info: info as unknown as ArrayBuffer },
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: salt as unknown as ArrayBuffer,
+      info: info as unknown as ArrayBuffer,
+    },
     key,
     length * 8,
   );
@@ -75,7 +82,9 @@ async function encryptPayload(target: PushTarget, plaintext: Uint8Array): Promis
   const authSecret = b64uToBytes(target.auth);
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  const localKeys = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const localKeys = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, [
+    "deriveBits",
+  ]);
   const localPublic = new Uint8Array(await crypto.subtle.exportKey("raw", localKeys.publicKey));
 
   const clientKey = await crypto.subtle.importKey(
@@ -98,7 +107,13 @@ async function encryptPayload(target: PushTarget, plaintext: Uint8Array): Promis
   const cek = await hkdf(salt, prk, enc.encode("Content-Encoding: aes128gcm\0"), 16);
   const nonce = await hkdf(salt, prk, enc.encode("Content-Encoding: nonce\0"), 12);
 
-  const aesKey = await crypto.subtle.importKey("raw", cek as unknown as ArrayBuffer, "AES-GCM", false, ["encrypt"]);
+  const aesKey = await crypto.subtle.importKey(
+    "raw",
+    cek as unknown as ArrayBuffer,
+    "AES-GCM",
+    false,
+    ["encrypt"],
+  );
   // A single record: payload + 0x02 padding delimiter.
   const record = concat(plaintext, new Uint8Array([2]));
   const ciphertext = new Uint8Array(
@@ -115,9 +130,15 @@ async function encryptPayload(target: PushTarget, plaintext: Uint8Array): Promis
 }
 
 /** RFC 8292 VAPID Authorization header value for one push origin. */
-async function vapidHeader(audience: string, publicKey: string, privateKey: string, subject: string) {
+async function vapidHeader(
+  audience: string,
+  publicKey: string,
+  privateKey: string,
+  subject: string,
+) {
   const pub = b64uToBytes(publicKey);
-  if (pub.length !== 65 || pub[0] !== 4) throw new Error("VAPID_PUBLIC_KEY must be an uncompressed P-256 point");
+  if (pub.length !== 65 || pub[0] !== 4)
+    throw new Error("VAPID_PUBLIC_KEY must be an uncompressed P-256 point");
   const jwk: JsonWebKey = {
     kty: "EC",
     crv: "P-256",
@@ -126,7 +147,13 @@ async function vapidHeader(audience: string, publicKey: string, privateKey: stri
     d: privateKey,
     ext: true,
   };
-  const key = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    jwk,
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"],
+  );
 
   const header = bytesToB64u(enc.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
   const claims = bytesToB64u(
@@ -165,7 +192,13 @@ export async function sendPush(
 ): Promise<PushResult> {
   const vapid = getVapidConfig();
   if (!vapid) {
-    return { endpoint: target.endpoint, ok: false, status: 0, expired: false, error: "VAPID keys not configured" };
+    return {
+      endpoint: target.endpoint,
+      ok: false,
+      status: 0,
+      expired: false,
+      error: "VAPID keys not configured",
+    };
   }
 
   try {
@@ -216,9 +249,8 @@ export async function sendPushToUser(
   opts: { inbox?: boolean; category?: string } = {},
 ) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { createNotification, getUserPlanContext, hashEndpoint, recordPushEvents } = await import(
-    "./notifications.server"
-  );
+  const { createNotification, getUserPlanContext, hashEndpoint, recordPushEvents } =
+    await import("./notifications.server");
 
   const { data: subs, error } = await supabaseAdmin
     .from("push_subscriptions")
@@ -249,7 +281,8 @@ export async function sendPushToUser(
     return !inQuietHours(s as QuietWindow);
   });
 
-  if (!eligible.length) return { sent: 0, failed: 0, removed: 0, notificationId: notification?.id ?? null };
+  if (!eligible.length)
+    return { sent: 0, failed: 0, removed: 0, notificationId: notification?.id ?? null };
 
   const enriched: PushPayload = {
     ...payload,
@@ -298,7 +331,11 @@ export async function sendPushToUser(
   };
 }
 
-type QuietWindow = { quiet_start?: string | null; quiet_end?: string | null; timezone?: string | null };
+type QuietWindow = {
+  quiet_start?: string | null;
+  quiet_end?: string | null;
+  timezone?: string | null;
+};
 
 /** True when the device's local clock sits inside its quiet-hours window (wrap-around aware). */
 function inQuietHours(sub: QuietWindow, now = new Date()) {
@@ -329,4 +366,3 @@ function appendNotificationId(url: string | undefined, id: string) {
   const path = url && url.startsWith("/") ? url : "/dashboard";
   return path.includes("?") ? `${path}&n=${id}` : `${path}?n=${id}`;
 }
-

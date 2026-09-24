@@ -48,14 +48,18 @@ export function errorHandler() {
         url: ctx?.url ?? req.originalUrl,
         status,
         kind,
-        err: err instanceof Error ? { message: err.message, stack: err.stack } : { value: String(err) },
+        err:
+          err instanceof Error
+            ? { message: err.message, stack: err.stack }
+            : { value: String(err) },
       },
       "unhandled request error",
     );
 
     res.status(status).json({
       error: kind,
-      message: isProduction && status >= 500 ? "internal_error" : (err as Error)?.message ?? "error",
+      message:
+        isProduction && status >= 500 ? "internal_error" : ((err as Error)?.message ?? "error"),
       request_id: ctx?.requestId,
     });
   };

@@ -1,4 +1,9 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import type { SiteClinic } from "./types";
 
 type Props = { clinic: SiteClinic };
@@ -7,10 +12,22 @@ function faqFrom(clinic: SiteClinic) {
   const raw = (clinic as unknown as { faqs?: unknown }).faqs;
   if (Array.isArray(raw) && raw.length) return raw as { q: string; a: string }[];
   return [
-    { q: "How do I book an appointment?", a: `You can book online via the booking page in under a minute. You'll receive instant confirmation.` },
-    { q: "What is the consultation fee?", a: `The standard consultation fee at ${clinic.clinic_name} is ₹${clinic.consultation_fee}. Follow-ups may differ.` },
-    { q: "Do you accept walk-ins?", a: "We prioritise booked appointments to minimise waiting. Walk-ins are accepted if a slot is available." },
-    { q: "Is online consultation available?", a: "Yes, video consultations can be booked through the same booking flow." },
+    {
+      q: "How do I book an appointment?",
+      a: `You can book online via the booking page in under a minute. You'll receive instant confirmation.`,
+    },
+    {
+      q: "What is the consultation fee?",
+      a: `The standard consultation fee at ${clinic.clinic_name} is ₹${clinic.consultation_fee}. Follow-ups may differ.`,
+    },
+    {
+      q: "Do you accept walk-ins?",
+      a: "We prioritise booked appointments to minimise waiting. Walk-ins are accepted if a slot is available.",
+    },
+    {
+      q: "Is online consultation available?",
+      a: "Yes, video consultations can be booked through the same booking flow.",
+    },
   ];
 }
 

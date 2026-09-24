@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { Shield, ShieldAlert, Cpu, Activity, Globe, Lock, AlertTriangle, Users, Terminal } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Shield,
+  ShieldAlert,
+  Cpu,
+  Activity,
+  Globe,
+  Lock,
+  AlertTriangle,
+  Users,
+  Terminal,
+} from "lucide-react";
 
 export const DeviceIntelligenceDashboard: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
@@ -15,38 +25,38 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
 
   const mockEvents = [
     {
-      id: 'evt_101',
-      time: '10 mins ago',
-      user: 'alice@clinic.com',
-      event: 'SUSPICIOUS_LOGIN',
-      severity: 'HIGH',
-      device: 'Chrome 122 / Windows',
-      ipHash: 'a7f3e82...b91c',
-      location: 'India / New Delhi',
+      id: "evt_101",
+      time: "10 mins ago",
+      user: "alice@clinic.com",
+      event: "SUSPICIOUS_LOGIN",
+      severity: "HIGH",
+      device: "Chrome 122 / Windows",
+      ipHash: "a7f3e82...b91c",
+      location: "India / New Delhi",
       riskScore: 80,
       riskBreakdown: { new_device: 20, vpn_detected: 20, new_country: 30, failed_attempts: 10 },
     },
     {
-      id: 'evt_102',
-      time: '25 mins ago',
-      user: 'bob@clinic.com',
-      event: 'NEW_DEVICE_LOGIN',
-      severity: 'MEDIUM',
-      device: 'Safari 17 / iOS',
-      ipHash: 'f49c12a...e042',
-      location: 'USA / San Francisco',
+      id: "evt_102",
+      time: "25 mins ago",
+      user: "bob@clinic.com",
+      event: "NEW_DEVICE_LOGIN",
+      severity: "MEDIUM",
+      device: "Safari 17 / iOS",
+      ipHash: "f49c12a...e042",
+      location: "USA / San Francisco",
       riskScore: 50,
       riskBreakdown: { new_device: 20, new_country: 30 },
     },
     {
-      id: 'evt_103',
-      time: '1 hour ago',
-      user: 'charlie@clinic.com',
-      event: 'DEVICE_BLOCKED',
-      severity: 'CRITICAL',
-      device: 'Firefox 120 / Linux',
-      ipHash: '3819df4...8a21',
-      location: 'Unknown Tor Node',
+      id: "evt_103",
+      time: "1 hour ago",
+      user: "charlie@clinic.com",
+      event: "DEVICE_BLOCKED",
+      severity: "CRITICAL",
+      device: "Firefox 120 / Linux",
+      ipHash: "3819df4...8a21",
+      location: "Unknown Tor Node",
       riskScore: 100,
       riskBreakdown: { blocked_device: 100, tor_detected: 50 },
     },
@@ -62,7 +72,8 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
             Device Intelligence & Security Analytics
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Real-time fraud prevention, hardware fingerprint tracking, and multi-tenant security event monitoring.
+            Real-time fraud prevention, hardware fingerprint tracking, and multi-tenant security
+            event monitoring.
           </p>
         </div>
         <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400 text-xs font-semibold">
@@ -95,7 +106,9 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
           <span className="text-xs text-slate-400">Avg Risk Score</span>
-          <div className="text-2xl font-bold mt-1 text-slate-100">{mockStats.averageRiskScore} / 100</div>
+          <div className="text-2xl font-bold mt-1 text-slate-100">
+            {mockStats.averageRiskScore} / 100
+          </div>
         </div>
       </div>
 
@@ -106,12 +119,27 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
             <Globe className="w-4 h-4 text-indigo-400" /> OS Distribution
           </h3>
           <div className="space-y-2 text-xs">
-            <div className="flex justify-between text-slate-400"><span>Windows</span><span>52%</span></div>
-            <div className="w-full bg-slate-800 h-1.5 rounded"><div className="bg-indigo-500 h-1.5 rounded" style={{ width: '52%' }} /></div>
-            <div className="flex justify-between text-slate-400"><span>macOS</span><span>31%</span></div>
-            <div className="w-full bg-slate-800 h-1.5 rounded"><div className="bg-blue-500 h-1.5 rounded" style={{ width: '31%' }} /></div>
-            <div className="flex justify-between text-slate-400"><span>iOS / Android</span><span>17%</span></div>
-            <div className="w-full bg-slate-800 h-1.5 rounded"><div className="bg-emerald-500 h-1.5 rounded" style={{ width: '17%' }} /></div>
+            <div className="flex justify-between text-slate-400">
+              <span>Windows</span>
+              <span>52%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded">
+              <div className="bg-indigo-500 h-1.5 rounded" style={{ width: "52%" }} />
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>macOS</span>
+              <span>31%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded">
+              <div className="bg-blue-500 h-1.5 rounded" style={{ width: "31%" }} />
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>iOS / Android</span>
+              <span>17%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded">
+              <div className="bg-emerald-500 h-1.5 rounded" style={{ width: "17%" }} />
+            </div>
           </div>
         </div>
 
@@ -120,12 +148,27 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
             <Terminal className="w-4 h-4 text-indigo-400" /> Browser Distribution
           </h3>
           <div className="space-y-2 text-xs">
-            <div className="flex justify-between text-slate-400"><span>Chrome</span><span>64%</span></div>
-            <div className="w-full bg-slate-800 h-1.5 rounded"><div className="bg-emerald-500 h-1.5 rounded" style={{ width: '64%' }} /></div>
-            <div className="flex justify-between text-slate-400"><span>Safari</span><span>22%</span></div>
-            <div className="w-full bg-slate-800 h-1.5 rounded"><div className="bg-blue-500 h-1.5 rounded" style={{ width: '22%' }} /></div>
-            <div className="flex justify-between text-slate-400"><span>Firefox & Edge</span><span>14%</span></div>
-            <div className="w-full bg-slate-800 h-1.5 rounded"><div className="bg-amber-500 h-1.5 rounded" style={{ width: '14%' }} /></div>
+            <div className="flex justify-between text-slate-400">
+              <span>Chrome</span>
+              <span>64%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded">
+              <div className="bg-emerald-500 h-1.5 rounded" style={{ width: "64%" }} />
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Safari</span>
+              <span>22%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded">
+              <div className="bg-blue-500 h-1.5 rounded" style={{ width: "22%" }} />
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Firefox & Edge</span>
+              <span>14%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded">
+              <div className="bg-amber-500 h-1.5 rounded" style={{ width: "14%" }} />
+            </div>
           </div>
         </div>
 
@@ -136,11 +179,17 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
           <div className="space-y-2 text-xs">
             <div className="p-2 bg-slate-800/80 rounded border border-slate-700">
               <span className="text-slate-300 font-semibold">Impossible Travel Detected</span>
-              <p className="text-[11px] text-slate-400 mt-0.5">2 events flagged across distant geographies within 15 min.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                2 events flagged across distant geographies within 15 min.
+              </p>
             </div>
             <div className="p-2 bg-slate-800/80 rounded border border-slate-700">
-              <span className="text-slate-300 font-semibold">Multiple Accounts Shared Hardware</span>
-              <p className="text-[11px] text-slate-400 mt-0.5">1 physical fingerprint associated with 3 user accounts.</p>
+              <span className="text-slate-300 font-semibold">
+                Multiple Accounts Shared Hardware
+              </span>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                1 physical fingerprint associated with 3 user accounts.
+              </p>
             </div>
           </div>
         </div>
@@ -174,11 +223,11 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
                   <td className="p-2.5">
                     <span
                       className={`font-semibold px-2 py-0.5 rounded text-[10px] ${
-                        evt.severity === 'CRITICAL'
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : evt.severity === 'HIGH'
-                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        evt.severity === "CRITICAL"
+                          ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                          : evt.severity === "HIGH"
+                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                            : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                       }`}
                     >
                       {evt.event}
@@ -190,7 +239,9 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
                   <td className="p-2.5 font-bold">
                     <span
                       className={`px-2 py-0.5 rounded ${
-                        evt.riskScore >= 71 ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+                        evt.riskScore >= 71
+                          ? "bg-rose-500/20 text-rose-400"
+                          : "bg-amber-500/20 text-amber-400"
                       }`}
                     >
                       {evt.riskScore}
@@ -218,7 +269,10 @@ export const DeviceIntelligenceDashboard: React.FC = () => {
             </h4>
             <div className="flex flex-wrap gap-2 text-xs font-mono">
               {Object.entries(selectedEvent.riskBreakdown).map(([factor, val]) => (
-                <span key={factor} className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded text-slate-300">
+                <span
+                  key={factor}
+                  className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded text-slate-300"
+                >
                   {factor}: <strong className="text-amber-400">+{val as number}</strong>
                 </span>
               ))}
