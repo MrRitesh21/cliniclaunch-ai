@@ -1495,7 +1495,9 @@ export async function saveSystemSettingsImpl(input: any) {
     ),
   );
 
-  await Promise.all(promises);
+  const results = await Promise.all(promises);
+  const failed = results.find((r: any) => r?.error);
+  if (failed) throw new Error(`Failed to save settings: ${(failed as any).error.message}`);
 
   await createAuditLog(supabaseAdmin, admin.id, "system_settings_updated", "system", "settings", {
     keys: Object.keys(input),
