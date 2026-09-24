@@ -6,7 +6,9 @@
     "type": "oauth",
     "issuer": "https://nqbtiyohphfnqyijefhx.supabase.co/auth/v1",
     "resource_name": "ClinicX MCP",
-    "accepted_audiences": ["authenticated"]
+    "accepted_audiences": [
+      "authenticated"
+    ]
   },
   "mcp": {
     "server": {
@@ -33,7 +35,9 @@
               "description": "Text to echo back."
             }
           },
-          "required": ["text"],
+          "required": [
+            "text"
+          ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
@@ -57,7 +61,9 @@
               "description": "The clinic's public slug."
             }
           },
-          "required": ["slug"],
+          "required": [
+            "slug"
+          ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
