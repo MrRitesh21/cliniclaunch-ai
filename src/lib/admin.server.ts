@@ -1783,3 +1783,79 @@ export async function deleteAuditLogImpl(input: { id: string }) {
   // to avoid confusion during tests, or we could if needed.
   return { success: true };
 }
+
+// -------------------------------------------------------------
+// Module / app on-off controls (global + per clinic)
+// -------------------------------------------------------------
+export async function listModuleControlsImpl(input: { orgId?: string; search?: string }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: modules, error } = await supabaseAdmin
+    .from("modules")
+    .select("id, name, description, category, is_core, is_available, sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+
+  let orgQ = supabaseAdmin.from("organizations").select("id, name").order("name").limit(20);
+  if (input.search) orgQ = orgQ.ilike("name", `%${input.search}%`);
+  const { data: orgs } = await orgQ;
+
+  let overrides: Array<{ module_id: string; enabled: boolean }> = [];
+  if (input.orgId) {
+    const { data } = await supabaseAdmin
+      .from("organization_module_overrides" as any)
+      .select("module_id, enabled")
+      .eq("organization_id", input.orgId);
+    overrides = (data as any) ?? [];
+  }
+  return { modules: modules ?? [], orgs: orgs ?? [], overrides };
+}
+
+export async function setModuleGlobalImpl(input: { moduleId: string; enabled: boolean }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin
+    .from("modules")
+    .update({ is_available: input.enabled })
+    .eq("id", input.moduleId);
+  if (error) throw error;
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    input.enabled ? "module_enabled_globally" : "module_disabled_globally",
+    "module",
+    input.moduleId,
+  );
+  return { success: true };
+}
+
+export async function setOrgModuleOverrideImpl(input: {
+  orgId: string;
+  moduleId: string;
+  state: "on" | "off" | "default";
+}) {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const t = supabaseAdmin.from("organization_module_overrides" as any);
+  const { error } =
+    input.state === "default"
+      ? await t.delete().eq("organization_id", input.orgId).eq("module_id", input.moduleId)
+      : await t.upsert(
+          {
+            organization_id: input.orgId,
+            module_id: input.moduleId,
+            enabled: input.state === "on",
+            updated_by: admin.id,
+          },
+          { onConflict: "organization_id,module_id" },
+        );
+  if (error) throw error;
+  await createAuditLog(supabaseAdmin, admin.id, `module_clinic_${input.state}`, "organization", input.orgId, {
+    module: input.moduleId,
+  });
+  return { success: true };
+}

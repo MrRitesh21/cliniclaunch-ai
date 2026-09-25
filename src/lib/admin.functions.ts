@@ -413,3 +413,26 @@ export const checkMaintenanceStatus = createServerFn({ method: "GET" })
 
     return settings;
   });
+
+export const listModuleControls = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ orgId: z.string().uuid().optional(), search: z.string().max(100).optional() }))
+  .handler(async ({ data }) => {
+    const { listModuleControlsImpl } = await import("./admin.server");
+    return listModuleControlsImpl(data);
+  });
+
+export const setModuleGlobal = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ moduleId: z.string().min(1), enabled: z.boolean() }))
+  .handler(async ({ data }) => {
+    const { setModuleGlobalImpl } = await import("./admin.server");
+    return setModuleGlobalImpl(data);
+  });
+
+export const setOrgModuleOverride = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({ orgId: z.string().uuid(), moduleId: z.string().min(1), state: z.enum(["on", "off", "default"]) }),
+  )
+  .handler(async ({ data }) => {
+    const { setOrgModuleOverrideImpl } = await import("./admin.server");
+    return setOrgModuleOverrideImpl(data);
+  });
