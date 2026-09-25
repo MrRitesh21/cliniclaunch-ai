@@ -678,15 +678,14 @@ function DashboardLayout() {
       items: section.items
         .map((n) => {
           const item = n as NavItem;
-          // Modules outside the plan stay visible but locked (upgrade path) instead of vanishing
-          const locked = !!item.module && org !== undefined && !planModuleIds.includes(item.module);
-          return { ...item, locked };
+          // Modules outside the plan or not installed will be hidden entirely
+          return { ...item, locked: false };
         })
         .filter((item) => {
           // Hide module items until the org/plan has loaded
           if (item.module && org === undefined) return false;
-          // Plan-allowed modules the org hasn't installed stay hidden (managed in Apps)
-          if (item.module && !item.locked && !installedModuleIds.includes(item.module)) {
+          // Only show installed apps in the sidebar
+          if (item.module && !installedModuleIds.includes(item.module)) {
             return false;
           }
 
