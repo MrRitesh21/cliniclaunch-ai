@@ -95,13 +95,24 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
 
   const orgId = mem[0].organization_id;
 
-  const [{ data: orgRow }, { data: modRows }, { data: subRow }, { data: planRows }] =
-    await Promise.all([
-      supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
-      supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
-      supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
-      supabase.from("plans").select("id, module_ids"),
-    ]);
+  const [
+    { data: orgRow },
+    { data: modRows },
+    { data: subRow },
+    { data: planRows },
+    { data: offGlobal },
+    { data: ovRows },
+  ] = await Promise.all([
+    supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
+    supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
+    supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
+    supabase.from("plans").select("id, module_ids"),
+    supabase.from("modules").select("id").eq("is_available", false),
+    supabase
+      .from("organization_module_overrides" as any)
+      .select("module_id, enabled")
+      .eq("organization_id", orgId),
+  ]);
 
   const targetEnd = subRow?.current_period_end ?? subRow?.trial_ends_at;
   const periodEndMs = targetEnd ? new Date(targetEnd).getTime() : null;
@@ -127,13 +138,25 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     planAllowed.length > 0 ? [...planAllowed, ...ALL_KNOWN_MODULES] : ALL_KNOWN_MODULES,
   );
 
+  // Admin on/off switches: platform-wide off, then per-clinic override wins.
+  const disabled = new Set((offGlobal ?? []).map((m) => m.id));
+  const forcedOn = new Set<string>();
+  for (const o of ((ovRows as any[]) ?? []) as Array<{ module_id: string; enabled: boolean }>) {
+    if (o.enabled) {
+      disabled.delete(o.module_id);
+      forcedOn.add(o.module_id);
+    } else disabled.add(o.module_id);
+  }
+  const apply = (list: string[]) =>
+    Array.from(new Set([...list, ...forcedOn])).filter((id) => !disabled.has(id));
+
   return {
     org: orgRow ?? null,
     role: mem[0].role,
     subscription: (subRow as Subscription) ?? null,
     isSubscriptionExpired: subRow !== null && periodElapsed && !statusActive,
-    planModuleIds: Array.from(allowedSet),
-    installedModuleIds: Array.from(new Set([...ids, ...ALL_KNOWN_MODULES])),
+    planModuleIds: apply(Array.from(allowedSet)),
+    installedModuleIds: apply([...ids, ...ALL_KNOWN_MODULES]),
   };
 }
 
