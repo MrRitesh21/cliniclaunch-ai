@@ -62,7 +62,7 @@ export async function adminClient() {
 }
 
 export const getClinicBySlug = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({
       slug: z.string().min(1).max(100),
       preview_token: z.string().min(8).max(128).optional(),
@@ -135,7 +135,7 @@ async function fetchClinicData(slug: string, previewToken?: string) {
 }
 
 export const getClinicDoctors = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ organization_id: z.string() }).parse(input))
+  .validator((input: unknown) => z.object({ organization_id: z.string() }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
     // This endpoint is public, so mirror the doctors RLS policy: only orgs with
@@ -171,7 +171,7 @@ export const getClinicDoctors = createServerFn({ method: "POST" })
  * can see all orgs (the authenticated client is scoped to the caller's orgs).
  */
 export const resolveAvailableOrgSlug = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ base: z.string().min(1).max(100) }).parse(input))
+  .validator((input: unknown) => z.object({ base: z.string().min(1).max(100) }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
     let slug = data.base;
@@ -192,7 +192,7 @@ export const resolveAvailableOrgSlug = createServerFn({ method: "GET" })
  * non-sensitive display fields.
  */
 export const getReviewPageContext = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(input))
+  .validator((input: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
     const { data: clinic } = await sb
@@ -217,7 +217,7 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
   });
 
 export const submitPublicReview = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({
       organization_id: z.string().uuid(),
       clinic_id: z.string().uuid().nullable().optional(),
@@ -285,7 +285,7 @@ export const submitPublicReview = createServerFn({ method: "POST" })
  * This is what auto-publishes generated SEO content to the live HTML so Google + AI engines can index it.
  */
 export const getClinicPublicSchema = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(input))
+  .validator((input: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
     const { data: clinic } = await sb
@@ -405,7 +405,7 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
 
 
 export const getBookedSlots = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({
+  .validator((input: unknown) => z.object({
     clinic_id: z.string().uuid(),
     from: z.string(),
     to: z.string(),
@@ -463,7 +463,7 @@ const bookingSchema = z.object({
 });
 
 export const createBooking = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => bookingSchema.parse(input))
+  .validator((input: unknown) => bookingSchema.parse(input))
   .handler(async ({ data }) => {
     // Redis-backed write budget, shared across every isolate/container.
     // Per-IP stops one host hammering the endpoint; per-phone stops one number
@@ -707,7 +707,7 @@ export const createBooking = createServerFn({ method: "POST" })
 // Public-safe appointment lookup for the patient consult join page.
 // Returns only fields needed to render the call screen — no phone/email/age/problem.
 export const getConsultAppointment = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
     // Public endpoint: per-IP Redis budget so the consult id space can't be
     // enumerated from a single host.
@@ -726,7 +726,7 @@ export const getConsultAppointment = createServerFn({ method: "GET" })
 
 export const updateAppointmentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({
+  .validator((input: unknown) => z.object({
     id: z.string().uuid(),
     status: z.enum(["pending", "confirmed", "completed", "cancelled", "no_show"]),
   }).parse(input))
@@ -834,7 +834,7 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 
 export const createAndInviteStaff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({
       email: z.string().email(),
       role: z.enum(["doctor", "staff", "admin", "owner"]),

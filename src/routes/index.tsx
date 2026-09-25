@@ -450,15 +450,6 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
                 Start free trial <ArrowRight className="size-4" />
               </Button>
             </Link>
-            <Link to="/demo">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-12 px-7 rounded-xl text-sm font-semibold bg-surface"
-              >
-                Explore live demo
-              </Button>
-            </Link>
           </div>
 
           <p className="mt-5 text-xs text-muted-foreground flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

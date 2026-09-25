@@ -101,7 +101,6 @@ const NAV: NavSection[] = [
     title: "Support",
     items: [
       { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
-      { to: "/admin/chat", label: "Live Chat Log", icon: MessageSquare },
     ],
   },
   {
@@ -111,10 +110,6 @@ const NAV: NavSection[] = [
       { to: "/admin/audit", label: "Audit Log", icon: ScrollText },
       { to: "/admin/settings/system", label: "System Settings", icon: SettingsIcon },
     ],
-  },
-  {
-    title: "Monitoring & Security",
-    items: [{ to: "/admin/monitoring", label: "Full System Monitoring", icon: Monitor }],
   },
 ];
 

@@ -173,19 +173,7 @@ function BookPage() {
     ) as DoctorOption[];
     const ownerName = clinic.doctor_name;
     const list = [...activeFromLoader];
-    const hasOwnerInList =
-      ownerName &&
-      list.some((d) => {
-        const dName = d.name
-          .toLowerCase()
-          .replace(/^dr\.?\s*/, "")
-          .trim();
-        const oName = ownerName
-          .toLowerCase()
-          .replace(/^dr\.?\s*/, "")
-          .trim();
-        return dName === oName || dName.includes(oName) || oName.includes(dName);
-      });
+    const hasOwnerInList = activeFromLoader.length > 0;
 
     const merged: DoctorOption[] = [];
     if (ownerName && !hasOwnerInList) {

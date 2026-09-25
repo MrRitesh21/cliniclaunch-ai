@@ -1488,7 +1488,6 @@ export async function saveSystemSettingsImpl(input: any) {
       {
         key,
         value,
-        updated_by: admin.id,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "key" },

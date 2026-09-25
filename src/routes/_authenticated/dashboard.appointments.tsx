@@ -61,6 +61,8 @@ type Appt = {
   scheduled_at: string;
   status: string;
   appointment_type: "online" | "offline";
+  doctor_id: string | null;
+  doctors?: { name: string } | null;
 };
 
 function AppointmentsPage() {
@@ -166,7 +168,7 @@ function AppointmentsPage() {
       type ApptStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
       let q = supabase
         .from("appointments")
-        .select("*")
+        .select("*, doctors(name)")
         .eq("clinic_id", clinic.id)
         .order("scheduled_at", { ascending: false });
       if (filter !== "all") q = q.eq("status", filter as ApptStatus);
@@ -416,6 +418,10 @@ function AppointmentsPage() {
                               <MapPin className="size-3" /> In-clinic
                             </>
                           )}
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <Stethoscope className="size-3" />
+                          {r.doctors?.name || clinic.doctor_name || "Doctor"}
                         </span>
                       </div>
                     </div>

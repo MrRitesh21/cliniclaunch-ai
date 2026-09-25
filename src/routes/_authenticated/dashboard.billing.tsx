@@ -803,7 +803,7 @@ function BillingPage() {
         </Card>
       </div>
 
-      {/* Upgrade dialog (mock checkout) */}
+      {/* Upgrade dialog */}
       <Dialog
         open={!!pendingPlan}
         onOpenChange={(o) => {

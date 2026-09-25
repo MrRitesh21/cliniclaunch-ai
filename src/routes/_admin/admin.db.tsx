@@ -31,17 +31,7 @@ function DbToolsPage() {
     onError: (err: any) => toast.error(err.message || "Failed to run database cleanup"),
   });
 
-  function downloadBackup() {
-    const backupContent = `-- ClinicX DB Schema Backup Mock\n-- Generated on ${new Date().toISOString()}\n\nCREATE TABLE clinics (...);\nCREATE TABLE patients (...);\nCREATE TABLE appointments (...);\n`;
-    const blob = new Blob([backupContent], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `clinicx-backup-${new Date().toISOString().slice(0, 10)}.sql`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("SQL schema backup generated and downloaded.");
-  }
+
 
   if (isLoading) {
     return (
@@ -135,19 +125,6 @@ function DbToolsPage() {
               >
                 <Trash2 className="size-3.5 mr-1" />
                 Clear Signups
-              </Button>
-            </div>
-            <div className="p-3 border rounded-md bg-indigo-50/50 border-indigo-100 space-y-2 md:col-span-2">
-              <span className="text-sm font-semibold text-indigo-950 block">
-                Database Schema Backup
-              </span>
-              <p className="text-xs text-muted-foreground">
-                Generates a client-side SQL backup containing full table structure definition
-                scripts.
-              </p>
-              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={downloadBackup}>
-                <Download className="size-3.5 mr-1" />
-                Download SQL Schema Backup
               </Button>
             </div>
           </div>

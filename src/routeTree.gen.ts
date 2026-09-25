@@ -16,7 +16,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as DemoRouteImport } from './routes/demo'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
@@ -48,13 +47,11 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin.index'
 import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin/admin.announcements'
 import { Route as AdminAdminAuditRouteImport } from './routes/_admin/admin.audit'
-import { Route as AdminAdminChatRouteImport } from './routes/_admin/admin.chat'
 import { Route as AdminAdminDashboardRouteImport } from './routes/_admin/admin.dashboard'
 import { Route as AdminAdminDbRouteImport } from './routes/_admin/admin.db'
 import { Route as AdminAdminDoctorsRouteImport } from './routes/_admin/admin.doctors'
 import { Route as AdminAdminEmailRouteImport } from './routes/_admin/admin.email'
 import { Route as AdminAdminFeaturesRouteImport } from './routes/_admin/admin.features'
-import { Route as AdminAdminMonitoringRouteImport } from './routes/_admin/admin.monitoring'
 import { Route as AdminAdminPlansRouteImport } from './routes/_admin/admin.plans'
 import { Route as AdminAdminRefundsRouteImport } from './routes/_admin/admin.refunds'
 import { Route as AdminAdminSubscriptionsRouteImport } from './routes/_admin/admin.subscriptions'
@@ -141,11 +138,6 @@ const BookRoute = BookRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoRoute = DemoRouteImport.update({
-  id: '/demo',
-  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -306,11 +298,6 @@ const AdminAdminAuditRoute = AdminAdminAuditRouteImport.update({
   path: '/admin/audit',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const AdminAdminChatRoute = AdminAdminChatRouteImport.update({
-  id: '/admin/chat',
-  path: '/admin/chat',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
 const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
@@ -334,11 +321,6 @@ const AdminAdminEmailRoute = AdminAdminEmailRouteImport.update({
 const AdminAdminFeaturesRoute = AdminAdminFeaturesRouteImport.update({
   id: '/admin/features',
   path: '/admin/features',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminAdminMonitoringRoute = AdminAdminMonitoringRouteImport.update({
-  id: '/admin/monitoring',
-  path: '/admin/monitoring',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAdminPlansRoute = AdminAdminPlansRouteImport.update({
@@ -650,7 +632,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
-  '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -681,13 +662,11 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
-  '/admin/chat': typeof AdminAdminChatRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
   '/admin/db': typeof AdminAdminDbRoute
   '/admin/doctors': typeof AdminAdminDoctorsRouteWithChildren
   '/admin/email': typeof AdminAdminEmailRoute
   '/admin/features': typeof AdminAdminFeaturesRoute
-  '/admin/monitoring': typeof AdminAdminMonitoringRoute
   '/admin/plans': typeof AdminAdminPlansRoute
   '/admin/refunds': typeof AdminAdminRefundsRoute
   '/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
@@ -750,7 +729,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
-  '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -779,12 +757,10 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
-  '/admin/chat': typeof AdminAdminChatRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
   '/admin/db': typeof AdminAdminDbRoute
   '/admin/email': typeof AdminAdminEmailRoute
   '/admin/features': typeof AdminAdminFeaturesRoute
-  '/admin/monitoring': typeof AdminAdminMonitoringRoute
   '/admin/plans': typeof AdminAdminPlansRoute
   '/admin/refunds': typeof AdminAdminRefundsRoute
   '/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
@@ -850,7 +826,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
-  '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -881,13 +856,11 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_admin/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/_admin/admin/audit': typeof AdminAdminAuditRoute
-  '/_admin/admin/chat': typeof AdminAdminChatRoute
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute
   '/_admin/admin/db': typeof AdminAdminDbRoute
   '/_admin/admin/doctors': typeof AdminAdminDoctorsRouteWithChildren
   '/_admin/admin/email': typeof AdminAdminEmailRoute
   '/_admin/admin/features': typeof AdminAdminFeaturesRoute
-  '/_admin/admin/monitoring': typeof AdminAdminMonitoringRoute
   '/_admin/admin/plans': typeof AdminAdminPlansRoute
   '/_admin/admin/refunds': typeof AdminAdminRefundsRoute
   '/_admin/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
@@ -952,7 +925,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/contact'
-    | '/demo'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -983,13 +955,11 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/admin/announcements'
     | '/admin/audit'
-    | '/admin/chat'
     | '/admin/dashboard'
     | '/admin/db'
     | '/admin/doctors'
     | '/admin/email'
     | '/admin/features'
-    | '/admin/monitoring'
     | '/admin/plans'
     | '/admin/refunds'
     | '/admin/subscriptions'
@@ -1052,7 +1022,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/contact'
-    | '/demo'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1081,12 +1050,10 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/admin/announcements'
     | '/admin/audit'
-    | '/admin/chat'
     | '/admin/dashboard'
     | '/admin/db'
     | '/admin/email'
     | '/admin/features'
-    | '/admin/monitoring'
     | '/admin/plans'
     | '/admin/refunds'
     | '/admin/subscriptions'
@@ -1151,7 +1118,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/contact'
-    | '/demo'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1182,13 +1148,11 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/_admin/admin/announcements'
     | '/_admin/admin/audit'
-    | '/_admin/admin/chat'
     | '/_admin/admin/dashboard'
     | '/_admin/admin/db'
     | '/_admin/admin/doctors'
     | '/_admin/admin/email'
     | '/_admin/admin/features'
-    | '/_admin/admin/monitoring'
     | '/_admin/admin/plans'
     | '/_admin/admin/refunds'
     | '/_admin/admin/subscriptions'
@@ -1254,7 +1218,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   ContactRoute: typeof ContactRoute
-  DemoRoute: typeof DemoRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   HowItWorksRoute: typeof HowItWorksRoute
@@ -1338,13 +1301,6 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo': {
-      id: '/demo'
-      path: '/demo'
-      fullPath: '/demo'
-      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -1564,13 +1520,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminAuditRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/_admin/admin/chat': {
-      id: '/_admin/admin/chat'
-      path: '/admin/chat'
-      fullPath: '/admin/chat'
-      preLoaderRoute: typeof AdminAdminChatRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
     '/_admin/admin/dashboard': {
       id: '/_admin/admin/dashboard'
       path: '/admin/dashboard'
@@ -1604,13 +1553,6 @@ declare module '@tanstack/react-router' {
       path: '/admin/features'
       fullPath: '/admin/features'
       preLoaderRoute: typeof AdminAdminFeaturesRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/_admin/admin/monitoring': {
-      id: '/_admin/admin/monitoring'
-      path: '/admin/monitoring'
-      fullPath: '/admin/monitoring'
-      preLoaderRoute: typeof AdminAdminMonitoringRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/_admin/admin/plans': {
@@ -2014,13 +1956,11 @@ const AdminAdminDoctorsRouteWithChildren =
 interface AdminRouteRouteChildren {
   AdminAdminAnnouncementsRoute: typeof AdminAdminAnnouncementsRoute
   AdminAdminAuditRoute: typeof AdminAdminAuditRoute
-  AdminAdminChatRoute: typeof AdminAdminChatRoute
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
   AdminAdminDbRoute: typeof AdminAdminDbRoute
   AdminAdminDoctorsRoute: typeof AdminAdminDoctorsRouteWithChildren
   AdminAdminEmailRoute: typeof AdminAdminEmailRoute
   AdminAdminFeaturesRoute: typeof AdminAdminFeaturesRoute
-  AdminAdminMonitoringRoute: typeof AdminAdminMonitoringRoute
   AdminAdminPlansRoute: typeof AdminAdminPlansRoute
   AdminAdminRefundsRoute: typeof AdminAdminRefundsRoute
   AdminAdminSubscriptionsRoute: typeof AdminAdminSubscriptionsRoute
@@ -2036,13 +1976,11 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAdminAnnouncementsRoute: AdminAdminAnnouncementsRoute,
   AdminAdminAuditRoute: AdminAdminAuditRoute,
-  AdminAdminChatRoute: AdminAdminChatRoute,
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
   AdminAdminDbRoute: AdminAdminDbRoute,
   AdminAdminDoctorsRoute: AdminAdminDoctorsRouteWithChildren,
   AdminAdminEmailRoute: AdminAdminEmailRoute,
   AdminAdminFeaturesRoute: AdminAdminFeaturesRoute,
-  AdminAdminMonitoringRoute: AdminAdminMonitoringRoute,
   AdminAdminPlansRoute: AdminAdminPlansRoute,
   AdminAdminRefundsRoute: AdminAdminRefundsRoute,
   AdminAdminSubscriptionsRoute: AdminAdminSubscriptionsRoute,
@@ -2187,7 +2125,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   ContactRoute: ContactRoute,
-  DemoRoute: DemoRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   HowItWorksRoute: HowItWorksRoute,
