@@ -5,14 +5,11 @@ import fs from "node:fs";
 import path from "node:path";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
-import pkg from "@whiskeysockets/baileys";
-
-const {
-  default: makeWASocket,
+import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
-} = pkg;
+} from "@whiskeysockets/baileys";
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
 const CLINIC_ID = process.env.CLINIC_ID || "default";
@@ -103,7 +100,8 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
+  sock.ev.on("connection.update", (update: any) => {
+    const { connection, lastDisconnect, qr } = update;
     if (qr) {
       stateObj.status = "qr";
       stateObj.qr = qr;
@@ -136,7 +134,8 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
     }
   });
 
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+  sock.ev.on("messages.upsert", async (upsert: any) => {
+    const { messages, type } = upsert;
     if (type !== "notify") return;
     for (const m of messages) {
       if (m.key.fromMe || !m.message) continue;
