@@ -114,7 +114,7 @@ function ModuleControlsPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-muted-foreground">All clinics</span>
                     <Switch
-                      checked={m.is_available}
+                      checked={!!m.is_available}
                       disabled={globalMut.isPending}
                       onCheckedChange={(v) => globalMut.mutate({ moduleId: m.id, enabled: v })}
                     />
