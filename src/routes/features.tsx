@@ -200,7 +200,7 @@ function FeaturesPage() {
                     <CheckCircle2 className="size-3.5" /> Included in plan
                   </span>
                   <Link
-                    to="/demo"
+                    to="/contact"
                     className="text-muted-foreground hover:text-foreground font-medium flex items-center gap-0.5"
                   >
                     Live demo &rarr;
@@ -225,7 +225,7 @@ function FeaturesPage() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-              <Link to="/demo" className="w-full sm:w-auto">
+              <Link to="/contact" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="secondary"

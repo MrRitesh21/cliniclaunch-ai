@@ -261,7 +261,7 @@ function HowPage() {
 
           {/* Action CTAs */}
           <div className="text-center flex flex-col sm:flex-row justify-center gap-4 pt-4">
-            <Link to="/demo">
+            <Link to="/contact">
               <Button
                 size="lg"
                 variant="outline"
