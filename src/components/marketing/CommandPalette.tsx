@@ -46,7 +46,7 @@ export function CommandPalette({
       category: "Product",
       icon: Sparkles,
       action: () => {
-        navigate({ to: "/demo" });
+        navigate({ to: "/contact" });
         onOpenChange(false);
       },
       shortcut: "⚡ Demo",

@@ -107,7 +107,7 @@ function CityPage() {
               Start Free 14-Day Trial <ArrowRight className="size-4" />
             </Button>
           </Link>
-          <Link to="/demo">
+          <Link to="/contact">
             <Button
               size="lg"
               variant="outline"
@@ -176,7 +176,7 @@ function CityPage() {
                 Get Started Free &rarr;
               </Button>
             </Link>
-            <Link to="/demo">
+            <Link to="/contact">
               <Button
                 size="lg"
                 className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900"

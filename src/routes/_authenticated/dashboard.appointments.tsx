@@ -421,7 +421,7 @@ function AppointmentsPage() {
                         </span>
                         <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                           <Stethoscope className="size-3" />
-                          {r.doctors?.name || clinic.doctor_name || "Doctor"}
+                          {r.doctors?.name || clinic?.doctor_name || "Doctor"}
                         </span>
                       </div>
                     </div>

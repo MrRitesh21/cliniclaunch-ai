@@ -89,7 +89,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             14-day free trial — clinic website and WhatsApp automation live in 5 minutes.
           </span>
           <Link
-            to="/demo"
+            to="/contact"
             className="hidden sm:inline-flex items-center gap-1 font-medium text-primary hover:underline shrink-0"
           >
             See the demo <ArrowRight className="size-3" />
@@ -145,7 +145,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               </Button>
             </Link>
 
-            <Link to="/demo">
+            <Link to="/contact">
               <Button
                 variant="outline"
                 className="font-bold border-primary/40 text-primary hover:bg-primary/10 gap-1.5 h-9"
@@ -206,7 +206,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 Sign in
               </Button>
             </Link>
-            <Link to="/demo" onClick={() => setOpen(false)}>
+            <Link to="/contact" onClick={() => setOpen(false)}>
               <Button className="w-full font-bold bg-primary text-primary-foreground">
                 ⚡ Try Live Demo
               </Button>
@@ -256,7 +256,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   </a>
                 </li>
                 <li>
-                  <Link to="/demo" className="hover:text-foreground text-primary font-bold">
+                  <Link to="/contact" className="hover:text-foreground text-primary font-bold">
                     Live Demo
                   </Link>
                 </li>
@@ -361,7 +361,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               <Link to="/login" className="hover:text-foreground">
                 Sign In
               </Link>
-              <Link to="/demo" className="hover:text-foreground text-primary font-bold">
+              <Link to="/contact" className="hover:text-foreground text-primary font-bold">
                 ⚡ Try Demo Account
               </Link>
             </div>

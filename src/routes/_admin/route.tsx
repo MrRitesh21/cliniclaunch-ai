@@ -91,6 +91,7 @@ const NAV: NavSection[] = [
     items: [
       { to: "/admin/templates", label: "Website Templates", icon: LayoutTemplate },
       { to: "/admin/features", label: "Feature Flags", icon: Flag },
+      { to: "/admin/modules", label: "App On / Off", icon: Package },
       { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
       { to: "/admin/email", label: "Email Campaigns", icon: Mail },
       { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
