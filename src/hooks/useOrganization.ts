@@ -156,7 +156,7 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     subscription: (subRow as Subscription) ?? null,
     isSubscriptionExpired: subRow !== null && periodElapsed && !statusActive,
     planModuleIds: apply(Array.from(allowedSet)),
-    installedModuleIds: apply([...ids, ...ALL_KNOWN_MODULES]),
+    installedModuleIds: apply([...ids]),
   };
 }
 
