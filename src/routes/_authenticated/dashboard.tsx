@@ -337,13 +337,15 @@ const NavLink = memo(
         to={item.to}
         title={item.label}
         preload="intent"
-        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-all ${
+        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all active:scale-[0.99] ${
           active
-            ? "nav-active font-medium"
-            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            ? "bg-primary/10 text-primary font-bold shadow-xs"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground font-medium"
         }`}
       >
-        <item.icon className="size-4 shrink-0" />
+        <div className={`grid place-items-center size-7 rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-muted/70 text-muted-foreground"}`}>
+          <item.icon className="size-3.5 shrink-0" />
+        </div>
         <span
           className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
         >
@@ -356,7 +358,7 @@ const NavLink = memo(
         ) : (
           active && (
             <ChevronRight
-              className={`size-3 ml-auto opacity-50 ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+              className={`size-3.5 ml-auto text-primary font-bold ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
             />
           )
         )}
@@ -968,7 +970,7 @@ function DashboardLayout() {
                     <Menu className="size-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-72 p-0 flex flex-col">
+                <SheetContent side="left" className="w-80 max-w-[85vw] p-0 flex flex-col bg-background/98 backdrop-blur-md border-r border-border/80 shadow-2xl">
                   <SheetHeader className="sr-only">
                     <SheetTitle>Navigation</SheetTitle>
                   </SheetHeader>
