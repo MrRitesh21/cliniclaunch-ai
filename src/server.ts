@@ -3,7 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
-if (typeof process !== "undefined" && process.env.NODE_ENV !== "test") {
+if (typeof process !== "undefined" && process.env.NODE_ENV !== "test" && Boolean(process.env.REDIS_URL)) {
   import("./lib/queue/worker").then((m) => m.startWorkers()).catch(console.error);
 }
 
@@ -34,8 +34,9 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
     return response;
   }
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
-  return new Response(renderErrorPage(), {
+  const err = consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`);
+  console.error(err);
+  return new Response(renderErrorPage(err), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
@@ -180,7 +181,7 @@ export default {
     } catch (error) {
       console.error(error);
       return applySecurityHeaders(
-        new Response(renderErrorPage(), {
+        new Response(renderErrorPage(error), {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
         }),
