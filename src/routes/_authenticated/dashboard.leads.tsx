@@ -1,14 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, Mail, MessageSquare, CheckCircle2, Trash2, Clock, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Phone,
+  Mail,
+  MessageSquare,
+  CheckCircle2,
+  Trash2,
+  Clock,
+  Search,
+  MessageCircle,
+  Stethoscope,
+  Plus,
+  UserCheck,
+  Filter,
+} from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials } from "@/components/ui/skeleton-rows";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/_authenticated/dashboard/leads")({
   component: LeadsPage,
@@ -26,7 +41,7 @@ type Lead = {
 };
 
 const PIPELINE_COLUMNS: { key: string; label: string; emptyText: string }[] = [
-  { key: "new", label: "New", emptyText: "No new leads" },
+  { key: "new", label: "New", emptyText: "No new callback requests" },
   { key: "contacted", label: "Contacted", emptyText: "No contacted leads" },
   { key: "converted", label: "Converted", emptyText: "No conversions yet" },
 ];
@@ -43,6 +58,8 @@ function timeAgo(dateStr: string) {
 function LeadsPage() {
   const clinic = useClinic();
   const [leads, setLeads] = useState<Lead[] | null>(null);
+  const [filter, setFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
 
   async function load() {
@@ -70,95 +87,132 @@ function LeadsPage() {
     if (!confirm("Delete this lead?")) return;
     const { error } = await supabase.from("leads").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    toast.success("Lead deleted");
     load();
   }
 
+  const counts = useMemo(() => {
+    if (!leads) return { all: 0, new: 0, contacted: 0, converted: 0 };
+    return {
+      all: leads.length,
+      new: leads.filter((l) => l.status === "new").length,
+      contacted: leads.filter((l) => l.status === "contacted").length,
+      converted: leads.filter((l) => l.status === "converted").length,
+    };
+  }, [leads]);
+
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+    return leads.filter((l) => {
+      if (filter !== "all" && l.status !== filter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        const matchesName = l.name.toLowerCase().includes(q);
+        const matchesPhone = l.phone?.includes(q);
+        const matchesMessage = l.message?.toLowerCase().includes(q);
+        if (!matchesName && !matchesPhone && !matchesMessage) return false;
+      }
+      return true;
+    });
+  }, [leads, filter, search]);
+
   if (!clinic || leads === null) {
     return (
-      <div className="space-y-6">
-        <PageHeader title="Leads" subtitle="Callback requests and signups from your public site." />
-        <div className="grid md:grid-cols-3 gap-4">
-          {PIPELINE_COLUMNS.map((col) => (
-            <div key={col.key} className="pipeline-col p-4 space-y-3 min-h-[200px]">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {col.label}
-              </p>
-            </div>
-          ))}
-        </div>
+      <div className="space-y-4">
+        <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
+        <div className="h-64 w-full bg-muted rounded-xl animate-pulse" />
       </div>
     );
   }
 
-  const totalLeads = leads.length;
-  const newLeads = leads.filter((l) => l.status === "new").length;
+  const tabs = [
+    { key: "all", label: "All Leads", count: counts.all },
+    { key: "new", label: "New", count: counts.new },
+    { key: "contacted", label: "Contacted", count: counts.contacted },
+    { key: "converted", label: "Converted", count: counts.converted },
+  ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Leads"
-        subtitle={`${totalLeads} total · ${newLeads} new — callback requests and signups from your public site.`}
-      />
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile-First Header & Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
+            Leads & Inquiries
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {counts.all} total · {counts.new} new inquiries from your public clinic site.
+          </p>
+        </div>
 
-      {leads.length === 0 ? (
-        <Card className="p-16 text-center">
-          <div className="size-14 rounded-full bg-muted grid place-items-center mx-auto mb-4">
-            <MessageSquare className="size-6 text-muted-foreground" />
+        <div className="relative w-full sm:w-60">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search leads, phone, query…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-xs sm:text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Horizontal Scrollable Status Tabs (Pill Navigation) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
+        {tabs.map((t) => {
+          const active = filter === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                  : "bg-card hover:bg-muted/60 text-muted-foreground border-border/80"
+              }`}
+            >
+              <span>{t.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Mobile Card Feed View / Desktop Responsive Grid */}
+      {filteredLeads.length === 0 ? (
+        <Card className="p-10 text-center border-border/80 shadow-xs">
+          <div className="size-12 rounded-2xl bg-muted/60 grid place-items-center mx-auto mb-3 text-muted-foreground">
+            <MessageSquare className="size-6" />
           </div>
-          <p className="font-medium mb-1">No leads yet</p>
-          <p className="text-sm text-muted-foreground">
-            Share your clinic link to start collecting leads.
+          <h3 className="font-semibold text-sm mb-1 text-foreground">No leads found</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+            {search
+              ? `No leads matched your search "${search}".`
+              : "Inquiries submitted via your clinic booking website and QR code will appear here."}
           </p>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-3 gap-4 items-start">
-          {PIPELINE_COLUMNS.map((col) => {
-            const colLeads = leads.filter((l) => l.status === col.key);
-            const isOver = draggedOverCol === col.key;
-            return (
-              <div
-                key={col.key}
-                className={`pipeline-col p-3 space-y-2.5 min-h-[450px] rounded-xl transition-all duration-200 border border-transparent ${
-                  isOver
-                    ? "bg-primary/5 border-dashed border-primary/30 shadow-inner scale-[1.01]"
-                    : "bg-muted/40"
-                }`}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={() => setDraggedOverCol(col.key)}
-                onDragLeave={() => setDraggedOverCol(null)}
-                onDrop={(e) => {
-                  setDraggedOverCol(null);
-                  const leadId = e.dataTransfer.getData("leadId");
-                  if (leadId) setStatus(leadId, col.key);
-                }}
-              >
-                <div className="flex items-center justify-between px-1 py-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {col.label}
-                  </p>
-                  <span className="text-xs bg-muted rounded-full px-2 py-0.5 font-medium">
-                    {colLeads.length}
-                  </span>
-                </div>
-                {colLeads.length === 0 ? (
-                  <div className="text-xs text-muted-foreground/60 text-center py-10 border border-dashed border-muted-foreground/15 rounded-lg">
-                    {col.emptyText}
-                  </div>
-                ) : (
-                  colLeads.map((l) => (
-                    <LeadCard key={l.id} lead={l} onStatus={setStatus} onDelete={remove} />
-                  ))
-                )}
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {filteredLeads.map((l) => (
+            <MobileLeadCard
+              key={l.id}
+              lead={l}
+              onStatus={setStatus}
+              onDelete={remove}
+            />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function LeadCard({
+function MobileLeadCard({
   lead: l,
   onStatus,
   onDelete,
@@ -167,93 +221,112 @@ function LeadCard({
   onStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const cleanPhone = l.phone?.replace(/[^0-9]/g, "") || "";
+  const waUrl = cleanPhone
+    ? `https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`
+    : null;
+
   return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("leadId", l.id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      className="cursor-grab active:cursor-grabbing transition-transform duration-200 hover:-translate-y-0.5"
-    >
-      <Card className="p-3.5 space-y-2.5 hover:shadow-md transition-shadow border-slate-100/80">
-        <div className="flex items-start gap-2.5">
-          <AvatarInitials name={l.name} className="size-8 text-[10px]" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="font-medium text-sm truncate">{l.name}</p>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground capitalize">
-                {l.source}
-              </span>
+    <Card className="p-4 border-border/80 shadow-xs space-y-3 bg-card hover:border-primary/40 transition-all">
+      {/* Top Header: Avatar, Name, Source & Time */}
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <AvatarInitials name={l.name} className="size-9 text-xs rounded-xl shadow-xs" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-sm text-foreground truncate">{l.name}</h3>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium capitalize">
+                {l.source || "Website"}
+              </Badge>
             </div>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
               <Clock className="size-3" />
               <span>{timeAgo(l.created_at)}</span>
             </div>
           </div>
-          <button
-            onClick={() => onDelete(l.id)}
-            className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0"
-            aria-label="Delete lead"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
         </div>
 
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {l.phone && (
-            <a
-              href={`tel:${l.phone}`}
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Phone className="size-3" /> {l.phone}
-            </a>
-          )}
-          {l.email && (
-            <a
-              href={`mailto:${l.email}`}
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Mail className="size-3" /> {l.email}
-            </a>
-          )}
-        </div>
+        <button
+          onClick={() => onDelete(l.id)}
+          className="p-1 text-muted-foreground/40 hover:text-destructive rounded-lg transition-colors shrink-0"
+          aria-label="Delete lead"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      </div>
 
-        {l.message && (
-          <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2 line-clamp-2 leading-relaxed">
-            {l.message}
-          </p>
+      {/* Inquiry Message Box */}
+      {l.message && (
+        <div className="text-xs text-foreground bg-muted/30 p-2.5 rounded-lg border border-border/60 leading-relaxed">
+          <p className="line-clamp-3">{l.message}</p>
+        </div>
+      )}
+
+      {/* Contact Quick Actions (Call / WhatsApp / Email) */}
+      <div className="flex items-center gap-2 pt-1">
+        {l.phone && (
+          <>
+            <a href={`tel:${l.phone}`} className="flex-1">
+              <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 font-medium text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                <Phone className="size-3.5" /> Call
+              </Button>
+            </a>
+            {waUrl && (
+              <a href={waUrl} target="_blank" rel="noreferrer" className="flex-1">
+                <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 font-medium text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                  <MessageCircle className="size-3.5" /> WhatsApp
+                </Button>
+              </a>
+            )}
+          </>
         )}
+        {l.email && !l.phone && (
+          <a href={`mailto:${l.email}`} className="flex-1">
+            <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5">
+              <Mail className="size-3.5" /> Email
+            </Button>
+          </a>
+        )}
+      </div>
 
-        <div className="flex gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
-          {l.status !== "contacted" && (
+      {/* Status Progress Actions */}
+      <div className="flex items-center gap-1.5 pt-2 border-t border-border/60">
+        {l.status === "new" && (
+          <>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs px-2.5 flex-1"
+              className="h-7 text-xs flex-1 text-amber-600 border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/20"
               onClick={() => onStatus(l.id, "contacted")}
             >
-              Mark contacted
+              Mark Contacted
             </Button>
-          )}
-          {l.status !== "converted" && (
             <Button
               size="sm"
-              className="h-7 text-xs px-2.5 flex-1 gap-1"
+              className="h-7 text-xs flex-1 gap-1 bg-primary text-primary-foreground font-semibold"
               onClick={() => onStatus(l.id, "converted")}
             >
               <CheckCircle2 className="size-3" /> Convert
             </Button>
-          )}
-          {l.status === "converted" && (
-            <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-              <CheckCircle2 className="size-3.5" /> Converted
-            </div>
-          )}
-        </div>
-      </Card>
-    </div>
+          </>
+        )}
+
+        {l.status === "contacted" && (
+          <Button
+            size="sm"
+            className="w-full h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            onClick={() => onStatus(l.id, "converted")}
+          >
+            <CheckCircle2 className="size-3" /> Convert to Patient
+          </Button>
+        )}
+
+        {l.status === "converted" && (
+          <div className="flex items-center justify-center gap-1.5 w-full text-xs text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/30 py-1 rounded-md">
+            <CheckCircle2 className="size-3.5" /> Converted Patient
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
