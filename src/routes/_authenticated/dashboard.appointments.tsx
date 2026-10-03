@@ -452,10 +452,18 @@ function AppointmentsPage() {
                   {/* Patient Info Row */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <AvatarInitials name={r.patient_name} />
+                      <AvatarInitials
+                        name={
+                          !r.patient_name || r.patient_name.startsWith("/")
+                            ? "Patient"
+                            : r.patient_name
+                        }
+                      />
                       <div className="min-w-0">
                         <h3 className="font-display font-bold text-sm text-foreground truncate">
-                          {r.patient_name}
+                          {!r.patient_name || r.patient_name.startsWith("/")
+                            ? "Patient"
+                            : r.patient_name}
                         </h3>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           {r.patient_phone && (

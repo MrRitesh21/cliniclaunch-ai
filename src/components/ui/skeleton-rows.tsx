@@ -79,21 +79,22 @@ const AVATAR_COLORS = [
 
 /** Avatar initials circle */
 export function AvatarInitials({ name, className }: { name: string; className?: string }) {
-  const initials = name
+  const clean = name.replace(/^[/\\_-]+/, "") || "Patient";
+  const initials = clean
     .split(" ")
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
-  const color = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  const color = AVATAR_COLORS[clean.charCodeAt(0) % AVATAR_COLORS.length];
   return (
     <div
       className={cn(
-        "size-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0",
+        "size-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 shadow-xs",
         color,
         className,
       )}
     >
-      {initials || "?"}
+      {initials || "P"}
     </div>
   );
 }
