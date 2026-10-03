@@ -3,7 +3,6 @@ import { useWebsiteBuilder } from "../context/WebsiteBuilderContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Globe,
   Gauge,
@@ -16,6 +15,7 @@ import {
   TrendingUp,
   CheckCircle2,
   Eye,
+  ArrowRight,
 } from "lucide-react";
 import { DoctorSteps } from "../components/DoctorSteps";
 
@@ -23,195 +23,196 @@ export function OverviewView() {
   const {
     clinic,
     isPublished,
-    publishedAt,
-    updatedAt,
     togglePublish,
     setIsFloatingAIOpen,
     triggerGscSubmission,
+    setActiveTab,
   } = useWebsiteBuilder();
 
   const publicUrl = `/c/${clinic?.slug}`;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 sm:space-y-5 pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/20 p-5 rounded-2xl">
+      <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-card shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight">Website Overview</h2>
-            <Badge
-              variant="outline"
-              className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+            <h2 className="text-lg sm:text-xl font-bold font-display text-foreground">
+              Website Overview
+            </h2>
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
                 isPublished
-                  ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
-                  : "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
               }`}
             >
-              {isPublished ? "Live & Online" : "Draft / Unpublished"}
-            </Badge>
+              <span
+                className={`size-1.5 rounded-full ${
+                  isPublished ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                }`}
+              />
+              {isPublished ? "Live & Online" : "Draft"}
+            </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Manage performance, SEO ranking, and real-time patient booking funnels.
+            {clinic?.clinic_name || "Clinic"} • dr{clinic?.slug || "doctor"}.digiwil.com
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <a href={publicUrl} target="_blank" rel="noreferrer">
-            <Button size="sm" variant="outline" className="h-9 text-xs rounded-xl gap-1.5">
+        {/* Quick Action Touch Bar */}
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex-1 sm:flex-initial"
+          >
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-8 text-xs font-semibold rounded-xl gap-1.5 border-border/80"
+            >
               <ExternalLink className="size-3.5" /> Preview Site
             </Button>
           </a>
+
           <Button
             size="sm"
             onClick={() => void togglePublish(!isPublished)}
-            className={`h-9 text-xs rounded-xl font-semibold gap-1.5 ${
+            className={`h-8 text-xs font-semibold rounded-xl gap-1.5 flex-1 sm:flex-initial shadow-xs ${
               isPublished
-                ? "border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                ? "border border-border/80 bg-muted/40 hover:bg-muted text-foreground"
                 : "bg-emerald-600 hover:bg-emerald-700 text-white"
             }`}
           >
             <Rocket className="size-3.5" />
-            <span>{isPublished ? "Unpublish" : "Publish Changes"}</span>
+            <span>{isPublished ? "Unpublish" : "Publish Site"}</span>
           </Button>
+
           <Button
             size="sm"
-            variant="secondary"
             onClick={() => setIsFloatingAIOpen(true)}
-            className="h-9 text-xs rounded-xl gap-1.5 bg-purple-500/10 text-purple-600 hover:bg-purple-500/20"
+            className="h-8 text-xs font-semibold rounded-xl gap-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 flex-1 sm:flex-initial"
           >
-            <Sparkles className="size-3.5 text-purple-500" />
-            <span>AI Improve</span>
+            <Sparkles className="size-3.5" />
+            <span>AI Polish</span>
           </Button>
         </div>
       </div>
 
-      {/* Health Scores Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Website Score */}
-        <Card className="p-5 rounded-2xl border-border/50 bg-card/60 backdrop-blur-md space-y-3 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              <Globe className="size-4 text-blue-500" /> Website Score
+      {/* Unified 3-Score Pill Matrix */}
+      <Card className="p-3.5 sm:p-4 border-border/80 shadow-xs bg-card">
+        <div className="grid grid-cols-3 divide-x divide-border/60 text-center">
+          <div className="px-2 space-y-0.5">
+            <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground">
+              <Globe className="size-3 text-blue-500" /> Website
             </div>
-            <span className="text-xl font-extrabold font-mono text-blue-600">96/100</span>
-          </div>
-          <Progress value={96} className="h-2 bg-blue-500/10" />
-          <p className="text-xs text-muted-foreground">
-            Excellent layout structure and responsive component density.
-          </p>
-        </Card>
-
-        {/* SEO Score */}
-        <Card className="p-5 rounded-2xl border-border/50 bg-card/60 backdrop-blur-md space-y-3 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              <Search className="size-4 text-emerald-500" /> SEO Score
+            <div className="font-display font-bold text-lg sm:text-xl text-blue-600 dark:text-blue-400">
+              96<span className="text-[10px] text-muted-foreground font-normal">/100</span>
             </div>
-            <span className="text-xl font-extrabold font-mono text-emerald-600">92/100</span>
+            <p className="text-[10px] text-muted-foreground hidden sm:block">Fast responsive UI</p>
           </div>
-          <Progress value={92} className="h-2 bg-emerald-500/10" />
-          <p className="text-xs text-muted-foreground">
-            Meta tags, Schema.org medical markup & GSC pipeline ready.
-          </p>
-        </Card>
 
-        {/* Performance Score */}
-        <Card className="p-5 rounded-2xl border-border/50 bg-card/60 backdrop-blur-md space-y-3 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              <Gauge className="size-4 text-purple-500" /> Speed & UX
+          <div className="px-2 space-y-0.5">
+            <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground">
+              <Search className="size-3 text-emerald-500" /> SEO
             </div>
-            <span className="text-xl font-extrabold font-mono text-purple-600">98/100</span>
+            <div className="font-display font-bold text-lg sm:text-xl text-emerald-600 dark:text-emerald-400">
+              92<span className="text-[10px] text-muted-foreground font-normal">/100</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground hidden sm:block">Schema markup ready</p>
           </div>
-          <Progress value={98} className="h-2 bg-purple-500/10" />
-          <p className="text-xs text-muted-foreground">
-            Sub-100ms client interactions, compressed WebP images.
+
+          <div className="px-2 space-y-0.5">
+            <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground">
+              <Gauge className="size-3 text-purple-500" /> Speed
+            </div>
+            <div className="font-display font-bold text-lg sm:text-xl text-purple-600 dark:text-purple-400">
+              98<span className="text-[10px] text-muted-foreground font-normal">/100</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground hidden sm:block">Sub-100ms load</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Traffic & Patient Conversion Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <Card className="p-3 sm:p-3.5 rounded-xl border-border/80 shadow-xs bg-card">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] font-medium mb-1">
+            <Users className="size-3.5 text-blue-500" /> Visitors
+          </div>
+          <div className="text-xl font-bold font-display text-foreground">3,420</div>
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 flex items-center gap-0.5">
+            <TrendingUp className="size-3" /> +18.4% month
           </p>
         </Card>
-      </div>
 
-      {/* Analytics & Traffic Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 rounded-xl border-border/50 bg-card/60">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium mb-1">
-            <Users className="size-3.5 text-blue-500" /> Monthly Visitors
+        <Card className="p-3 sm:p-3.5 rounded-xl border-border/80 shadow-xs bg-card">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] font-medium mb-1">
+            <CalendarCheck className="size-3.5 text-emerald-500" /> Bookings
           </div>
-          <div className="text-2xl font-bold font-mono">3,420</div>
-          <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-0.5">
-            <TrendingUp className="size-3" /> +18.4% this month
+          <div className="text-xl font-bold font-display text-foreground">164</div>
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 flex items-center gap-0.5">
+            <TrendingUp className="size-3" /> +12.1% conv.
           </p>
         </Card>
 
-        <Card className="p-4 rounded-xl border-border/50 bg-card/60">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium mb-1">
-            <CalendarCheck className="size-3.5 text-emerald-500" /> Appointments Generated
+        <Card className="p-3 sm:p-3.5 rounded-xl border-border/80 shadow-xs bg-card">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] font-medium mb-1">
+            <TrendingUp className="size-3.5 text-purple-500" /> Conv. Rate
           </div>
-          <div className="text-2xl font-bold font-mono">164</div>
-          <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-0.5">
-            <TrendingUp className="size-3" /> +12.1% conversion
-          </p>
+          <div className="text-xl font-bold font-display text-foreground">4.8%</div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Top tier OPD</p>
         </Card>
 
-        <Card className="p-4 rounded-xl border-border/50 bg-card/60">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium mb-1">
-            <TrendingUp className="size-3.5 text-purple-500" /> Conversion Rate
-          </div>
-          <div className="text-2xl font-bold font-mono">4.8%</div>
-          <p className="text-[11px] text-purple-600 font-medium mt-1">High conversion benchmark</p>
-        </Card>
-
-        <Card className="p-4 rounded-xl border-border/50 bg-card/60">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium mb-1">
+        <Card className="p-3 sm:p-3.5 rounded-xl border-border/80 shadow-xs bg-card">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] font-medium mb-1">
             <Eye className="size-3.5 text-amber-500" /> Total Pages
           </div>
-          <div className="text-2xl font-bold font-mono">8 Pages</div>
-          <p className="text-[11px] text-muted-foreground mt-1">7 Published · 1 Draft</p>
+          <div className="text-xl font-bold font-display text-foreground">8 Pages</div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">7 Live · 1 Draft</p>
         </Card>
       </div>
 
-      {/* Doctor-first guided steps */}
+      {/* Guided Setup Steps */}
       <DoctorSteps />
 
-      {/* Quick Tooling Actions & Health Checklist */}
-      <div className="grid grid-cols-1 gap-6">
-        {/* Website Audit Checklist */}
-        <Card className="p-5 rounded-2xl border-border/50 space-y-3">
-          <h3 className="text-sm font-bold tracking-tight">Website Audit Checklist</h3>
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-              <div className="flex items-center gap-2 font-medium">
-                <CheckCircle2 className="size-4 text-emerald-500" />
-                <span>SSL Security & Custom Domain</span>
-              </div>
-              <Badge className="bg-emerald-500 text-white text-[10px]">Active</Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-              <div className="flex items-center gap-2 font-medium">
-                <CheckCircle2 className="size-4 text-emerald-500" />
-                <span>Online Appointment Widget</span>
-              </div>
-              <Badge className="bg-emerald-500 text-white text-[10px]">Wired</Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300">
-              <div className="flex items-center gap-2 font-medium">
-                <CheckCircle2 className="size-4 text-blue-500" />
-                <span>Google Search Console Indexing</span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-6 text-[10px] px-2"
-                onClick={() => void triggerGscSubmission()}
-              >
-                Submit GSC
-              </Button>
-            </div>
+      {/* Live System Health & GSC Status */}
+      <Card className="p-4 rounded-2xl border-border/80 shadow-xs bg-card space-y-2.5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          System Readiness &amp; SEO Health
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+            <span className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="size-3.5 text-emerald-500" /> SSL &amp; Custom Domain
+            </span>
+            <Badge className="bg-emerald-500 text-white text-[9px]">Active</Badge>
           </div>
-        </Card>
-      </div>
+
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+            <span className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="size-3.5 text-emerald-500" /> 24/7 Booking Portal
+            </span>
+            <Badge className="bg-emerald-500 text-white text-[9px]">Live</Badge>
+          </div>
+
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-500/[0.06] border border-blue-500/20 text-blue-800 dark:text-blue-300">
+            <span className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="size-3.5 text-blue-500" /> Google Search Console
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[10px] px-2 rounded-lg font-semibold"
+              onClick={() => void triggerGscSubmission()}
+            >
+              Submit GSC
+            </Button>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
