@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { PageHeader } from "@/components/ui/page-header";
+import { DashboardPushPrompt } from "@/components/app/DashboardPushPrompt";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 
@@ -292,6 +293,9 @@ function Overview() {
           </div>
         }
       />
+
+      {/* Push Notification Opt-in Prompt */}
+      <DashboardPushPrompt />
 
       {/* Quick Toolbar Shortcuts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-border/60">
