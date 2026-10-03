@@ -56,18 +56,22 @@ function Kpi({
 }) {
   const positive = (change ?? 0) >= 0;
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-muted-foreground">{title}</span>
-        {icon && <span className="text-muted-foreground">{icon}</span>}
+    <Card className="p-3.5 sm:p-4 border-border/80 shadow-xs bg-card transition-all">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-medium text-muted-foreground">{title}</span>
+        {icon && <span className="text-primary/70">{icon}</span>}
       </div>
-      <div className="font-display text-2xl tracking-tight">{value}</div>
+      <div className="font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+        {value}
+      </div>
       {change !== undefined && (
         <div
-          className={`text-xs mt-1 flex items-center gap-1 ${positive ? "text-emerald-600" : "text-rose-600"}`}
+          className={`text-[11px] font-semibold mt-1 flex items-center gap-1 ${
+            positive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+          }`}
         >
           {positive ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
-          {Math.abs(change)}% {suffix ?? "vs previous period"}
+          {Math.abs(change)}% {suffix ?? "vs prev"}
         </div>
       )}
     </Card>
