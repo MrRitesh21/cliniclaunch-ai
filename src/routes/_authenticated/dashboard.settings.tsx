@@ -398,44 +398,76 @@ function SettingsPage() {
               variant="outline"
               size="sm"
               onClick={handleResetDemo}
-              className="hidden md:inline-flex border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
+              className="hidden sm:inline-flex border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold h-9 text-xs rounded-xl"
             >
-              <RefreshCw className="size-3.5 mr-1.5" /> Reset Demo Defaults
+              <RefreshCw className="size-3.5 mr-1.5" /> Reset Defaults
             </Button>
           )}
-          <Button type="submit" disabled={saving} className="hidden md:inline-flex">
-            {saving ? "Saving…" : "Save changes"}
+          <Button
+            type="submit"
+            disabled={saving}
+            size="sm"
+            className="h-9 text-xs rounded-xl font-bold bg-primary text-primary-foreground shadow-xs px-4"
+          >
+            {saving ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="w-full grid grid-cols-3 sm:grid-cols-9 h-auto">
-          <TabsTrigger value="profile" className="gap-1.5">
+        <TabsList className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-transparent h-auto p-0 w-full justify-start">
+          <TabsTrigger
+            value="profile"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <User className="size-3.5" /> Profile
           </TabsTrigger>
-          <TabsTrigger value="contact" className="gap-1.5">
+          <TabsTrigger
+            value="contact"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <PhoneIcon className="size-3.5" /> Contact
           </TabsTrigger>
-          <TabsTrigger value="schedule" className="gap-1.5">
+          <TabsTrigger
+            value="schedule"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Clock className="size-3.5" /> Schedule
           </TabsTrigger>
-          <TabsTrigger value="walkin" className="gap-1.5">
+          <TabsTrigger
+            value="walkin"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <QrCode className="size-3.5" /> Walk-in
           </TabsTrigger>
-          <TabsTrigger value="brand" className="gap-1.5">
+          <TabsTrigger
+            value="brand"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Palette className="size-3.5" /> Brand
           </TabsTrigger>
-          <TabsTrigger value="gallery" className="gap-1.5">
+          <TabsTrigger
+            value="gallery"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <ImageIcon className="size-3.5" /> Gallery
           </TabsTrigger>
-          <TabsTrigger value="content" className="gap-1.5">
+          <TabsTrigger
+            value="content"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <FileText className="size-3.5" /> Content
           </TabsTrigger>
-          <TabsTrigger value="domain" className="gap-1.5">
+          <TabsTrigger
+            value="domain"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Globe className="size-3.5" /> Domain
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-1.5">
+          <TabsTrigger
+            value="notifications"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Bell className="size-3.5" /> Alerts
           </TabsTrigger>
         </TabsList>
@@ -446,39 +478,46 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="profile" className="mt-4">
-          <Card className="p-5 sm:p-6 space-y-5">
-            <div className="flex flex-wrap items-center gap-4">
+          <Card className="p-4 sm:p-6 space-y-4 border-border/80 shadow-xs bg-card">
+            <div className="flex items-center gap-3 p-3 bg-muted/20 rounded-2xl border border-border/60">
               <Avatar url={form.avatar_url} fallback={form.doctor_name} />
-              <div className="flex gap-2 flex-wrap">
-                <UploadButton
-                  label="Profile photo"
-                  busy={uploading === "avatar_url"}
-                  onFile={(f) => {
-                    if (prohibitInDemo("Photo upload")) return;
-                    handleUpload("avatar_url", f);
-                  }}
-                />
-                {form.avatar_url && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (prohibitInDemo("Photo removal")) return;
-                      update("avatar_url", null);
+              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                <div className="flex gap-2 flex-wrap items-center">
+                  <UploadButton
+                    label={form.avatar_url ? "Change Photo" : "Upload Photo"}
+                    busy={uploading === "avatar_url"}
+                    onFile={(f) => {
+                      if (prohibitInDemo("Photo upload")) return;
+                      handleUpload("avatar_url", f);
                     }}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <X className="size-4 mr-1" /> Remove photo
-                  </Button>
-                )}
+                  />
+                  {form.avatar_url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (prohibitInDemo("Photo removal")) return;
+                        update("avatar_url", null);
+                      }}
+                      className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl"
+                    >
+                      <X className="size-3.5 mr-1" /> Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Shown on your doctor profile and WhatsApp digital prescription headers.
+                </p>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Field
-                label="Doctor name"
+                label="Doctor Full Name *"
                 value={form.doctor_name}
                 onChange={(v) => update("doctor_name", v)}
+                placeholder="Dr. Ritesh Verma"
               />
               <SpecializationField
                 value={form.specialization}
@@ -488,35 +527,33 @@ function SettingsPage() {
                 label="Qualification"
                 value={form.qualification}
                 onChange={(v) => update("qualification", v)}
+                placeholder="MBBS, MD"
               />
               <Field
-                label="Years of experience"
+                label="Years of Experience"
                 type="number"
                 value={String(form.experience_years)}
                 onChange={(v) => update("experience_years", Number(v) || 0)}
               />
               <Field
-                label="Medical Registration / license No (E-E-A-T)"
+                label="Medical Registration / License No (E-E-A-T)"
                 placeholder="e.g. GMC-12345"
                 value={form.medical_registration_no}
                 onChange={(v) => update("medical_registration_no", v)}
               />
               <Field
-                label="Clinic name"
+                label="Clinic Name"
                 value={form.clinic_name}
                 onChange={(v) => update("clinic_name", v)}
+                placeholder="Ritesh Clinic"
               />
               <Field
-                label="Consultation fee (₹)"
+                label="OPD Consultation Fee (₹)"
                 type="number"
                 value={String(form.consultation_fee)}
                 onChange={(v) => update("consultation_fee", Number(v) || 0)}
               />
             </div>
-            <p className="text-xs text-muted-foreground -mt-2">
-              Phone, email and address moved to the <strong>Contact</strong> tab so you can keep
-              personal numbers private.
-            </p>
           </Card>
         </TabsContent>
 
@@ -1306,12 +1343,19 @@ function Avatar({ url, fallback }: { url: string | null; fallback: string }) {
       <img
         src={url}
         alt="Profile"
-        className="size-20 rounded-full object-cover border-2 border-background shadow"
+        className="size-16 sm:size-20 rounded-2xl object-cover border border-border/80 shadow-xs shrink-0"
       />
     );
-  const initial = fallback.split(" ").slice(-1)[0]?.[0] ?? "D";
+  const initial =
+    fallback
+      .replace(/^Dr\.?\s*/i, "")
+      .split(" ")
+      .slice(0, 2)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase() || "DR";
   return (
-    <div className="size-20 rounded-full bg-primary/10 text-primary grid place-items-center font-display text-2xl border-2 border-background shadow">
+    <div className="size-16 sm:size-20 rounded-2xl bg-gradient-to-br from-blue-500/15 to-indigo-500/20 text-primary border border-primary/25 grid place-items-center font-bold text-lg sm:text-xl shrink-0 shadow-xs">
       {initial}
     </div>
   );
@@ -1335,8 +1379,9 @@ function UploadButton({
         size="sm"
         disabled={busy}
         onClick={() => ref.current?.click()}
+        className="h-9 text-xs rounded-xl font-semibold gap-1.5 border-border/80"
       >
-        {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5 text-primary" />}
         {busy ? "Uploading…" : label}
       </Button>
       <input
@@ -1364,13 +1409,14 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <div>
-      <Label>{label}</Label>
+    <div className="space-y-1">
+      <Label className="text-xs font-semibold text-foreground">{label}</Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        className="text-xs h-9 rounded-xl border-border/80 bg-background"
       />
     </div>
   );
@@ -1413,8 +1459,8 @@ function SpecializationField({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div>
-      <Label>Specialization</Label>
+    <div className="space-y-1">
+      <Label className="text-xs font-semibold text-foreground">Specialization</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -1422,10 +1468,10 @@ function SpecializationField({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn("w-full justify-between font-normal", !value && "text-muted-foreground")}
+            className={cn("w-full justify-between font-normal text-xs h-9 rounded-xl border-border/80 bg-background", !value && "text-muted-foreground")}
           >
             {value || "Select or search specialization"}
-            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
