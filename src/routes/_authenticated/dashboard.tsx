@@ -268,7 +268,7 @@ const NAV_SECTIONS = [
       { to: "/dashboard/qr", label: "QR & Walk-ins", icon: QrCode, module: "qr_appointment" },
       { to: "/dashboard/queue", label: "Queue", icon: ListOrdered, module: "queue" },
       { to: "/dashboard/leads", label: "Leads", icon: MessageSquare },
-      { to: "/dashboard/patients", label: "Patients & Records", icon: Users, module: "crm" },
+      { to: "/dashboard/patients", label: "Patients", icon: Users, module: "crm" },
     ] as NavItem[],
   },
   {
