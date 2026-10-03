@@ -980,9 +980,14 @@ function SettingsPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="md:hidden fixed bottom-16 left-0 right-0 p-3 bg-background/95 backdrop-blur border-t z-30">
-        <Button type="submit" disabled={saving} className="w-full" size="lg">
-          {saving ? "Saving…" : "Save changes"}
+      <div className="pt-4 flex items-center justify-end gap-3 border-t border-border/60">
+        <Button
+          type="submit"
+          disabled={saving}
+          size="sm"
+          className="h-9 text-xs rounded-xl font-bold bg-primary text-primary-foreground shadow-xs px-5 w-full sm:w-auto"
+        >
+          {saving ? "Saving…" : "Save All Changes"}
         </Button>
       </div>
     </form>
