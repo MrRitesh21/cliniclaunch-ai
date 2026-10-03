@@ -91,13 +91,13 @@ function PatientProfilePage() {
             
           setAppointments(apptData ?? []);
 
-          // Fetch EMR visits
+          // Fetch EMR consultations
           const { data: visitData } = await supabase
-            .from("patient_visits" as any)
+            .from("consultations")
             .select("*")
-            .or(`organization_id.eq.${orgId},clinic_id.eq.${clinic.id}`)
+            .eq("clinic_id", clinic.id)
             .eq("patient_id", patientData.id)
-            .order("visit_date", { ascending: false });
+            .order("created_at", { ascending: false });
 
           setEmrVisits(visitData ?? []);
         } else {
@@ -121,13 +121,13 @@ function PatientProfilePage() {
             });
             setAppointments(apptData);
 
-            // Fetch EMR visits by name since ID might not match
+            // Fetch EMR consultations by name since ID might not match
             const { data: visitData } = await supabase
-              .from("patient_visits" as any)
+              .from("consultations")
               .select("*")
-              .or(`organization_id.eq.${orgId},clinic_id.eq.${clinic.id}`)
+              .eq("clinic_id", clinic.id)
               .eq("patient_name", first.patient_name)
-              .order("visit_date", { ascending: false });
+              .order("created_at", { ascending: false });
 
             setEmrVisits(visitData ?? []);
           }
@@ -297,69 +297,80 @@ function PatientProfilePage() {
               </div>
             ) : (
               <div className="space-y-3.5">
-                {emrVisits.map((v) => (
-                  <div key={v.id} className="border rounded-xl p-4 space-y-3 hover:border-primary/40 transition-colors bg-card border-border/80 shadow-xs">
-                    <div className="flex flex-wrap justify-between items-start gap-2 border-b border-border/60 pb-2.5">
-                      <div>
-                        <div className="font-bold text-foreground text-sm sm:text-base">
-                          {new Date(v.visit_date).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "long", day: "numeric" })}
+                {emrVisits.map((v) => {
+                  const visitDate = v.created_at || v.visit_date;
+                  return (
+                    <div key={v.id} className="border rounded-xl p-4 space-y-3 hover:border-primary/40 transition-colors bg-card border-border/80 shadow-xs">
+                      <div className="flex flex-wrap justify-between items-start gap-2 border-b border-border/60 pb-2.5">
+                        <div>
+                          <div className="font-bold text-foreground text-sm sm:text-base">
+                            {visitDate ? new Date(visitDate).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "long", day: "numeric" }) : "Consultation"}
+                          </div>
+                          {v.follow_up_date && (
+                            <div className="text-xs text-amber-600 dark:text-amber-500 font-medium mt-0.5">
+                              Follow-up: {new Date(v.follow_up_date).toLocaleDateString()}
+                            </div>
+                          )}
                         </div>
-                        {v.follow_up_date && (
-                          <div className="text-xs text-amber-600 dark:text-amber-500 font-medium mt-0.5">
-                            Follow-up: {new Date(v.follow_up_date).toLocaleDateString()}
+                        <Badge variant="outline" className="font-semibold text-[10px] bg-primary/5 text-primary border-primary/20">
+                          Consultation Visit
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        {v.chief_complaint && (
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Chief Complaint</div>
+                            <p className="text-xs text-foreground bg-muted/20 p-2 rounded-lg border border-border/60">{v.chief_complaint}</p>
+                          </div>
+                        )}
+                        
+                        {v.diagnosis && (
+                          <div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Diagnosis</div>
+                            <p className="text-xs font-semibold text-primary bg-primary/5 p-2 rounded-lg border border-primary/20">{v.diagnosis}</p>
+                          </div>
+                        )}
+
+                        {v.treatment_plan && (
+                          <div className="sm:col-span-2">
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Treatment Plan & Rx</div>
+                            <p className="text-xs text-foreground whitespace-pre-wrap bg-muted/30 p-2.5 rounded-lg border border-border/60 leading-relaxed font-mono">{v.treatment_plan}</p>
+                          </div>
+                        )}
+
+                        {(v.examination || v.history || v.notes) && (
+                          <div className="sm:col-span-2">
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Clinical Examination & Notes</div>
+                            <p className="text-xs text-foreground italic opacity-85 bg-muted/10 p-2 rounded-lg">{v.examination || v.history || v.notes}</p>
                           </div>
                         )}
                       </div>
-                      <Badge variant="outline" className="font-semibold text-[10px] bg-primary/5 text-primary border-primary/20">
-                        Consultation Visit
-                      </Badge>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                      {v.chief_complaint && (
-                        <div>
-                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Chief Complaint</div>
-                          <p className="text-xs text-foreground bg-muted/20 p-2 rounded-lg border border-border/60">{v.chief_complaint}</p>
-                        </div>
-                      )}
-                      
-                      {v.diagnosis && (
-                        <div>
-                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Diagnosis</div>
-                          <p className="text-xs font-semibold text-primary bg-primary/5 p-2 rounded-lg border border-primary/20">{v.diagnosis}</p>
-                        </div>
-                      )}
-
-                      {v.treatment_plan && (
-                        <div className="sm:col-span-2">
-                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Treatment Plan & Rx</div>
-                          <p className="text-xs text-foreground whitespace-pre-wrap bg-muted/30 p-2.5 rounded-lg border border-border/60 leading-relaxed font-mono">{v.treatment_plan}</p>
-                        </div>
-                      )}
-
-                      {v.notes && (
-                        <div className="sm:col-span-2">
-                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Clinical Notes</div>
-                          <p className="text-xs text-foreground italic opacity-85 bg-muted/10 p-2 rounded-lg">{v.notes}</p>
+                      {/* Vitals Summary */}
+                      {(v.bp || v.bp_systolic || v.pulse || v.pulse_bpm || v.temperature || v.temperature_c || v.spo2_percent || v.weight || v.weight_kg) && (
+                        <div className="pt-2.5 mt-2 border-t border-border/60">
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1.5">Vitals</div>
+                          <div className="flex flex-wrap gap-1.5 text-xs font-mono">
+                            {(v.bp || (v.bp_systolic && v.bp_diastolic)) && (
+                              <span className="bg-muted px-2 py-0.5 rounded border">BP: {v.bp || `${v.bp_systolic}/${v.bp_diastolic}`}</span>
+                            )}
+                            {(v.pulse || v.pulse_bpm) && (
+                              <span className="bg-muted px-2 py-0.5 rounded border">Pulse: {v.pulse || v.pulse_bpm} bpm</span>
+                            )}
+                            {(v.temperature || v.temperature_c) && (
+                              <span className="bg-muted px-2 py-0.5 rounded border">Temp: {v.temperature || v.temperature_c}°C</span>
+                            )}
+                            {v.spo2_percent && <span className="bg-muted px-2 py-0.5 rounded border">SpO2: {v.spo2_percent}%</span>}
+                            {(v.weight || v.weight_kg) && (
+                              <span className="bg-muted px-2 py-0.5 rounded border">Weight: {v.weight || v.weight_kg}kg</span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    {/* Vitals Summary */}
-                    {(v.bp_systolic || v.pulse_bpm || v.temperature_c || v.spo2_percent || v.weight_kg) && (
-                      <div className="pt-2.5 mt-2 border-t border-border/60">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1.5">Vitals</div>
-                        <div className="flex flex-wrap gap-1.5 text-xs font-mono">
-                          {v.bp_systolic && v.bp_diastolic && <span className="bg-muted px-2 py-0.5 rounded border">BP: {v.bp_systolic}/{v.bp_diastolic}</span>}
-                          {v.pulse_bpm && <span className="bg-muted px-2 py-0.5 rounded border">Pulse: {v.pulse_bpm} bpm</span>}
-                          {v.temperature_c && <span className="bg-muted px-2 py-0.5 rounded border">Temp: {v.temperature_c}°C</span>}
-                          {v.spo2_percent && <span className="bg-muted px-2 py-0.5 rounded border">SpO2: {v.spo2_percent}%</span>}
-                          {v.weight_kg && <span className="bg-muted px-2 py-0.5 rounded border">Weight: {v.weight_kg}kg</span>}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>

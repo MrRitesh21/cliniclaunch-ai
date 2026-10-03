@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useSearch, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
@@ -196,7 +196,7 @@ function PatientsPage() {
     if (!clinic?.id || !orgId) return;
     setLoading(true);
     try {
-      const [apptsRes, visitsRes, patientsRes, doctorsRes, invRes, pharmRes] = await Promise.all([
+      const [apptsRes, visitsRes, patientsRes, doctorsRes, invRes] = await Promise.all([
         supabase
           .from("appointments")
           .select(
@@ -204,25 +204,18 @@ function PatientsPage() {
           )
           .eq("clinic_id", clinic.id)
           .order("scheduled_at", { ascending: false }),
-        // Try organization_id first, then clinic_id fallback
         supabase
-          .from("patient_visits" as any)
+          .from("consultations")
           .select("*")
-          .or(`organization_id.eq.${orgId},clinic_id.eq.${clinic.id}`)
-          .order("visit_date", { ascending: false }),
-        supabase.from("patients").select("id, name").eq("organization_id", orgId).order("name"),
-        supabase.from("doctors").select("id, name").eq("organization_id", orgId).order("name"),
+          .eq("clinic_id", clinic.id)
+          .order("created_at", { ascending: false }),
+        supabase.from("patients").select("id, name").eq("clinic_id", clinic.id).order("name"),
+        supabase.from("doctors").select("id, name").eq("clinic_id", clinic.id).order("name"),
         supabase
-          .from("inventory_items" as any)
+          .from("inventory_items")
           .select("id, name, unit, quantity")
-          .eq("organization_id", orgId)
+          .eq("clinic_id", clinic.id)
           .order("name"),
-        supabase
-          .from("pharmacy_batches" as any)
-          .select("id, medicine_name, quantity, unit, selling_price")
-          .eq("organization_id", orgId)
-          .gt("quantity", 0)
-          .order("medicine_name"),
       ]);
 
       const byPhone = new Map<string, Patient>();
