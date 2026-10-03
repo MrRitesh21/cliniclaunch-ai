@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
 import { useOrganization } from "@/hooks/useOrganization";
-import { ValueHero } from "@/components/value/ValueHero";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
@@ -269,24 +268,24 @@ function Overview() {
           day: "numeric",
         })}`}
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               onClick={() => navigate({ to: "/dashboard/prescriptions" })}
-              className="bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90 h-9 px-4 text-xs gap-2"
+              className="bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90 h-9 px-3.5 text-xs gap-1.5 flex-1 sm:flex-initial"
             >
               <Stethoscope className="size-4" /> Start Consultation
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate({ to: "/dashboard/walkins" })}
-              className="h-9 text-xs gap-1.5"
+              className="h-9 text-xs gap-1.5 px-3"
             >
               <UserPlus className="size-4 text-emerald-600 dark:text-emerald-400" /> Walk-in
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate({ to: "/dashboard/queue" })}
-              className="h-9 text-xs gap-1.5"
+              className="h-9 text-xs gap-1.5 px-3"
             >
               <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
             </Button>
@@ -298,11 +297,11 @@ function Overview() {
                 toast.success("Clinic booking link copied!");
               }}
               title="Copy Booking Link"
-              className="h-9 w-9"
+              className="h-9 w-9 shrink-0"
             >
               <Copy className="size-4" />
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -348,8 +347,6 @@ function Overview() {
       {/* End Quick Toolbar Shortcuts */}
 
       <SetupChecklistCard clinic={clinic} />
-
-      {org?.id && <ValueHero organizationId={org.id} />}
 
       {/* Key Practice Statistics */}
       {stats === null ? (

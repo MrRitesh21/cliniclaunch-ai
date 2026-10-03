@@ -506,33 +506,35 @@ function WhatsAppPage() {
 
         <TabsContent value="logs" className="mt-4">
           <Card className="p-0 overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b font-semibold">
-                <tr>
-                  <th className="p-3">Time</th>
-                  <th className="p-3">Recipient</th>
-                  <th className="p-3">Message</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((l) => (
-                  <tr key={l.id} className="border-b last:border-0">
-                    <td className="p-3">{new Date(l.created_at).toLocaleString()}</td>
-                    <td className="p-3">
-                      <div>{l.patient_name || "Unknown"}</div>
-                      <div className="text-muted-foreground">{l.patient_phone}</div>
-                    </td>
-                    <td className="p-3 max-w-xs truncate">{l.message}</td>
-                    <td className="p-3">
-                      <Badge variant={l.status === "sent" ? "default" : "secondary"}>
-                        {l.status}
-                      </Badge>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/40 border-b font-semibold">
+                  <tr>
+                    <th className="p-3">Time</th>
+                    <th className="p-3">Recipient</th>
+                    <th className="p-3">Message</th>
+                    <th className="p-3">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.map((l) => (
+                    <tr key={l.id} className="border-b last:border-0">
+                      <td className="p-3 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
+                      <td className="p-3 whitespace-nowrap">
+                        <div>{l.patient_name || "Unknown"}</div>
+                        <div className="text-muted-foreground">{l.patient_phone}</div>
+                      </td>
+                      <td className="p-3 max-w-xs truncate">{l.message}</td>
+                      <td className="p-3 whitespace-nowrap">
+                        <Badge variant={l.status === "sent" ? "default" : "secondary"}>
+                          {l.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>

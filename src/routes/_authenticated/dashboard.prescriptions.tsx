@@ -682,28 +682,30 @@ function PrintDialog({ rx, org, onClose }: { rx: Rx; org: any; onClose: () => vo
             <strong>Patient:</strong> {rx.patient_name}
           </div>
           <div className="text-2xl font-serif mb-2">℞</div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th>Drug</th>
-                <th>Dose</th>
-                <th>Frequency</th>
-                <th>Duration</th>
-                <th>Instructions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it) => (
-                <tr key={it.id} className="border-b">
-                  <td>{it.drug_name}</td>
-                  <td>{it.dose}</td>
-                  <td>{it.frequency}</td>
-                  <td>{it.duration}</td>
-                  <td>{it.instructions}</td>
+          <div className="overflow-x-auto -mx-2 px-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="py-2 pr-3 whitespace-nowrap">Drug</th>
+                  <th className="py-2 pr-3 whitespace-nowrap">Dose</th>
+                  <th className="py-2 pr-3 whitespace-nowrap">Frequency</th>
+                  <th className="py-2 pr-3 whitespace-nowrap">Duration</th>
+                  <th className="py-2 whitespace-nowrap">Instructions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((it) => (
+                  <tr key={it.id} className="border-b">
+                    <td className="py-2 pr-3 font-medium whitespace-nowrap">{it.drug_name}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{it.dose}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{it.frequency}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{it.duration}</td>
+                    <td className="py-2 text-muted-foreground">{it.instructions}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {rx.notes && (
             <p className="mt-4 text-sm">
               <strong>Notes:</strong> {rx.notes}
