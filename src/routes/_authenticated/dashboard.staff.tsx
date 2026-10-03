@@ -298,41 +298,80 @@ function StaffPage() {
             <Skeleton className="h-48 w-full" />
           ) : (
             <>
-              <Card>
-                <div className="p-4 border-b font-medium">Active members</div>
-                <div className="divide-y">
-                  {members.map((m) => (
-                    <div key={m.id} className="p-4 flex justify-between items-center gap-3">
-                      <div>
-                        <div className="font-medium">{m.profile?.full_name ?? "Unnamed user"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Joined {new Date(m.joined_at).toLocaleDateString()}
+              <Card className="rounded-2xl border-border/80 overflow-hidden shadow-xs">
+                <div className="p-3.5 border-b font-semibold text-sm flex items-center justify-between">
+                  <span>Active team ({members.length})</span>
+                  <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                    {canManage ? "Admin Control" : "View Only"}
+                  </Badge>
+                </div>
+                <div className="divide-y divide-border/60">
+                  {members.map((m) => {
+                    const name = m.profile?.full_name ?? "Unnamed member";
+                    const initials =
+                      name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "U";
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="size-10 rounded-xl bg-primary/10 text-primary font-bold text-xs grid place-items-center shrink-0 border border-primary/20">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm truncate text-foreground">
+                              {name}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              <span className="capitalize">{m.role}</span>
+                              <span>·</span>
+                              <span>Joined {new Date(m.joined_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {canManage && m.role !== "owner" ? (
+                            <Select value={m.role} onValueChange={(v) => changeRole(m, v as Role)}>
+                              <SelectTrigger className="w-28 h-8 text-xs rounded-lg">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="doctor">Doctor</SelectItem>
+                                <SelectItem value="staff">Staff</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge
+                              variant={m.role === "owner" ? "default" : "outline"}
+                              className="capitalize text-xs font-medium"
+                            >
+                              {m.role}
+                            </Badge>
+                          )}
+                          {canManage && m.role !== "owner" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="size-8 text-destructive hover:bg-destructive/10"
+                              onClick={() => removeMember(m)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <div className="flex gap-2 items-center">
-                        {canManage && m.role !== "owner" ? (
-                          <Select value={m.role} onValueChange={(v) => changeRole(m, v as Role)}>
-                            <SelectTrigger className="w-32 h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="doctor">Doctor</SelectItem>
-                              <SelectItem value="staff">Staff</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge variant="outline" className="capitalize">
-                            {m.role}
-                          </Badge>
-                        )}
-                        {canManage && m.role !== "owner" && (
-                          <Button size="icon" variant="ghost" onClick={() => removeMember(m)}>
-                            <Trash2 className="size-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </Card>
 
