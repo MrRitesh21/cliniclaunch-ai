@@ -233,6 +233,20 @@ html.dark,
   }
 }
 
+/* Global Touch & Native Mobile App Feel */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+}
+
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
 /* Universal scrollbar hiding on all screen widths */
 * {
   scrollbar-width: none !important;

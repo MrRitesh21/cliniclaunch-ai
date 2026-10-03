@@ -66,6 +66,7 @@ import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { useTheme } from "@/components/ui/theme-provider";
 import { usePWAInstall } from "@/lib/pwa";
+import { isIos } from "@/lib/push-client";
 import { clearDemoSessionFlags, setDemoSessionFlags } from "@/lib/demo";
 import { DemoConversionWidget } from "@/components/demo/DemoConversionWidget";
 
@@ -543,18 +544,30 @@ function SidebarContent({
           </div>
         </div>
 
-        {isInstallable && (
-          <button
-            onClick={installApp}
-            title="Install App"
-            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-primary rounded-md hover:bg-muted transition-colors"
+        {/* Permanent PWA Install Action */}
+        <button
+          type="button"
+          onClick={() => {
+            if (isInstallable) {
+              installApp();
+            } else if (isIos()) {
+              toast.info("To install on iOS: Tap Share in Safari → Add to Home Screen.");
+            } else {
+              toast.info("To install: Tap browser menu (⋮) → Install app or Add to Home screen.");
+            }
+          }}
+          title="Install Mobile App"
+          className="flex w-full items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all active:scale-98 shadow-xs border border-primary/20 my-1"
+        >
+          <div className="size-6 rounded-lg bg-primary text-primary-foreground grid place-items-center shrink-0">
+            <Download className="size-3.5" />
+          </div>
+          <span
+            className={`truncate font-bold ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
           >
-            <Download className="size-4 shrink-0" />
-            <span className={isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}>
-              Install App
-            </span>
-          </button>
-        )}
+            Install Mobile App
+          </span>
+        </button>
 
         <button
           onClick={signOut}
@@ -1041,8 +1054,8 @@ function DashboardLayout() {
 
           {/* Mobile bottom tab bar — primary 5 tabs */}
           <nav
-            className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur"
-            style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom))" }}
+            className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border/80 bg-background/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.04)]"
+            style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
           >
             <div
               className="grid"
@@ -1054,16 +1067,20 @@ function DashboardLayout() {
                   <Link
                     key={n.to}
                     to={n.to}
-                    className={`flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-                      active ? "text-primary" : "text-muted-foreground"
+                    className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
+                      active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
                     }`}
                   >
                     <div
-                      className={`grid place-items-center size-8 rounded-xl transition-all ${active ? "bg-primary/10 scale-110" : ""}`}
+                      className={`grid place-items-center size-8 rounded-xl transition-all ${
+                        active
+                          ? "bg-primary/15 text-primary scale-105 shadow-xs"
+                          : "text-muted-foreground"
+                      }`}
                     >
-                      <n.icon className="size-4.5" />
+                      <n.icon className="size-4" />
                     </div>
-                    <span className="text-[10px] font-medium leading-none">{n.label}</span>
+                    <span className="text-[10px] leading-none tracking-tight">{n.label}</span>
                   </Link>
                 );
               })}
@@ -1072,16 +1089,20 @@ function DashboardLayout() {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-                  mobileMenuOpen ? "text-primary" : "text-muted-foreground"
+                className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
+                  mobileMenuOpen ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
                 }`}
               >
                 <div
-                  className={`grid place-items-center size-8 rounded-xl transition-all ${mobileMenuOpen ? "bg-primary/10 scale-110" : ""}`}
+                  className={`grid place-items-center size-8 rounded-xl transition-all ${
+                    mobileMenuOpen
+                      ? "bg-primary/15 text-primary scale-105 shadow-xs"
+                      : "text-muted-foreground"
+                  }`}
                 >
-                  <Menu className="size-4.5" />
+                  <Menu className="size-4" />
                 </div>
-                <span className="text-[10px] font-medium leading-none">More</span>
+                <span className="text-[10px] leading-none tracking-tight">More</span>
               </button>
             </div>
           </nav>
