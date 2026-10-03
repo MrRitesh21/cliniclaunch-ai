@@ -595,45 +595,58 @@ export function ReviewsPage() {
         </div>
       </Card>
 
-      {/* Review Filters */}
-      <div className="flex gap-2 flex-wrap items-center justify-between">
-        <div className="flex gap-2 flex-wrap flex-1 min-w-48">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search patient name, phone, comment…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-xs rounded-xl"
-            />
-          </div>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-44 h-9 text-xs rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Reviews ({rows.length})</SelectItem>
-              <SelectItem value="critical">🚨 Critical (&lt;3★)</SelectItem>
-              <SelectItem value="verified">Verified Patients</SelectItem>
-              <SelectItem value="pending">Pending Approval</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="hidden">Hidden</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Review Filters & Search */}
+      <div className="space-y-2.5">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search patient name, phone, review comment…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-xs rounded-xl border-border/80 bg-card"
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          {[
+            { key: "all", label: "All Reviews", count: rows.length },
+            { key: "critical", label: "Critical (<3★)", count: stats.critical },
+            { key: "verified", label: "Verified", count: stats.verifiedCount },
+            { key: "pending", label: "Pending", count: stats.pending },
+            { key: "approved", label: "Approved", count: stats.approved },
+            { key: "hidden", label: "Hidden", count: rows.filter((r) => r.status === "hidden").length },
+          ].map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className={`text-xs px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap font-medium flex items-center gap-1.5 ${
+                filter === f.key
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                  : "bg-card border-border/80 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span>{f.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filter === f.key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Reviews List */}
+      {/* Reviews Feed */}
       {loading ? (
-        <SkeletonRows rows={8} />
+        <SkeletonRows rows={6} />
       ) : filtered.length === 0 ? (
-        <Skeleton className="h-48 w-full rounded-2xl" />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<MessageSquare className="size-6" />}
-          title="No reviews found"
-          description="Share your public review link to start collecting verified patient feedback."
-        />
+        <Card className="p-8 text-center border-border/80 shadow-xs">
+          <EmptyState
+            icon={<MessageSquare className="size-6" />}
+            title="No reviews match your filter"
+            description="Try changing the filter or share your public review link to collect reviews."
+          />
+        </Card>
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => {
@@ -644,119 +657,124 @@ export function ReviewsPage() {
             return (
               <Card
                 key={r.id}
-                className={`p-4 transition-all border ${
+                className={`p-4 transition-all border shadow-xs ${
                   isCritical
-                    ? "border-rose-500/40 bg-rose-500/5 shadow-xs"
-                    : "border-border/60 hover:border-border bg-card"
+                    ? "border-rose-500/40 bg-rose-500/[0.02]"
+                    : "border-border/80 bg-card hover:border-primary/40"
                 }`}
               >
-                <div className="flex justify-between items-start gap-3 flex-wrap">
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap text-xs">
-                      <span className="font-bold text-sm">{r.reviewer_name}</span>
-                      <Stars value={r.rating} />
-
-                      {isVerified && (
-                        <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px] font-semibold">
-                          <ShieldCheck className="size-3 mr-0.5" /> Verified Patient
-                        </Badge>
-                      )}
-
-                      {isCritical && (
-                        <Badge className="bg-rose-500 text-white text-[10px] font-bold">
-                          🚨 Urgent Recovery Needed
-                        </Badge>
-                      )}
-
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${
-                          r.status === "approved"
-                            ? "border-emerald-500/40 text-emerald-700"
-                            : r.status === "hidden"
-                              ? "border-muted-foreground/30 text-muted-foreground"
-                              : "border-amber-500/40 text-amber-700"
-                        }`}
-                      >
-                        {r.status}
-                      </Badge>
-                    </div>
-
-                    {r.comment && (
-                      <p className="text-xs leading-relaxed text-foreground">{r.comment}</p>
-                    )}
-
-                    {/* AI / Staff Reply Display */}
-                    {r.reply && (
-                      <div className="mt-2 pl-3 border-l-2 border-primary text-xs bg-muted/40 p-2.5 rounded-xl space-y-1">
-                        <div className="font-semibold text-primary flex items-center gap-1">
-                          <Bot className="size-3" /> Clinic Reply:
-                        </div>
-                        <p className="text-muted-foreground leading-relaxed">{r.reply}</p>
+                <div className="space-y-2.5">
+                  {/* Header: Reviewer Name, Stars, Badges */}
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-foreground">{r.reviewer_name}</span>
+                        <Stars value={r.rating} />
+                        {isVerified && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <ShieldCheck className="size-3" /> Verified Patient
+                          </span>
+                        )}
+                        {isCritical && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">
+                            🚨 Urgent Recovery
+                          </span>
+                        )}
                       </div>
-                    )}
-
-                    <div className="text-[10px] text-muted-foreground pt-1 flex items-center gap-2 flex-wrap">
-                      <span>{new Date(r.created_at).toLocaleString()}</span>
-                      {r.reviewer_phone && (
-                        <span className="font-mono flex items-center gap-1 text-foreground">
-                          <Phone className="size-3 text-muted-foreground" /> {r.reviewer_phone}
-                        </span>
-                      )}
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                        <span>{new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                        {r.reviewer_phone && (
+                          <span className="font-mono text-foreground flex items-center gap-1 font-medium">
+                            • <Phone className="size-3 text-emerald-600" /> {r.reviewer_phone}
+                          </span>
+                        )}
+                      </div>
                     </div>
+
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-semibold capitalize ${
+                        r.status === "approved"
+                          ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/5"
+                          : r.status === "hidden"
+                            ? "border-muted-foreground/30 text-muted-foreground bg-muted/40"
+                            : "border-amber-500/40 text-amber-600 bg-amber-500/5"
+                      }`}
+                    >
+                      {r.status}
+                    </Badge>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-1.5 items-center">
-                    {isCritical && r.reviewer_phone && (
-                      <a href={`tel:${r.reviewer_phone}`}>
+                  {/* Review Comment (Full Width without wrapping crunch) */}
+                  {r.comment && (
+                    <p className="text-xs leading-relaxed text-foreground bg-muted/20 p-2.5 rounded-xl border border-border/60">
+                      "{r.comment}"
+                    </p>
+                  )}
+
+                  {/* AI / Staff Reply Display */}
+                  {r.reply && (
+                    <div className="pl-3 border-l-2 border-primary text-xs bg-muted/30 p-2.5 rounded-xl space-y-1">
+                      <div className="font-bold text-primary flex items-center gap-1">
+                        <Bot className="size-3" /> Clinic Reply:
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed text-xs">{r.reply}</p>
+                    </div>
+                  )}
+
+                  {/* Full Width Bottom Action Bar */}
+                  <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-border/60 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {isCritical && r.reviewer_phone && (
+                        <a href={`tel:${r.reviewer_phone}`}>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white gap-1 shadow-xs"
+                          >
+                            <PhoneCall className="size-3" /> Call Patient
+                          </Button>
+                        </a>
+                      )}
+
+                      {r.status !== "approved" && (
                         <Button
                           size="sm"
-                          className="h-7 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white gap-1"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "approved")}
+                          className="h-7 text-xs font-medium rounded-lg text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
                         >
-                          <PhoneCall className="size-3" /> Call Patient
+                          <Eye className="size-3 mr-1" /> Approve
                         </Button>
-                      </a>
-                    )}
+                      )}
 
-                    {r.status !== "approved" && (
+                      {r.status !== "hidden" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setStatus(r.id, "hidden")}
+                          className="h-7 text-xs text-muted-foreground hover:bg-muted rounded-lg"
+                        >
+                          <EyeOff className="size-3 mr-1" /> Hide
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setStatus(r.id, "approved")}
-                        className="h-7 text-xs rounded-lg"
+                        onClick={() => setReplying(r)}
+                        className="h-7 text-xs font-semibold rounded-lg text-primary border-primary/30 hover:bg-primary/10 gap-1"
                       >
-                        <Eye className="size-3 mr-1" />
-                        Approve
+                        <Reply className="size-3" /> AI Reply
                       </Button>
-                    )}
-                    {r.status !== "hidden" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setStatus(r.id, "hidden")}
-                        className="h-7 text-xs rounded-lg"
-                      >
-                        <EyeOff className="size-3 mr-1" />
-                        Hide
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setReplying(r)}
-                      className="h-7 text-xs rounded-lg text-primary gap-1"
-                    >
-                      <Reply className="size-3" />
-                      AI Reply
-                    </Button>
+                    </div>
+
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={() => remove(r.id)}
-                      className="h-7 w-7"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg"
                     >
-                      <Trash2 className="size-3.5 text-muted-foreground" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
