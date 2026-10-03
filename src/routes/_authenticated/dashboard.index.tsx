@@ -289,18 +289,6 @@ function Overview() {
             >
               <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                navigator.clipboard.writeText(url);
-                toast.success("Clinic booking link copied!");
-              }}
-              title="Copy Booking Link"
-              className="h-9 w-9 shrink-0"
-            >
-              <Copy className="size-4" />
-            </Button>
           </div>
         }
       />
