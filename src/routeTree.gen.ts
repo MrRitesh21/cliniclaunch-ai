@@ -103,6 +103,7 @@ import { Route as AdminAdminDoctorsFlaggedRouteImport } from './routes/_admin/ad
 import { Route as AdminAdminDoctorsNewRouteImport } from './routes/_admin/admin.doctors.new'
 import { Route as AdminAdminSettingsSystemRouteImport } from './routes/_admin/admin.settings.system'
 import { Route as AdminAdminSettingsUsersRouteImport } from './routes/_admin/admin.settings.users'
+import { Route as AuthenticatedDashboardPatientsIndexRouteImport } from './routes/_authenticated/dashboard.patients.index'
 import { Route as AuthenticatedDashboardPatientsPatientIdRouteImport } from './routes/_authenticated/dashboard.patients.$patientId'
 import { Route as ApiPublicHooksRazorpayRouteImport } from './routes/api/public/hooks/razorpay'
 import { Route as ApiPublicHooksSeoAutopilotRouteImport } from './routes/api/public/hooks/seo-autopilot'
@@ -609,6 +610,12 @@ const AdminAdminSettingsUsersRoute = AdminAdminSettingsUsersRouteImport.update({
   path: '/admin/settings/users',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AuthenticatedDashboardPatientsIndexRoute =
+  AuthenticatedDashboardPatientsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDashboardPatientsRoute,
+  } as any)
 const AuthenticatedDashboardPatientsPatientIdRoute =
   AuthenticatedDashboardPatientsPatientIdRouteImport.update({
     id: '/$patientId',
@@ -729,6 +736,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
   '/admin/doctors/': typeof AdminAdminDoctorsIndexRoute
+  '/dashboard/patients/': typeof AuthenticatedDashboardPatientsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -790,7 +798,6 @@ export interface FileRoutesByTo {
   '/dashboard/marketing': typeof AuthenticatedDashboardMarketingRoute
   '/dashboard/modules': typeof AuthenticatedDashboardModulesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
-  '/dashboard/patients': typeof AuthenticatedDashboardPatientsRouteWithChildren
   '/dashboard/pharmacy': typeof AuthenticatedDashboardPharmacyRoute
   '/dashboard/prescriptions': typeof AuthenticatedDashboardPrescriptionsRoute
   '/dashboard/qr': typeof AuthenticatedDashboardQrRoute
@@ -824,6 +831,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
   '/admin/doctors': typeof AdminAdminDoctorsIndexRoute
+  '/dashboard/patients': typeof AuthenticatedDashboardPatientsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -925,6 +933,7 @@ export interface FileRoutesById {
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
   '/_admin/admin/doctors/': typeof AdminAdminDoctorsIndexRoute
+  '/_authenticated/dashboard/patients/': typeof AuthenticatedDashboardPatientsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1025,6 +1034,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
     | '/admin/doctors/'
+    | '/dashboard/patients/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1086,7 +1096,6 @@ export interface FileRouteTypes {
     | '/dashboard/marketing'
     | '/dashboard/modules'
     | '/dashboard/notifications'
-    | '/dashboard/patients'
     | '/dashboard/pharmacy'
     | '/dashboard/prescriptions'
     | '/dashboard/qr'
@@ -1120,6 +1129,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
     | '/admin/doctors'
+    | '/dashboard/patients'
   id:
     | '__root__'
     | '/'
@@ -1220,6 +1230,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
     | '/_admin/admin/doctors/'
+    | '/_authenticated/dashboard/patients/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1924,6 +1935,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminSettingsUsersRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/_authenticated/dashboard/patients/': {
+      id: '/_authenticated/dashboard/patients/'
+      path: '/'
+      fullPath: '/dashboard/patients/'
+      preLoaderRoute: typeof AuthenticatedDashboardPatientsIndexRouteImport
+      parentRoute: typeof AuthenticatedDashboardPatientsRoute
+    }
     '/_authenticated/dashboard/patients/$patientId': {
       id: '/_authenticated/dashboard/patients/$patientId'
       path: '/$patientId'
@@ -2020,12 +2038,15 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 
 interface AuthenticatedDashboardPatientsRouteChildren {
   AuthenticatedDashboardPatientsPatientIdRoute: typeof AuthenticatedDashboardPatientsPatientIdRoute
+  AuthenticatedDashboardPatientsIndexRoute: typeof AuthenticatedDashboardPatientsIndexRoute
 }
 
 const AuthenticatedDashboardPatientsRouteChildren: AuthenticatedDashboardPatientsRouteChildren =
   {
     AuthenticatedDashboardPatientsPatientIdRoute:
       AuthenticatedDashboardPatientsPatientIdRoute,
+    AuthenticatedDashboardPatientsIndexRoute:
+      AuthenticatedDashboardPatientsIndexRoute,
   }
 
 const AuthenticatedDashboardPatientsRouteWithChildren =
