@@ -32,6 +32,7 @@ import {
   Stethoscope,
   Receipt,
   Filter,
+  FileText,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus, createBooking } from "@/lib/clinic.functions";
@@ -287,261 +288,300 @@ function AppointmentsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Appointments"
-        subtitle="Confirm, complete, or cancel patient bookings with real-time sync."
-        actions={
-          <div className="flex gap-2 flex-wrap items-center">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patient or phone…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 w-44 sm:w-56"
-              />
-            </div>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {filterTabs.map((t) => (
-                  <SelectItem key={t.key} value={t.key}>
-                    {t.label} ({t.count})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Dates</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                <SelectItem value="week">Next 7 Days</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="offline">In-clinic</SelectItem>
-                <SelectItem value="online">Video Consult</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setAddOpen(true)} className="gap-1 shadow-sm">
-              <Plus className="size-4" /> Add appointment
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Quick status summary pills */}
-      <div className="flex gap-2 flex-wrap">
-        {counts.pending > 0 && (
-          <button
-            onClick={() => setFilter("pending")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${filter === "pending" ? "bg-amber-500 text-white border-amber-500" : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800"}`}
-          >
-            <Clock className="size-3" /> {counts.pending} pending confirmation
-            {counts.pending !== 1 ? "s" : ""}
-          </button>
-        )}
-        {counts.confirmed > 0 && (
-          <button
-            onClick={() => setFilter("confirmed")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${filter === "confirmed" ? "bg-primary text-primary-foreground border-primary" : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"}`}
-          >
-            <CalendarCheck className="size-3" /> {counts.confirmed} confirmed today
-          </button>
-        )}
-      </div>
-
-      <Card className="overflow-hidden card-soft">
-        {loading ? (
-          <SkeletonRows rows={6} cols={5} />
-        ) : filtered.length === 0 ? (
-          <div className="p-4">
-            <EmptyState
-              icon={<Search className="size-6" />}
-              title="No appointments found"
-              description={
-                search ? `No appointments match "${search}"` : "No appointments here yet."
-              }
-              action={
-                <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 h-8 text-xs">
-                  <Plus className="size-3.5" /> Add Appointment
-                </Button>
-              }
+    <div className="space-y-4 sm:space-y-6">
+      {/* Top Mobile-First Header & Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
+            Appointments
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+            Confirm, complete, or cancel patient bookings with real-time sync.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-60">
+            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Search patient or phone…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 text-xs sm:text-sm"
             />
           </div>
-        ) : (
-          <div className="divide-y">
-            {filtered.map((r) => {
-              const isExpanded = expanded === r.id;
-              const isBusy = updating === r.id;
-              return (
-                <div
-                  key={r.id}
-                  className={`transition-colors ${r.status === "completed" ? "opacity-70" : ""} hover:bg-muted/20`}
-                >
-                  {/* Main row */}
-                  <div
-                    className="flex items-center gap-3 px-5 py-3.5 cursor-pointer"
-                    onClick={() => setExpanded(isExpanded ? null : r.id)}
-                  >
-                    <AvatarInitials name={r.patient_name} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm">{r.patient_name}</p>
-                        <span className="text-xs text-muted-foreground hidden sm:block">
-                          {r.patient_phone}
-                        </span>
+          <Button
+            onClick={() => setAddOpen(true)}
+            size="sm"
+            className="gap-1.5 h-9 px-3 text-xs font-semibold shadow-xs shrink-0"
+          >
+            <Plus className="size-4" /> <span className="hidden xs:inline">Add</span> Appt
+          </Button>
+        </div>
+      </div>
+
+      {/* Horizontal Scrollable Status Tabs (Native Pill Bar) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
+        {filterTabs.map((t) => {
+          const active = filter === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                  : "bg-card hover:bg-muted/60 text-muted-foreground border-border/80"
+              }`}
+            >
+              <span>{t.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Secondary Quick Date & Type Filters */}
+      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {[
+            { key: "all", label: "All Dates" },
+            { key: "today", label: "Today" },
+            { key: "tomorrow", label: "Tomorrow" },
+            { key: "week", label: "7 Days" },
+          ].map((d) => (
+            <button
+              key={d.key}
+              onClick={() => setDateFilter(d.key)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                dateFilter === d.key
+                  ? "bg-muted font-semibold text-foreground border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {[
+            { key: "all", label: "All" },
+            { key: "offline", label: "In-clinic" },
+            { key: "online", label: "Video" },
+          ].map((tp) => (
+            <button
+              key={tp.key}
+              onClick={() => setTypeFilter(tp.key)}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors ${
+                typeFilter === tp.key
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tp.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Appointments List View / Native Cards */}
+      {loading ? (
+        <Card className="p-4">
+          <SkeletonRows rows={6} cols={5} />
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card className="p-8 text-center border-border/80">
+          <EmptyState
+            icon={<Search className="size-6" />}
+            title="No appointments found"
+            description={
+              search ? `No appointments match "${search}"` : "No appointments scheduled for this selection."
+            }
+            action={
+              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 h-8 text-xs">
+                <Plus className="size-3.5" /> Add Appointment
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((r) => {
+            const isExpanded = expanded === r.id;
+            const isBusy = updating === r.id;
+            const isOnline = r.appointment_type === "online";
+            const apptDate = new Date(r.scheduled_at);
+            const timeStr = apptDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+            const dateStr = apptDate.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" });
+
+            return (
+              <Card
+                key={r.id}
+                className={`overflow-hidden border-border/80 shadow-xs transition-all ${
+                  r.status === "completed" ? "opacity-75 bg-muted/10" : "bg-card"
+                }`}
+              >
+                <div className="p-3.5 sm:p-4">
+                  {/* Top Bar: Time, Type, Status */}
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 text-xs font-semibold text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+                        <Clock className="size-3 text-primary" />
+                        <span>{timeStr}</span>
+                        <span className="text-muted-foreground font-normal">({dateStr})</span>
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(r.scheduled_at).toLocaleString()}
-                        </span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          {r.appointment_type === "online" ? (
-                            <>
-                              <Video className="size-3" /> Online
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="size-3" /> In-clinic
-                            </>
-                          )}
-                        </span>
-                        <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                          <Stethoscope className="size-3" />
-                          {r.doctors?.name || clinic?.doctor_name || "Doctor"}
-                        </span>
-                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 font-medium ${
+                          isOnline ? "border-purple-500/30 text-purple-600 bg-purple-50/50 dark:bg-purple-950/20" : "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
+                        }`}
+                      >
+                        {isOnline ? <Video className="size-2.5 mr-1" /> : <MapPin className="size-2.5 mr-1" />}
+                        {isOnline ? "Video" : "Clinic"}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <StatusBadge status={r.status} />
-                      {isExpanded ? (
-                        <ChevronUp className="size-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="size-4 text-muted-foreground" />
-                      )}
-                    </div>
+                    <StatusBadge status={r.status} />
                   </div>
 
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div className="px-5 pb-5 pt-2 border-t bg-muted/20">
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        {/* Patient info */}
-                        <div className="space-y-2 text-sm">
+                  {/* Patient Info Row */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <AvatarInitials name={r.patient_name} />
+                      <div className="min-w-0">
+                        <h3 className="font-display font-bold text-sm text-foreground truncate">
+                          {r.patient_name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           {r.patient_phone && (
                             <a
                               href={`tel:${r.patient_phone}`}
-                              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                              className="hover:text-primary font-medium flex items-center gap-1"
                             >
-                              <Phone className="size-3.5" /> {r.patient_phone}
-                            </a>
-                          )}
-                          {r.patient_email && (
-                            <a
-                              href={`mailto:${r.patient_email}`}
-                              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                            >
-                              <Mail className="size-3.5" /> {r.patient_email}
+                              <Phone className="size-3 text-emerald-600" />
+                              {r.patient_phone}
                             </a>
                           )}
                           {(r.patient_age || r.patient_gender) && (
-                            <p className="flex items-center gap-1.5 text-muted-foreground">
-                              <UserRound className="size-3.5" />
-                              {[r.patient_age && `${r.patient_age} yrs`, r.patient_gender]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-                          )}
-                          {r.problem && (
-                            <p className="text-sm bg-background rounded-lg p-3 border mt-2 leading-relaxed">
-                              {r.problem}
-                            </p>
+                            <span>
+                              • {[r.patient_age && `${r.patient_age}y`, r.patient_gender].filter(Boolean).join(", ")}
+                            </span>
                           )}
                         </div>
+                      </div>
+                    </div>
 
-                        {/* Action buttons */}
-                        <div className="flex flex-wrap gap-2 items-start">
-                          <a href={`/dashboard/consult`} className="inline-block">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-primary hover:text-primary border-primary/20"
-                            >
-                              <Stethoscope className="size-3.5 mr-1" /> Start Consult
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(isExpanded ? null : r.id)}
+                      className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted shrink-0"
+                    >
+                      {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                    </button>
+                  </div>
+
+                  {/* Problem snippet if present */}
+                  {r.problem && (
+                    <div className="mt-2.5 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">
+                      <span className="font-semibold text-foreground">Symptoms: </span>
+                      {r.problem}
+                    </div>
+                  )}
+
+                  {/* Quick Action Touch Bar */}
+                  <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/60 flex-wrap">
+                    {r.status === "pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => setStatus(r.id, "confirmed")}
+                          disabled={isBusy}
+                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial"
+                        >
+                          <Check className="size-3.5" /> {isBusy ? "Confirming…" : "Confirm Booking"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setStatus(r.id, "cancelled")}
+                          disabled={isBusy}
+                          className="h-8 text-xs text-destructive hover:bg-destructive/10 px-2.5"
+                        >
+                          <X className="size-3.5 mr-1" /> Cancel
+                        </Button>
+                      </>
+                    )}
+
+                    {r.status === "confirmed" && (
+                      <>
+                        <a href="/dashboard/consult" className="flex-1 sm:flex-initial">
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5">
+                            <Stethoscope className="size-3.5" /> Start Consult
+                          </Button>
+                        </a>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "completed")}
+                          disabled={isBusy}
+                          className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        >
+                          <CheckCircle2 className="size-3.5" /> Done
+                        </Button>
+                        {isOnline && (
+                          <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="secondary" className="h-8 text-xs gap-1">
+                              <Video className="size-3.5 text-purple-600" /> Call
                             </Button>
                           </a>
-                          <a href={`/dashboard/finance`} className="inline-block">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-emerald-600 hover:text-emerald-700 border-emerald-500/20"
-                            >
-                              <Receipt className="size-3.5 mr-1" /> Generate Invoice
-                            </Button>
-                          </a>
-                          {r.appointment_type === "online" &&
-                            r.status !== "cancelled" &&
-                            r.status !== "completed" && (
-                              <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
-                                <Button size="sm" variant="secondary">
-                                  <Video className="size-3.5" /> Join call
-                                </Button>
-                              </a>
-                            )}
-                          {r.status === "pending" && (
-                            <Button
-                              size="sm"
-                              onClick={() => setStatus(r.id, "confirmed")}
-                              disabled={isBusy}
-                            >
-                              <Check className="size-3.5" /> {isBusy ? "Confirming…" : "Confirm"}
-                            </Button>
-                          )}
-                          {r.status === "confirmed" && (
-                            <Button
-                              size="sm"
-                              onClick={() => setStatus(r.id, "completed")}
-                              disabled={isBusy}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0"
-                            >
-                              <CheckCircle2 className="size-3.5" />{" "}
-                              {isBusy ? "Updating…" : "Mark complete"}
-                            </Button>
-                          )}
-                          {r.status !== "cancelled" && r.status !== "completed" && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setStatus(r.id, "cancelled")}
-                              disabled={isBusy}
-                            >
-                              <X className="size-3.5" /> Cancel
-                            </Button>
-                          )}
+                        )}
+                      </>
+                    )}
+
+                    {r.status === "completed" && (
+                      <div className="flex items-center gap-2 w-full">
+                        <a href="/dashboard/finance" className="flex-1">
+                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-emerald-600 border-emerald-500/20">
+                            <Receipt className="size-3.5" /> Invoice
+                          </Button>
+                        </a>
+                        <a href="/dashboard/prescriptions" className="flex-1">
+                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-blue-600 border-blue-500/20">
+                            <FileText className="size-3.5" /> E-Prescription
+                          </Button>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Collapsible Expanded Details */}
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-border space-y-2 text-xs text-muted-foreground bg-muted/20 -mx-3.5 -mb-3.5 p-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <span className="font-semibold text-foreground">Doctor Assigned: </span>
+                          {r.doctors?.name || clinic?.doctor_name || "Primary Doctor"}
                         </div>
+                        {r.patient_email && (
+                          <div>
+                            <span className="font-semibold text-foreground">Email: </span>
+                            <a href={`mailto:${r.patient_email}`} className="hover:underline">{r.patient_email}</a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {addOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center z-50 p-4">
