@@ -143,6 +143,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Hammer, RefreshCw } from "lucide-react";
+import { PWASplashScreen } from "@/components/app/PWASplashScreen";
 
 function MaintenancePage({ message }: { message: string }) {
   return (
@@ -176,6 +177,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <PWASplashScreen />
         <RootContent />
         <Toaster />
       </ThemeProvider>

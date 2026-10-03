@@ -140,46 +140,46 @@ function FinancePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="flex w-full overflow-x-auto justify-start border-b rounded-none h-auto p-0 bg-transparent space-x-2">
+        <TabsList className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-transparent h-auto p-0 w-full justify-start">
           <TabsTrigger
             value="overview"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
             Overview &amp; Analytics
           </TabsTrigger>
           <TabsTrigger
             value="cashbook"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
-            Cash Book &amp; Ledger
+            Cash Book
           </TabsTrigger>
           <TabsTrigger
             value="pnl"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
-            Profit &amp; Loss
+            P&amp;L
           </TabsTrigger>
           <TabsTrigger
             value="expenses"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
             Expenses &amp; OCR
           </TabsTrigger>
           <TabsTrigger
             value="invoices"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
-            Invoices &amp; Billing
+            Invoices
           </TabsTrigger>
           <TabsTrigger
             value="tax"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
-            Tax Center &amp; GST
+            Tax &amp; GST
           </TabsTrigger>
           <TabsTrigger
             value="ai"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 px-4 text-xs font-medium"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
             AI &amp; Budgets
           </TabsTrigger>

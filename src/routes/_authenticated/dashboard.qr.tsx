@@ -570,116 +570,126 @@ function WalkinsTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClini
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="grid grid-cols-3 gap-3 flex-1 min-w-[240px]">
-          <Card className="p-4">
-            <p className="text-xs text-muted-foreground">Waiting</p>
-            <p className="text-2xl font-display mt-1">{totals.pending}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-muted-foreground">Confirmed</p>
-            <p className="text-2xl font-display mt-1">{totals.confirmed}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-muted-foreground">Completed</p>
-            <p className="text-2xl font-display mt-1">{totals.completed}</p>
-          </Card>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="pending">Waiting</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon" onClick={load} title="Refresh">
-            <RefreshCw className="size-4" />
-          </Button>
-        </div>
+      {/* 3 Status KPI Cards */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs text-center sm:text-left">
+          <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Waiting</p>
+          <p className="text-xl sm:text-2xl font-display font-bold text-amber-600 dark:text-amber-400 mt-0.5">{totals.pending}</p>
+        </Card>
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs text-center sm:text-left">
+          <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Confirmed</p>
+          <p className="text-xl sm:text-2xl font-display font-bold text-blue-600 dark:text-blue-400 mt-0.5">{totals.confirmed}</p>
+        </Card>
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs text-center sm:text-left">
+          <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Completed</p>
+          <p className="text-xl sm:text-2xl font-display font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{totals.completed}</p>
+        </Card>
       </div>
 
-      {/* Table */}
-      <Card className="p-0 overflow-hidden">
-        {loading ? (
-          <div className="p-10 text-center text-muted-foreground">Loading…</div>
-        ) : rows.length === 0 ? (
+      {/* Filter Pills Bar & Refresh Button */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar flex-1">
+          {[
+            { key: "all", label: "All Walk-ins" },
+            { key: "pending", label: "Waiting" },
+            { key: "confirmed", label: "Confirmed" },
+            { key: "completed", label: "Completed" },
+            { key: "cancelled", label: "Cancelled" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all border ${
+                filter === f.key
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                  : "bg-card hover:bg-muted text-muted-foreground border-border/80"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" size="icon" onClick={load} title="Refresh" className="h-8 w-8 shrink-0">
+          <RefreshCw className="size-3.5" />
+        </Button>
+      </div>
+
+      {/* Walk-ins Native Card Feed / Table */}
+      {loading ? (
+        <Card className="p-8 text-center text-muted-foreground">Loading walk-ins…</Card>
+      ) : rows.length === 0 ? (
+        <Card className="p-8 text-center border-border/80 shadow-xs">
           <EmptyState
-            icon={<QrCode className="size-5" />}
+            icon={<QrCode className="size-6" />}
             title="No walk-ins yet today"
-            description="Walk-in check-ins from your QR poster will appear here as they happen."
+            description="Walk-in check-ins from your QR poster will appear here in real-time."
           />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-muted-foreground">
-                <tr className="text-left">
-                  <th className="p-4 font-medium">Time</th>
-                  <th className="p-4 font-medium">Patient</th>
-                  <th className="p-4 font-medium">Reason</th>
-                  <th className="p-4 font-medium">Status</th>
-                  <th className="p-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t hover:bg-muted/30 transition-colors">
-                    <td className="p-4 whitespace-nowrap font-medium">
-                      {new Date(r.scheduled_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="p-4">
-                      <div className="font-medium">{r.patient_name}</div>
-                      <div className="text-xs text-muted-foreground">{r.patient_phone}</div>
-                    </td>
-                    <td className="p-4 max-w-xs truncate text-muted-foreground">
-                      {r.problem || "—"}
-                    </td>
-                    <td className="p-4">
-                      <StatusBadge status={r.status} />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-2 justify-end flex-wrap">
-                        {r.status === "pending" && (
-                          <Button size="sm" onClick={() => setStatus(r.id, "confirmed")}>
-                            <Check className="size-3.5" /> Confirm
-                          </Button>
-                        )}
-                        {(r.status === "pending" || r.status === "confirmed") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setStatus(r.id, "completed")}
-                          >
-                            <CheckCircle2 className="size-3.5" /> Complete
-                          </Button>
-                        )}
-                        {r.status !== "cancelled" && r.status !== "completed" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setStatus(r.id, "cancelled")}
-                          >
-                            <X className="size-3.5" /> Cancel
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((r) => {
+            const timeStr = new Date(r.scheduled_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            return (
+              <Card key={r.id} className="p-4 border-border/80 shadow-xs space-y-3 bg-card hover:border-primary/40 transition-all">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold px-2 py-0.5 bg-muted rounded-md text-foreground font-mono">
+                        {timeStr}
+                      </span>
+                      <h4 className="font-bold text-sm text-foreground">{r.patient_name}</h4>
+                    </div>
+                    {r.patient_phone && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <Phone className="size-3 text-emerald-600" /> {r.patient_phone}
+                      </p>
+                    )}
+                  </div>
+                  <StatusBadge status={r.status} />
+                </div>
+
+                {r.problem && (
+                  <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/60">
+                    <span className="font-semibold text-foreground">Note: </span>
+                    {r.problem}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                  {r.status === "pending" && (
+                    <Button size="sm" onClick={() => setStatus(r.id, "confirmed")} className="h-8 text-xs flex-1 gap-1 font-semibold">
+                      <Check className="size-3.5" /> Confirm
+                    </Button>
+                  )}
+                  {(r.status === "pending" || r.status === "confirmed") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setStatus(r.id, "completed")}
+                      className="h-8 text-xs flex-1 gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                    >
+                      <CheckCircle2 className="size-3.5" /> Complete
+                    </Button>
+                  )}
+                  {r.status !== "cancelled" && r.status !== "completed" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setStatus(r.id, "cancelled")}
+                      className="h-8 text-xs text-destructive hover:bg-destructive/10 px-2.5"
+                    >
+                      <X className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

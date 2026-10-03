@@ -367,20 +367,35 @@ function SEOPage() {
       </header>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
-          <TabsTrigger value="start" className="gap-1.5 text-xs">
+        <TabsList className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar bg-transparent h-auto p-0 w-full justify-start">
+          <TabsTrigger
+            value="start"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <TrendingUp className="size-3.5" /> Start here
           </TabsTrigger>
-          <TabsTrigger value="rankings" className="gap-1.5 text-xs">
+          <TabsTrigger
+            value="rankings"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Target className="size-3.5" /> Rankings
           </TabsTrigger>
-          <TabsTrigger value="content" className="gap-1.5 text-xs">
+          <TabsTrigger
+            value="content"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Sparkles className="size-3.5" /> Content &amp; meta
           </TabsTrigger>
-          <TabsTrigger value="local" className="gap-1.5 text-xs">
+          <TabsTrigger
+            value="local"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <MapPin className="size-3.5" /> Local &amp; Google
           </TabsTrigger>
-          <TabsTrigger value="advanced" className="gap-1.5 text-xs">
+          <TabsTrigger
+            value="advanced"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
             <Brain className="size-3.5" /> Advanced
           </TabsTrigger>
         </TabsList>
