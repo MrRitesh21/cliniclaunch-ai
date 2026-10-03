@@ -449,34 +449,42 @@ function PatientsPage() {
               description="Patients added through appointments or walk-ins will appear here."
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredPatients.map((p) => (
-                <Card
+                <Link
                   key={p.id}
-                  className="p-4 hover:border-primary/50 transition cursor-pointer"
-                  onClick={() => navigate({ to: `/dashboard/patients/${encodeURIComponent(p.id)}` })}
+                  to="/dashboard/patients/$patientId"
+                  params={{ patientId: p.id }}
+                  className="block focus:outline-none group"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <AvatarInitials name={p.name} />
-                      <div className="min-w-0">
-                        <p className="font-medium truncate text-foreground">{p.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Phone className="size-3" /> {p.phone}
-                        </p>
+                  <Card className="p-4 hover:border-primary/50 transition-all active:scale-[0.99] border-border/80 shadow-xs group-hover:shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <AvatarInitials name={p.name} />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                            {p.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Phone className="size-3 text-emerald-600" /> {p.phone}
+                          </p>
+                        </div>
                       </div>
+                      <Badge variant="secondary" className="shrink-0 text-[11px] font-semibold">
+                        {p.visitCount} {p.visitCount === 1 ? "visit" : "visits"}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="shrink-0 text-[11px]">
-                      {p.visitCount} {p.visitCount === 1 ? "visit" : "visits"}
-                    </Badge>
-                  </div>
-                  {p.lastVisit && (
-                    <div className="mt-3 pt-3 border-t text-xs text-muted-foreground flex justify-between items-center">
-                      <span>Last seen: {new Date(p.lastVisit).toLocaleDateString()}</span>
-                      <ChevronRight className="size-3.5" />
-                    </div>
-                  )}
-                </Card>
+                    {p.lastVisit && (
+                      <div className="mt-3 pt-2.5 border-t border-border/60 text-xs text-muted-foreground flex justify-between items-center">
+                        <span>Last seen: {new Date(p.lastVisit).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-1 text-primary font-medium text-[11px]">
+                          <span>360 Profile</span>
+                          <ChevronRight className="size-3.5" />
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                </Link>
               ))}
             </div>
           )}
