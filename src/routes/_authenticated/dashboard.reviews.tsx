@@ -347,81 +347,91 @@ export function ReviewsPage() {
   return (
     <div className="space-y-6 pb-12 w-full">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-            <Star className="size-6 text-amber-500 fill-amber-500" /> Reviews & Reputation Engine
+          <h1 className="font-display text-2xl font-bold flex items-center gap-2 text-foreground">
+            <Star className="size-5 text-amber-500 fill-amber-500" /> Reviews &amp; Reputation
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Google-compliant patient review collection, AI auto-response & negative feedback
-            recovery.
+            Collect Google reviews, AI auto-response, and offline negative feedback recovery.
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {shareUrl && (
             <Button
               size="sm"
               variant="outline"
               onClick={() => setShowQrModal(true)}
-              className="h-9 text-xs rounded-xl gap-1.5 border-border/60"
+              className="h-8 text-xs rounded-xl gap-1.5 border-border/80 flex-1 sm:flex-initial"
             >
-              <Printer className="size-3.5" /> Printable QR Standee
+              <Printer className="size-3.5" /> Standee QR
             </Button>
           )}
           <Button
             size="sm"
             onClick={() => setShowSendWaModal(true)}
-            className="h-9 text-xs font-semibold rounded-xl gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+            className="h-8 text-xs font-semibold rounded-xl gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial shadow-xs"
           >
-            <MessageSquare className="size-3.5" /> Send Review Request
+            <MessageSquare className="size-3.5" /> Send Request
           </Button>
         </div>
       </div>
 
-      {/* Google Policy Compliance Shield Banner */}
-      <div className="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 flex items-start gap-3">
-        <div className="size-8 rounded-xl bg-emerald-500/20 text-emerald-600 grid place-items-center shrink-0 mt-0.5">
-          <ShieldCheck className="size-5" />
+      {/* Policy Compliance & Direct Link Bar */}
+      <div className="p-3 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-2xl flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300">
+          <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
+          <span className="font-semibold">Google &amp; Practo Policy Safe:</span>
+          <span className="text-muted-foreground hidden sm:inline">Critical alerts trigger offline before posting</span>
         </div>
-        <div className="space-y-1 text-xs text-emerald-900 dark:text-emerald-300">
-          <div className="font-bold flex items-center gap-1.5">
-            <span>Google Business Profile Policy Compliant Strategy Active</span>
-            <Badge
-              variant="outline"
-              className="text-[9px] bg-emerald-500/20 text-emerald-700 border-0"
-            >
-              100% Policy Safe
-            </Badge>
-          </div>
-          <p className="leading-relaxed">
-            All patients receive direct Google & Practo review links (no review gating violations).
-            Low ratings (&lt;3★) automatically trigger an{" "}
-            <b>Instant Staff Emergency Recovery Alert</b> to resolve patient concerns offline before
-            public posting!
-          </p>
-        </div>
+        {shareUrl && (
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(shareUrl);
+              toast.success("Review link copied to clipboard!");
+            }}
+            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 bg-background/80 px-2.5 py-1 rounded-lg border border-border/60"
+          >
+            <Copy className="size-3 text-muted-foreground" /> Copy Review Link
+          </button>
+        )}
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatsCard
-          title="Total Reviews"
-          value={stats.total}
-          icon={<MessageSquare className="size-4" />}
-        />
-        <StatsCard title="Avg Rating" value={stats.avg} icon={<Star className="size-4" />} />
-        <StatsCard
-          title="Verified Patients"
-          value={stats.verifiedCount}
-          icon={<ShieldCheck className="size-4 text-emerald-500" />}
-        />
-        <StatsCard title="Pending Review" value={stats.pending} />
-        <StatsCard
-          title="Urgent Recovery (<3★)"
-          value={stats.critical}
-          icon={<AlertTriangle className="size-4 text-rose-500" />}
-        />
+      {/* Compact 4-KPI Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Total Reviews</p>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="font-display text-xl sm:text-2xl font-bold text-foreground">{stats.total}</span>
+            <span className="text-[10px] text-muted-foreground">all-time</span>
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Avg Rating</p>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="font-display text-xl sm:text-2xl font-bold text-amber-500">⭐ {stats.avg}</span>
+            <span className="text-[10px] text-muted-foreground">/ 5.0</span>
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Verified Patients</p>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.verifiedCount}</span>
+            <span className="text-[10px] text-muted-foreground">checked</span>
+          </div>
+        </Card>
+
+        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Urgent Recovery</p>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="font-display text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.critical}</span>
+            <span className="text-[10px] text-muted-foreground">(&lt;3★)</span>
+          </div>
+        </Card>
       </div>
 
       {/* Share Links & Multi-Platform Configuration */}
