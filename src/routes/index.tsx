@@ -670,12 +670,14 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
               out of your dashboard and off your public website.
             </p>
           </div>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {MODULES.map((m) => (
-              <div key={m.name} className="bg-surface p-6">
-                <m.icon className="size-5 text-primary" />
-                <h3 className="mt-4 text-sm font-semibold">{m.name}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{m.desc}</p>
+              <div key={m.name} className="bg-surface p-5 sm:p-6 rounded-2xl border border-border/80 hover:border-primary/40 transition-colors">
+                <div className="size-9 rounded-xl bg-primary/10 text-primary grid place-items-center">
+                  <m.icon className="size-4" />
+                </div>
+                <h3 className="mt-3.5 text-sm font-bold text-foreground">{m.name}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{m.desc}</p>
               </div>
             ))}
           </div>
@@ -690,7 +692,7 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
         <h2 className="mt-4 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
           Live before your next patient
         </h2>
-        <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             {
               n: "01",
@@ -699,51 +701,54 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             },
             {
               n: "02",
-              t: "Pick a template",
-              d: "Your website goes live on a ClinicX link or your own domain with booking wired up.",
+              t: "Choose your design",
+              d: "Pick from medical presets tailored to your specialty. Colors, layout and copy are pre-filled.",
             },
             {
               n: "03",
-              t: "Connect WhatsApp",
-              d: "Scan once. Alerts, confirmations, follow-ups and review requests run themselves.",
+              t: "Connect your number",
+              d: "Scan a QR code to link WhatsApp. The bot handles confirmations, follow-ups and review requests.",
             },
           ].map((s) => (
-            <div key={s.n} className="bg-surface p-8">
-              <span className="font-mono text-xs text-muted-foreground">{s.n}</span>
-              <h3 className="mt-4 font-display text-lg font-semibold">{s.t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.d}</p>
+            <div key={s.n} className="bg-surface p-6 sm:p-7 rounded-2xl border border-border/80">
+              <span className="font-mono text-xs font-semibold text-primary">{s.n}</span>
+              <h3 className="mt-4 font-display text-base font-bold text-foreground">{s.t}</h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="border-y border-border/60 bg-muted/20 scroll-mt-24">
-        <div className="max-w-6xl mx-auto px-6 py-24 sm:py-28">
+      <section id="pricing" className="border-t border-border/60 bg-muted/20 py-24 sm:py-28">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-              Pricing
+              Fair & transparent pricing
             </p>
             <h2 className="mt-4 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-              Simple plans, no per-patient fees
+              Simple plans for single & multi-doctor clinics
             </h2>
-            <div className="mt-8 inline-flex items-center gap-1 rounded-xl border border-border bg-surface p-1 text-xs font-medium">
-              {[
-                { k: false, label: "Monthly" },
-                { k: true, label: "Yearly" },
-              ].map((o) => (
-                <button
-                  key={o.label}
-                  onClick={() => setYearly(o.k)}
-                  className={`rounded-lg px-4 py-2 transition-colors ${
-                    yearly === o.k
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
+            <p className="mt-3 text-xs sm:text-sm text-muted-foreground">
+              All plans include 14-day free trial, free SSL, custom domain support & zero commission on patient bookings.
+            </p>
+            <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-border bg-surface p-1 text-xs">
+              <button
+                onClick={() => setYearly(false)}
+                className={`rounded-full px-4 py-1.5 font-medium transition ${
+                  !yearly ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setYearly(true)}
+                className={`rounded-full px-4 py-1.5 font-medium transition flex items-center gap-1.5 ${
+                  yearly ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground"
+                }`}
+              >
+                Annual <span className="text-[10px] text-emerald-500 font-bold">Save 20%</span>
+              </button>
             </div>
           </div>
 
