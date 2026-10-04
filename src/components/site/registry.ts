@@ -11,6 +11,7 @@ import { CtaVariants, CtaMeta } from "./cta";
 import { ContactVariants, ContactMeta } from "./contact";
 import { FooterVariants, FooterMeta } from "./footer";
 import type { SectionKey, SectionVariants } from "./types";
+import { allTemplates } from "@/features/website-builder/data/templatesData";
 
 type AnyVariants = Record<string, React.ComponentType<any>>;
 
@@ -161,7 +162,10 @@ export function resolveVariants(
   template: string | null,
   overrides: SectionVariants | null | undefined,
 ): Required<SectionVariants> {
-  const tpl = Templates.find((t) => t.id === template) ?? Templates[0];
+  const tpl =
+    allTemplates.find((t) => t.id === template) ??
+    Templates.find((t) => t.id === template) ??
+    Templates[0];
   return { ...tpl.variants, ...(overrides ?? {}) };
 }
 

@@ -389,16 +389,43 @@ export function WebsiteBuilderProvider({
     [patch, state.design_tokens],
   );
 
-  // Apply Template Preset
+  // Apply Template Preset with complete layout structure & design tokens
   const applyTemplatePreset = useCallback(
-    (templateId: string, variants: Required<SectionVariants>) => {
-      patch({
-        template: templateId,
-        section_variants: variants,
-      });
-      toast.success(`Template "${templateId}" applied successfully!`);
+    (tpl: MarketplaceTemplate | { id: string; variants: Required<SectionVariants> }) => {
+      const isFull = "category" in tpl;
+      const updates: Partial<EditorState> = {
+        template: tpl.id,
+        section_variants: tpl.variants,
+      };
+      if (isFull) {
+        const fullTpl = tpl as MarketplaceTemplate;
+        if (fullTpl.colorPreset) {
+          updates.theme_color = fullTpl.colorPreset.primary;
+          updates.design_tokens = {
+            ...state.design_tokens,
+            primaryColor: fullTpl.colorPreset.primary,
+            secondaryColor: fullTpl.colorPreset.secondary,
+            accentColor: fullTpl.colorPreset.accent,
+            ...(fullTpl.designTokensPreset || {}),
+          };
+        }
+        if (fullTpl.sectionOrderPreset && fullTpl.sectionOrderPreset.length > 0) {
+          updates.section_order = fullTpl.sectionOrderPreset;
+        }
+        if (fullTpl.headlinePreset) {
+          updates.hero_headline = fullTpl.headlinePreset;
+        }
+        if (fullTpl.subheadlinePreset) {
+          updates.hero_subheadline = fullTpl.subheadlinePreset;
+        }
+      }
+      patch(updates);
+      toast.success(
+        `Applied "${"name" in tpl ? tpl.name : tpl.id}" layout!`,
+        { description: "Website structure, typography, and section styling updated." }
+      );
     },
-    [patch],
+    [patch, state.design_tokens],
   );
 
   // Keyboard Shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Shift+Z)

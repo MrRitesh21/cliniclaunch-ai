@@ -1,5 +1,4 @@
 import type { MarketplaceTemplate, TemplateCategory } from "../types";
-import { Templates as RegistryTemplates } from "@/components/site/registry";
 
 export const categories: { id: TemplateCategory; label: string }[] = [
   { id: "all", label: "All Specialty Templates" },

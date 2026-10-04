@@ -27,8 +27,7 @@ export function TemplatesView() {
   });
 
   function handleApply(tpl: MarketplaceTemplate) {
-    applyTemplatePreset(tpl.id, tpl.variants);
-    applyThemePreset(tpl.id, tpl.colorPreset.primary);
+    applyTemplatePreset(tpl);
   }
 
   // Count templates per category

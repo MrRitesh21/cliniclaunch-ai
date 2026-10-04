@@ -138,4 +138,8 @@ export type MarketplaceTemplate = {
     secondary: string;
     accent: string;
   };
+  headlinePreset?: string;
+  subheadlinePreset?: string;
+  sectionOrderPreset?: SectionKey[];
+  designTokensPreset?: Partial<DesignTokens>;
 };
