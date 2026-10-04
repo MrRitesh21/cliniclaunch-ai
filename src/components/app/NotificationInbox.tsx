@@ -455,19 +455,8 @@ export function NotificationInbox() {
         {/* Detail View Drawer */}
         <Sheet open={!!detailItem} onOpenChange={(o) => !o && setDetailItem(null)}>
           <SheetContent side="right" className="w-full sm:max-w-sm p-0 flex flex-col">
-            <SheetHeader className="px-4 py-4 border-b">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDetailItem(null)}
-                  aria-label="Back"
-                >
-                  <X className="size-4" />
-                </Button>
-                <SheetTitle className="text-base font-semibold">Details</SheetTitle>
-                <div className="w-10" /> {/* spacer */}
-              </div>
+            <SheetHeader className="px-5 py-4 border-b pr-12">
+              <SheetTitle className="text-base font-bold text-left">Notification Details</SheetTitle>
             </SheetHeader>
 
             {detailItem && (
