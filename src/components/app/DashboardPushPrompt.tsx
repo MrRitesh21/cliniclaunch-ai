@@ -8,14 +8,27 @@ export function DashboardPushPrompt() {
   const push = usePushNotifications();
   const [dismissed, setDismissed] = useState(false);
 
-  // If dismissed, already subscribed, or not supported/configured, hide banner
-  if (dismissed || push.subscribed || !push.supported || push.permission === "denied") {
+  // If dismissed, already subscribed, permission granted/denied, or not supported, hide banner
+  const isPermissionGranted = typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+  const isLocallySaved = typeof window !== "undefined" && localStorage.getItem("clinicx_push_enabled") === "true";
+
+  if (
+    dismissed ||
+    push.subscribed ||
+    isPermissionGranted ||
+    isLocallySaved ||
+    !push.supported ||
+    push.permission === "denied"
+  ) {
     return null;
   }
 
   const handleEnable = async () => {
     const res = await push.enable();
     if (res.ok) {
+      try {
+        localStorage.setItem("clinicx_push_enabled", "true");
+      } catch {}
       toast.success("🔔 Instant push notifications enabled!");
       return;
     }
