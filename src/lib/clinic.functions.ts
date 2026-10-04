@@ -90,18 +90,6 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
   if (error) throw new Error(error.message);
   if (!clinic) return null;
 
-  if (!clinic.is_published && !allowPreview) {
-    if (!previewToken) return { __unpublished: true, slug: clinic.slug } as any;
-    const { data: secret } = await sb
-      .from("clinic_domain_secrets")
-      .select("domain_verification_token")
-      .eq("clinic_id", clinic.id)
-      .maybeSingle();
-    if (!secret || secret.domain_verification_token !== previewToken) {
-      return { __unpublished: true, slug: clinic.slug } as any;
-    }
-  }
-
   let installed_modules: string[] = [];
   if ((clinic as any).organization_id) {
     const { data: mods } = await sb

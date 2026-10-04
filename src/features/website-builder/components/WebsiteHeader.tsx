@@ -1,7 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { useWebsiteBuilder } from "../context/WebsiteBuilderContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Monitor,
   Tablet,
@@ -15,6 +23,7 @@ import {
   Loader2,
   Sparkles,
   Check,
+  Rocket,
 } from "lucide-react";
 import type { DeviceMode } from "../types";
 
@@ -40,7 +49,14 @@ export function WebsiteHeader() {
     setIsFloatingAIOpen,
   } = useWebsiteBuilder();
 
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
   const publicUrl = `/c/${clinic?.slug}`;
+
+  const handleConfirmPublish = async () => {
+    setShowPublishDialog(false);
+    await save();
+    await togglePublish(true);
+  };
 
   return (
     <header className="h-16 border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-30 px-4 flex items-center justify-between gap-3 shadow-xs">
@@ -180,25 +196,69 @@ export function WebsiteHeader() {
         {/* Publish Toggle */}
         <Button
           size="sm"
-          variant={isPublished ? "outline" : "default"}
+          variant={isPublished && !dirty ? "outline" : "default"}
           disabled={publishing}
-          onClick={() => void togglePublish(!isPublished)}
+          onClick={() => {
+            if (!isPublished || dirty) {
+              setShowPublishDialog(true);
+            } else {
+              void togglePublish(false);
+            }
+          }}
           className={`h-9 px-4 text-xs font-semibold rounded-xl gap-1.5 transition-all ${
-            isPublished
+            isPublished && !dirty
               ? "border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
               : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
           }`}
         >
           {publishing ? (
             <Loader2 className="size-3.5 animate-spin" />
-          ) : isPublished ? (
+          ) : isPublished && !dirty ? (
             <Check className="size-3.5 text-emerald-600" />
           ) : (
             <Globe className="size-3.5" />
           )}
-          <span>{publishing ? "Updating…" : isPublished ? "Published" : "Publish Site"}</span>
+          <span>{publishing ? "Updating…" : isPublished && !dirty ? "Live on Web" : isPublished && dirty ? "Publish Edits" : "Publish Site"}</span>
         </Button>
       </div>
+
+      {/* Confirmation Dialog before publishing to production */}
+      <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-600 grid place-items-center mb-2">
+              <Rocket className="size-5" />
+            </div>
+            <DialogTitle className="text-lg font-bold">Publish to Live Website?</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              This will publish your latest theme, colors, and layout customizations directly to your public clinic website at <strong className="text-foreground">{clinic?.clinic_name}</strong> (<code className="text-[11px] bg-muted px-1.5 py-0.5 rounded">/c/{clinic?.slug}</code>).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-3 bg-muted/40 rounded-xl border border-border/60 text-xs space-y-1.5">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Theme Color:</span>
+              <span className="font-mono text-foreground font-semibold">{clinic?.theme_color || "#2563eb"}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Template Style:</span>
+              <span className="capitalize text-foreground font-semibold">{clinic?.template || "Classic"}</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" size="sm" onClick={() => setShowPublishDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1.5"
+              onClick={handleConfirmPublish}
+            >
+              <Globe className="size-3.5" />
+              <span>Confirm & Publish</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

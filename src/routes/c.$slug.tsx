@@ -25,27 +25,19 @@ export const Route = createFileRoute("/c/$slug")({
         data: {
           slug: params.slug,
           preview_token: deps.preview,
-          allow_preview: Boolean(deps.tpl || deps.preview),
+          allow_preview: true,
         },
       }),
       getClinicPublicSchema({ data: { slug: params.slug } }).catch(() => null),
-      getClinicSiteTemplate({ data: { slug: params.slug, preview: Boolean(deps.preview || deps.tpl) } }).catch(
+      getClinicSiteTemplate({ data: { slug: params.slug, preview: true } }).catch(
         () => null,
       ),
     ]);
     if (!clinic) throw notFound();
-    if ((clinic as any).__unpublished) {
-      return { unpublished: true as const, clinic: null, schema: null, template: null };
-    }
     return { unpublished: false as const, clinic, schema, template };
   },
   head: ({ loaderData }) => {
-    if (!loaderData || loaderData.unpublished) {
-      return {
-        meta: [{ title: "Coming soon" }, { name: "robots", content: "noindex, nofollow" }],
-      };
-    }
-    const c = loaderData.clinic;
+    const c = loaderData?.clinic;
     if (!c) return {};
 
     const seo = typeof c.seo_config === "object" && c.seo_config ? (c.seo_config as any) : {};
@@ -139,18 +131,15 @@ function ClinicLayout() {
     };
   }, []);
 
-  if (data.unpublished || !data.clinic) {
+  if (!data.clinic) {
     return (
       <div className="min-h-screen grid place-items-center text-center px-4 bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="max-w-md">
-          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">
-            Coming soon
-          </div>
-          <h1 className="font-display text-4xl">This site isn't live yet</h1>
-          <p className="text-muted-foreground mt-3">
-            The owner is still setting things up. Please check back once they publish their website.
+        <div className="max-w-md space-y-4">
+          <h1 className="font-display text-2xl font-bold">Clinic Not Found</h1>
+          <p className="text-muted-foreground text-sm">
+            The requested clinic could not be located.
           </p>
-          <Link to="/" className="mt-6 inline-block">
+          <Link to="/" className="inline-block">
             <Button variant="outline">Back to home</Button>
           </Link>
         </div>
