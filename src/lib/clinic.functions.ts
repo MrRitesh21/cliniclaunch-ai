@@ -288,6 +288,31 @@ export const submitPublicReview = createServerFn({ method: "POST" })
       } catch {}
     }
 
+    // High-signal push notification to clinic owner
+    try {
+      const { data: clinicRow } = await sb
+        .from("clinics")
+        .select("owner_id, doctor_name")
+        .eq("organization_id", data.organization_id)
+        .maybeSingle();
+
+      if (clinicRow?.owner_id) {
+        const { sendPushToUser } = await import("./web-push.server");
+        const isUrgent = data.rating < 3;
+        await sendPushToUser(clinicRow.owner_id, {
+          title: isUrgent ? `⚠️ Urgent Feedback: ${data.rating}★ from ${data.reviewer_name}` : `⭐ New Review: ${data.rating}★ from ${data.reviewer_name}`,
+          body: data.comment ? `"${data.comment.slice(0, 80)}"` : `Patient submitted a ${data.rating}-star rating`,
+          icon: "/icon-512.png",
+          badge: "/icon-512.png",
+          url: "/dashboard/reviews",
+          tag: `review-${data.reviewer_name.slice(0, 10)}`,
+        }, {
+          category: "review",
+          inbox: true,
+        }).catch(() => {});
+      }
+    } catch {}
+
     return { ok: true, isVerified };
   });
 
@@ -709,6 +734,30 @@ export const createBooking = createServerFn({ method: "POST" })
             time, date,
           },
         });
+      }
+
+      // Web Push Alert directly to Doctor's Phone / Devices
+      if (clinicRow?.organization_id) {
+        const { data: clinicOwner } = await sb
+          .from("clinics")
+          .select("owner_id")
+          .eq("id", data.clinic_id)
+          .maybeSingle();
+
+        if (clinicOwner?.owner_id) {
+          const { sendPushToUser } = await import("./web-push.server");
+          await sendPushToUser(clinicOwner.owner_id, {
+            title: isWalkin ? `🏥 Walk-in Check-in: ${data.patient_name}` : `📅 New Booking: ${data.patient_name}`,
+            body: `${data.appointment_type === "online" ? "Video Consultation" : "In-Clinic"} · ${date} at ${time}${data.problem ? ` · ${data.problem.slice(0, 50)}` : ""}`,
+            icon: "/icon-512.png",
+            badge: "/icon-512.png",
+            url: `/dashboard/appointments`,
+            tag: `appt-${appt.id}`,
+          }, {
+            category: "booking",
+            inbox: true,
+          }).catch(() => {});
+        }
       }
     } catch { /* swallow */ }
 
