@@ -351,10 +351,13 @@ function ConsultPage() {
     load();
   }
 
-  // Print Summary PDF slip function
+  // Print Summary PDF slip function with mobile close/back navigation
   function printConsultation(c: Consultation) {
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    if (!printWindow) {
+      window.print();
+      return;
+    }
 
     let bmiStr = "";
     const w = parseFloat(c.weight ?? "");
@@ -366,114 +369,132 @@ function ConsultPage() {
     }
 
     printWindow.document.write(`
-      <html>
+      <!DOCTYPE html>
+      <html lang="en">
         <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
           <title>Clinical Summary - ${escapeHtml(c.patient_name)}</title>
           <style>
-            body { font-family: system-ui, -apple-system, sans-serif; color: #1f2937; margin: 40px; line-height: 1.6; }
+            * { box-sizing: border-box; }
+            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2937; margin: 0; padding: 0; background: #f8fafc; line-height: 1.5; }
+            .no-print { position: sticky; top: 0; z-index: 100; background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+            .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; text-decoration: none; transition: all 0.15s ease; }
+            .btn-back { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+            .btn-back:hover { background: #e2e8f0; }
+            .btn-print { background: #2563eb; color: #ffffff; }
+            .btn-print:hover { background: #1d4ed8; }
+            .paper { max-width: 800px; margin: 24px auto; background: #ffffff; padding: 40px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
             .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 25px; }
-            .clinic-title { font-size: 26px; font-weight: bold; color: #1e3a8a; }
-            .doc-subtitle { font-size: 13px; color: #6b7280; margin-top: 5px; text-transform: uppercase; tracking-wider: 1px; }
-            .meta-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 12px; margin-bottom: 30px; font-size: 14px; background: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px; }
-            .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #1e3a8a; border-bottom: 1.5px solid #2563eb; padding-bottom: 5px; margin-top: 25px; margin-bottom: 10px; }
-            .vitals-bar { display: flex; flex-wrap: wrap; gap: 15px; background: #f0f7ff; border: 1px solid #bfdbfe; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; }
+            .clinic-title { font-size: 24px; font-weight: 800; color: #1e3a8a; }
+            .doc-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 10px; }
+            .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #1e3a8a; border-bottom: 1.5px solid #2563eb; padding-bottom: 4px; margin-top: 20px; margin-bottom: 10px; letter-spacing: 0.5px; }
+            .vitals-bar { display: flex; flex-wrap: wrap; gap: 10px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 14px; border-radius: 10px; margin-bottom: 18px; }
             .vitals-item { flex: 1; min-width: 80px; text-align: center; border-right: 1px solid #bfdbfe; }
             .vitals-item:last-child { border-right: none; }
-            .vitals-label { color: #4b5563; font-size: 11px; font-weight: 500; text-transform: uppercase; }
-            .vitals-val { font-size: 15px; font-weight: bold; color: #1d4ed8; margin-top: 2px; }
-            .content-block { font-size: 14px; margin-bottom: 20px; white-space: pre-wrap; color: #374151; }
-            .footer { margin-top: 90px; display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+            .vitals-label { color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+            .vitals-val { font-size: 14px; font-weight: 800; color: #1d4ed8; margin-top: 2px; }
+            .content-block { font-size: 13px; margin-bottom: 16px; white-space: pre-wrap; color: #334155; line-height: 1.6; }
+            .rx-box { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; line-height: 1.7; }
+            .footer { margin-top: 60px; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; align-items: flex-end; }
             .sig-area { text-align: center; }
-            .sig-line { border-top: 1.5px dashed #9ca3af; width: 220px; margin-top: 50px; text-align: center; padding-top: 5px; font-weight: 500; color: #4b5563; }
+            .sig-line { border-top: 1.5px dashed #94a3b8; width: 200px; margin-top: 40px; text-align: center; padding-top: 6px; font-weight: 600; color: #475569; font-size: 11px; }
+            
             @media print {
-              body { margin: 20px; }
-              button { display: none; }
+              body { background: #ffffff; padding: 0; }
+              .no-print { display: none !important; }
+              .paper { border: none; box-shadow: none; padding: 0; margin: 0; max-width: 100%; }
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="clinic-title">${escapeHtml(org?.name ?? "Medical Clinic")}</div>
-            <div class="doc-subtitle">Clinical Consultation Record</div>
-          </div>
-          
-          <div class="meta-grid">
-            <div><strong>Patient Name:</strong> ${escapeHtml(c.patient_name)}</div>
-            <div><strong>Consultation Date:</strong> ${new Date(c.created_at).toLocaleString()}</div>
-            <div><strong>Record ID:</strong> ${escapeHtml(c.id.slice(0, 8).toUpperCase())}</div>
-            <div><strong>Follow-up Date:</strong> ${c.follow_up_date ? new Date(c.follow_up_date).toLocaleDateString() : "None scheduled"}</div>
+          <div class="no-print">
+            <button class="btn btn-back" onclick="if(window.opener || window.history.length > 1){ window.close(); history.back(); } else { location.href='/dashboard/consult'; }">
+              ← Back to Dashboard
+            </button>
+            <button class="btn btn-print" onclick="window.print()">
+              🖨️ Print / Save PDF
+            </button>
           </div>
 
-          ${
-            c.bp || c.pulse || c.temperature || c.weight || c.height
-              ? `
-          <div class="section-title">Patient Vitals & Measurements</div>
-          <div class="vitals-bar">
-            ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${escapeHtml(c.bp)} mmHg</div></div>` : ""}
-            ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${escapeHtml(c.pulse)} bpm</div></div>` : ""}
-            ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${escapeHtml(c.temperature)} °F</div></div>` : ""}
-            ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${escapeHtml(c.weight)} kg</div></div>` : ""}
-            ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${escapeHtml(c.height)} cm</div></div>` : ""}
-            ${bmiStr ? `<div class="vitals-item"><div class="vitals-label">BMI</div><div class="vitals-val">${bmiStr}</div></div>` : ""}
-          </div>
-          `
-              : ""
-          }
+          <div class="paper">
+            <div class="header">
+              <div class="clinic-title">${escapeHtml(org?.name ?? "Medical Clinic")}</div>
+              <div class="doc-subtitle">Clinical Consultation Record &amp; Prescription</div>
+            </div>
+            
+            <div class="meta-grid">
+              <div><strong>Patient Name:</strong> ${escapeHtml(c.patient_name)}</div>
+              <div><strong>Date:</strong> ${new Date(c.created_at).toLocaleDateString()}</div>
+              <div><strong>Record ID:</strong> ${escapeHtml(c.id.slice(0, 8).toUpperCase())}</div>
+              <div><strong>Follow-up:</strong> ${c.follow_up_date ? new Date(c.follow_up_date).toLocaleDateString() : "SOS / As needed"}</div>
+            </div>
 
-          ${
-            c.chief_complaint
-              ? `
-          <div class="section-title">Chief Complaint</div>
-          <div class="content-block">${escapeHtml(c.chief_complaint)}</div>
-          `
-              : ""
-          }
+            ${
+              c.bp || c.pulse || c.temperature || c.weight || c.height
+                ? `
+            <div class="section-title">Patient Vitals</div>
+            <div class="vitals-bar">
+              ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${escapeHtml(c.bp)}</div></div>` : ""}
+              ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${escapeHtml(c.pulse)} bpm</div></div>` : ""}
+              ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${escapeHtml(c.temperature)} °F</div></div>` : ""}
+              ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${escapeHtml(c.weight)} kg</div></div>` : ""}
+              ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${escapeHtml(c.height)} cm</div></div>` : ""}
+              ${bmiStr ? `<div class="vitals-item"><div class="vitals-label">BMI</div><div class="vitals-val">${bmiStr}</div></div>` : ""}
+            </div>
+            `
+                : ""
+            }
 
-          ${
-            c.history
-              ? `
-          <div class="section-title">Medical History</div>
-          <div class="content-block">${escapeHtml(c.history)}</div>
-          `
-              : ""
-          }
+            ${
+              c.chief_complaint
+                ? `
+            <div class="section-title">Chief Complaint</div>
+            <div class="content-block">${escapeHtml(c.chief_complaint)}</div>
+            `
+                : ""
+            }
 
-          ${
-            c.examination
-              ? `
-          <div class="section-title">Clinical Examination Findings</div>
-          <div class="content-block">${escapeHtml(c.examination)}</div>
-          `
-              : ""
-          }
+            ${
+              c.diagnosis
+                ? `
+            <div class="section-title">Diagnosis</div>
+            <div class="content-block" style="font-weight: 700; font-size: 15px; color: #1e3a8a;">${escapeHtml(c.diagnosis)}</div>
+            `
+                : ""
+            }
 
-          ${
-            c.diagnosis
-              ? `
-          <div class="section-title">Diagnosis</div>
-          <div class="content-block" style="font-weight: 600; font-size: 16px; color: #1e3a8a;">${escapeHtml(c.diagnosis)}</div>
-          `
-              : ""
-          }
+            ${
+              c.treatment_plan
+                ? `
+            <div class="section-title">Prescription (Rx) &amp; Instructions</div>
+            <div class="rx-box">${escapeHtml(c.treatment_plan)}</div>
+            `
+                : ""
+            }
 
-          ${
-            c.treatment_plan
-              ? `
-          <div class="section-title">Treatment Plan & Recommendations</div>
-          <div class="content-block">${escapeHtml(c.treatment_plan)}</div>
-          `
-              : ""
-          }
+            ${
+              c.examination
+                ? `
+            <div class="section-title">Clinical Notes</div>
+            <div class="content-block">${escapeHtml(c.examination)}</div>
+            `
+                : ""
+            }
 
-          <div class="footer">
-            <div>ClinicX Clinical Platform Summary</div>
-            <div class="sig-area">
-              <div class="sig-line">Doctor Signature & Stamp</div>
+            <div class="footer">
+              <div>ClinicX Practice Management System</div>
+              <div class="sig-area">
+                <div class="sig-line">Doctor Signature &amp; Stamp</div>
+              </div>
             </div>
           </div>
-          
+
           <script>
-            window.onload = function() { window.print(); }
+            setTimeout(function() {
+              window.print();
+            }, 300);
           </script>
         </body>
       </html>
