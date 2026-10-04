@@ -212,13 +212,13 @@ export function TemplatesView() {
           }}
         >
           <DialogContent
-            className={`transition-all duration-300 flex flex-col p-3 sm:p-5 ${
+            className={`transition-all duration-300 flex flex-col ${
               isFullscreen
-                ? "fixed inset-0 z-50 max-w-none w-screen h-screen rounded-none m-0 border-0"
-                : "max-w-5xl max-h-[94vh] rounded-2xl"
+                ? "!fixed !inset-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !m-0 !border-0 !p-3 sm:!p-5"
+                : "max-w-5xl max-h-[94vh] rounded-2xl p-3 sm:p-5"
             }`}
           >
-            <DialogHeader className="flex flex-row items-center justify-between shrink-0 pb-2 border-b">
+            <DialogHeader className="flex flex-row items-center justify-between shrink-0 pb-2 border-b pr-8 sm:pr-10">
               <div className="min-w-0 pr-2">
                 <DialogTitle className="text-sm sm:text-base font-bold flex items-center gap-2 truncate">
                   <span className="truncate">{previewTemplate.name}</span>
