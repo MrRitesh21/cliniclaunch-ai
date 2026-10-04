@@ -105,17 +105,10 @@ function MobileMenu({ clinic, pathname }: Props) {
         </button>
       </SheetTrigger>
       <SheetContent side="right" className="w-[86vw] max-w-sm p-0 flex flex-col">
-        <div className="h-16 px-4 border-b flex items-center justify-between">
+        <div className="h-16 pl-4 pr-12 border-b flex items-center justify-between">
           <Logo clinic={clinic} compact />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center">
             <PublicThemeToggle />
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close menu"
-              className="size-9 grid place-items-center rounded-lg hover:bg-accent"
-            >
-              <X className="size-5" />
-            </button>
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-2">
