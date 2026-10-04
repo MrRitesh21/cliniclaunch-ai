@@ -119,30 +119,40 @@ function AppointmentsPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinic?.id) return;
+    const cleanName = apptName.trim();
+    const cleanPhone = apptPhone.trim();
+    if (!cleanName || !cleanPhone) {
+      toast.error("Please enter patient name and phone number");
+      return;
+    }
     setLoading(true);
 
     try {
       const scheduledDate = new Date(apptScheduledAt);
+      const cleanAge = apptAge.trim() ? Math.min(130, Math.max(0, parseInt(apptAge.trim(), 10))) : null;
+      const cleanDoctorId = apptDoctorId && apptDoctorId.trim().length === 36 ? apptDoctorId.trim() : null;
+
       const res = await bookingFn({
         data: {
           clinic_id: clinic.id,
-          patient_name: apptName,
-          patient_phone: apptPhone,
-          patient_email: apptEmail,
-          patient_age: apptAge ? Number(apptAge) : null,
+          patient_name: cleanName,
+          patient_phone: cleanPhone,
+          patient_email: apptEmail.trim(),
+          patient_age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
           patient_gender: apptGender || null,
-          problem: apptProblem || "No description provided",
+          problem: apptProblem.trim() || "Consultation appointment",
           scheduled_at: scheduledDate.toISOString(),
           appointment_type: apptType,
           source: "booking",
-          doctor_id: apptDoctorId || null,
+          doctor_id: cleanDoctorId,
         },
       });
 
       if (res?.id && apptFee) {
+        const feeNum = Math.max(0, Number(apptFee) || 0);
         await supabase
           .from("appointments")
-          .update({ consultation_fee: Number(apptFee) || 0 } as never)
+          .update({ consultation_fee: feeNum } as never)
           .eq("id", res.id);
       }
 
