@@ -65,20 +65,21 @@ export const getClinicBySlug = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z.object({
       slug: z.string().min(1).max(100),
-      preview_token: z.string().min(8).max(128).optional(),
+      preview_token: z.string().max(128).optional(),
+      allow_preview: z.boolean().optional(),
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    // Skip Redis cache for preview token requests
-    if (data.preview_token) {
-      return fetchClinicData(data.slug, data.preview_token);
+    // Skip Redis cache for preview requests or template preview
+    if (data.preview_token || data.allow_preview) {
+      return fetchClinicData(data.slug, data.preview_token, data.allow_preview);
     }
 
     // Cache published clinic data for 300 seconds (5 minutes)
     return redisCache.getOrSet(`clinic:slug:${data.slug}`, () => fetchClinicData(data.slug), 300);
   });
 
-async function fetchClinicData(slug: string, previewToken?: string) {
+async function fetchClinicData(slug: string, previewToken?: string, allowPreview = false) {
   const sb = await adminClient();
   // Project only public-safe columns. NEVER expose personal_phone / personal_email.
   const { data: clinic, error } = await sb
@@ -89,7 +90,7 @@ async function fetchClinicData(slug: string, previewToken?: string) {
   if (error) throw new Error(error.message);
   if (!clinic) return null;
 
-  if (!clinic.is_published) {
+  if (!clinic.is_published && !allowPreview) {
     if (!previewToken) return { __unpublished: true, slug: clinic.slug } as any;
     const { data: secret } = await sb
       .from("clinic_domain_secrets")

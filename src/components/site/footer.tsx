@@ -29,14 +29,12 @@ function PoweredByBadge({ clinic }: { clinic: SiteClinic }) {
     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs text-foreground/80 font-medium select-none shadow-2xs hover:bg-primary/15 transition-all">
       <span className="size-1.5 rounded-full bg-primary animate-pulse" />
       <span>Powered by</span>
-      <a
-        href="https://agency.digiwil.com"
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        to="/"
         className="font-bold text-primary hover:underline"
       >
-        DigiWil
-      </a>
+        ClinicX
+      </Link>
     </div>
   );
 }

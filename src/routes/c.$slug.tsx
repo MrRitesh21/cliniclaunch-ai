@@ -18,12 +18,18 @@ export const Route = createFileRoute("/c/$slug")({
     tc: typeof s.tc === "string" ? s.tc : undefined,
   }),
 
-  loaderDeps: ({ search }) => ({ preview: search.preview }),
+  loaderDeps: ({ search }) => ({ preview: search.preview, tpl: search.tpl }),
   loader: async ({ params, deps }) => {
     const [clinic, schema, template] = await Promise.all([
-      getClinicBySlug({ data: { slug: params.slug, preview_token: deps.preview } }),
+      getClinicBySlug({
+        data: {
+          slug: params.slug,
+          preview_token: deps.preview,
+          allow_preview: Boolean(deps.tpl || deps.preview),
+        },
+      }),
       getClinicPublicSchema({ data: { slug: params.slug } }).catch(() => null),
-      getClinicSiteTemplate({ data: { slug: params.slug, preview: Boolean(deps.preview) } }).catch(
+      getClinicSiteTemplate({ data: { slug: params.slug, preview: Boolean(deps.preview || deps.tpl) } }).catch(
         () => null,
       ),
     ]);

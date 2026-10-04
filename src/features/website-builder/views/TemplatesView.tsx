@@ -11,7 +11,7 @@ import { allTemplates, categories } from "../data/templatesData";
 import { TemplateLivePreview } from "../components/TemplateLivePreview";
 
 export function TemplatesView() {
-  const { state, applyTemplatePreset, applyThemePreset, clinic } = useWebsiteBuilder();
+  const { state, applyTemplatePreset, applyThemePreset, clinic, previewToken } = useWebsiteBuilder();
   const [selectedCat, setSelectedCat] = useState<TemplateCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewTemplate, setPreviewTemplate] = useState<MarketplaceTemplate | null>(null);
@@ -265,7 +265,7 @@ export function TemplatesView() {
               >
                 <iframe
                   key={previewTemplate.id}
-                  src={`/c/${clinic?.slug}?tpl=${encodeURIComponent(previewTemplate.id)}&tc=${encodeURIComponent(previewTemplate.colorPreset.primary)}`}
+                  src={`/c/${clinic?.slug}?tpl=${encodeURIComponent(previewTemplate.id)}&tc=${encodeURIComponent(previewTemplate.colorPreset.primary)}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}`}
                   title={`Live preview of ${previewTemplate.name}`}
                   className="w-full h-full border-0"
                 />
