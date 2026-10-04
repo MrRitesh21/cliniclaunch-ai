@@ -5,12 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Shield, Download, Lock, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings, Shield, Download, Lock, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useOrganization } from "@/hooks/useOrganization";
 import { normalizeLeadPopup, type LeadPopupConfig } from "@/components/clinic/lead-capture";
 
 export function SettingsView() {
   const { state, patch } = useWebsiteBuilder();
+  const { subscription } = useOrganization();
+  const planId = (subscription?.plan_id || "starter").toLowerCase();
+  const canRemoveBranding = planId !== "starter" && planId !== "growth";
   const dt = state.design_tokens;
   const lp = normalizeLeadPopup(state.lead_popup);
 
@@ -46,25 +51,37 @@ export function SettingsView() {
 
       {/* White Label Card */}
       <Card className="p-6 rounded-2xl border-border/60 space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="size-4 text-purple-500" />
-          <h3 className="font-bold text-sm">White Label & Agency Branding</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="size-4 text-purple-500" />
+            <h3 className="font-bold text-sm">White Label & Agency Branding</h3>
+          </div>
+          {!canRemoveBranding && (
+            <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/10">
+              <Lock className="size-3 mr-1" /> Scale / Enterprise Only
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <div>
+          <div className="max-w-md">
             <p className="text-xs font-semibold">Hide "Powered by ClinicX" Footer Badge</p>
-            <p className="text-[11px] text-muted-foreground">
-              Remove platform attribution from site footer.
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Remove platform attribution from your public site footer. Always visible on Starter & Growth plans.
             </p>
           </div>
           <Switch
-            checked={dt.hideClinicXBranding}
-            onCheckedChange={(checked) =>
+            checked={canRemoveBranding ? dt.hideClinicXBranding : false}
+            disabled={!canRemoveBranding}
+            onCheckedChange={(checked) => {
+              if (!canRemoveBranding) {
+                toast.info("White-label badge removal is available on plans above Growth (Scale / Enterprise).");
+                return;
+              }
               patch({
                 design_tokens: { ...dt, hideClinicXBranding: checked },
-              })
-            }
+              });
+            }}
           />
         </div>
       </Card>

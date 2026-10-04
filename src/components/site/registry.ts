@@ -58,11 +58,11 @@ export const Templates: TemplateDef[] = [
   {
     id: "classic",
     name: "Classic clinical",
-    description: "Calm, trustworthy, hospital-grade.",
+    description: "Hospital-grade OPD directory with transparent consultation metrics.",
     swatch: "linear-gradient(135deg,#dbeafe,#2563eb)",
     variants: {
       navbar: "minimal",
-      hero: "split",
+      hero: "hospital",
       services: "cards",
       stats: "strip",
       gallery: "grid",
@@ -78,7 +78,7 @@ export const Templates: TemplateDef[] = [
   {
     id: "warm",
     name: "Warm & human",
-    description: "Centered, welcoming, family practice.",
+    description: "Centered, welcoming, family practice layout with soft checklist pills.",
     swatch: "linear-gradient(135deg,#fde68a,#c2410c)",
     variants: {
       navbar: "centered",
@@ -98,12 +98,12 @@ export const Templates: TemplateDef[] = [
   {
     id: "premium",
     name: "Premium concierge",
-    description: "Editorial, dark, luxury wellness.",
+    description: "Glassmorphic dark luxury aesthetic with VIP reservation tiles.",
     swatch: "linear-gradient(135deg,#1f2937,#c9a84c)",
     variants: {
       navbar: "dense",
-      hero: "editorial",
-      services: "list",
+      hero: "luxury",
+      services: "boutique",
       stats: "strip",
       gallery: "masonry",
       about: "side",
@@ -118,7 +118,7 @@ export const Templates: TemplateDef[] = [
   {
     id: "modern",
     name: "Modern floating",
-    description: "Floating nav, bold minimal type.",
+    description: "Floating pill navigation, bold minimal typography and carousel showcase.",
     swatch: "linear-gradient(135deg,#a7f3d0,#10b981)",
     variants: {
       navbar: "pill",
@@ -138,11 +138,11 @@ export const Templates: TemplateDef[] = [
   {
     id: "editorial",
     name: "Editorial magazine",
-    description: "Magazine-style typography & lists.",
+    description: "High-contrast full-bleed editorial hero and numbered treatment directory.",
     swatch: "linear-gradient(135deg,#fecaca,#0f172a)",
     variants: {
       navbar: "centered",
-      hero: "minimal",
+      hero: "editorial",
       services: "list",
       stats: "strip",
       gallery: "masonry",

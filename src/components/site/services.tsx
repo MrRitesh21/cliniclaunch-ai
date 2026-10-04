@@ -80,10 +80,65 @@ export function ServicesChecklist({ clinic }: Props) {
   );
 }
 
+/** v4: Boutique Interactive Cards */
+export function ServicesBoutique({ clinic }: Props) {
+  const services = strList(clinic.services);
+  if (services.length === 0) return null;
+  return (
+    <section className="bg-slate-900 text-white py-16 sm:py-24">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+          <div>
+            <span className="text-xs uppercase tracking-[0.25em] text-primary-foreground/70 font-semibold">
+              Specialized Care
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mt-2 text-white">
+              Clinical Specializations
+            </h2>
+          </div>
+          <a href={`/c/${clinic.slug}/book`}>
+            <span className="text-xs font-semibold text-primary-foreground hover:underline inline-flex items-center gap-1">
+              View all procedures <ArrowRight className="size-3.5" />
+            </span>
+          </a>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.slice(0, 9).map((s, idx) => (
+            <a
+              key={s}
+              href={`/c/${clinic.slug}/book`}
+              className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition-all duration-300 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[11px] font-mono text-slate-400">
+                    #{String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span className="size-2 rounded-full bg-primary/80 group-hover:scale-125 transition-transform" />
+                </div>
+                <h3 className="font-display text-lg font-semibold text-white group-hover:text-primary-foreground transition-colors">
+                  {s}
+                </h3>
+              </div>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+                <span>Direct Consultation</span>
+                <span className="text-primary-foreground font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                  Book <ArrowRight className="size-3" />
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export const ServicesVariants = {
   cards: ServicesCards,
   list: ServicesList,
   checklist: ServicesChecklist,
+  boutique: ServicesBoutique,
 } as const;
 
 export const ServicesMeta = {
@@ -94,5 +149,6 @@ export const ServicesMeta = {
     { id: "cards", label: "Card grid", description: "Bordered cards with icons" },
     { id: "list", label: "Editorial list", description: "Numbered serif list" },
     { id: "checklist", label: "Soft pills", description: "Two-column checklist" },
+    { id: "boutique", label: "Boutique dark tiles", description: "Luxury dark glass treatment tiles" },
   ],
 };
