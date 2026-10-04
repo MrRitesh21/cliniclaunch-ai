@@ -1,10 +1,57 @@
-import { useState } from "react";
-import { Stethoscope, Menu, X, Phone, CalendarCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Stethoscope, Menu, X, Phone, CalendarCheck, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import type { SiteClinic } from "./types";
 
 type Props = { clinic: SiteClinic; pathname?: string };
+
+export function PublicThemeToggle() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("clinic_site_theme");
+      if (saved === "dark") {
+        setTheme("dark");
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.remove("light");
+      } else {
+        setTheme("light");
+        document.documentElement.classList.add("light");
+        document.documentElement.classList.remove("dark");
+      }
+    } catch {}
+  }, []);
+
+  const toggle = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    try {
+      localStorage.setItem("clinic_site_theme", next);
+    } catch {}
+    if (next === "dark") {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggle}
+      className="size-8 sm:size-9 rounded-xl text-muted-foreground hover:text-foreground"
+      title={`Switch to ${theme === "dark" ? "Light" : "Dark"} theme`}
+      aria-label="Toggle theme"
+    >
+      {theme === "dark" ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4" />}
+    </Button>
+  );
+}
 
 function navLinks(slug: string) {
   return [
@@ -60,13 +107,16 @@ function MobileMenu({ clinic, pathname }: Props) {
       <SheetContent side="right" className="w-[86vw] max-w-sm p-0 flex flex-col">
         <div className="h-16 px-4 border-b flex items-center justify-between">
           <Logo clinic={clinic} compact />
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close menu"
-            className="size-9 grid place-items-center rounded-lg hover:bg-accent"
-          >
-            <X className="size-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <PublicThemeToggle />
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close menu"
+              className="size-9 grid place-items-center rounded-lg hover:bg-accent"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-2">
           {links.map((n) => {
@@ -126,11 +176,13 @@ export function NavbarMinimal({ clinic, pathname }: Props) {
               </a>
             );
           })}
+          <PublicThemeToggle />
           <a href={`/c/${clinic.slug}/book`}>
             <Button className="ml-2">Book appointment</Button>
           </a>
         </nav>
-        <div className="md:hidden flex items-center gap-2 shrink-0">
+        <div className="md:hidden flex items-center gap-1.5 shrink-0">
+          <PublicThemeToggle />
           <a href={`/c/${clinic.slug}/book`}>
             <Button size="sm">Book</Button>
           </a>
@@ -179,12 +231,14 @@ export function NavbarCentered({ clinic, pathname }: Props) {
               </a>
             );
           })}
+          <PublicThemeToggle />
         </nav>
       </div>
       {/* Mobile */}
       <div className="md:hidden max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
         <Logo clinic={clinic} />
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <PublicThemeToggle />
           <a href={`/c/${clinic.slug}/book`}>
             <Button size="sm">Book</Button>
           </a>
@@ -217,6 +271,7 @@ export function NavbarPill({ clinic, pathname }: Props) {
           })}
         </nav>
         <div className="flex items-center gap-2 shrink-0">
+          <PublicThemeToggle />
           <a href={`/c/${clinic.slug}/book`}>
             <Button size="sm" className="rounded-full">
               Book

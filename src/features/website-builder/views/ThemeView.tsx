@@ -125,6 +125,55 @@ export function ThemeView() {
         </p>
       </div>
 
+      {/* Custom Color Palette Dial */}
+      <Card className="p-5 rounded-2xl border border-border/80 bg-card space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h3 className="font-bold text-sm flex items-center gap-2">
+              <Paintbrush className="size-4 text-primary" /> Custom Brand Color
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Choose your exact clinic branding hex code or select with color picker.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={state.design_tokens.primaryColor || "#2563eb"}
+              onChange={(e) => {
+                const color = e.target.value;
+                applyThemePreset("custom", color);
+                patch({
+                  theme_color: color,
+                  design_tokens: {
+                    ...state.design_tokens,
+                    primaryColor: color,
+                  },
+                });
+              }}
+              className="size-9 rounded-xl cursor-pointer border border-border bg-transparent p-0.5"
+            />
+            <input
+              type="text"
+              value={state.design_tokens.primaryColor || "#2563eb"}
+              onChange={(e) => {
+                const color = e.target.value;
+                applyThemePreset("custom", color);
+                patch({
+                  theme_color: color,
+                  design_tokens: {
+                    ...state.design_tokens,
+                    primaryColor: color,
+                  },
+                });
+              }}
+              className="w-28 h-9 px-3 font-mono text-xs rounded-xl border border-border bg-background"
+              placeholder="#2563eb"
+            />
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {themes.map((t) => {
           const isCurrent = state.design_tokens.primaryColor === t.primaryColor;
