@@ -13,16 +13,21 @@ function normalizeDomain(input: string): string {
 }
 
 function isPlatformHost(host: string): boolean {
-  const h = host.toLowerCase();
-  return (
-    h.endsWith(".lovable.app") ||
-    h.endsWith(".lovable.dev") ||
-    h.endsWith(".vercel.app") ||
-    h.includes("digiwil.com") ||
-    h.startsWith("localhost") ||
-    h.startsWith("127.0.0.1") ||
-    h.startsWith("0.0.0.0")
-  );
+  const h = host.toLowerCase().trim();
+  const exactPlatformHosts = new Set([
+    "clinics.digiwil.com",
+    "agency.digiwil.com",
+    "digiwil.com",
+    "www.digiwil.com",
+    "crm.digiwil.com",
+    "digiclini.vercel.app",
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+  ]);
+  if (exactPlatformHosts.has(h)) return true;
+  if (h.endsWith(".lovable.app") || h.endsWith(".lovable.dev")) return true;
+  return false;
 }
 
 async function dnsLookup(domain: string, type: "A" | "CNAME" | "TXT"): Promise<string[]> {
@@ -73,21 +78,51 @@ export const resolveHostToClinic = createServerFn({ method: "GET" }).handler(asy
   }
   if (!host) return null;
   // strip port
-  host = host.split(":")[0];
+  host = host.split(":")[0].toLowerCase().trim();
   if (isPlatformHost(host)) return null;
 
   try {
     const sb = await adminClient();
-    const candidates = Array.from(new Set([host.toLowerCase(), host.toLowerCase().replace(/^www\./, "")]));
-    const { data, error } = await sb
+    const cleanHost = host.replace(/^www\./, "");
+    const candidates = Array.from(new Set([host, cleanHost]));
+
+    // 1. Check custom_domain match in clinics
+    const { data: byDomain } = await sb
       .from("clinics")
       .select("slug, custom_domain, domain_status")
       .in("custom_domain", candidates)
-      .eq("domain_status", "verified")
       .limit(1)
       .maybeSingle();
-    if (error || !data) return null;
-    return { slug: data.slug as string };
+
+    if (byDomain?.slug) return { slug: byDomain.slug as string };
+
+    // 2. Subdomain check for *.digiwil.com or *.vercel.app (e.g. drritesh.digiwil.com -> slug: drritesh)
+    if (cleanHost.endsWith(".digiwil.com") || cleanHost.endsWith(".vercel.app")) {
+      const sub = cleanHost.split(".")[0];
+      const reserved = new Set([
+        "www",
+        "api",
+        "app",
+        "admin",
+        "dashboard",
+        "clinics",
+        "agency",
+        "crm",
+        "digiclini",
+      ]);
+      if (sub && !reserved.has(sub)) {
+        const { data: bySlug } = await sb
+          .from("clinics")
+          .select("slug")
+          .eq("slug", sub)
+          .limit(1)
+          .maybeSingle();
+
+        if (bySlug?.slug) return { slug: bySlug.slug as string };
+      }
+    }
+
+    return null;
   } catch (err) {
     console.error("[resolveHostToClinic] Error resolving host:", err);
     return null;
