@@ -394,69 +394,7 @@ function PatientProfilePage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Left Column: Appointments & History */}
-        <div className="space-y-4 lg:col-span-1">
-          <Card className="p-4 sm:p-5 border-border/80 shadow-xs bg-card">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-sm flex items-center gap-2 text-foreground">
-                <Calendar className="size-4 text-primary" /> Appointments ({appointments.length})
-              </h3>
-              <Link to="/dashboard/appointments">
-                <Button size="sm" variant="ghost" className="h-7 text-xs px-2 text-primary font-semibold">
-                  View all
-                </Button>
-              </Link>
-            </div>
-            {appointments.length === 0 ? (
-              <p className="text-xs text-muted-foreground p-4 text-center border border-dashed rounded-xl">
-                No appointments recorded.
-              </p>
-            ) : (
-              <div className="space-y-2.5">
-                {appointments.map((a) => {
-                  const d = new Date(a.scheduled_at);
-                  const isOnline = a.appointment_type === "online";
-                  return (
-                    <div
-                      key={a.id}
-                      className="text-xs p-3 border rounded-xl bg-muted/20 border-border/70 space-y-1.5"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-foreground">
-                          {d.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <StatusBadge status={a.status as any} />
-                      </div>
-                      <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="size-3" />{" "}
-                          {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                        </span>
-                        <span className="flex items-center gap-1 font-medium">
-                          {isOnline ? (
-                            <Video className="size-3 text-purple-600" />
-                          ) : (
-                            <MapPin className="size-3 text-emerald-600" />
-                          )}
-                          {isOnline ? "Video" : "Clinic"}
-                        </span>
-                      </div>
-                      {a.problem && (
-                        <p className="text-[11px] text-muted-foreground italic mt-1">{a.problem}</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Right Column: Direct Voice Rx Creator & EMR Clinical Visits */}
+        {/* Main Column: Direct Voice Rx Creator & EMR Clinical Visits (Rendered First / Above Appointments) */}
         <div className="space-y-4 lg:col-span-2">
           {/* Direct Quick Voice Mode Prescription Writer */}
           {showQuickRx && (
@@ -803,6 +741,68 @@ function PatientProfilePage() {
                             )}
                           </div>
                         </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Secondary Column: Appointments & History (Rendered Below EMR on Mobile) */}
+        <div className="space-y-4 lg:col-span-1">
+          <Card className="p-4 sm:p-5 border-border/80 shadow-xs bg-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-sm flex items-center gap-2 text-foreground">
+                <Calendar className="size-4 text-primary" /> Appointments ({appointments.length})
+              </h3>
+              <Link to="/dashboard/appointments">
+                <Button size="sm" variant="ghost" className="h-7 text-xs px-2 text-primary font-semibold">
+                  View all
+                </Button>
+              </Link>
+            </div>
+            {appointments.length === 0 ? (
+              <p className="text-xs text-muted-foreground p-4 text-center border border-dashed rounded-xl">
+                No appointments recorded.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {appointments.map((a) => {
+                  const d = new Date(a.scheduled_at);
+                  const isOnline = a.appointment_type === "online";
+                  return (
+                    <div
+                      key={a.id}
+                      className="text-xs p-3 border rounded-xl bg-muted/20 border-border/70 space-y-1.5"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-foreground">
+                          {d.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <StatusBadge status={a.status as any} />
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3" />{" "}
+                          {d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        </span>
+                        <span className="flex items-center gap-1 font-medium">
+                          {isOnline ? (
+                            <Video className="size-3 text-purple-600" />
+                          ) : (
+                            <MapPin className="size-3 text-emerald-600" />
+                          )}
+                          {isOnline ? "Video" : "Clinic"}
+                        </span>
+                      </div>
+                      {a.problem && (
+                        <p className="text-[11px] text-muted-foreground italic mt-1">{a.problem}</p>
                       )}
                     </div>
                   );

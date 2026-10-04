@@ -42,6 +42,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials, SkeletonRows } from "@/components/ui/skeleton-rows";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard/appointments")({
   component: () => (
@@ -131,30 +137,69 @@ function AppointmentsPage() {
       const scheduledDate = new Date(apptScheduledAt);
       const cleanAge = apptAge.trim() ? Math.min(130, Math.max(0, parseInt(apptAge.trim(), 10))) : null;
       const cleanDoctorId = apptDoctorId && apptDoctorId.trim().length === 36 ? apptDoctorId.trim() : null;
+      const feeNum = apptFee ? Math.max(0, Number(apptFee) || 0) : (clinic?.consultation_fee ?? 500);
 
-      const res = await bookingFn({
-        data: {
-          clinic_id: clinic.id,
-          patient_name: cleanName,
-          patient_phone: cleanPhone,
-          patient_email: apptEmail.trim(),
-          patient_age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
-          patient_gender: apptGender || null,
-          problem: apptProblem.trim() || "Consultation appointment",
-          scheduled_at: scheduledDate.toISOString(),
-          appointment_type: apptType,
-          source: "booking",
-          doctor_id: cleanDoctorId,
-        },
-      });
+      // 1. Direct authenticated appointment creation
+      const apptPayload = {
+        clinic_id: clinic.id,
+        organization_id: clinic.organization_id || null,
+        patient_name: cleanName,
+        patient_phone: cleanPhone,
+        patient_email: apptEmail.trim() || null,
+        patient_age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
+        patient_gender: apptGender || null,
+        problem: apptProblem.trim() || "Consultation appointment",
+        scheduled_at: scheduledDate.toISOString(),
+        appointment_type: apptType,
+        status: "confirmed",
+        source: "manual",
+        doctor_id: cleanDoctorId,
+        consultation_fee: feeNum,
+      };
 
-      if (res?.id && apptFee) {
-        const feeNum = Math.max(0, Number(apptFee) || 0);
-        await supabase
-          .from("appointments")
-          .update({ consultation_fee: feeNum } as never)
-          .eq("id", res.id);
+      const { data: createdAppt, error: insertErr } = await supabase
+        .from("appointments")
+        .insert(apptPayload as any)
+        .select("id")
+        .maybeSingle();
+
+      if (insertErr) {
+        // Fallback to serverFn if client RLS insert fails
+        await bookingFn({
+          data: {
+            clinic_id: clinic.id,
+            patient_name: cleanName,
+            patient_phone: cleanPhone,
+            patient_email: apptEmail.trim(),
+            patient_age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
+            patient_gender: apptGender || null,
+            problem: apptProblem.trim() || "Consultation appointment",
+            scheduled_at: scheduledDate.toISOString(),
+            appointment_type: apptType,
+            source: "booking",
+            doctor_id: cleanDoctorId,
+          },
+        });
       }
+
+      // 2. Ensure patient is upserted into clinic directory
+      await supabase
+        .from("patients" as any)
+        .upsert(
+          {
+            clinic_id: clinic.id,
+            organization_id: clinic.organization_id || null,
+            name: cleanName,
+            phone: cleanPhone,
+            email: apptEmail.trim() || null,
+            age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
+            gender: apptGender || null,
+            last_visit_at: scheduledDate.toISOString(),
+          },
+          { onConflict: "clinic_id,phone" },
+        )
+        .then(() => {})
+        .catch(() => {});
 
       toast.success("Appointment added successfully!");
       setAddOpen(false);
@@ -601,160 +646,152 @@ function AppointmentsPage() {
         </div>
       )}
 
-      {addOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm grid place-items-center z-50 p-4">
-          <Card className="w-full max-w-md p-6 border-border/60 shadow-2xl relative animate-in zoom-in duration-200">
-            <button
-              type="button"
-              onClick={() => setAddOpen(false)}
-              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-5" />
-            </button>
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg font-bold">Add Appointment</DialogTitle>
+          </DialogHeader>
 
-            <h3 className="font-display text-lg font-bold mb-4">Add Appointment</h3>
+          <form onSubmit={handleAddSubmit} className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-name">Patient Full Name</Label>
+              <Input
+                id="add-name"
+                required
+                value={apptName}
+                onChange={(e) => setApptName(e.target.value)}
+                placeholder="e.g. Vikram Singh"
+              />
+            </div>
 
-            <form onSubmit={handleAddSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="add-name">Patient Full Name</Label>
+                <Label htmlFor="add-phone">Phone Number</Label>
                 <Input
-                  id="add-name"
+                  id="add-phone"
                   required
-                  value={apptName}
-                  onChange={(e) => setApptName(e.target.value)}
-                  placeholder="e.g. Vikram Singh"
+                  value={apptPhone}
+                  onChange={(e) => setApptPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-phone">Phone Number</Label>
-                  <Input
-                    id="add-phone"
-                    required
-                    value={apptPhone}
-                    onChange={(e) => setApptPhone(e.target.value)}
-                    placeholder="e.g. +91 98765 43210"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-email">Email Address (Optional)</Label>
-                  <Input
-                    id="add-email"
-                    type="email"
-                    value={apptEmail}
-                    onChange={(e) => setApptEmail(e.target.value)}
-                    placeholder="e.g. patient@gmail.com"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-age">Age (Optional)</Label>
-                  <Input
-                    id="add-age"
-                    type="number"
-                    value={apptAge}
-                    onChange={(e) => setApptAge(e.target.value)}
-                    placeholder="e.g. 28"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-gender">Gender (Optional)</Label>
-                  <select
-                    id="add-gender"
-                    value={apptGender}
-                    onChange={(e) => setApptGender(e.target.value as any)}
-                    className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-datetime">Date & Time</Label>
-                  <Input
-                    id="add-datetime"
-                    type="datetime-local"
-                    required
-                    value={apptScheduledAt}
-                    onChange={(e) => setApptScheduledAt(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-type">Type</Label>
-                  <select
-                    id="add-type"
-                    value={apptType}
-                    onChange={(e) => setApptType(e.target.value as any)}
-                    className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
-                  >
-                    <option value="offline">In-clinic (Offline)</option>
-                    <option value="online">Video Consult (Online)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-doctor">Assign Doctor</Label>
-                  <select
-                    id="add-doctor"
-                    value={apptDoctorId}
-                    onChange={(e) => setApptDoctorId(e.target.value)}
-                    className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
-                  >
-                    {doctors.length === 0 ? (
-                      <option value="">No active doctors</option>
-                    ) : (
-                      doctors.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-fee">Fee (₹)</Label>
-                  <Input
-                    id="add-fee"
-                    type="number"
-                    required
-                    value={apptFee}
-                    onChange={(e) => setApptFee(e.target.value)}
-                  />
-                </div>
-              </div>
-
               <div className="space-y-1.5">
-                <Label htmlFor="add-problem">Symptoms / Problem Description</Label>
-                <textarea
-                  id="add-problem"
-                  value={apptProblem}
-                  onChange={(e) => setApptProblem(e.target.value)}
-                  rows={2}
-                  placeholder="e.g. Skin rash, dry cough, etc."
-                  className="w-full border rounded-md p-2 bg-background text-sm focus:outline-none"
+                <Label htmlFor="add-email">Email Address (Optional)</Label>
+                <Input
+                  id="add-email"
+                  type="email"
+                  value={apptEmail}
+                  onChange={(e) => setApptEmail(e.target.value)}
+                  placeholder="e.g. patient@gmail.com"
                 />
               </div>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Book Slot</Button>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-age">Age (Optional)</Label>
+                <Input
+                  id="add-age"
+                  type="number"
+                  value={apptAge}
+                  onChange={(e) => setApptAge(e.target.value)}
+                  placeholder="e.g. 28"
+                />
               </div>
-            </form>
-          </Card>
-        </div>
-      )}
+              <div className="space-y-1.5">
+                <Label htmlFor="add-gender">Gender (Optional)</Label>
+                <select
+                  id="add-gender"
+                  value={apptGender}
+                  onChange={(e) => setApptGender(e.target.value as any)}
+                  className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-datetime">Date & Time</Label>
+                <Input
+                  id="add-datetime"
+                  type="datetime-local"
+                  required
+                  value={apptScheduledAt}
+                  onChange={(e) => setApptScheduledAt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-type">Type</Label>
+                <select
+                  id="add-type"
+                  value={apptType}
+                  onChange={(e) => setApptType(e.target.value as any)}
+                  className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
+                >
+                  <option value="offline">In-clinic (Offline)</option>
+                  <option value="online">Video Consult (Online)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-doctor">Assign Doctor</Label>
+                <select
+                  id="add-doctor"
+                  value={apptDoctorId}
+                  onChange={(e) => setApptDoctorId(e.target.value)}
+                  className="w-full h-10 border rounded-md px-3 bg-background text-sm focus:outline-none"
+                >
+                  {doctors.length === 0 ? (
+                    <option value="">No active doctors</option>
+                  ) : (
+                    doctors.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-fee">Fee (₹)</Label>
+                <Input
+                  id="add-fee"
+                  type="number"
+                  required
+                  value={apptFee}
+                  onChange={(e) => setApptFee(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="add-problem">Symptoms / Problem Description</Label>
+              <textarea
+                id="add-problem"
+                value={apptProblem}
+                onChange={(e) => setApptProblem(e.target.value)}
+                rows={2}
+                placeholder="e.g. Skin rash, dry cough, etc."
+                className="w-full border rounded-md p-2 bg-background text-sm focus:outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Book Slot</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
