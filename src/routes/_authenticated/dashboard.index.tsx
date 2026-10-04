@@ -160,6 +160,20 @@ function Overview() {
               .eq("organization_id", clinic.organization_id)
               .eq("queue_date", todayDateStr)
               .eq("status", "waiting")
+              .then((res) => {
+                if (res.error) {
+                  return supabase
+                    .from("appointments")
+                    .select("id", { count: "exact", head: true })
+                    .eq("clinic_id", clinic.id)
+                    .gte("scheduled_at", startOfDay.toISOString())
+                    .lte("scheduled_at", endOfDay.toISOString())
+                    .in("status", ["waiting", "confirmed", "pending"])
+                    .then((r) => (r.error ? { count: 0 } : r));
+                }
+                return res;
+              })
+              .catch(() => ({ count: 0 }))
           : Promise.resolve({ count: 0 }),
       ]);
 

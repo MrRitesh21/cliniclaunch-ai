@@ -90,12 +90,15 @@ function QueuePage() {
           .eq("queue_date", date)
           .order("priority", { ascending: false })
           .order("token_number")
-          .then((res) => (res.error ? { data: [] } : res)),
+          .then((res) => (res.error ? { data: [] } : res))
+          .catch(() => ({ data: [] })),
         supabase
           .from("patients")
           .select("id, name, phone")
           .eq("organization_id", orgId)
-          .order("name"),
+          .order("name")
+          .then((res) => (res.error ? { data: [] } : res))
+          .catch(() => ({ data: [] })),
       ]);
       setTokens((t.data as any[]) ?? []);
       setPatients((p.data as any[]) ?? []);

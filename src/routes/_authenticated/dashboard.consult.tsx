@@ -755,7 +755,9 @@ function ConsultSheet({
           .update({ status: "done", completed_at: new Date().toISOString() })
           .eq("organization_id", orgId)
           .eq("queue_date", todayStr)
-          .eq("patient_name", patientName.trim());
+          .eq("patient_name", patientName.trim())
+          .then(() => {})
+          .catch(() => {});
       }
 
       setSaving(false);
