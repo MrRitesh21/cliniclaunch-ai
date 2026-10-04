@@ -118,8 +118,11 @@ export function usePushNotifications() {
       setConfigured(cfg.configured);
       setPublicKey(cfg.publicKey);
 
-      // pwa.ts intentionally skips SW registration in dev/preview iframes.
-      const reg = await navigator.serviceWorker.getRegistration();
+      // Ensure service worker is registered
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg && "serviceWorker" in navigator) {
+        reg = await navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+      }
       if (cancelled) return;
       setServiceWorkerReady(Boolean(reg));
       if (reg) {
@@ -138,7 +141,10 @@ export function usePushNotifications() {
     if (!supported || !publicKey) return { ok: false, reason: "unsupported" as const };
     setBusy(true);
     try {
-      const reg = (await navigator.serviceWorker.getRegistration()) ?? null;
+      let reg = (await navigator.serviceWorker.getRegistration()) ?? null;
+      if (!reg && "serviceWorker" in navigator) {
+        reg = (await navigator.serviceWorker.register("/sw.js").catch(() => null)) ?? null;
+      }
       if (!reg) return { ok: false, reason: "no-service-worker" as const };
 
       const result = await Notification.requestPermission();

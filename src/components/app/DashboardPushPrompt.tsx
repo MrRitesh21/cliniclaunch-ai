@@ -20,9 +20,15 @@ export function DashboardPushPrompt() {
       return;
     }
     if (res.reason === "denied") {
-      toast.error("Notifications blocked in browser settings.");
+      toast.error("Notifications blocked in browser settings. Please allow notifications for this site.");
     } else if (res.reason === "no-service-worker") {
-      toast.info("Notifications are active in the published PWA.");
+      toast.info("Service worker is initializing. Please tap again.");
+    } else if (res.reason === "unsupported") {
+      toast.info(
+        push.needsIosInstall
+          ? "On iOS: Tap Share → Add to Home Screen to enable notifications."
+          : "Push notifications require HTTPS or a supported browser."
+      );
     } else {
       toast.error("Push notification setup failed on this device.");
     }

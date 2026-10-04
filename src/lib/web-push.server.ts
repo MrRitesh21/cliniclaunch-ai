@@ -177,8 +177,12 @@ async function vapidHeader(
 }
 
 export function getVapidConfig() {
-  const publicKey = process.env["VAPID_PUBLIC_KEY"];
-  const privateKey = process.env["VAPID_PRIVATE_KEY"];
+  const publicKey =
+    process.env["VAPID_PUBLIC_KEY"] ||
+    "BB-vfIqGId228AlJeru8ZqePSS953h6A7fwfgP-90yStlQj09Ka3Xuk5KibiDL95VyxSSLzIfJSgPSyPcpjeGLo";
+  const privateKey =
+    process.env["VAPID_PRIVATE_KEY"] ||
+    "_PldHkiZcxiONkrTFCZieU-bfddu2mjAWQOtR5mDO6c";
   const subject = process.env["VAPID_SUBJECT"] || "mailto:support@clinicx.in";
   if (!publicKey || !privateKey) return null;
   return { publicKey, privateKey, subject };

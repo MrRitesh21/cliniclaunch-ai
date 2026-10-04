@@ -13,10 +13,16 @@ const subscriptionSchema = z.object({
   expirationTime: z.number().nullable().optional(),
 });
 
+export const DEFAULT_VAPID_PUBLIC_KEY =
+  "BB-vfIqGId228AlJeru8ZqePSS953h6A7fwfgP-90yStlQj09Ka3Xuk5KibiDL95VyxSSLzIfJSgPSyPcpjeGLo";
+export const DEFAULT_VAPID_PRIVATE_KEY =
+  "_PldHkiZcxiONkrTFCZieU-bfddu2mjAWQOtR5mDO6c";
+
 /** Public: the browser needs the VAPID public key to subscribe. Safe to expose. */
 export const getPushConfig = createServerFn({ method: "GET" }).handler(async () => {
-  const publicKey = process.env["VAPID_PUBLIC_KEY"] ?? null;
-  return { publicKey, configured: Boolean(publicKey && process.env["VAPID_PRIVATE_KEY"]) };
+  const publicKey = process.env["VAPID_PUBLIC_KEY"] || DEFAULT_VAPID_PUBLIC_KEY;
+  const privateKey = process.env["VAPID_PRIVATE_KEY"] || DEFAULT_VAPID_PRIVATE_KEY;
+  return { publicKey, configured: Boolean(publicKey && privateKey) };
 });
 
 /**
