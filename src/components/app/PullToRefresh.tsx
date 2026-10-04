@@ -96,15 +96,15 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
         <div
           className="fixed left-1/2 -translate-x-1/2 z-50 pointer-events-none flex items-center justify-center transition-all ease-out"
           style={{
-            top: `${Math.max(pullY - 14, isRefreshing ? 20 : 6)}px`,
+            top: `${Math.max(56 + pullY * 0.4, isRefreshing ? 72 : 56)}px`,
             opacity: isRefreshing ? 1 : Math.max(progress, 0.2),
-            transform: `translateX(-50%) scale(${isRefreshing ? 1 : 0.7 + progress * 0.3})`,
+            transform: `translateX(-50%) scale(${isRefreshing ? 1 : 0.75 + progress * 0.25})`,
           }}
         >
           <div
-            className={`size-10 rounded-full bg-background/95 border shadow-xl backdrop-blur-xl grid place-items-center transition-colors duration-200 ${
+            className={`size-9 rounded-full bg-card/95 border shadow-xl backdrop-blur-xl grid place-items-center transition-colors duration-200 ${
               isThresholdMet || isRefreshing
-                ? "border-primary/40 bg-primary/10 text-primary shadow-primary/20"
+                ? "border-primary/40 bg-primary/10 text-primary shadow-primary/20 ring-2 ring-primary/20"
                 : "border-border/80 text-muted-foreground"
             }`}
           >
@@ -125,12 +125,12 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
         </div>
       )}
 
-      {/* Main Page Elastic Motion Wrapper */}
+      {/* Main Page Elastic Motion Wrapper (Only content translates, header stays pinned) */}
       <div
-        className="w-full"
+        className="w-full will-change-transform"
         style={{
-          transform: pullY > 0 ? `translate3d(0, ${pullY * 0.32}px, 0)` : "none",
-          transition: isPullingRef.current ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
+          transform: pullY > 0 ? `translate3d(0, ${pullY * 0.25}px, 0)` : "none",
+          transition: isPullingRef.current ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
         }}
       >
         {children}
