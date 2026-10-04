@@ -361,71 +361,93 @@ function PatientsPage() {
         }
       />
 
-      <div className="flex border-b gap-6 text-sm font-medium">
+      {/* Native App Pill Tabs */}
+      <div className="flex bg-muted/50 p-1 rounded-2xl border border-border/60 max-w-md">
         <button
           onClick={() => setActiveTab("directory")}
-          className={`pb-3 transition-colors border-b-2 ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
             activeTab === "directory"
-              ? "border-primary text-primary font-semibold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-background text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Users className="size-4 inline mr-2" /> Patient Directory ({dirStats.total})
+          <Users className="size-4" />
+          <span>Directory</span>
+          <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-bold">
+            {dirStats.total}
+          </Badge>
         </button>
         <button
           onClick={() => setActiveTab("records")}
-          className={`pb-3 transition-colors border-b-2 ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
             activeTab === "records"
-              ? "border-primary text-primary font-semibold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-background text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <FileText className="size-4 inline mr-2" /> Clinical Visit Records & EMR ({emrStats.total}
-          )
+          <FileText className="size-4" />
+          <span>EMR Records</span>
+          <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-bold">
+            {emrStats.total}
+          </Badge>
         </button>
       </div>
 
       {activeTab === "directory" ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <StatCard
-              title="Total patients"
-              value={dirStats.total}
-              icon={<Users className="size-4" />}
-            />
-            <StatCard
-              title="Returning patients"
-              value={dirStats.returning}
-              icon={<UserCheck className="size-4" />}
-              description={`${dirStats.total ? Math.round((dirStats.returning / dirStats.total) * 100) : 0}% of total`}
-            />
-            <StatCard
-              title="Active this month"
-              value={dirStats.thisMonth}
-              icon={<Activity className="size-4" />}
-            />
-            <StatCard
-              title="Avg visits / patient"
-              value={dirStats.avgVisits}
-              icon={<TrendingUp className="size-4" />}
-            />
+        <div className="space-y-4 sm:space-y-6">
+          {/* Micro Stat Grid for Native Feel */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">Total Patients</span>
+                <Users className="size-3.5 text-blue-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{dirStats.total}</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">Returning</span>
+                <UserCheck className="size-3.5 text-emerald-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">
+                {dirStats.returning}{" "}
+                <span className="text-[11px] text-muted-foreground font-normal">
+                  ({dirStats.total ? Math.round((dirStats.returning / dirStats.total) * 100) : 0}%)
+                </span>
+              </p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">This Month</span>
+                <Activity className="size-3.5 text-purple-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{dirStats.thisMonth}</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">Avg Visits</span>
+                <TrendingUp className="size-3.5 text-amber-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{dirStats.avgVisits}</p>
+            </div>
           </div>
 
-          <div className="flex gap-3 flex-wrap justify-between items-center">
-            <div className="relative flex-1 min-w-48 max-w-sm">
+          {/* Touch-optimized search & sort */}
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search name, phone, email…"
+                placeholder="Search by name, phone, email…"
                 value={patientSearch}
                 onChange={(e) => setPatientSearch(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-10 rounded-xl bg-card border-border/80 text-xs sm:text-sm"
               />
             </div>
             <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-32 sm:w-40 h-10 rounded-xl text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="last_seen">Last seen</SelectItem>
                 <SelectItem value="visits">Most visits</SelectItem>
                 <SelectItem value="name">Name A-Z</SelectItem>
@@ -434,7 +456,7 @@ function PatientsPage() {
           </div>
 
           {loading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full rounded-2xl" />
           ) : filteredPatients.length === 0 ? (
             <EmptyState
               icon={<Users className="size-6" />}
@@ -442,7 +464,7 @@ function PatientsPage() {
               description="Patients added through appointments or walk-ins will appear here."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
               {filteredPatients.map((p) => (
                 <Link
                   key={p.id}
@@ -450,32 +472,46 @@ function PatientsPage() {
                   params={{ patientId: p.id }}
                   className="block focus:outline-none group"
                 >
-                  <Card className="p-4 hover:border-primary/50 transition-all active:scale-[0.99] border-border/80 shadow-xs group-hover:shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
+                  <Card className="p-3.5 sm:p-4 rounded-2xl hover:border-primary/50 transition-all active:scale-[0.99] border-border/70 bg-card shadow-xs hover:shadow-sm space-y-3">
+                    <div className="flex items-center justify-between gap-2.5">
                       <div className="flex items-center gap-3 min-w-0">
                         <AvatarInitials name={p.name} />
                         <div className="min-w-0">
-                          <p className="font-semibold text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                          <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">
                             {p.name}
                           </p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Phone className="size-3 text-emerald-600" /> {p.phone}
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 font-mono">
+                            {p.phone}
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="shrink-0 text-[11px] font-semibold">
+                      <Badge variant="secondary" className="shrink-0 text-[10px] font-bold rounded-lg px-2 py-0.5">
                         {p.visitCount} {p.visitCount === 1 ? "visit" : "visits"}
                       </Badge>
                     </div>
-                    {p.lastVisit && (
-                      <div className="mt-3 pt-2.5 border-t border-border/60 text-xs text-muted-foreground flex justify-between items-center">
-                        <span>Last seen: {new Date(p.lastVisit).toLocaleDateString()}</span>
-                        <div className="flex items-center gap-1 text-primary font-medium text-[11px]">
-                          <span>360 Profile</span>
-                          <ChevronRight className="size-3.5" />
-                        </div>
+
+                    <div className="pt-2.5 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-between">
+                      <span className="text-[11px]">
+                        {p.lastVisit ? `Last visit: ${new Date(p.lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No visits yet"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {p.phone && (
+                          <a
+                            href={`https://wa.me/${p.phone.replace(/[^\d]/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 grid place-items-center transition"
+                            title="Chat on WhatsApp"
+                          >
+                            <Phone className="size-3.5" />
+                          </a>
+                        )}
+                        <span className="text-primary font-semibold text-xs flex items-center">
+                          Profile <ChevronRight className="size-3.5 ml-0.5" />
+                        </span>
                       </div>
-                    )}
+                    </div>
                   </Card>
                 </Link>
               ))}
@@ -483,50 +519,57 @@ function PatientsPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <StatCard
-              title="Total visits"
-              value={emrStats.total}
-              icon={<HeartPulse className="size-4" />}
-            />
-            <StatCard
-              title="This month"
-              value={emrStats.thisMonth}
-              icon={<Calendar className="size-4" />}
-            />
-            <StatCard
-              title="Patients seen"
-              value={emrStats.patientsCount}
-              icon={<Users className="size-4" />}
-            />
-            <StatCard
-              title="Follow-ups due"
-              value={emrStats.followUps}
-              icon={<CalendarClock className="size-4" />}
-              className={
-                emrStats.followUps > 0
-                  ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20"
-                  : ""
-              }
-            />
+        <div className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">Total Visits</span>
+                <HeartPulse className="size-3.5 text-rose-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{emrStats.total}</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">This Month</span>
+                <Calendar className="size-3.5 text-blue-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{emrStats.thisMonth}</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/70 bg-card/60 space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">Patients Seen</span>
+                <Users className="size-3.5 text-emerald-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{emrStats.patientsCount}</p>
+            </div>
+            <div className={`p-3 rounded-2xl border space-y-1 ${
+              emrStats.followUps > 0
+                ? "border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20"
+                : "border-border/70 bg-card/60"
+            }`}>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-[11px] font-medium">Follow-ups Due</span>
+                <CalendarClock className="size-3.5 text-amber-500" />
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground">{emrStats.followUps}</p>
+            </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-48 max-w-sm">
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="relative flex-1 min-w-40">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 placeholder="Search name, diagnosis, complaint…"
                 value={recordSearch}
                 onChange={(e) => setRecordSearch(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-10 rounded-xl bg-card border-border/80 text-xs sm:text-sm"
               />
             </div>
             <Select value={patientFilter} onValueChange={setPatientFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-36 sm:w-48 h-10 rounded-xl text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="all">All patients</SelectItem>
                 {patientOpts.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
@@ -539,18 +582,18 @@ function PatientsPage() {
               type="month"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="h-9 border rounded-md px-3 text-sm bg-background focus:outline-none"
+              className="h-10 border border-border/80 rounded-xl px-3 text-xs bg-card focus:outline-none"
               title="Filter by month"
             />
             {dateFilter && (
-              <Button size="sm" variant="ghost" onClick={() => setDateFilter("")}>
-                Clear month
+              <Button size="sm" variant="ghost" onClick={() => setDateFilter("")} className="h-10 text-xs rounded-xl">
+                Clear
               </Button>
             )}
           </div>
 
           {loading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full rounded-2xl" />
           ) : filteredEmrVisits.length === 0 ? (
             <EmptyState
               icon={<HeartPulse className="size-6" />}
@@ -558,69 +601,75 @@ function PatientsPage() {
               description="Click '+ New Visit Record' above to record patient vitals, diagnosis, and reports."
             />
           ) : (
-            <Card className="divide-y">
+            <div className="space-y-2.5">
               {filteredEmrVisits.map((v) => {
                 const b = bmi(v);
                 const isOverdue = v.follow_up_date && v.follow_up_date <= todayISO();
                 return (
-                  <div
+                  <Card
                     key={v.id}
-                    className="p-4 flex items-start justify-between gap-3 hover:bg-muted/40 transition"
+                    className="p-3.5 sm:p-4 rounded-2xl border-border/70 bg-card hover:border-primary/40 transition shadow-xs space-y-2"
                   >
-                    <button
-                      className="text-left flex-1 min-w-0 bg-transparent border-none p-0 cursor-pointer"
-                      onClick={() => setEditingVisit(v)}
-                    >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-foreground">{v.patient_name}</span>
-                        <Badge variant="outline">
-                          {new Date(v.visit_date).toLocaleDateString()}
-                        </Badge>
-                        {isOverdue && (
-                          <Badge
-                            variant="outline"
-                            className="bg-rose-500/15 text-rose-700 border-rose-500/30"
-                          >
-                            <CalendarClock className="size-3 mr-1" /> Follow-up due
+                    <div className="flex items-start justify-between gap-3">
+                      <button
+                        className="text-left flex-1 min-w-0 bg-transparent border-none p-0 cursor-pointer"
+                        onClick={() => setEditingVisit(v)}
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-sm text-foreground">{v.patient_name}</span>
+                          <Badge variant="outline" className="text-[10px] rounded-lg">
+                            {new Date(v.visit_date).toLocaleDateString()}
                           </Badge>
-                        )}
-                      </div>
-                      {v.chief_complaint && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {v.chief_complaint}
+                          {isOverdue && (
+                            <Badge
+                              variant="outline"
+                              className="bg-rose-500/15 text-rose-700 border-rose-500/30 text-[10px] rounded-lg"
+                            >
+                              <CalendarClock className="size-3 mr-1" /> Follow-up due
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                      {v.diagnosis && (
-                        <div className="text-sm mt-0.5">
-                          <span className="text-muted-foreground font-medium">Dx:</span>{" "}
-                          {v.diagnosis}
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground mt-1.5 flex gap-3 flex-wrap font-mono">
-                        {v.bp_systolic && v.bp_diastolic && (
-                          <span>
-                            BP {v.bp_systolic}/{v.bp_diastolic}
-                          </span>
+                        {v.chief_complaint && (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                            {v.chief_complaint}
+                          </div>
                         )}
-                        {v.pulse_bpm && <span>Pulse {v.pulse_bpm} bpm</span>}
-                        {v.temperature_c && <span>Temp {v.temperature_c}°C</span>}
-                        {v.spo2_percent && <span>SpO₂ {v.spo2_percent}%</span>}
-                        {v.blood_sugar_mgdl && <span>Sugar {v.blood_sugar_mgdl} mg/dL</span>}
-                        {b && <span>BMI {b}</span>}
-                      </div>
-                    </button>
-                    <div className="flex gap-1 shrink-0">
-                      <Button size="icon" variant="ghost" onClick={() => setEditingVisit(v)}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => void removeVisit(v.id)}>
-                        <Trash2 className="size-4" />
+                        {v.diagnosis && (
+                          <div className="text-xs mt-0.5 font-medium">
+                            <span className="text-muted-foreground">Dx:</span> {v.diagnosis}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-muted-foreground mt-1.5 flex gap-2.5 flex-wrap font-mono">
+                          {v.bp_systolic && v.bp_diastolic && (
+                            <span className="bg-muted/60 px-1.5 py-0.5 rounded">
+                              BP {v.bp_systolic}/{v.bp_diastolic}
+                            </span>
+                          )}
+                          {v.pulse_bpm && (
+                            <span className="bg-muted/60 px-1.5 py-0.5 rounded">
+                              Pulse {v.pulse_bpm}
+                            </span>
+                          )}
+                          {v.spo2_percent && (
+                            <span className="bg-muted/60 px-1.5 py-0.5 rounded">
+                              SpO2 {v.spo2_percent}%
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setEditingVisit(v)}
+                        className="size-8 rounded-lg hover:bg-muted shrink-0 text-muted-foreground"
+                      >
+                        <Pencil className="size-3.5" />
                       </Button>
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
-            </Card>
+            </div>
           )}
         </div>
       )}
