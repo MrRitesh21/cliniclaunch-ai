@@ -321,9 +321,16 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
         };
   }
 
-  // Marketing / SEO pages — content changes rarely, cache hard at the edge.
+  // Marketing / SEO pages — fast updates with short edge revalidation
+  if (path === "/") {
+    return {
+      cacheControl: "public, max-age=0, s-maxage=10, must-revalidate",
+      cdnCacheControl: "max-age=10",
+      vary: "Accept-Encoding",
+    };
+  }
+
   if (
-    path === "/" ||
     path.startsWith("/compare/") ||
     path.startsWith("/clinic-software/") ||
     path.startsWith("/for/") ||
@@ -341,8 +348,8 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
     ].includes(path)
   ) {
     return {
-      cacheControl: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
-      cdnCacheControl: "max-age=3600",
+      cacheControl: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
+      cdnCacheControl: "max-age=600",
       vary: "Accept-Encoding",
     };
   }
