@@ -463,8 +463,8 @@ function BookPage() {
     );
   }
 
-  /* ── Steps: Doctor, Schedule, Confirm ── */
-  const hasDoctorStep = doctors.length >= 1;
+  /* ── Steps: Doctor (only if multi-doctor), Schedule, Confirm ── */
+  const hasDoctorStep = doctors.length > 1;
   type StepKey = "doctor" | "schedule" | "confirm";
   const stepKeys: StepKey[] = [
     ...(hasDoctorStep ? ["doctor" as const] : []),
