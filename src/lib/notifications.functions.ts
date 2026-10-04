@@ -15,7 +15,7 @@ export type InboxItem = {
 
 export const listNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({
       cursor: z.string().optional(),
       limit: z.number().int().min(1).max(100).default(50),
@@ -53,7 +53,7 @@ export const listNotifications = createServerFn({ method: "GET" })
 
 export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ id: z.string().uuid(), opened: z.boolean().optional() }).parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -96,7 +96,7 @@ export const markAllNotificationsRead = createServerFn({ method: "POST" })
 /** Bulk read/unread toggle for one or more inbox items. */
 export const setNotificationsRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ ids: z.array(z.string().uuid()).min(1).max(100), read: z.boolean() }).parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -112,7 +112,7 @@ export const setNotificationsRead = createServerFn({ method: "POST" })
 /** Permanently removes inbox items owned by the signed-in user. */
 export const deleteNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
+  .validator((data: unknown) =>
     z.object({ ids: z.array(z.string().uuid()).min(1).max(100) }).parse(data),
   )
   .handler(async ({ data, context }) => {

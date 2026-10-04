@@ -84,7 +84,7 @@ async function assertMember(organizationId: string, userId: string) {
 
 export const runAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({
       organization_id: z.string().uuid(),
       kind: z.enum(ASSISTANT_KINDS),
@@ -124,7 +124,7 @@ export const runAssistant = createServerFn({ method: "POST" })
 
 export const listAssistantRuns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({ organization_id: z.string().uuid(), limit: z.number().min(1).max(50).default(20) }).parse(i),
   )
   .handler(async ({ data, context }) => {

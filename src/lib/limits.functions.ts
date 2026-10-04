@@ -9,7 +9,7 @@ import { z } from "zod";
  * Returns `{ ok: true }` or throws with a user-facing message.
  */
 export const guardAuthAttempt = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ email: z.string().trim().max(200) }).parse(input),
   )
   .handler(async ({ data }) => {

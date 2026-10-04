@@ -132,7 +132,7 @@ export const resolveHostToClinic = createServerFn({ method: "GET" }).handler(asy
 /** Authenticated: verify the signed-in user's clinic custom domain via DNS. */
 export const verifyClinicDomain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: clinic, error: cErr } = await supabase

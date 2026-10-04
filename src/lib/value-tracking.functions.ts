@@ -9,7 +9,7 @@ export type ValueType = "money_saved" | "money_gained" | "time_saved_minutes";
  */
 export const logValueEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: {
+  .validator((input: {
     organizationId: string;
     moduleKey: string;
     eventType: string;
@@ -99,7 +99,7 @@ export interface ValueSummary {
 
 export const getValueSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { organizationId: string; period?: PeriodKey }) => ({
+  .validator((input: { organizationId: string; period?: PeriodKey }) => ({
     organizationId: input.organizationId,
     period: (input.period ?? "this_month") as PeriodKey,
   }))

@@ -16,7 +16,7 @@ export type LeadInput = z.infer<typeof leadSchema>;
 
 // Public server fn — creates lead + dispatches WhatsApp alert to the doctor.
 export const submitLeadServer = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => leadSchema.parse(i))
+  .validator((i: unknown) => leadSchema.parse(i))
   .handler(async ({ data }) => {
     // Redis-backed budgets (per-IP and per-phone), shared across instances.
     const { enforcePolicy, callerIp } = await import("./scale.server");
@@ -73,7 +73,7 @@ export const demoLeadSchema = z.object({
 });
 
 export const submitDemoLeadServer = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => demoLeadSchema.parse(i))
+  .validator((i: unknown) => demoLeadSchema.parse(i))
   .handler(async ({ data }) => {
     const { enforcePolicy, callerIp } = await import("./scale.server");
     await enforcePolicy("lead_ip", `demo:${await callerIp()}`);

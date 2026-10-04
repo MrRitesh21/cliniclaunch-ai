@@ -10,7 +10,7 @@ async function adminClient() {
 /** Server: checks search ranking for a single keyword */
 export const checkKeywordRank = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => 
+  .validator((input: unknown) => 
     z.object({
       keyword_id: z.string().uuid(),
       clinic_id: z.string().uuid()
@@ -159,7 +159,7 @@ export const checkKeywordRank = createServerFn({ method: "POST" })
 /** Server: updates clinic SEO meta config */
 export const updateClinicSeoConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => 
+  .validator((input: unknown) => 
     z.object({
       clinic_id: z.string().uuid(),
       seo_config: z.object({

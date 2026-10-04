@@ -12,7 +12,7 @@ async function ownedClinic(clinicId: string, userId: string) {
 
 export const saveGooglePlaceId = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({ clinic_id: z.string().uuid(), place_id: z.string().trim().max(200).nullable() }).parse(i),
   )
   .handler(async ({ data, context }) => {
@@ -27,7 +27,7 @@ export const saveGooglePlaceId = createServerFn({ method: "POST" })
 
 export const syncGoogleReviews = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     await ownedClinic(data.clinic_id, context.userId);
     const { syncClinicGoogleReviews } = await import("@/lib/google-reviews.server");
@@ -36,7 +36,7 @@ export const syncGoogleReviews = createServerFn({ method: "POST" })
 
 export const toggleGoogleReviewVisibility = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({ clinic_id: z.string().uuid(), index: z.number().int().min(0), show: z.boolean() }).parse(i),
   )
   .handler(async ({ data, context }) => {

@@ -13,7 +13,7 @@ export const listTemplateLibrary = createServerFn({ method: "GET" }).handler(asy
 
 /** Public: the compiled template a clinic's public site should render (if any). */
 export const getClinicSiteTemplate = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ slug: slugSchema, preview: z.boolean().optional() }).parse(input),
   )
   .handler(async ({ data }) => {
@@ -24,7 +24,7 @@ export const getClinicSiteTemplate = createServerFn({ method: "GET" })
 /** Doctor: which template is active for their clinic + whether admin locked it. */
 export const getClinicTemplateState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ clinic_id: uuid }).parse(input))
+  .validator((input: unknown) => z.object({ clinic_id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: clinic } = await context.supabase.from("clinics").select("id").eq("id", data.clinic_id).maybeSingle();
     if (!clinic) throw new Error("Clinic not found or you don't have access");
@@ -35,7 +35,7 @@ export const getClinicTemplateState = createServerFn({ method: "GET" })
 /** Doctor: pick a template from the global library (RLS scopes the update). */
 export const setClinicTemplateChoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ clinic_id: uuid, template_id: uuid.nullable() }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -51,7 +51,7 @@ export const adminListTemplates = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const adminSaveTemplate = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         id: uuid.nullish(),
@@ -77,14 +77,14 @@ export const adminSaveTemplate = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteTemplate = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ id: uuid }).parse(input))
+  .validator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data }) => {
     const { adminDeleteTemplateImpl } = await import("./site-templates.server");
     return adminDeleteTemplateImpl(data.id);
   });
 
 export const adminAssignTemplate = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ clinic_id: uuid, template_id: uuid.nullable(), note: z.string().trim().max(300).nullish() }).parse(input),
   )
   .handler(async ({ data }) => {
@@ -93,7 +93,7 @@ export const adminAssignTemplate = createServerFn({ method: "POST" })
   });
 
 export const adminSearchClinics = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ q: z.string().max(120).default("") }).parse(input))
+  .validator((input: unknown) => z.object({ q: z.string().max(120).default("") }).parse(input))
   .handler(async ({ data }) => {
     const { adminSearchClinicsImpl } = await import("./site-templates.server");
     return adminSearchClinicsImpl(data.q);

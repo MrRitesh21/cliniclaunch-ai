@@ -32,7 +32,7 @@ export const getPushConfig = createServerFn({ method: "GET" }).handler(async () 
  */
 export const savePushSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => subscriptionSchema.parse(data))
+  .validator((data: unknown) => subscriptionSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("push_subscriptions").upsert(
       {
@@ -56,7 +56,7 @@ export const savePushSubscription = createServerFn({ method: "POST" })
 
 export const removePushSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ endpoint: z.string().url().max(2000) }).parse(data))
+  .validator((data: unknown) => z.object({ endpoint: z.string().url().max(2000) }).parse(data))
   .handler(async ({ data, context }) => {
     // RLS restricts this to the caller's own rows.
     const { error } = await context.supabase
@@ -102,7 +102,7 @@ const prefsSchema = z.object({
 /** Per-device alert types + quiet hours. RLS scopes the row to the caller. */
 export const updatePushDevicePrefs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => prefsSchema.parse(data))
+  .validator((data: unknown) => prefsSchema.parse(data))
   .handler(async ({ data, context }) => {
     const allowed = NOTIFICATION_CATEGORIES.map((c) => c.id as string);
     const categories = data.categories.filter((c) => allowed.includes(c));

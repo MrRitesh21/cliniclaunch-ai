@@ -3,7 +3,7 @@ import { z } from "zod";
 import { autoSubmitClinicToGoogleImpl } from "./gsc-pipeline.server";
 
 export const submitClinicToGoogleServerFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({
       clinicId: z.string().min(1),
     }).parse(input)

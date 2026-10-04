@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { renderTemplate } from "./whatsapp";
 
 export const sendTestWhatsAppFn = createServerFn({ method: "POST" })
-  .inputValidator(z.object({
+  .validator(z.object({
     phone: z.string(),
     templateKey: z.string(),
     variables: z.record(z.any()),

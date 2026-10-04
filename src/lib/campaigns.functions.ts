@@ -24,7 +24,7 @@ const campaignSchema = z.object({
 
 export const listCampaigns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ organizationId: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ organizationId: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { data: rows, error } = await supabase
@@ -39,7 +39,7 @@ export const listCampaigns = createServerFn({ method: "POST" })
 
 export const saveCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => campaignSchema.parse(i))
+  .validator((i: unknown) => campaignSchema.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const row = {
@@ -80,7 +80,7 @@ export const saveCampaign = createServerFn({ method: "POST" })
 
 export const deleteCampaignFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await (context as any).supabase
       .from("marketing_campaigns")
@@ -92,7 +92,7 @@ export const deleteCampaignFn = createServerFn({ method: "POST" })
 
 export const duplicateCampaignFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { data: src, error } = await supabase
@@ -131,7 +131,7 @@ export const duplicateCampaignFn = createServerFn({ method: "POST" })
 /** Sends the campaign now through the clinic's connected WhatsApp session. */
 export const dispatchCampaignNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { dispatchCampaign } = await import("./campaigns.server");
     return dispatchCampaign((context as any).supabase, data.id);
@@ -157,7 +157,7 @@ function randomSlug() {
 
 export const createCampaignLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => linkSchema.parse(i))
+  .validator((i: unknown) => linkSchema.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { data: row, error } = await supabase
@@ -182,7 +182,7 @@ export const createCampaignLink = createServerFn({ method: "POST" })
 
 export const listCampaignLinks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ organizationId: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ organizationId: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await (context as any).supabase
       .from("campaign_links")

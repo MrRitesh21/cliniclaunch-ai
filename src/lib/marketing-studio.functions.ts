@@ -8,7 +8,7 @@ const OrgInput = z.object({ organizationId: z.string().uuid() });
 
 export const getMarketingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const { marketingAnalytics } = await import("./marketing-studio.server");
     return marketingAnalytics((context as any).supabase, data.organizationId);
@@ -35,7 +35,7 @@ const couponSchema = OrgInput.extend({
 
 export const listMarketingCoupons = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await (context as any).supabase
       .from("marketing_coupons")
@@ -48,7 +48,7 @@ export const listMarketingCoupons = createServerFn({ method: "POST" })
 
 export const saveMarketingCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => couponSchema.parse(i))
+  .validator((i: unknown) => couponSchema.parse(i))
   .handler(async ({ data, context }) => {
     const payload = {
       organization_id: data.organizationId,
@@ -76,7 +76,7 @@ export const saveMarketingCoupon = createServerFn({ method: "POST" })
 
 export const deleteMarketingCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await (context as any).supabase.from("marketing_coupons").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -87,7 +87,7 @@ export const deleteMarketingCoupon = createServerFn({ method: "POST" })
 
 export const getLoyaltyOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const { loyaltyOverview } = await import("./marketing-studio.server");
     return loyaltyOverview((context as any).supabase, data.organizationId);
@@ -95,7 +95,7 @@ export const getLoyaltyOverview = createServerFn({ method: "POST" })
 
 export const saveLoyaltyProgram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     OrgInput.extend({
       id: z.string().uuid().optional(),
       name: z.string().trim().min(2).max(80),
@@ -124,7 +124,7 @@ export const saveLoyaltyProgram = createServerFn({ method: "POST" })
 
 export const getReferralOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const { referralOverview } = await import("./marketing-studio.server");
     return referralOverview((context as any).supabase, data.organizationId);
@@ -132,7 +132,7 @@ export const getReferralOverview = createServerFn({ method: "POST" })
 
 export const createReferralLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     OrgInput.extend({
       label: z.string().trim().min(2).max(80),
       targetPath: z.string().trim().min(1).max(200).default("/"),
@@ -165,7 +165,7 @@ export const createReferralLink = createServerFn({ method: "POST" })
 
 export const getReviewsOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const { reviewsOverview } = await import("./marketing-studio.server");
     return reviewsOverview((context as any).supabase, data.organizationId);
@@ -173,7 +173,7 @@ export const getReviewsOverview = createServerFn({ method: "POST" })
 
 export const saveReviewReply = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({ id: z.string().uuid(), reply: z.string().trim().min(2).max(1500) }).parse(i),
   )
   .handler(async ({ data, context }) => {
@@ -187,7 +187,7 @@ export const saveReviewReply = createServerFn({ method: "POST" })
 
 export const generateReviewReply = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z
       .object({
         author: z.string().trim().max(80),
@@ -212,7 +212,7 @@ export const generateReviewReply = createServerFn({ method: "POST" })
 
 export const listMarketingAutomations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const sb = (context as any).supabase;
     const { data: rows, error } = await sb
@@ -226,7 +226,7 @@ export const listMarketingAutomations = createServerFn({ method: "POST" })
 
 export const seedMarketingAutomations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const sb = (context as any).supabase;
     const { DEFAULT_AUTOMATIONS } = await import("./marketing-studio.server");
@@ -248,7 +248,7 @@ export const seedMarketingAutomations = createServerFn({ method: "POST" })
 
 export const toggleMarketingAutomation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid(), isActive: z.boolean() }).parse(i))
+  .validator((i: unknown) => z.object({ id: z.string().uuid(), isActive: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await (context as any).supabase
       .from("marketing_automations")
@@ -270,7 +270,7 @@ const settingsShape = z.object({
 
 export const getMarketingSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.parse(i))
+  .validator((i: unknown) => OrgInput.parse(i))
   .handler(async ({ data, context }) => {
     const sb = (context as any).supabase;
     const [orgRes, waRes, campRes, clinicRes] = await Promise.all([
@@ -313,7 +313,7 @@ export const getMarketingSettings = createServerFn({ method: "POST" })
 
 export const saveMarketingSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => OrgInput.extend({ settings: settingsShape }).parse(i))
+  .validator((i: unknown) => OrgInput.extend({ settings: settingsShape }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await (context as any).supabase
       .from("organizations")

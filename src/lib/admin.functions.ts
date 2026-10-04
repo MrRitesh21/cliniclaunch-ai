@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdminAuth } from "./admin-auth.functions";
 
 // Admin authentication is handled entirely by Supabase Auth + the `user_roles`
 // table (see admin.login.tsx, _admin/route.tsx and getAdminMe in
@@ -7,13 +8,15 @@ import { z } from "zod";
 // server functions (custom SHA-256 + admin_sessions cookie) have been retired.
 
 export const getAdminStats = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { getAdminStatsImpl } = await import("./admin.server");
     return getAdminStatsImpl();
   });
 
 export const listAdminDoctors = createServerFn({ method: "GET" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       search: z.string().optional(),
       plan: z.string().optional(),
@@ -27,14 +30,16 @@ export const listAdminDoctors = createServerFn({ method: "GET" })
   });
 
 export const getDoctorDetails = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ id: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data: input }) => {
     const { getDoctorDetailsImpl } = await import("./admin.server");
     return getDoctorDetailsImpl(input);
   });
 
 export const updateDoctorProfile = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       id: z.string(),
       doctorName: z.string().optional(),
@@ -54,7 +59,8 @@ export const updateDoctorProfile = createServerFn({ method: "POST" })
   });
 
 export const changeDoctorPlan = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       clinicId: z.string(),
       planId: z.string(),
@@ -69,47 +75,54 @@ export const changeDoctorPlan = createServerFn({ method: "POST" })
   });
 
 export const issueRefund = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clinicId: z.string(), amount: z.number(), reason: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ clinicId: z.string(), amount: z.number(), reason: z.string() }))
   .handler(async ({ data: input }) => {
     const { issueRefundImpl } = await import("./admin.server");
     return issueRefundImpl(input);
   });
 
 export const toggleDoctorSuspension = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string(), reason: z.string().optional() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string(), reason: z.string().optional() }))
   .handler(async ({ data: input }) => {
     const { toggleDoctorSuspensionImpl } = await import("./admin.server");
     return toggleDoctorSuspensionImpl(input);
   });
 
 export const deleteDoctorAccount = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data: input }) => {
     const { deleteDoctorAccountImpl } = await import("./admin.server");
     return deleteDoctorAccountImpl(input);
   });
 
 export const clearDoctorPatientsData = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data: input }) => {
     const { clearDoctorPatientsDataImpl } = await import("./admin.server");
     return clearDoctorPatientsDataImpl(input);
   });
 
 export const listAdminSubscriptions = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listAdminSubscriptionsImpl } = await import("./admin.server");
     return listAdminSubscriptionsImpl();
   });
 
 export const getAdminPlans = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { getAdminPlansImpl } = await import("./admin.server");
     return getAdminPlansImpl();
   });
 
 export const updatePlanDetails = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       id: z.string(),
       monthlyPrice: z.number(),
@@ -126,13 +139,15 @@ export const updatePlanDetails = createServerFn({ method: "POST" })
   });
 
 export const listCoupons = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listCouponsImpl } = await import("./admin.server");
     return listCouponsImpl();
   });
 
 export const createCoupon = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       code: z.string().toUpperCase(),
       discountType: z.enum(["percent", "fixed"]),
@@ -149,46 +164,53 @@ export const createCoupon = createServerFn({ method: "POST" })
   });
 
 export const toggleCouponActive = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ code: z.string(), active: z.boolean() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ code: z.string(), active: z.boolean() }))
   .handler(async ({ data: input }) => {
     const { toggleCouponActiveImpl } = await import("./admin.server");
     return toggleCouponActiveImpl(input);
   });
 
 export const listTransactions = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listTransactionsImpl } = await import("./admin.server");
     return listTransactionsImpl();
   });
 
 export const listFeatureFlags = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listFeatureFlagsImpl } = await import("./admin.server");
     return listFeatureFlagsImpl();
   });
 
 export const toggleFeatureFlag = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ key: z.string(), enabled: z.boolean() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ key: z.string(), enabled: z.boolean() }))
   .handler(async ({ data: input }) => {
     const { toggleFeatureFlagImpl } = await import("./admin.server");
     return toggleFeatureFlagImpl(input);
   });
 
 export const updateFeatureFlagOverrides = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ key: z.string(), plans: z.array(z.string()), doctorIds: z.array(z.string()) }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ key: z.string(), plans: z.array(z.string()), doctorIds: z.array(z.string()) }))
   .handler(async ({ data: input }) => {
     const { updateFeatureFlagOverridesImpl } = await import("./admin.server");
     return updateFeatureFlagOverridesImpl(input);
   });
 
 export const listAnnouncements = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listAnnouncementsImpl } = await import("./admin.server");
     return listAnnouncementsImpl();
   });
 
 export const createAnnouncement = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       title: z.string(),
       body: z.string(),
@@ -202,20 +224,23 @@ export const createAnnouncement = createServerFn({ method: "POST" })
   });
 
 export const toggleAnnouncementActive = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string(), active: z.boolean() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string(), active: z.boolean() }))
   .handler(async ({ data: input }) => {
     const { toggleAnnouncementActiveImpl } = await import("./admin.server");
     return toggleAnnouncementActiveImpl(input);
   });
 
 export const listEmailCampaigns = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listEmailCampaignsImpl } = await import("./admin.server");
     return listEmailCampaignsImpl();
   });
 
 export const createEmailCampaign = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       name: z.string(),
       subject: z.string(),
@@ -230,52 +255,60 @@ export const createEmailCampaign = createServerFn({ method: "POST" })
   });
 
 export const getDatabaseStats = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { getDatabaseStatsImpl } = await import("./admin.server");
     return getDatabaseStatsImpl();
   });
 
 export const runDatabaseCleanup = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ tool: z.enum(["unverified", "sessions", "archive"]) }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ tool: z.enum(["unverified", "sessions", "archive"]) }))
   .handler(async ({ data: input }) => {
     const { runDatabaseCleanupImpl } = await import("./admin.server");
     return runDatabaseCleanupImpl(input);
   });
 
 export const listSupportTickets = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listSupportTicketsImpl } = await import("./admin.server");
     return listSupportTicketsImpl();
   });
 
 export const getSupportTicket = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ id: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data: input }) => {
     const { getSupportTicketImpl } = await import("./admin.server");
     return getSupportTicketImpl(input);
   });
 
 export const replySupportTicket = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ ticketId: z.string(), body: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ ticketId: z.string(), body: z.string() }))
   .handler(async ({ data: input }) => {
     const { replySupportTicketImpl } = await import("./admin.server");
     return replySupportTicketImpl(input);
   });
 
 export const updateTicketStatus = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string(), status: z.string(), priority: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string(), status: z.string(), priority: z.string() }))
   .handler(async ({ data: input }) => {
     const { updateTicketStatusImpl } = await import("./admin.server");
     return updateTicketStatusImpl(input);
   });
 
 export const listAuditLogs = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listAuditLogsImpl } = await import("./admin.server");
     return listAuditLogsImpl();
   });
 
 export const listAdminUsers = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { listAdminUsersImpl } = await import("./admin.server");
     return listAdminUsersImpl();
@@ -285,34 +318,39 @@ export const listAdminUsers = createServerFn({ method: "GET" })
 // identified by email. Admins are ordinary Supabase Auth users flagged in
 // user_roles — there is no separate password to set here.
 export const createAdminUser = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ email: z.string().email(), role: z.enum(["super_admin", "support"]) }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ email: z.string().email(), role: z.enum(["super_admin", "support"]) }))
   .handler(async ({ data: input }) => {
     const { createAdminUserImpl } = await import("./admin.server");
     return createAdminUserImpl(input);
   });
 
 export const deleteAdminUser = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data: input }) => {
     const { deleteAdminUserImpl } = await import("./admin.server");
     return deleteAdminUserImpl(input);
   });
 
 export const getSystemSettings = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .handler(async () => {
     const { getSystemSettingsImpl } = await import("./admin.server");
     return getSystemSettingsImpl();
   });
 
 export const saveSystemSettings = createServerFn({ method: "POST" })
-  .inputValidator(z.record(z.string(), z.string()))
+  .middleware([requireAdminAuth])
+  .validator(z.record(z.string(), z.string()))
   .handler(async ({ data: input }) => {
     const { saveSystemSettingsImpl } = await import("./admin.server");
     return saveSystemSettingsImpl(input);
   });
 
 export const testIntegration = createServerFn({ method: "POST" })
-  .inputValidator(z.object({
+  .middleware([requireAdminAuth])
+  .validator(z.object({
     provider: z.enum(["wati", "razorpay", "openai"]),
     settings: z.record(z.string(), z.string()),
   }))
@@ -323,42 +361,48 @@ export const testIntegration = createServerFn({ method: "POST" })
 
 // -------- Extended actions --------
 export const impersonateDoctor = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clinicId: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ clinicId: z.string() }))
   .handler(async ({ data: input }) => {
     const { impersonateDoctorImpl } = await import("./admin.server");
     return impersonateDoctorImpl(input);
   });
 
 export const resetDoctorPassword = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clinicId: z.string(), password: z.string().optional() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ clinicId: z.string(), password: z.string().optional() }))
   .handler(async ({ data: input }) => {
     const { resetDoctorPasswordImpl } = await import("./admin.server");
     return resetDoctorPasswordImpl(input);
   });
 
 export const toggleClinicPublish = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clinicId: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ clinicId: z.string() }))
   .handler(async ({ data: input }) => {
     const { toggleClinicPublishImpl } = await import("./admin.server");
     return toggleClinicPublishImpl(input);
   });
 
 export const updateSubscriptionStatus = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string(), action: z.enum(["cancel", "reactivate", "mark_expired"]) }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string(), action: z.enum(["cancel", "reactivate", "mark_expired"]) }))
   .handler(async ({ data: input }) => {
     const { updateSubscriptionStatusImpl } = await import("./admin.server");
     return updateSubscriptionStatusImpl(input);
   });
 
 export const deleteCoupon = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ code: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ code: z.string() }))
   .handler(async ({ data: input }) => {
     const { deleteCouponImpl } = await import("./admin.server");
     return deleteCouponImpl(input);
   });
 
 export const createPlan = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({
       slug: z.string().min(2),
       name: z.string().min(2),
@@ -374,7 +418,8 @@ export const createPlan = createServerFn({ method: "POST" })
   });
 
 export const deletePlan = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.string() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data: input }) => {
     const { deletePlanImpl } = await import("./admin.server");
     return deletePlanImpl(input);
@@ -415,21 +460,24 @@ export const checkMaintenanceStatus = createServerFn({ method: "GET" })
   });
 
 export const listModuleControls = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ orgId: z.string().uuid().optional(), search: z.string().max(100).optional() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ orgId: z.string().uuid().optional(), search: z.string().max(100).optional() }))
   .handler(async ({ data }) => {
     const { listModuleControlsImpl } = await import("./admin.server");
     return listModuleControlsImpl(data);
   });
 
 export const setModuleGlobal = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ moduleId: z.string().min(1), enabled: z.boolean() }))
+  .middleware([requireAdminAuth])
+  .validator(z.object({ moduleId: z.string().min(1), enabled: z.boolean() }))
   .handler(async ({ data }) => {
     const { setModuleGlobalImpl } = await import("./admin.server");
     return setModuleGlobalImpl(data);
   });
 
 export const setOrgModuleOverride = createServerFn({ method: "POST" })
-  .inputValidator(
+  .middleware([requireAdminAuth])
+  .validator(
     z.object({ orgId: z.string().uuid(), moduleId: z.string().min(1), state: z.enum(["on", "off", "default"]) }),
   )
   .handler(async ({ data }) => {

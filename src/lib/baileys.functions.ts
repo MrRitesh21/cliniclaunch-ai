@@ -71,7 +71,7 @@ export const startMyWhatsapp = createServerFn({ method: "POST" })
 
 export const getWhatsappPairingCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({
+  .validator((i: unknown) => z.object({
     phone: z.string().trim().min(8).max(20),
   }).parse(i))
   .handler(async ({ data, context }) => {
@@ -155,7 +155,7 @@ export const disconnectMyWhatsapp = createServerFn({ method: "POST" })
 
 export const sendTestWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({
+  .validator((i: unknown) => z.object({
     phone: z.string().trim().min(5).max(20),
     message: z.string().trim().min(1).max(2000),
   }).parse(i))
@@ -206,7 +206,7 @@ export const disconnectAdminWhatsapp = createServerFn({ method: "POST" })
 
 export const sendAdminTestWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({
+  .validator((i: unknown) => z.object({
     phone: z.string().trim().min(5).max(20),
     message: z.string().trim().min(1).max(2000),
   }).parse(i))

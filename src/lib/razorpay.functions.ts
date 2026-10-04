@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // ---------- Coupon validation (server-authoritative) ----------
 export const validateCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({
       code: z.string().trim().min(1).max(64),
       plan_id: z.string().min(1),
@@ -55,7 +55,7 @@ export const validateCoupon = createServerFn({ method: "POST" })
 
 export const startRazorpaySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({
       plan_id: z.string().min(1),
       billing_cycle: z.enum(["monthly", "yearly"]),
@@ -208,7 +208,7 @@ export const startRazorpaySubscription = createServerFn({ method: "POST" })
 
 export const startOnboardingTrialSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({
       plan_id: z.string().min(1),
       billing_cycle: z.enum(["monthly", "yearly"]),
@@ -275,7 +275,7 @@ export const startOnboardingTrialSubscription = createServerFn({ method: "POST" 
 
 export const cancelRazorpaySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ organization_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ organization_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: member } = await supabaseAdmin
@@ -329,7 +329,7 @@ async function getSubscriptionWithRetry(subscriptionId: string) {
 
 export const verifySubscriptionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ subscription_id: z.string() }).parse(i))
+  .validator((i: unknown) => z.object({ subscription_id: z.string() }).parse(i))
   .handler(async ({ data }) => {
     const sub = await getSubscriptionWithRetry(data.subscription_id);
     const active = sub && (sub.status === "active" || sub.status === "authenticated");
@@ -341,7 +341,7 @@ export const verifySubscriptionStatus = createServerFn({ method: "POST" })
 
 export const activateRazorpaySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ subscription_id: z.string(), payment_id: z.string().optional() }).parse(i))
+  .validator((i: unknown) => z.object({ subscription_id: z.string(), payment_id: z.string().optional() }).parse(i))
   .handler(async ({ data }) => {
     const { getPayment } = await import("@/lib/razorpay.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -486,7 +486,7 @@ export const activateRazorpaySubscription = createServerFn({ method: "POST" })
 // wait for the webhook to catch up after a renewal.
 export const syncRazorpaySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ organization_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ organization_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: member } = await supabaseAdmin
@@ -541,7 +541,7 @@ export const syncRazorpaySubscription = createServerFn({ method: "POST" })
 // Reminders shown on the billing page.
 export const listBillingReminders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ organization_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ organization_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: member } = await supabaseAdmin
@@ -564,7 +564,7 @@ export const listBillingReminders = createServerFn({ method: "GET" })
 
 export const dismissBillingReminder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid(), organization_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ id: z.string().uuid(), organization_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: member } = await supabaseAdmin

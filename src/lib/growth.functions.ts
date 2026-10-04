@@ -15,7 +15,7 @@ function dayKey(d: Date) {
  */
 export const getGrowthOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => OrgInput.parse(input))
+  .validator((input: unknown) => OrgInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const orgId = data.organizationId;
@@ -125,7 +125,7 @@ export const getGrowthOverview = createServerFn({ method: "POST" })
 /** Marketplace listing: available modules + which ones this org installed. */
 export const listGrowthApps = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => OrgInput.parse(input))
+  .validator((input: unknown) => OrgInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const [mods, installed, camps] = await Promise.all([
@@ -158,7 +158,7 @@ export const listGrowthApps = createServerFn({ method: "POST" })
 
 export const setGrowthAppInstalled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     OrgInput.extend({ moduleId: z.string().min(1).max(60), install: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -182,7 +182,7 @@ export const setGrowthAppInstalled = createServerFn({ method: "POST" })
 /** 1-click install of a pre-built campaign app as a ready-to-send campaign. */
 export const installCampaignApp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => OrgInput.extend({ appId: z.string().min(1).max(60) }).parse(input))
+  .validator((input: unknown) => OrgInput.extend({ appId: z.string().min(1).max(60) }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const app = CAMPAIGN_APPS.find((a) => a.id === data.appId);

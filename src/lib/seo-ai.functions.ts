@@ -30,7 +30,7 @@ Services: ${(c.services ?? []).slice?.(0, 20)?.map?.((s: any) => s?.name ?? s).j
 // ─── 1. Generate Meta Tags ───────────────────────────────────────────────────
 export const aiGenerateMetaTags = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid(), autosave: z.boolean().default(true) }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid(), autosave: z.boolean().default(true) }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const raw = await callAI({
@@ -65,7 +65,7 @@ export const aiGenerateMetaTags = createServerFn({ method: "POST" })
 // ─── 2. Generate FAQ Schema ──────────────────────────────────────────────────
 export const aiGenerateFaq = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid(), count: z.number().min(4).max(20).default(10) }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid(), count: z.number().min(4).max(20).default(10) }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const raw = await callAI({
@@ -102,7 +102,7 @@ export const aiGenerateFaq = createServerFn({ method: "POST" })
 // ─── 3. Generate Blog Post ───────────────────────────────────────────────────
 export const aiGenerateBlogPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid(), topic: z.string().min(3).max(200).optional() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid(), topic: z.string().min(3).max(200).optional() }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const topic = data.topic ?? `A patient guide relevant to ${clinic.specialization ?? "general practice"}`;
@@ -129,7 +129,7 @@ export const aiGenerateBlogPost = createServerFn({ method: "POST" })
 // ─── 4. AEO / GEO / On-Page Auto-Audit ───────────────────────────────────────
 export const aiRunSeoAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     // Deterministic checks (no HTTP fetch, fast, works in worker)
@@ -207,7 +207,7 @@ export const aiRunSeoAudit = createServerFn({ method: "POST" })
 // ─── 5. AI Citation Tracker (asks Lovable AI about the clinic) ──────────────
 export const aiCheckCitations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const specialty = clinic.specialization || "doctor";
@@ -260,7 +260,7 @@ export const aiCheckCitations = createServerFn({ method: "POST" })
 // ─── 6. Toggle autopilot config ──────────────────────────────────────────────
 export const setSeoAutopilot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid(), key: z.string(), value: z.boolean() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid(), key: z.string(), value: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const current = (typeof clinic.seo_autopilot === "object" && clinic.seo_autopilot) || {};
@@ -273,7 +273,7 @@ export const setSeoAutopilot = createServerFn({ method: "POST" })
 // ─── 7. Rank history for chart ───────────────────────────────────────────────
 export const getRankHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     await loadClinic(data.clinic_id, context.userId);
     const sb = await admin();
@@ -289,7 +289,7 @@ export const getRankHistory = createServerFn({ method: "POST" })
 // ─── 8. Run autopilot on demand ──────────────────────────────────────────────
 export const runSeoAutopilotNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { runAutopilotForClinic } = await import("./seo-autopilot.server");
     const result = await runAutopilotForClinic(data.clinic_id, context.userId);
@@ -299,7 +299,7 @@ export const runSeoAutopilotNow = createServerFn({ method: "POST" })
 // ─── 9. Real Google PageSpeed Insights audit (free keyless API) ──────────────
 export const runPageSpeedAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({
+  .validator((i: unknown) => z.object({
     clinic_id: z.string().uuid(),
     strategy: z.enum(["mobile", "desktop"]).default("mobile"),
   }).parse(i))
@@ -355,7 +355,7 @@ export const runPageSpeedAudit = createServerFn({ method: "POST" })
 // ─── 10. Live install verification — fetches the public URL and confirms tags ─
 export const verifyLiveSeoInstall = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const url = clinic.custom_domain
@@ -413,7 +413,7 @@ export const verifyLiveSeoInstall = createServerFn({ method: "POST" })
 // ─── 11. AI Audit Fixer — Generates custom SEO optimization payloads ───────
 export const aiFixSeoTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ clinic_id: z.string().uuid(), task_id: z.string().uuid(), task_key: z.string() }).parse(i))
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid(), task_id: z.string().uuid(), task_key: z.string() }).parse(i))
   .handler(async ({ data, context }) => {
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const sb = await admin();

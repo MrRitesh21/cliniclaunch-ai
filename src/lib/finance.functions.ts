@@ -91,7 +91,7 @@ async function fetchLedger(
 /** Everything the revenue dashboard, P&L and analytics screens need, in one call. */
 export const getFinanceOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => RangeInput.parse(input))
+  .validator((input: unknown) => RangeInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { organizationId, from, to, clinicId } = data;
@@ -203,7 +203,7 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
 /** Unpaid / partially paid invoices with ageing buckets. */
 export const getOutstanding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ organizationId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ organizationId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { data: rows, error } = await supabase
@@ -242,7 +242,7 @@ export const getOutstanding = createServerFn({ method: "POST" })
 /** Category suggestion: vendor memory first, then AI, then keyword rules. */
 export const suggestExpenseCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -272,7 +272,7 @@ export const suggestExpenseCategory = createServerFn({ method: "POST" })
 /** OCR a bill image or PDF into structured expense fields. */
 export const scanBill = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         fileDataUrl: z.string().startsWith("data:").max(12_000_000),
@@ -305,7 +305,7 @@ const ExpenseInput = z.object({
 /** Create or update an expense, remember the vendor's category, and write the audit trail. */
 export const saveExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => ExpenseInput.parse(input))
+  .validator((input: unknown) => ExpenseInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertOrgMember(supabase, userId, data.organizationId);
@@ -382,7 +382,7 @@ export const saveExpense = createServerFn({ method: "POST" })
 
 export const listExpenses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z.object({ organizationId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -401,7 +401,7 @@ export const listExpenses = createServerFn({ method: "POST" })
 
 export const deleteExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -443,7 +443,7 @@ export const deleteExpense = createServerFn({ method: "POST" })
 /** Cash position for a given day, plus any existing closing record. */
 export const getCashDay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -471,7 +471,7 @@ export const getCashDay = createServerFn({ method: "POST" })
 
 export const closeCashDay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -517,7 +517,7 @@ export const closeCashDay = createServerFn({ method: "POST" })
 /** AI narrative insights + a linear-trend forecast for the next month. */
 export const getFinanceIntelligence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -600,7 +600,7 @@ export const getFinanceIntelligence = createServerFn({ method: "POST" })
 /** Budgets & Financial Goals management with current month tracking. */
 export const getBudgetsAndGoals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ organizationId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ organizationId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const currentMonth = dayKey(new Date()).slice(0, 7);
@@ -667,7 +667,7 @@ export const getBudgetsAndGoals = createServerFn({ method: "POST" })
 
 export const saveBudget = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -701,7 +701,7 @@ export const saveBudget = createServerFn({ method: "POST" })
 
 export const saveGoal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         id: z.string().uuid().optional(),
@@ -745,7 +745,7 @@ export const saveGoal = createServerFn({ method: "POST" })
 /** Immutable Audit Trail logs viewer. */
 export const getAuditLogs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -768,7 +768,7 @@ export const getAuditLogs = createServerFn({ method: "POST" })
 /** Detailed Tax & GST summary for CA export and filing reminders. */
 export const getTaxReportData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => RangeInput.parse(input))
+  .validator((input: unknown) => RangeInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const rows = await fetchLedger(supabase, data.organizationId, data.from, data.to, data.clinicId);
@@ -828,7 +828,7 @@ export const getTaxReportData = createServerFn({ method: "POST" })
 /** Generates formatted weekly/daily WhatsApp financial summary. */
 export const getWhatsAppSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         organizationId: z.string().uuid(),
@@ -878,7 +878,7 @@ export const getWhatsAppSummary = createServerFn({ method: "POST" })
 /** Synchronize all clinic modules (Appointments, Invoices, Expenses, Pharmacy) into the double-entry Finance Ledger. */
 export const syncAllClinicModulesToLedger = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ organizationId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ organizationId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { organizationId } = data;
