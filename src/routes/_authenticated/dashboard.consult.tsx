@@ -51,6 +51,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/dashboard/consult")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { appointmentId?: string; patientId?: string; new?: boolean } => ({
+    appointmentId: typeof search.appointmentId === "string" ? search.appointmentId : undefined,
+    patientId: typeof search.patientId === "string" ? search.patientId : undefined,
+    new: search.new === true || search.new === "true",
+  }),
   component: () => (
     <AppGuard appKey="consultation">
       <ConsultPage />
@@ -246,10 +253,17 @@ function generateSoapDraft(complaint: string, diagnosis: string) {
 function ConsultPage() {
   const { org } = useOrganization();
   const orgId = org?.id;
+  const searchParams = Route.useSearch();
   const [rows, setRows] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Consultation | "new" | null>(null);
+  const [initialApptData, setInitialApptData] = useState<{
+    appointmentId?: string;
+    patientName?: string;
+    patientId?: string;
+    problem?: string;
+  } | null>(null);
   const [patients, setPatients] = useState<PatientOpt[]>([]);
   const [appts, setAppts] = useState<ApptOpt[]>([]);
 
@@ -269,7 +283,7 @@ function ConsultPage() {
         .order("name"),
       supabase
         .from("appointments")
-        .select("id, patient_name, scheduled_at, status")
+        .select("id, patient_name, scheduled_at, status, problem, patient_phone")
         .eq("organization_id", orgId)
         .order("scheduled_at", { ascending: false })
         .limit(100),
@@ -277,12 +291,28 @@ function ConsultPage() {
     setRows((c as any[]) ?? []);
     setPatients((p as any[]) ?? []);
     setAppts((a as any[]) ?? []);
+
+    // If navigated with appointmentId search param, auto-open consult for this appointment
+    if (searchParams?.appointmentId && a) {
+      const targetAppt = (a as any[]).find((item) => item.id === searchParams.appointmentId);
+      if (targetAppt) {
+        setInitialApptData({
+          appointmentId: targetAppt.id,
+          patientName: targetAppt.patient_name,
+          problem: targetAppt.problem || "",
+        });
+        setEditing("new");
+      }
+    } else if (searchParams?.new) {
+      setEditing("new");
+    }
+
     setLoading(false);
   }
 
   useEffect(() => {
     void load(); /* eslint-disable-next-line */
-  }, [orgId]);
+  }, [orgId, searchParams?.appointmentId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -635,10 +665,15 @@ function ConsultPage() {
           orgId={orgId}
           patients={patients}
           appts={appts}
+          initialData={initialApptData}
           existing={editing === "new" ? null : editing}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setInitialApptData(null);
+          }}
           onSaved={() => {
             setEditing(null);
+            setInitialApptData(null);
             load();
           }}
         />
@@ -651,6 +686,7 @@ function ConsultSheet({
   orgId,
   patients,
   appts,
+  initialData,
   existing,
   onClose,
   onSaved,
@@ -658,19 +694,29 @@ function ConsultSheet({
   orgId: string;
   patients: PatientOpt[];
   appts: ApptOpt[];
+  initialData?: {
+    appointmentId?: string;
+    patientName?: string;
+    patientId?: string;
+    problem?: string;
+  } | null;
   existing: Consultation | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [patientId, setPatientId] = useState<string | null>(existing?.patient_id ?? null);
-  const [patientName, setPatientName] = useState(existing?.patient_name ?? "");
+  const [patientId, setPatientId] = useState<string | null>(
+    existing?.patient_id ?? initialData?.patientId ?? null,
+  );
+  const [patientName, setPatientName] = useState(
+    existing?.patient_name ?? initialData?.patientName ?? "",
+  );
   const [appointmentId, setAppointmentId] = useState<string | null>(
-    existing?.appointment_id ?? null,
+    existing?.appointment_id ?? initialData?.appointmentId ?? null,
   );
   const [activeTab, setActiveTab] = useState("vitals");
 
   const [f, setF] = useState({
-    chief_complaint: existing?.chief_complaint ?? "",
+    chief_complaint: existing?.chief_complaint ?? initialData?.problem ?? "",
     history: existing?.history ?? "",
     examination: existing?.examination ?? "",
     diagnosis: existing?.diagnosis ?? "",
@@ -682,6 +728,59 @@ function ConsultSheet({
     height: existing?.height ?? "",
     follow_up_date: existing?.follow_up_date ?? "",
   });
+
+  // Apply instant clinical preset template to speed up consultations
+  const applyPreset = (presetKey: "fever" | "throat" | "hypertension" | "gastritis" | "skin") => {
+    const PRESETS = {
+      fever: {
+        complaint: "Acute viral fever with body ache and chills",
+        diagnosis: "Viral Pyrexia / Upper Respiratory Infection",
+        history: "Patient presents with fever for 2-3 days associated with generalized fatigue, headache, and myalgia. No warning signs.",
+        exam: "Temperature elevated (100.2°F), throat mildly congested, chest clear, soft abdomen.",
+        plan: "1. Tab Paracetamol 650mg — 1-0-1 after food x 3 days\n2. Tab Levocetirizine 5mg — 0-0-1 at night x 5 days\n3. ORS hydration / warm fluid intake\n4. Follow up after 3 days if fever persists",
+      },
+      throat: {
+        complaint: "Sore throat and painful swallowing with dry cough",
+        diagnosis: "Acute Pharyngitis / Tonsillitis",
+        history: "Throat pain for 2 days, aggravated on swallowing. Mild dry cough.",
+        exam: "Posterior pharyngeal erythema (+), tonsils enlarged without purulent exudates.",
+        plan: "1. Tab Amoxicillin+Clav 625mg — 1-0-1 after meals x 5 days\n2. Betadine gargles twice daily\n3. Tab Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n4. Warm salt water gargles",
+      },
+      hypertension: {
+        complaint: "Routine blood pressure check & refill",
+        diagnosis: "Essential Hypertension (Stage 1 / Controlled)",
+        history: "Patient on regular antihypertensive therapy. No chest tightness, palpitations, or visual blurring.",
+        exam: "Pulse 78/min regular, Heart sounds S1S2 heard, no pedal edema.",
+        plan: "1. Continue Tab Telmisartan 40mg — 1-0-0 morning\n2. Low sodium diet (< 2g/day) & regular 30m brisk walking\n3. Self BP monitoring weekly\n4. Follow up in 3 months with lipid profile & RFT",
+      },
+      gastritis: {
+        complaint: "Epigastric burning pain, acid reflux, and bloating",
+        diagnosis: "Acute GERD / Dyspepsia",
+        history: "Heartburn and postprandial fullness for 4 days after irregular eating habits.",
+        exam: "Epigastric mild tenderness (+), soft abdomen, bowel sounds normal.",
+        plan: "1. Cap Rabeprazole 20mg + Domperidone 30mg — 1-0-0 before breakfast x 10 days\n2. Gelucil / Antacid syrup 10ml after meals SOS\n3. Avoid spicy, oily food, tea/coffee on empty stomach\n4. Early dinner 2 hours before sleep",
+      },
+      skin: {
+        complaint: "Itchy red rash with localized itching",
+        diagnosis: "Allergic Contact Dermatitis / Urticaria",
+        history: "Itching and erythematous papules for 3 days. No history of breathing difficulty.",
+        exam: "Erythematous urticarial wheals over extremities, no secondary infection.",
+        plan: "1. Tab Bilastine 20mg — 0-0-1 at night x 7 days\n2. Calamine lotion topically twice daily\n3. Tab Prednisolone 10mg — 1-0-0 for 3 days if severe\n4. Avoid allergen / synthetic clothing",
+      },
+    };
+
+    const p = PRESETS[presetKey];
+    setF((prev) => ({
+      ...prev,
+      chief_complaint: p.complaint,
+      diagnosis: p.diagnosis,
+      history: p.history,
+      examination: p.exam,
+      treatment_plan: p.plan,
+    }));
+    toast.success(`⚡ 1-Click Clinical Preset applied: ${p.diagnosis}`);
+    setActiveTab("soap");
+  };
 
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -786,6 +885,48 @@ function ConsultSheet({
               Record patient vitals, diagnosis, and generate clinical SOAP notes with AI copilot.
             </SheetDescription>
           </SheetHeader>
+        </div>
+
+        {/* Quick Prescription Presets Pill Row */}
+        <div className="px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40 bg-muted/20">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 flex items-center gap-1">
+            <Sparkles className="size-3 text-amber-500" /> Fast Rx:
+          </span>
+          <button
+            type="button"
+            onClick={() => applyPreset("fever")}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
+          >
+            🌡️ Fever / Cold
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("throat")}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
+          >
+            🗣️ Sore Throat
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("hypertension")}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
+          >
+            ❤️ BP Refill
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("gastritis")}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
+          >
+            🔥 Acidity / GERD
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("skin")}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
+          >
+            🌿 Skin Allergy
+          </button>
         </div>
 
         {/* Tabbed Editor Container */}

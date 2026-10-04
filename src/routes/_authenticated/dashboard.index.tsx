@@ -587,8 +587,8 @@ function Overview() {
                     {a.status !== "completed" && (
                       <Button
                         size="sm"
-                        onClick={() => navigate({ to: "/dashboard/prescriptions" })}
-                        className="h-8 text-xs font-semibold bg-primary text-primary-foreground gap-1.5"
+                        onClick={() => navigate({ to: "/dashboard/consult", search: { appointmentId: a.id } })}
+                        className="h-8 text-xs font-semibold bg-primary text-primary-foreground gap-1.5 shadow-xs"
                       >
                         <Stethoscope className="size-3.5" /> Consult
                       </Button>

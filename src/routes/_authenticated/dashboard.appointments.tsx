@@ -582,8 +582,8 @@ function AppointmentsPage() {
 
                     {r.status === "confirmed" && (
                       <>
-                        <a href="/dashboard/consult" className="flex-1 sm:flex-initial">
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5">
+                        <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs">
                             <Stethoscope className="size-3.5" /> Start Consult
                           </Button>
                         </a>
