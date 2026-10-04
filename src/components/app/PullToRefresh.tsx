@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ArrowDown } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 
 interface PullToRefreshProps {
@@ -9,17 +9,18 @@ interface PullToRefreshProps {
 
 export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
   const router = useRouter();
-  const [pullDistance, setPullDistance] = useState(0);
+  const [pullY, setPullY] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const startYRef = useRef(0);
   const isPullingRef = useRef(false);
 
-  const PULL_THRESHOLD = 65;
+  const THRESHOLD = 65;
+  const MAX_PULL = 90;
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      // Only trigger if at the top of the viewport
-      if (window.scrollY <= 2 && !isRefreshing) {
+      // Only initiate pull when page is strictly at top
+      if (window.scrollY <= 0 && !isRefreshing) {
         startYRef.current = e.touches[0].clientY;
         isPullingRef.current = true;
       } else {
@@ -31,17 +32,14 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
       if (!isPullingRef.current || isRefreshing) return;
 
       const currentY = e.touches[0].clientY;
-      const diff = currentY - startYRef.current;
+      const rawDiff = currentY - startYRef.current;
 
-      if (diff > 0 && window.scrollY <= 2) {
-        // Apply friction
-        const distance = Math.min(diff * 0.4, 90);
-        setPullDistance(distance);
-        if (e.cancelable && distance > 10) {
-          // Prevent standard bounce to show custom indicator
-        }
+      if (rawDiff > 0 && window.scrollY <= 0) {
+        // Logarithmic / damping elastic curve
+        const damped = Math.min(Math.pow(rawDiff, 0.82) * 1.5, MAX_PULL);
+        setPullY(damped);
       } else {
-        setPullDistance(0);
+        setPullY(0);
       }
     };
 
@@ -49,12 +47,12 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
       if (!isPullingRef.current || isRefreshing) return;
       isPullingRef.current = false;
 
-      if (pullDistance >= PULL_THRESHOLD) {
+      if (pullY >= THRESHOLD) {
         setIsRefreshing(true);
-        setPullDistance(50);
+        setPullY(50);
         try {
           if (navigator.vibrate) {
-            navigator.vibrate(20);
+            navigator.vibrate(15);
           }
         } catch {}
 
@@ -65,15 +63,15 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
             await router.invalidate();
           }
         } catch {
-          /* swallow */
+          /* ignore */
         } finally {
           setTimeout(() => {
             setIsRefreshing(false);
-            setPullDistance(0);
-          }, 600);
+            setPullY(0);
+          }, 650);
         }
       } else {
-        setPullDistance(0);
+        setPullY(0);
       }
     };
 
@@ -86,39 +84,53 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [pullDistance, isRefreshing, onRefresh, router]);
+  }, [pullY, isRefreshing, onRefresh, router]);
+
+  const progress = Math.min(pullY / THRESHOLD, 1);
+  const isThresholdMet = pullY >= THRESHOLD;
 
   return (
-    <div className="relative w-full">
-      {/* Pull down indicator pill */}
-      {(pullDistance > 0 || isRefreshing) && (
+    <div className="relative w-full overflow-visible">
+      {/* Elastic Native Pull Indicator */}
+      {(pullY > 0 || isRefreshing) && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 z-40 transition-all duration-150 pointer-events-none flex items-center justify-center"
+          className="fixed left-1/2 -translate-x-1/2 z-50 pointer-events-none flex items-center justify-center transition-all ease-out"
           style={{
-            top: `${Math.max(pullDistance, isRefreshing ? 48 : 0)}px`,
-            opacity: Math.min(pullDistance / PULL_THRESHOLD, 1),
+            top: `${Math.max(pullY - 14, isRefreshing ? 20 : 6)}px`,
+            opacity: isRefreshing ? 1 : Math.max(progress, 0.2),
+            transform: `translateX(-50%) scale(${isRefreshing ? 1 : 0.7 + progress * 0.3})`,
           }}
         >
-          <div className="size-10 rounded-full bg-background/95 border border-primary/20 shadow-lg backdrop-blur-md grid place-items-center text-primary">
-            <RefreshCw
-              className={`size-4 transition-transform ${
-                isRefreshing ? "animate-spin" : ""
-              }`}
-              style={{
-                transform: isRefreshing
-                  ? undefined
-                  : `rotate(${Math.min(pullDistance * 4, 360)}deg)`,
-              }}
-            />
+          <div
+            className={`size-10 rounded-full bg-background/95 border shadow-xl backdrop-blur-xl grid place-items-center transition-colors duration-200 ${
+              isThresholdMet || isRefreshing
+                ? "border-primary/40 bg-primary/10 text-primary shadow-primary/20"
+                : "border-border/80 text-muted-foreground"
+            }`}
+          >
+            {isRefreshing ? (
+              <RefreshCw className="size-4 animate-spin text-primary" />
+            ) : isThresholdMet ? (
+              <RefreshCw
+                className="size-4 text-primary transition-transform duration-200"
+                style={{ transform: `rotate(${pullY * 6}deg)` }}
+              />
+            ) : (
+              <ArrowDown
+                className="size-4 transition-transform duration-150"
+                style={{ transform: `rotate(${progress * 180}deg)` }}
+              />
+            )}
           </div>
         </div>
       )}
 
-      {/* Content wrapper */}
+      {/* Main Page Elastic Motion Wrapper */}
       <div
-        className="transition-transform duration-150 w-full"
+        className="w-full"
         style={{
-          transform: pullDistance > 0 && !isRefreshing ? `translateY(${pullDistance * 0.4}px)` : undefined,
+          transform: pullY > 0 ? `translate3d(0, ${pullY * 0.32}px, 0)` : "none",
+          transition: isPullingRef.current ? "none" : "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
         }}
       >
         {children}
