@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   Stethoscope,
@@ -8,24 +8,32 @@ import {
   Calendar,
   Search,
   Trash2,
-  Pencil,
   Printer,
   Sparkles,
   HeartPulse,
   Activity,
-  Thermometer,
   ChevronRight,
   TrendingUp,
   Users,
   Clock,
-  AlertCircle,
-  Info,
+  Send,
+  MessageSquare,
+  CheckCircle2,
+  PhoneCall,
+  UserCheck,
+  UserPlus,
+  RefreshCw,
+  Phone,
+  Mic,
+  MicOff,
   Sparkle,
+  ArrowRight,
 } from "lucide-react";
 import { AppGuard } from "@/components/app/AppGuard";
 import { EmptyState } from "@/components/app/EmptyState";
 import { StatsCard } from "@/components/app/StatsCard";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useClinic } from "./dashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,13 +42,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -60,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/consult")({
   }),
   component: () => (
     <AppGuard appKey="consultation">
-      <ConsultPage />
+      <ConsultCockpitPage />
     </AppGuard>
   ),
 });
@@ -85,10 +86,23 @@ type Consultation = {
   created_at: string;
 };
 
-type PatientOpt = { id: string; name: string; phone: string | null };
-type ApptOpt = { id: string; patient_name: string; scheduled_at: string | null; status: string };
+type QueuePatient = {
+  id: string;
+  source: "appointment" | "token" | "manual";
+  token_number: number;
+  appointment_id?: string;
+  patient_id?: string | null;
+  patient_name: string;
+  patient_phone: string | null;
+  patient_age?: number | null;
+  patient_gender?: string | null;
+  status: "waiting" | "serving" | "confirmed" | "done";
+  problem?: string | null;
+  scheduled_at?: string;
+};
 
-// Vitals status checker
+type PatientOpt = { id: string; name: string; phone: string | null };
+
 function escapeHtml(str?: string | null): string {
   if (!str) return "";
   return str
@@ -108,1244 +122,903 @@ function getBpStatus(bp: string) {
   if (sys >= 140 || dia >= 90)
     return { label: "High BP", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
   if (sys < 90 || dia < 60)
-    return {
-      label: "Low BP",
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200",
-    };
-  return {
-    label: "Normal BP",
-    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200",
-  };
+    return { label: "Low BP", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200" };
+  return { label: "Normal BP", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
 }
 
 function getTempStatus(temp: string) {
   if (!temp) return null;
   const t = parseFloat(temp);
   if (isNaN(t)) return null;
-  if (t >= 100.4)
-    return {
-      label: "High Fever",
-      color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200",
-    };
-  if (t >= 99.0)
-    return {
-      label: "Mild Fever",
-      color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20 border-amber-200",
-    };
-  if (t < 95.0)
-    return {
-      label: "Hypothermia",
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200",
-    };
-  return {
-    label: "Normal Temp",
-    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200",
-  };
+  if (t >= 100.4) return { label: "High Fever", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
+  if (t >= 99.0) return { label: "Mild Fever", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20 border-amber-200" };
+  return { label: "Normal Temp", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
 }
 
-function getPulseStatus(pulse: string) {
-  if (!pulse) return null;
-  const p = parseInt(pulse);
-  if (isNaN(p)) return null;
-  if (p > 100)
-    return {
-      label: "High Pulse",
-      color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200",
-    };
-  if (p < 60)
-    return {
-      label: "Low Pulse",
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200",
-    };
-  return {
-    label: "Normal Pulse",
-    color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200",
-  };
-}
-
-// AI SOAP generator clinical templates
-const MEDICAL_KNOWLEDGE: Record<string, { history: string; exam: string; plan: string }> = {
+const PRESETS: Record<string, { label: string; complaint: string; diagnosis: string; history: string; plan: string }> = {
   fever: {
-    history:
-      "Patient reports high-grade fever spikes for 3 days, accompanied by chills, mild body ache, and generalized fatigue. No chest pain, difficulty breathing, or rash reported.",
-    exam: "Patient is conscious, alert, and oriented. Oropharynx is mildly congested. Chest is clear on auscultation. Abdomen soft, non-tender.",
-    plan: "1. Tab Paracetamol 650mg orally up to 4 times a day if temperature exceeds 99°F.\n2. Complete Bed Rest & high fluid intake (2-3 Litres/day).\n3. CBC and Widal test if fever persists beyond 5 days.\n4. Follow up in 3 days or sooner if red-flag symptoms arise.",
+    label: "🌡️ Fever / Cold",
+    complaint: "Acute viral fever with body ache and chills",
+    diagnosis: "Viral Pyrexia / Upper Respiratory Infection",
+    history: "Fever for 2-3 days associated with fatigue and headache. No warning signs.",
+    plan: "• Tab Paracetamol 650mg — 1-0-1 after food x 3 days\n• Tab Levocetirizine 5mg — 0-0-1 at night x 5 days\n• Syp ORS / Electral — 1 sachet in 1L water sip through day\n• Warm fluid intake & physical rest. Follow-up if fever persists after 3 days.",
   },
   throat: {
-    history:
-      "Patient presents with severe sore throat, difficulty swallowing solids, and persistent throat irritation for 2 days. Associated with dry cough.",
-    exam: "Pharynx shows significant erythema. Tonsils are enlarged (Grade 2) with no visible purulent exudate. Bilateral cervical lymph nodes are tender on palpation.",
-    plan: "1. Warm saline gargles with Betadine gargle solution 3-4 times a day.\n2. Tab Amoxicillin 500mg 3 times a day for 5 days.\n3. Tab Levocetirizine 5mg at bedtime for throat congestion.\n4. Avoid cold/sour foods. Soft diet recommended.",
-  },
-  cough: {
-    history:
-      "Patient reports productive cough with yellowish sputum for 5 days. Mild chest discomfort during coughing. No hemoptysis or breathlessness.",
-    exam: "Mild throat congestion. Chest auscultation reveals bilateral rhonchi, no crepitations. SpO2: 98% on room air.",
-    plan: "1. Expectorant cough syrup 10ml thrice daily for 5 days.\n2. Tab Azithromycin 500mg once daily for 3 days.\n3. Steam inhalation twice daily.\n4. Drink warm water and maintain hydration. Follow up if dyspnea develops.",
+    label: "🗣️ Sore Throat",
+    complaint: "Sore throat and painful swallowing with dry cough",
+    diagnosis: "Acute Pharyngitis / Tonsillitis",
+    history: "Throat pain for 2 days, aggravated on swallowing. Mild dry cough.",
+    plan: "• Tab Amoxicillin+Clav 625mg — 1-0-1 after meals x 5 days\n• Tab Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Betadine gargles twice daily with warm water\n• Avoid chilled water and oily food.",
   },
   hypertension: {
-    history:
-      "Patient is a known case of essential hypertension, presenting for a routine follow-up check. Complains of mild occipital headache and fatigue.",
-    exam: "BP checked twice in sitting position: 152/96 mmHg. CVS: S1 S2 heard, no murmurs. Lungs clear. No pedal edema.",
-    plan: "1. Continue current antihypertensive medication (Tab Telmisartan 40mg OD).\n2. Restrict dietary sodium intake to < 5g/day. Daily brisk walk for 30 minutes.\n3. Maintain a daily home BP log for 1 week.\n4. Follow up next week for dosage review.",
+    label: "❤️ BP Refill",
+    complaint: "Routine blood pressure check & refill",
+    diagnosis: "Essential Hypertension (Controlled)",
+    history: "Patient on regular antihypertensive therapy. No chest tightness or palpitations.",
+    plan: "• Tab Telmisartan 40mg — 1-0-0 morning x 30 days\n• Low sodium diet (< 2g/day) & regular 30m brisk walking\n• Self BP monitoring weekly. Follow up in 3 months.",
   },
-  diabetes: {
-    history:
-      "Patient is a Type 2 diabetic. Presents for routine blood glucose check. Reports mild polyuria, nocturia, and dry mouth over the past 2 weeks.",
-    exam: "Weight: 82 kg. Feet examination: intact sensation, no active ulcers. CVS & Respiratory normal.",
-    plan: "1. Tab Metformin 500mg BD after meals.\n2. Strict diabetic diet (low glycemic index, no refined sugars).\n3. Schedule HbA1c, FBS, and PPBS. Eye and kidney profile evaluation.\n4. Walk 45 minutes daily. Return for review in 2 weeks.",
+  gastritis: {
+    label: "🔥 Acidity / GERD",
+    complaint: "Epigastric burning pain, acid reflux, and bloating",
+    diagnosis: "Acute GERD / Dyspepsia",
+    history: "Heartburn and postprandial fullness for 4 days after irregular eating habits.",
+    plan: "• Cap Rabeprazole 20mg + Domperidone 30mg — 1-0-0 before breakfast x 10 days\n• Antacid Gelucil Syrup — 10ml after meals SOS\n• Avoid spicy, fried food and tea on empty stomach.\n• Early dinner 2 hours before bedtime.",
   },
-  back: {
-    history:
-      "Patient complains of sharp, localized lower back pain for 4 days after lifting a heavy object. Pain radiates to the gluteal region but not down the leg.",
-    exam: "Tenderness on palpation of lumbar paraspinal muscles. Straight leg raise (SLR) test is negative bilaterally. Lumbar range of motion is restricted.",
-    plan: "1. Tab Aceclofenac 100mg + Paracetamol 325mg twice daily after food.\n2. Local application of Diclofenac pain relief gel 3 times daily.\n3. Avoid heavy lifting and forward bending. Use a firm mattress.\n4. Physiotherapy evaluation if pain persists past 10 days.",
+  skin: {
+    label: "🌿 Skin Allergy",
+    complaint: "Itchy red rash with localized itching",
+    diagnosis: "Allergic Contact Dermatitis / Urticaria",
+    history: "Itching and erythematous papules for 3 days. No breathing difficulty.",
+    plan: "• Tab Bilastine 20mg — 0-0-1 at night x 7 days\n• Calamine lotion topically twice daily\n• Tab Pantoprazole 40mg — 1-0-0 before breakfast x 7 days\n• Avoid synthetic fabrics and harsh soaps.",
+  },
+  gastro: {
+    label: "🤢 Diarrhea / Gastro",
+    complaint: "Loose stools (3-4 episodes), mild abdominal cramps, and nausea",
+    diagnosis: "Acute Gastroenteritis / Food Intolerance",
+    history: "Sudden onset loose stools after outside food. Mild dehydration.",
+    plan: "• Tab Ofloxacin + Ornidazole — 1-0-1 after meals x 3 days\n• Tab Ondansetron 4mg — 1 tab SOS for nausea\n• Syp ORS Electral — 1 sachet in 1L water sip continuously\n• Light khichdi / curd-rice diet.",
   },
 };
 
-function generateSoapDraft(complaint: string, diagnosis: string) {
-  const combined = `${complaint} ${diagnosis}`.toLowerCase();
+const FAST_MEDS = [
+  { name: "Tab Paracetamol 650mg", dose: "1-0-1 after food x 3 days" },
+  { name: "Tab Amoxicillin+Clav 625mg", dose: "1-0-1 after meals x 5 days" },
+  { name: "Tab Azithromycin 500mg", dose: "1-0-0 before meals x 3 days" },
+  { name: "Tab Pantoprazole 40mg", dose: "1-0-0 before breakfast x 7 days" },
+  { name: "Tab Levocetirizine 5mg", dose: "0-0-1 at night x 5 days" },
+  { name: "Tab Montelukast+Levocet 10/5", dose: "0-0-1 at night x 5 days" },
+  { name: "Tab Telmisartan 40mg", dose: "1-0-0 morning x 30 days" },
+  { name: "Tab Metformin 500mg", dose: "1-0-1 with meals x 30 days" },
+  { name: "Tab Ondansetron 4mg", dose: "1 tab SOS for nausea" },
+  { name: "Syp ORS / Electral Sachet", dose: "1 sachet in 1L water sip through day" },
+];
 
-  let matchKey = "";
-  if (combined.includes("fever") || combined.includes("temp") || combined.includes("pyrexia"))
-    matchKey = "fever";
-  else if (
-    combined.includes("throat") ||
-    combined.includes("tonsil") ||
-    combined.includes("swallow")
-  )
-    matchKey = "throat";
-  else if (
-    combined.includes("cough") ||
-    combined.includes("bronchitis") ||
-    combined.includes("sputum")
-  )
-    matchKey = "cough";
-  else if (
-    combined.includes("bp") ||
-    combined.includes("hyper") ||
-    combined.includes("tension") ||
-    combined.includes("pressure")
-  )
-    matchKey = "hypertension";
-  else if (combined.includes("diab") || combined.includes("sugar") || combined.includes("glucose"))
-    matchKey = "diabetes";
-  else if (
-    combined.includes("back") ||
-    combined.includes("spine") ||
-    combined.includes("lumbar") ||
-    combined.includes("pain")
-  )
-    matchKey = "back";
-
-  if (matchKey && MEDICAL_KNOWLEDGE[matchKey]) {
-    return MEDICAL_KNOWLEDGE[matchKey];
+function todayDateStr(): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  } catch {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
-
-  // Generic fallback generator
-  return {
-    history: `Patient presents with chief complaint of "${complaint || "symptoms"}" for a duration of several days. Condition is currently localized. No red-flag systemic symptoms reported.`,
-    exam: `Patient is hemodynamically stable. Localized examination of the affected region shows mild tenderness and irritation. Lungs are clear, heart sounds normal.`,
-    plan: `1. Symptomatic relief medications as indicated for "${diagnosis || complaint}".\n2. Monitor symptoms and take adequate physical rest.\n3. Return immediately if symptoms worsen or complications arise.\n4. Follow up in 3 to 5 days.`,
-  };
 }
 
-function ConsultPage() {
+function ConsultCockpitPage() {
   const { org } = useOrganization();
-  const orgId = org?.id;
+  const clinic = useClinic();
   const searchParams = Route.useSearch();
-  const [rows, setRows] = useState<Consultation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<Consultation | "new" | null>(null);
-  const [initialApptData, setInitialApptData] = useState<{
-    appointmentId?: string;
-    patientName?: string;
-    patientId?: string;
-    problem?: string;
-  } | null>(null);
+  const orgId = org?.id;
+  const clinicId = clinic?.id;
+
+  const [activeTab, setActiveTab] = useState<"cockpit" | "history">("cockpit");
+  const [queue, setQueue] = useState<QueuePatient[]>([]);
+  const [historyRows, setHistoryRows] = useState<Consultation[]>([]);
   const [patients, setPatients] = useState<PatientOpt[]>([]);
-  const [appts, setAppts] = useState<ApptOpt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [queueSearch, setQueueSearch] = useState("");
 
-  async function load() {
-    if (!orgId) return;
+  // Active Patient in Cockpit
+  const [selectedPatient, setSelectedPatient] = useState<QueuePatient | null>(null);
+
+  // Form Fields
+  const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [patientAge, setPatientAge] = useState("");
+  const [patientGender, setPatientGender] = useState("");
+  const [appointmentId, setAppointmentId] = useState<string | null>(null);
+
+  const [chiefComplaint, setChiefComplaint] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [historyNotes, setHistoryNotes] = useState("");
+  const [treatmentPlan, setTreatmentPlan] = useState("");
+  const [bp, setBp] = useState("");
+  const [pulse, setPulse] = useState("");
+  const [temp, setTemp] = useState("");
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
+
+  const [saving, setSaving] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!orgId && !clinicId) return;
     setLoading(true);
-    const [{ data: c }, { data: p }, { data: a }] = await Promise.all([
-      supabase
-        .from("consultations" as any)
-        .select("*")
-        .eq("organization_id", orgId)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("patients")
-        .select("id, name, phone")
-        .eq("organization_id", orgId)
-        .order("name"),
-      supabase
-        .from("appointments")
-        .select("id, patient_name, scheduled_at, status, problem, patient_phone")
-        .eq("organization_id", orgId)
-        .order("scheduled_at", { ascending: false })
-        .limit(100),
-    ]);
-    setRows((c as any[]) ?? []);
-    setPatients((p as any[]) ?? []);
-    setAppts((a as any[]) ?? []);
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      const dateStr = todayDateStr();
 
-    // If navigated with appointmentId search param, auto-open consult for this appointment
-    if (searchParams?.appointmentId && a) {
-      const targetAppt = (a as any[]).find((item) => item.id === searchParams.appointmentId);
-      if (targetAppt) {
-        setInitialApptData({
-          appointmentId: targetAppt.id,
-          patientName: targetAppt.patient_name,
-          problem: targetAppt.problem || "",
-        });
-        setEditing("new");
+      const [consultRes, apptRes, tokenRes, patientRes] = await Promise.all([
+        supabase
+          .from("consultations" as any)
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(100)
+          .then((r) => (r.error ? { data: [] } : r)),
+        clinicId
+          ? supabase
+              .from("appointments")
+              .select("*")
+              .eq("clinic_id", clinicId)
+              .gte("scheduled_at", todayStart.toISOString())
+              .lte("scheduled_at", todayEnd.toISOString())
+              .order("scheduled_at", { ascending: true })
+          : Promise.resolve({ data: [] }),
+        supabase
+          .from("queue_tokens" as any)
+          .select("*")
+          .eq("queue_date", dateStr)
+          .order("token_number")
+          .then((r) => (r.error ? { data: [] } : r))
+          .catch(() => ({ data: [] })),
+        supabase
+          .from("patients")
+          .select("id, name, phone")
+          .order("name")
+          .limit(100)
+          .then((r) => (r.error ? { data: [] } : r)),
+      ]);
+
+      const consults = (consultRes.data as any[]) ?? [];
+      setHistoryRows(consults);
+      setPatients((patientRes.data as any[]) ?? []);
+
+      // Build unified today's queue
+      const tokenMap = new Map<string, any>();
+      for (const t of (tokenRes.data as any[]) ?? []) {
+        tokenMap.set(t.patient_name?.trim().toLowerCase(), t);
       }
-    } else if (searchParams?.new) {
-      setEditing("new");
-    }
 
-    setLoading(false);
-  }
+      const qList: QueuePatient[] = [];
+      let tokenCounter = 1;
+
+      // Map today's appointments
+      for (const a of (apptRes.data as any[]) ?? []) {
+        let st: QueuePatient["status"] = "confirmed";
+        if (a.status === "completed") st = "done";
+        else if (a.status === "serving" || a.status === "in_consultation") st = "serving";
+        else if (a.status === "waiting") st = "waiting";
+
+        qList.push({
+          id: `appt-${a.id}`,
+          source: "appointment",
+          token_number: tokenCounter++,
+          appointment_id: a.id,
+          patient_name: a.patient_name,
+          patient_phone: a.patient_phone,
+          patient_age: a.patient_age,
+          patient_gender: a.patient_gender,
+          status: st,
+          problem: a.problem,
+          scheduled_at: a.scheduled_at,
+        });
+      }
+
+      // Map walk-in tokens not linked to appointments
+      for (const t of (tokenRes.data as any[]) ?? []) {
+        const exists = qList.some(
+          (q) => q.patient_name.trim().toLowerCase() === t.patient_name?.trim().toLowerCase()
+        );
+        if (!exists) {
+          qList.push({
+            id: `tok-${t.id}`,
+            source: "token",
+            token_number: t.token_number || tokenCounter++,
+            patient_name: t.patient_name,
+            patient_phone: t.patient_phone,
+            status: t.status === "done" ? "done" : t.status === "serving" ? "serving" : "waiting",
+            problem: t.note,
+          });
+        }
+      }
+
+      setQueue(qList);
+
+      // Auto-select patient
+      if (searchParams?.appointmentId) {
+        const target = qList.find((x) => x.appointment_id === searchParams.appointmentId);
+        if (target) {
+          selectPatient(target);
+          return;
+        }
+      }
+
+      // Default: select first waiting or serving patient if none selected
+      if (!selectedPatient && qList.length > 0) {
+        const nextActive = qList.find((x) => x.status === "serving") || qList.find((x) => x.status === "waiting") || qList[0];
+        if (nextActive) {
+          selectPatient(nextActive);
+        }
+      }
+    } catch (e) {
+      console.error("Consult load data error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId, clinicId, searchParams?.appointmentId]);
 
   useEffect(() => {
-    void load(); /* eslint-disable-next-line */
-  }, [orgId, searchParams?.appointmentId]);
+    void loadData();
+  }, [loadData]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        r.patient_name.toLowerCase().includes(q) ||
-        (r.diagnosis ?? "").toLowerCase().includes(q) ||
-        (r.chief_complaint ?? "").toLowerCase().includes(q),
-    );
-  }, [search, rows]);
+  const selectPatient = (p: QueuePatient) => {
+    setSelectedPatient(p);
+    setPatientName(p.patient_name || "");
+    setPatientPhone(p.patient_phone || "");
+    setPatientAge(p.patient_age ? String(p.patient_age) : "");
+    setPatientGender(p.patient_gender || "");
+    setAppointmentId(p.appointment_id || null);
+    setChiefComplaint(p.problem || "");
+    setDiagnosis("");
+    setTreatmentPlan("");
+    setHistoryNotes("NKDA (No Known Allergies)");
+    setBp("");
+    setPulse("");
+    setTemp("");
+    setWeight("");
+    setHeight("");
+    setFollowUpDate("");
+  };
 
-  const stats = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tIso = today.toISOString();
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-    return {
-      total: rows.length,
-      today: rows.filter((r) => r.created_at >= tIso).length,
-      month: rows.filter((r) => r.created_at >= monthStart).length,
-      followUps: rows.filter(
-        (r) => r.follow_up_date && r.follow_up_date >= today.toISOString().slice(0, 10),
-      ).length,
-    };
-  }, [rows]);
+  const applyPreset = (key: string) => {
+    const p = PRESETS[key];
+    if (!p) return;
+    setChiefComplaint(p.complaint);
+    setDiagnosis(p.diagnosis);
+    setHistoryNotes((prev) => (prev ? `${prev}, ${p.history}` : p.history));
+    setTreatmentPlan(p.plan);
+    toast.success(`⚡ 1-Click Preset Applied: ${p.label}`);
+  };
 
-  async function remove(id: string) {
-    if (!confirm("Delete this consultation?")) return;
-    const { error } = await supabase
-      .from("consultations" as any)
-      .delete()
-      .eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted");
-    load();
-  }
+  const addMedicine = (med: { name: string; dose: string }) => {
+    const line = `• ${med.name} — ${med.dose}`;
+    setTreatmentPlan((prev) => (prev ? `${prev}\n${line}` : line));
+    toast.success(`Added ${med.name}`);
+  };
 
-  // Print Summary PDF slip function with mobile close/back navigation
-  function printConsultation(c: Consultation) {
+  const toggleAllergy = (tag: string) => {
+    setHistoryNotes((prev) => {
+      if (prev.includes(tag)) {
+        return prev.replace(tag, "").replace(/,\s*,/g, ",").trim();
+      }
+      return prev ? `${prev}, ${tag}` : tag;
+    });
+  };
+
+  // Complete consultation & immediately load NEXT patient
+  const handleCompleteAndNext = async () => {
+    if (!patientName.trim()) {
+      toast.error("Please enter or select a patient name");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        organization_id: orgId || clinic?.organization_id || null,
+        clinic_id: clinicId || null,
+        patient_name: patientName.trim(),
+        appointment_id: appointmentId || null,
+        chief_complaint: chiefComplaint.trim() || null,
+        diagnosis: diagnosis.trim() || null,
+        history: historyNotes.trim() || null,
+        treatment_plan: treatmentPlan.trim() || null,
+        bp: bp.trim() || null,
+        pulse: pulse.trim() || null,
+        temperature: temp.trim() || null,
+        weight: weight.trim() || null,
+        height: height.trim() || null,
+        follow_up_date: followUpDate || null,
+        created_at: new Date().toISOString(),
+      };
+
+      // 1. Save Consultation
+      const { error: cErr } = await supabase.from("consultations" as any).insert(payload);
+      if (cErr) throw cErr;
+
+      // 2. Mark appointment completed
+      if (appointmentId) {
+        await supabase
+          .from("appointments")
+          .update({ status: "completed" } as any)
+          .eq("id", appointmentId);
+      }
+
+      // 3. Mark token completed
+      const todayStr = todayDateStr();
+      await supabase
+        .from("queue_tokens" as any)
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("queue_date", todayStr)
+        .eq("patient_name", patientName.trim())
+        .then(() => {})
+        .catch(() => {});
+
+      toast.success(`✅ Consultation completed for ${patientName}!`);
+
+      // 4. Send WhatsApp Prescription preview if phone exists
+      if (patientPhone) {
+        const cleanP = patientPhone.replace(/\D/g, "");
+        const waNum = cleanP.length === 10 ? `91${cleanP}` : cleanP;
+        const msg = encodeURIComponent(
+          `*🏥 ${clinic?.clinic_name || "Clinic"} — Clinical Summary*\n👤 Patient: *${patientName}*\n📅 Date: ${new Date().toLocaleDateString()}\n\n📝 *Diagnosis:* ${diagnosis || "Consultation Completed"}\n💊 *Prescription (Rx):*\n${treatmentPlan || "Advised rest and adequate hydration."}\n\n${followUpDate ? `🗓️ *Follow-up:* ${new Date(followUpDate).toLocaleDateString()}\n` : ""}_Take medicines as prescribed._`
+        );
+        window.open(`https://wa.me/${waNum}?text=${msg}`, "_blank");
+      }
+
+      // 5. Instantly advance to the NEXT waiting patient without page reload
+      const remainingWaiting = queue.filter(
+        (q) => q.status === "waiting" && q.patient_name !== patientName
+      );
+      const remainingUpcoming = queue.filter(
+        (q) => q.status === "confirmed" && q.patient_name !== patientName
+      );
+
+      const nextPatient = remainingWaiting[0] || remainingUpcoming[0];
+      if (nextPatient) {
+        selectPatient(nextPatient);
+        toast.info(`➡️ Now treating: ${nextPatient.patient_name}`);
+      } else {
+        // Clear form for next walk-in
+        setPatientName("");
+        setPatientPhone("");
+        setPatientAge("");
+        setPatientGender("");
+        setAppointmentId(null);
+        setChiefComplaint("");
+        setDiagnosis("");
+        setTreatmentPlan("");
+        setHistoryNotes("NKDA (No Known Allergies)");
+        setSelectedPatient(null);
+        toast.success("🎉 All waiting patients treated! OPD Queue is clear.");
+      }
+
+      // Refresh background queue
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to complete consultation");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Print Consultation Slip
+  const handlePrintSlip = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       window.print();
       return;
     }
 
-    let bmiStr = "";
-    const w = parseFloat(c.weight ?? "");
-    const h = parseFloat(c.height ?? "");
-    if (w > 0 && h > 0) {
-      const heightInMeters = h > 3 ? h / 100 : h;
-      const bmi = w / (heightInMeters * heightInMeters);
-      bmiStr = bmi.toFixed(1);
-    }
-
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html lang="en">
+      <html>
         <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-          <title>Clinical Summary - ${escapeHtml(c.patient_name)}</title>
+          <title>Rx - ${escapeHtml(patientName)}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <style>
-            * { box-sizing: border-box; }
-            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2937; margin: 0; padding: 0; background: #f8fafc; line-height: 1.5; }
-            .no-print { position: sticky; top: 0; z-index: 100; background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-            .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; text-decoration: none; transition: all 0.15s ease; }
-            .btn-back { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
-            .btn-back:hover { background: #e2e8f0; }
-            .btn-print { background: #2563eb; color: #ffffff; }
-            .btn-print:hover { background: #1d4ed8; }
-            .paper { max-width: 800px; margin: 24px auto; background: #ffffff; padding: 40px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-            .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 25px; }
-            .clinic-title { font-size: 24px; font-weight: 800; color: #1e3a8a; }
-            .doc-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 10px; }
-            .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #1e3a8a; border-bottom: 1.5px solid #2563eb; padding-bottom: 4px; margin-top: 20px; margin-bottom: 10px; letter-spacing: 0.5px; }
-            .vitals-bar { display: flex; flex-wrap: wrap; gap: 10px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 14px; border-radius: 10px; margin-bottom: 18px; }
-            .vitals-item { flex: 1; min-width: 80px; text-align: center; border-right: 1px solid #bfdbfe; }
-            .vitals-item:last-child { border-right: none; }
-            .vitals-label { color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-            .vitals-val { font-size: 14px; font-weight: 800; color: #1d4ed8; margin-top: 2px; }
-            .content-block { font-size: 13px; margin-bottom: 16px; white-space: pre-wrap; color: #334155; line-height: 1.6; }
-            .rx-box { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; line-height: 1.7; }
-            .footer { margin-top: 60px; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; align-items: flex-end; }
-            .sig-area { text-align: center; }
-            .sig-line { border-top: 1.5px dashed #94a3b8; width: 200px; margin-top: 40px; text-align: center; padding-top: 6px; font-weight: 600; color: #475569; font-size: 11px; }
-            
-            @media print {
-              body { background: #ffffff; padding: 0; }
-              .no-print { display: none !important; }
-              .paper { border: none; box-shadow: none; padding: 0; margin: 0; max-width: 100%; }
-            }
+            body { font-family: system-ui, sans-serif; color: #1e293b; margin: 0; padding: 0; background: #f8fafc; }
+            .no-print { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; justify-content: space-between; }
+            .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: #f1f5f9; }
+            .btn-p { background: #2563eb; color: #fff; border: none; }
+            .paper { max-width: 750px; margin: 20px auto; background: #fff; padding: 35px; border-radius: 12px; border: 1px solid #e2e8f0; }
+            .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; }
+            .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
+            .sec-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #1e3a8a; border-bottom: 1px solid #93c5fd; padding-bottom: 3px; margin-top: 15px; margin-bottom: 8px; }
+            .rx { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+            @media print { .no-print { display: none !important; } .paper { border: none; margin: 0; padding: 0; } }
           </style>
         </head>
         <body>
           <div class="no-print">
-            <button class="btn btn-back" onclick="if(window.opener || window.history.length > 1){ window.close(); history.back(); } else { location.href='/dashboard/consult'; }">
-              ← Back to Dashboard
-            </button>
-            <button class="btn btn-print" onclick="window.print()">
-              🖨️ Print / Save PDF
-            </button>
+            <button class="btn" onclick="window.close(); history.back();">← Back to Dashboard</button>
+            <button class="btn btn-p" onclick="window.print()">🖨️ Print / Save PDF</button>
           </div>
-
           <div class="paper">
             <div class="header">
-              <div class="clinic-title">${escapeHtml(org?.name ?? "Medical Clinic")}</div>
-              <div class="doc-subtitle">Clinical Consultation Record &amp; Prescription</div>
+              <h2 style="margin:0;color:#1e3a8a;">${escapeHtml(clinic?.clinic_name || org?.name || "Medical Clinic")}</h2>
+              <div style="font-size:12px;color:#64748b;margin-top:4px;">Clinical Consultation &amp; Prescription Slip</div>
             </div>
-            
-            <div class="meta-grid">
-              <div><strong>Patient Name:</strong> ${escapeHtml(c.patient_name)}</div>
-              <div><strong>Date:</strong> ${new Date(c.created_at).toLocaleDateString()}</div>
-              <div><strong>Record ID:</strong> ${escapeHtml(c.id.slice(0, 8).toUpperCase())}</div>
-              <div><strong>Follow-up:</strong> ${c.follow_up_date ? new Date(c.follow_up_date).toLocaleDateString() : "SOS / As needed"}</div>
+            <div class="meta">
+              <div><strong>Patient:</strong> ${escapeHtml(patientName)} ${patientAge ? `(${patientAge}y)` : ""}</div>
+              <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+              <div><strong>Phone:</strong> ${escapeHtml(patientPhone || "—")}</div>
+              <div><strong>Follow-up:</strong> ${followUpDate ? new Date(followUpDate).toLocaleDateString() : "SOS / As needed"}</div>
             </div>
-
-            ${
-              c.bp || c.pulse || c.temperature || c.weight || c.height
-                ? `
-            <div class="section-title">Patient Vitals</div>
-            <div class="vitals-bar">
-              ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${escapeHtml(c.bp)}</div></div>` : ""}
-              ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${escapeHtml(c.pulse)} bpm</div></div>` : ""}
-              ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${escapeHtml(c.temperature)} °F</div></div>` : ""}
-              ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${escapeHtml(c.weight)} kg</div></div>` : ""}
-              ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${escapeHtml(c.height)} cm</div></div>` : ""}
-              ${bmiStr ? `<div class="vitals-item"><div class="vitals-label">BMI</div><div class="vitals-val">${bmiStr}</div></div>` : ""}
-            </div>
-            `
-                : ""
-            }
-
-            ${
-              c.chief_complaint
-                ? `
-            <div class="section-title">Chief Complaint</div>
-            <div class="content-block">${escapeHtml(c.chief_complaint)}</div>
-            `
-                : ""
-            }
-
-            ${
-              c.diagnosis
-                ? `
-            <div class="section-title">Diagnosis</div>
-            <div class="content-block" style="font-weight: 700; font-size: 15px; color: #1e3a8a;">${escapeHtml(c.diagnosis)}</div>
-            `
-                : ""
-            }
-
-            ${
-              c.treatment_plan
-                ? `
-            <div class="section-title">Prescription (Rx) &amp; Instructions</div>
-            <div class="rx-box">${escapeHtml(c.treatment_plan)}</div>
-            `
-                : ""
-            }
-
-            ${
-              c.examination
-                ? `
-            <div class="section-title">Clinical Notes</div>
-            <div class="content-block">${escapeHtml(c.examination)}</div>
-            `
-                : ""
-            }
-
-            <div class="footer">
-              <div>ClinicX Practice Management System</div>
-              <div class="sig-area">
-                <div class="sig-line">Doctor Signature &amp; Stamp</div>
-              </div>
-            </div>
+            ${bp || pulse || temp || weight ? `
+            <div class="sec-title">Vitals</div>
+            <div style="font-size:12px;margin-bottom:15px;">
+              ${bp ? `BP: <b>${escapeHtml(bp)}</b> ` : ""}
+              ${pulse ? `Pulse: <b>${escapeHtml(pulse)} bpm</b> ` : ""}
+              ${temp ? `Temp: <b>${escapeHtml(temp)}°F</b> ` : ""}
+              ${weight ? `Weight: <b>${escapeHtml(weight)} kg</b>` : ""}
+            </div>` : ""}
+            ${diagnosis ? `<div class="sec-title">Diagnosis</div><div style="font-size:14px;font-weight:bold;color:#1e3a8a;margin-bottom:15px;">${escapeHtml(diagnosis)}</div>` : ""}
+            <div class="sec-title">Prescription (Rx) &amp; Advice</div>
+            <div class="rx">${escapeHtml(treatmentPlan || "No medications prescribed.")}</div>
           </div>
-
-          <script>
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          </script>
+          <script>setTimeout(function(){ window.print(); }, 250);</script>
         </body>
       </html>
     `);
     printWindow.document.close();
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Clinical Consultations</h1>
-          <p className="text-sm text-muted-foreground">
-            EHR records, SOAP clinical notes, and patient treatment summaries.
-          </p>
-        </div>
-        <Button onClick={() => setEditing("new")} className="shadow-md shadow-primary/10">
-          <Plus className="size-4 mr-1" /> New consultation
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatsCard
-          title="Total Visits"
-          value={stats.total}
-          icon={<FileText className="size-4 text-blue-600" />}
-        />
-        <StatsCard
-          title="Today"
-          value={stats.today}
-          icon={<Stethoscope className="size-4 text-emerald-600" />}
-        />
-        <StatsCard
-          title="This Month"
-          value={stats.month}
-          icon={<TrendingUp className="size-4 text-indigo-600" />}
-        />
-        <StatsCard
-          title="Follow-Ups Scheduled"
-          value={stats.followUps}
-          icon={<Calendar className="size-4 text-amber-600" />}
-        />
-      </div>
-
-      <div className="flex items-center gap-2 max-w-md">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Search patient, diagnosis, complaint..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-card"
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-16 w-full rounded-xl" />
-          <Skeleton className="h-16 w-full rounded-xl" />
-          <Skeleton className="h-16 w-full rounded-xl" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<Stethoscope className="size-8 text-muted-foreground" />}
-          title={rows.length === 0 ? "No clinical consultations logged" : "No matching records"}
-          description={
-            rows.length === 0
-              ? "Record doctor notes, patient vitals, diagnosis, and PDF print summaries."
-              : "Refine your search parameters."
-          }
-          action={
-            rows.length === 0
-              ? { label: "Log New Consultation", onClick: () => setEditing("new") }
-              : undefined
-          }
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {filtered.map((c) => {
-            const bpAlert = getBpStatus(c.bp ?? "");
-            const tempAlert = getTempStatus(c.temperature ?? "");
-            return (
-              <Card
-                key={c.id}
-                className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group"
-              >
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <div className="font-semibold text-base text-zinc-900 dark:text-white flex items-center gap-1.5">
-                        {c.patient_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Clock className="size-3" />{" "}
-                        {new Date(c.created_at).toLocaleString(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
-                      </div>
-                    </div>
-                    {c.diagnosis ? (
-                      <Badge className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/60 font-semibold">
-                        {c.diagnosis}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        No diagnosis
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Vitals Summary Strip */}
-                  {(c.bp || c.pulse || c.temperature) && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {c.bp && (
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 ${bpAlert?.color ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}`}
-                        >
-                          <Activity className="size-2.5" /> BP: {c.bp}
-                        </span>
-                      )}
-                      {c.temperature && (
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 ${tempAlert?.color ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}`}
-                        >
-                          <Thermometer className="size-2.5" /> Temp: {c.temperature}°F
-                        </span>
-                      )}
-                      {c.pulse && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full border font-mono font-medium flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800">
-                          HR: {c.pulse} bpm
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {c.chief_complaint && (
-                    <div className="text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/50">
-                      <strong className="text-zinc-700 dark:text-zinc-300">Chief Complaint:</strong>
-                      <p className="mt-0.5 line-clamp-2 leading-relaxed">{c.chief_complaint}</p>
-                    </div>
-                  )}
-
-                  {c.follow_up_date && (
-                    <div className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10 self-start inline-flex items-center gap-1 font-medium">
-                      <Calendar className="size-3" /> Follow-up:{" "}
-                      {new Date(c.follow_up_date).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center gap-2 mt-4 pt-3 border-t border-border/40">
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditing(c)}
-                      className="h-8 text-xs"
-                    >
-                      <Pencil className="size-3.5 mr-1" /> Edit Notes
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => printConsultation(c)}
-                      className="h-8 text-xs hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600"
-                    >
-                      <Printer className="size-3.5 mr-1" /> Print Summary
-                    </Button>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => remove(c.id)}
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {editing && orgId && (
-        <ConsultSheet
-          orgId={orgId}
-          patients={patients}
-          appts={appts}
-          initialData={initialApptData}
-          existing={editing === "new" ? null : editing}
-          onClose={() => {
-            setEditing(null);
-            setInitialApptData(null);
-          }}
-          onSaved={() => {
-            setEditing(null);
-            setInitialApptData(null);
-            load();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function ConsultSheet({
-  orgId,
-  patients,
-  appts,
-  initialData,
-  existing,
-  onClose,
-  onSaved,
-}: {
-  orgId: string;
-  patients: PatientOpt[];
-  appts: ApptOpt[];
-  initialData?: {
-    appointmentId?: string;
-    patientName?: string;
-    patientId?: string;
-    problem?: string;
-  } | null;
-  existing: Consultation | null;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [patientId, setPatientId] = useState<string | null>(
-    existing?.patient_id ?? initialData?.patientId ?? null,
-  );
-  const [patientName, setPatientName] = useState(
-    existing?.patient_name ?? initialData?.patientName ?? "",
-  );
-  const [appointmentId, setAppointmentId] = useState<string | null>(
-    existing?.appointment_id ?? initialData?.appointmentId ?? null,
-  );
-  const [activeTab, setActiveTab] = useState("vitals");
-
-  const [f, setF] = useState({
-    chief_complaint: existing?.chief_complaint ?? initialData?.problem ?? "",
-    history: existing?.history ?? "",
-    examination: existing?.examination ?? "",
-    diagnosis: existing?.diagnosis ?? "",
-    treatment_plan: existing?.treatment_plan ?? "",
-    bp: existing?.bp ?? "",
-    pulse: existing?.pulse ?? "",
-    temperature: existing?.temperature ?? "",
-    weight: existing?.weight ?? "",
-    height: existing?.height ?? "",
-    follow_up_date: existing?.follow_up_date ?? "",
-  });
-
-  // Apply instant clinical preset template to speed up consultations
-  const applyPreset = (presetKey: "fever" | "throat" | "hypertension" | "gastritis" | "skin") => {
-    const PRESETS = {
-      fever: {
-        complaint: "Acute viral fever with body ache and chills",
-        diagnosis: "Viral Pyrexia / Upper Respiratory Infection",
-        history: "Patient presents with fever for 2-3 days associated with generalized fatigue, headache, and myalgia. No warning signs.",
-        exam: "Temperature elevated (100.2°F), throat mildly congested, chest clear, soft abdomen.",
-        plan: "1. Tab Paracetamol 650mg — 1-0-1 after food x 3 days\n2. Tab Levocetirizine 5mg — 0-0-1 at night x 5 days\n3. ORS hydration / warm fluid intake\n4. Follow up after 3 days if fever persists",
-      },
-      throat: {
-        complaint: "Sore throat and painful swallowing with dry cough",
-        diagnosis: "Acute Pharyngitis / Tonsillitis",
-        history: "Throat pain for 2 days, aggravated on swallowing. Mild dry cough.",
-        exam: "Posterior pharyngeal erythema (+), tonsils enlarged without purulent exudates.",
-        plan: "1. Tab Amoxicillin+Clav 625mg — 1-0-1 after meals x 5 days\n2. Betadine gargles twice daily\n3. Tab Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n4. Warm salt water gargles",
-      },
-      hypertension: {
-        complaint: "Routine blood pressure check & refill",
-        diagnosis: "Essential Hypertension (Stage 1 / Controlled)",
-        history: "Patient on regular antihypertensive therapy. No chest tightness, palpitations, or visual blurring.",
-        exam: "Pulse 78/min regular, Heart sounds S1S2 heard, no pedal edema.",
-        plan: "1. Continue Tab Telmisartan 40mg — 1-0-0 morning\n2. Low sodium diet (< 2g/day) & regular 30m brisk walking\n3. Self BP monitoring weekly\n4. Follow up in 3 months with lipid profile & RFT",
-      },
-      gastritis: {
-        complaint: "Epigastric burning pain, acid reflux, and bloating",
-        diagnosis: "Acute GERD / Dyspepsia",
-        history: "Heartburn and postprandial fullness for 4 days after irregular eating habits.",
-        exam: "Epigastric mild tenderness (+), soft abdomen, bowel sounds normal.",
-        plan: "1. Cap Rabeprazole 20mg + Domperidone 30mg — 1-0-0 before breakfast x 10 days\n2. Gelucil / Antacid syrup 10ml after meals SOS\n3. Avoid spicy, oily food, tea/coffee on empty stomach\n4. Early dinner 2 hours before sleep",
-      },
-      skin: {
-        complaint: "Itchy red rash with localized itching",
-        diagnosis: "Allergic Contact Dermatitis / Urticaria",
-        history: "Itching and erythematous papules for 3 days. No history of breathing difficulty.",
-        exam: "Erythematous urticarial wheals over extremities, no secondary infection.",
-        plan: "1. Tab Bilastine 20mg — 0-0-1 at night x 7 days\n2. Calamine lotion topically twice daily\n3. Tab Prednisolone 10mg — 1-0-0 for 3 days if severe\n4. Avoid allergen / synthetic clothing",
-      },
-    };
-
-    const p = PRESETS[presetKey];
-    setF((prev) => ({
-      ...prev,
-      chief_complaint: p.complaint,
-      diagnosis: p.diagnosis,
-      history: p.history,
-      examination: p.exam,
-      treatment_plan: p.plan,
-    }));
-    toast.success(`⚡ 1-Click Clinical Preset applied: ${p.diagnosis}`);
-    setActiveTab("soap");
   };
 
-  const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
-
-  // Vitals Warnings status
-  const bpAlert = useMemo(() => getBpStatus(f.bp), [f.bp]);
-  const tempAlert = useMemo(() => getTempStatus(f.temperature), [f.temperature]);
-  const pulseAlert = useMemo(() => getPulseStatus(f.pulse), [f.pulse]);
-
-  // AI SOAP clinical notes helper
-  async function generateSoapNotes() {
-    if (!f.chief_complaint.trim()) {
-      return toast.error("Please enter a Chief Complaint to run AI Medical Copilot");
-    }
-
-    setGenerating(true);
-    // Emulate organic processing delay
-    await new Promise((r) => setTimeout(r, 1400));
-
-    const draft = generateSoapDraft(f.chief_complaint, f.diagnosis);
-    setF((prev) => ({
-      ...prev,
-      history: draft.history,
-      examination: draft.exam,
-      treatment_plan: draft.plan,
-    }));
-    setGenerating(false);
-    toast.success("Clinical SOAP notes generated by AI copilot!");
-    setActiveTab("soap"); // Slide over to SOAP tab to view notes
-  }
-
-  async function save() {
-    if (!patientName.trim()) {
-      toast.error("Patient selection is required");
-      return;
-    }
-    setSaving(true);
-    try {
-      const { data: u } = await supabase.auth.getUser();
-      const payload: any = {
-        organization_id: orgId,
-        patient_id: patientId,
-        patient_name: patientName.trim(),
-        appointment_id: appointmentId,
-        created_by: u.user?.id ?? null,
-        chief_complaint: f.chief_complaint.trim() || null,
-        history: f.history.trim() || null,
-        examination: f.examination.trim() || null,
-        diagnosis: f.diagnosis.trim() || null,
-        treatment_plan: f.treatment_plan.trim() || null,
-        bp: f.bp.trim() || null,
-        pulse: f.pulse.trim() || null,
-        temperature: f.temperature.trim() || null,
-        weight: f.weight.trim() || null,
-        height: f.height.trim() || null,
-        follow_up_date: f.follow_up_date || null,
-      };
-      const { error } = existing
-        ? await supabase
-            .from("consultations" as any)
-            .update(payload)
-            .eq("id", existing.id)
-        : await supabase.from("consultations" as any).insert(payload);
-
-      if (!error && appointmentId) {
-        // Mark appointment completed to trigger automatic revenue ledger & queue completion
-        await supabase.from("appointments").update({ status: "completed" }).eq("id", appointmentId);
-        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-        await supabase
-          .from("queue_tokens" as any)
-          .update({ status: "done", completed_at: new Date().toISOString() })
-          .eq("organization_id", orgId)
-          .eq("queue_date", todayStr)
-          .eq("patient_name", patientName.trim())
-          .then(() => {})
-          .catch(() => {});
-      }
-
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success(
-        existing ? "Clinical record updated" : "Clinical record saved & appointment marked completed",
-      );
-      onSaved();
-    } catch (err) {
-      setSaving(false);
-      toast.error((err as Error).message || "Failed to save consultation");
-    }
-  }
+  const waitingCount = queue.filter((q) => q.status === "waiting").length;
+  const servingCount = queue.filter((q) => q.status === "serving").length;
+  const completedCount = queue.filter((q) => q.status === "done").length;
 
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto flex flex-col h-full p-0">
-        {/* Modal Header */}
-        <div className="p-6 pb-4 border-b border-border/40 bg-zinc-50 dark:bg-zinc-900/40 shrink-0">
-          <SheetHeader>
-            <SheetTitle className="text-xl flex items-center gap-1.5">
-              <Stethoscope className="size-5 text-primary" />
-              {existing ? "Edit Consultation" : "New Consultation"}
-            </SheetTitle>
-            <SheetDescription>
-              Record patient vitals, diagnosis, and generate clinical SOAP notes with AI copilot.
-            </SheetDescription>
-          </SheetHeader>
+    <div className="space-y-4 max-w-7xl mx-auto pb-16">
+      {/* Top Header & Mode Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
+              Doctor Consultation Cockpit
+            </h1>
+            <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold">
+              ● Live OPD Session
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            1-Screen Flow: Patient Select ➔ Vitals ➔ 1-Tap Rx ➔ Complete &amp; Next Patient.
+          </p>
         </div>
 
-        {/* Quick Prescription Presets Pill Row */}
-        <div className="px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40 bg-muted/20">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 flex items-center gap-1">
-            <Sparkles className="size-3 text-amber-500" /> Fast Rx:
-          </span>
-          <button
-            type="button"
-            onClick={() => applyPreset("fever")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
-          >
-            🌡️ Fever / Cold
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset("throat")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
-          >
-            🗣️ Sore Throat
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset("hypertension")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
-          >
-            ❤️ BP Refill
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset("gastritis")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
-          >
-            🔥 Acidity / GERD
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset("skin")}
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card border border-border hover:border-primary/50 hover:bg-primary/5 text-foreground shrink-0 transition-colors"
-          >
-            🌿 Skin Allergy
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-xl border border-border p-1 bg-card text-xs">
+            <button
+              onClick={() => setActiveTab("cockpit")}
+              className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                activeTab === "cockpit" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              ⚡ Live OPD Cockpit
+            </button>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                activeTab === "history" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              📚 Past Records ({historyRows.length})
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Tabbed Editor Container */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 w-full mb-6">
-              <TabsTrigger value="vitals" className="text-xs">
-                1. Patient & Vitals
-              </TabsTrigger>
-              <TabsTrigger value="soap" className="text-xs">
-                2. Clinical SOAP Notes
-              </TabsTrigger>
-              <TabsTrigger value="treatment" className="text-xs">
-                3. Plan & F/U
-              </TabsTrigger>
-            </TabsList>
-
-            {/* TAB 1: Patient Details & Vitals */}
-            <TabsContent value="vitals" className="space-y-5 focus-visible:outline-none">
-              <Card className="p-4 border border-border/60 bg-muted/20 space-y-4">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                  <Users className="size-4 text-blue-600" /> Patient Selection
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">
-                      Select Patient
-                    </Label>
-                    <Select
-                      value={patientId ?? "__manual"}
-                      onValueChange={(v) => {
-                        const nextId = v === "__manual" ? null : v;
-                        setPatientId(nextId);
-                        if (nextId) {
-                          const p = patients.find((x) => x.id === nextId);
-                          if (p) setPatientName(p.name);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select patient" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__manual">— Type manually —</SelectItem>
-                        {patients.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                            {p.phone ? ` · ${p.phone}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">
-                      Patient name
-                    </Label>
-                    <Input
-                      value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
-                      placeholder="e.g. Sarah Jenkins"
-                      className="bg-background"
-                    />
-                  </div>
+      {activeTab === "cockpit" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* LEFT COLUMN: Real-time Patient Queue (4 Cols Desktop, Top Row Mobile) */}
+          <div className="lg:col-span-4 space-y-3">
+            <Card className="p-3 sm:p-4 border-border/80 bg-card shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                    <Users className="size-4 text-primary" /> Today's Queue ({queue.length})
+                  </h3>
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Linked Appointment (optional)
-                  </Label>
-                  <Select
-                    value={appointmentId ?? "__none"}
-                    onValueChange={(v) => setAppointmentId(v === "__none" ? null : v)}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none">None / Walk-in visit</SelectItem>
-                      {appts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.patient_name} ·{" "}
-                          {a.scheduled_at ? new Date(a.scheduled_at).toLocaleDateString() : "—"} ·{" "}
-                          {a.status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Drug Allergies & Clinical Alerts */}
-                <div className="space-y-1.5 pt-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Clinical Allergies &amp; Chronic Conditions
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "NKDA (No Known Allergies)",
-                      "Penicillin Allergy",
-                      "Sulfa Drugs Allergy",
-                      "NSAID / Aspirin Allergy",
-                      "Diabetic",
-                      "Hypertensive",
-                      "Asthmatic",
-                    ].map((alert) => {
-                      const active = f.history.includes(alert);
-                      return (
-                        <button
-                          key={alert}
-                          type="button"
-                          onClick={() => {
-                            setF((prev) => ({
-                              ...prev,
-                              history: active
-                                ? prev.history.replace(alert, "").replace(/,\s*,/g, ",").trim()
-                                : prev.history ? `${prev.history}, ${alert}` : alert,
-                            }));
-                          }}
-                          className={`px-2 py-0.5 rounded-lg text-[11px] font-semibold border transition-all ${
-                            active
-                              ? alert.includes("Allergy")
-                                ? "bg-rose-500 text-white border-rose-600 shadow-xs"
-                                : "bg-primary text-primary-foreground border-primary shadow-xs"
-                              : "bg-card text-muted-foreground hover:text-foreground border-border"
-                          }`}
-                        >
-                          {alert}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Card>
-
-              {/* Vitals Grid */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                  <Activity className="size-4 text-emerald-600" /> Patient Vitals & Measurements
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium">BP (mmHg)</Label>
-                    <Input
-                      value={f.bp}
-                      onChange={(e) => setF({ ...f, bp: e.target.value })}
-                      placeholder="120/80"
-                      className="font-mono bg-card"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium">Pulse (bpm)</Label>
-                    <Input
-                      value={f.pulse}
-                      onChange={(e) => setF({ ...f, pulse: e.target.value })}
-                      placeholder="72"
-                      className="font-mono bg-card"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium">Temp (°F)</Label>
-                    <Input
-                      value={f.temperature}
-                      onChange={(e) => setF({ ...f, temperature: e.target.value })}
-                      placeholder="98.6"
-                      className="font-mono bg-card"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium">Weight (kg)</Label>
-                    <Input
-                      value={f.weight}
-                      onChange={(e) => setF({ ...f, weight: e.target.value })}
-                      placeholder="70"
-                      className="font-mono bg-card"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium">Height (cm)</Label>
-                    <Input
-                      value={f.height}
-                      onChange={(e) => setF({ ...f, height: e.target.value })}
-                      placeholder="175"
-                      className="font-mono bg-card"
-                    />
-                  </div>
-                </div>
-
-                {/* Vitals Analysis Alert bar */}
-                {(bpAlert || tempAlert || pulseAlert) && (
-                  <div className="p-3 bg-blue-50/50 dark:bg-zinc-900 border border-blue-100 dark:border-zinc-800 rounded-lg flex items-start gap-2.5 text-xs text-muted-foreground mt-3">
-                    <Activity className="size-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                        Vitals Diagnostics:
-                      </span>
-                      <div className="flex flex-wrap gap-2 mt-1.5">
-                        {bpAlert && (
-                          <Badge className={`text-[10px] font-semibold border ${bpAlert.color}`}>
-                            {bpAlert.label}
-                          </Badge>
-                        )}
-                        {tempAlert && (
-                          <Badge className={`text-[10px] font-semibold border ${tempAlert.color}`}>
-                            {tempAlert.label}
-                          </Badge>
-                        )}
-                        {pulseAlert && (
-                          <Badge className={`text-[10px] font-semibold border ${pulseAlert.color}`}>
-                            {pulseAlert.label}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <Button onClick={() => setActiveTab("soap")} className="gap-1">
-                  Continue to Notes <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            </TabsContent>
-
-            {/* TAB 2: SOAP Notes */}
-            <TabsContent value="soap" className="space-y-5 focus-visible:outline-none">
-              <div className="flex justify-between items-center flex-wrap gap-2">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                  <FileText className="size-4 text-indigo-600" /> Clinical SOAP Documentation
-                </h4>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={generateSoapNotes}
-                  disabled={generating || !f.chief_complaint}
-                  className="h-8 bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300 border-purple-200 dark:border-purple-900/60 hover:bg-purple-100 gap-1 font-semibold shadow-inner"
+                  onClick={() => {
+                    setSelectedPatient(null);
+                    setPatientName("");
+                    setPatientPhone("");
+                    setPatientAge("");
+                    setPatientGender("");
+                    setAppointmentId(null);
+                    setChiefComplaint("");
+                    setDiagnosis("");
+                    setTreatmentPlan("");
+                  }}
+                  className="h-7 text-xs px-2.5 rounded-lg gap-1"
                 >
-                  {generating ? (
-                    <>🪄 Writing SOAP notes...</>
-                  ) : (
-                    <>
-                      <Sparkle className="size-3.5 fill-purple-600 text-purple-600 animate-pulse" />{" "}
-                      AI SOAP Copilot
-                    </>
-                  )}
+                  <Plus className="size-3" /> Walk-in
                 </Button>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <div className="flex justify-between">
-                    <Label className="text-xs font-semibold">Chief Complaint *</Label>
-                    <span className="text-[10px] text-muted-foreground">
-                      e.g. Cough and Fever, Sore Throat
-                    </span>
-                  </div>
-                  <Textarea
-                    rows={2}
-                    value={f.chief_complaint}
-                    onChange={(e) => setF({ ...f, chief_complaint: e.target.value })}
-                    placeholder="Describe patient's symptoms and complaints..."
-                    className="bg-card"
-                  />
+              {/* Micro Status Indicators */}
+              <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
+                <div className="bg-amber-500/10 text-amber-700 dark:text-amber-400 py-1 rounded-lg border border-amber-500/20">
+                  {waitingCount} Waiting
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Diagnosis</Label>
-                    <Input
-                      value={f.diagnosis}
-                      onChange={(e) => setF({ ...f, diagnosis: e.target.value })}
-                      placeholder="e.g. Acute Tonsillitis"
-                      className="bg-card"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Medical History</Label>
-                    <Textarea
-                      rows={2}
-                      value={f.history}
-                      onChange={(e) => setF({ ...f, history: e.target.value })}
-                      placeholder="Prior conditions, family history, chronic illnesses..."
-                      className="bg-card"
-                    />
-                  </div>
+                <div className="bg-emerald-500/10 text-emerald-600 py-1 rounded-lg border border-emerald-500/20">
+                  {servingCount} In-Consult
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Examination Findings</Label>
-                  <Textarea
-                    rows={2}
-                    value={f.examination}
-                    onChange={(e) => setF({ ...f, examination: e.target.value })}
-                    placeholder="Describe findings from chest auscultation, throat check, local tenderness, etc..."
-                    className="bg-card"
-                  />
+                <div className="bg-zinc-500/10 text-zinc-600 py-1 rounded-lg border border-zinc-500/20">
+                  {completedCount} Done
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab("vitals")}>
-                  <ChevronRight className="size-4 rotate-180 mr-1" /> Back
-                </Button>
-                <Button onClick={() => setActiveTab("treatment")} className="gap-1">
-                  Continue to Treatment <ChevronRight className="size-4" />
-                </Button>
+              {/* Patient Queue Search */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Quick search patient…"
+                  value={queueSearch}
+                  onChange={(e) => setQueueSearch(e.target.value)}
+                  className="pl-8 h-8 text-xs rounded-xl"
+                />
               </div>
-            </TabsContent>
 
-            {/* TAB 3: Treatment & Follow-up */}
-            <TabsContent value="treatment" className="space-y-5 focus-visible:outline-none">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center flex-wrap gap-2">
-                  <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                    <HeartPulse className="size-4 text-red-600" /> Treatment Plan &amp; Prescription (Rx)
-                  </h4>
-                  <span className="text-[10px] text-muted-foreground font-semibold">
-                    Click chip to inject medicine into prescription
-                  </span>
+              {/* Scrollable Patient Cards */}
+              <div className="space-y-1.5 max-h-[480px] lg:max-h-[620px] overflow-y-auto pr-1 no-scrollbar">
+                {queue.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
+                    No patients in today's queue. Click <b>+ Walk-in</b> to start.
+                  </div>
+                ) : (
+                  queue
+                    .filter(
+                      (q) =>
+                        !queueSearch.trim() ||
+                        q.patient_name.toLowerCase().includes(queueSearch.toLowerCase()) ||
+                        (q.patient_phone ?? "").includes(queueSearch)
+                    )
+                    .map((item) => {
+                      const isSelected =
+                        selectedPatient?.patient_name === item.patient_name ||
+                        selectedPatient?.appointment_id === item.appointment_id;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => selectPatient(item)}
+                          className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
+                            isSelected
+                              ? "bg-primary/10 border-primary text-foreground shadow-2xs"
+                              : "bg-muted/20 hover:bg-muted/60 border-border/70 text-muted-foreground"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="size-6 rounded-lg bg-card border text-[11px] font-mono font-bold grid place-items-center text-foreground shrink-0">
+                              #{item.token_number}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-foreground truncate">
+                                {item.patient_name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {item.problem || (item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "General")}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 flex items-center gap-1">
+                            {item.status === "waiting" && (
+                              <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+                            )}
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] px-1.5 py-0 font-semibold ${
+                                item.status === "waiting"
+                                  ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                                  : item.status === "serving"
+                                    ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                                    : item.status === "done"
+                                      ? "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
+                                      : "bg-blue-500/10 text-blue-700 border-blue-500/20"
+                              }`}
+                            >
+                              {item.status === "done" ? "Done" : item.status === "waiting" ? "Waiting" : item.status === "serving" ? "In-Consult" : "Booked"}
+                            </Badge>
+                          </div>
+                        </button>
+                      );
+                    })
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN: Active Consultation & Prescription Cockpit (8 Cols) */}
+          <div className="lg:col-span-8 space-y-4">
+            <Card className="p-4 sm:p-6 border-border/80 bg-card shadow-xs space-y-5 rounded-2xl">
+              {/* Active Patient Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-primary/10 text-primary grid place-items-center font-bold text-base shadow-xs">
+                    {patientName ? patientName.slice(0, 2).toUpperCase() : "Rx"}
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                      {patientName || "Walk-in Patient Consultation"}
+                      {patientAge && <span className="text-xs font-normal text-muted-foreground font-mono">({patientAge} yrs{patientGender ? `, ${patientGender}` : ""})</span>}
+                    </h2>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      {patientPhone ? (
+                        <span className="flex items-center gap-1 font-medium text-foreground">
+                          <Phone className="size-3 text-emerald-600" /> {patientPhone}
+                        </span>
+                      ) : (
+                        <span>No phone attached</span>
+                      )}
+                      {appointmentId && <Badge variant="secondary" className="text-[10px]">Linked Appt</Badge>}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Frequently Prescribed Medicines Quick Chips */}
-                <div className="p-3 bg-muted/20 border border-border/70 rounded-xl space-y-2">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="size-3 text-amber-500" /> Quick Medicine Presets:
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { name: "Tab Paracetamol 650mg", dose: "1-0-1 after food x 3 days" },
-                      { name: "Tab Amoxicillin+Clav 625mg", dose: "1-0-1 after meals x 5 days" },
-                      { name: "Tab Azithromycin 500mg", dose: "1-0-0 before meals x 3 days" },
-                      { name: "Tab Pantoprazole 40mg", dose: "1-0-0 before breakfast x 7 days" },
-                      { name: "Tab Levocetirizine 5mg", dose: "0-0-1 at night x 5 days" },
-                      { name: "Tab Telmisartan 40mg", dose: "1-0-0 morning x 30 days" },
-                      { name: "Tab Metformin 500mg", dose: "1-0-1 with meals x 30 days" },
-                      { name: "Tab Ondansetron 4mg", dose: "1 tab SOS for nausea" },
-                      { name: "Syp ORS / Electrolyte", dose: "1 sachet in 1L water sip through day" },
-                    ].map((med) => (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Quick Allergy Tags */}
+                  {["NKDA", "Penicillin Allergy", "Sulfa Allergy", "Diabetic", "Hypertensive"].map((tag) => {
+                    const active = historyNotes.includes(tag);
+                    return (
                       <button
-                        key={med.name}
+                        key={tag}
                         type="button"
-                        onClick={() => {
-                          const line = `• ${med.name} — ${med.dose}`;
-                          setF((prev) => ({
-                            ...prev,
-                            treatment_plan: prev.treatment_plan
-                              ? `${prev.treatment_plan}\n${line}`
-                              : line,
-                          }));
-                          toast.success(`Added ${med.name}`);
-                        }}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-card border border-border/80 hover:border-primary/50 hover:bg-primary/5 text-foreground transition-all shadow-2xs"
+                        onClick={() => toggleAllergy(tag)}
+                        className={`text-[10px] px-2 py-0.5 rounded-lg border font-semibold transition-all ${
+                          active
+                            ? tag.includes("Allergy")
+                              ? "bg-rose-500 text-white border-rose-600"
+                              : "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted/40 text-muted-foreground hover:text-foreground border-border/60"
+                        }`}
                       >
-                        + {med.name.replace(/^(Tab|Cap|Syp)\s*/, "")}
+                        {tag}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Prescription &amp; Advice</Label>
-                  <Textarea
-                    rows={6}
-                    value={f.treatment_plan}
-                    onChange={(e) => setF({ ...f, treatment_plan: e.target.value })}
-                    placeholder="Enter prescribed medications, dosages, dietary restrictions, rest recommendations..."
-                    className="bg-card font-mono text-xs leading-relaxed"
+              {/* Vitals Quick Bar */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Activity className="size-3.5 text-emerald-600" /> Patient Vitals
+                </Label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <Input
+                    placeholder="BP (120/80)"
+                    value={bp}
+                    onChange={(e) => setBp(e.target.value)}
+                    className="h-8 text-xs font-mono bg-muted/20"
+                  />
+                  <Input
+                    placeholder="Pulse (bpm)"
+                    type="number"
+                    value={pulse}
+                    onChange={(e) => setPulse(e.target.value)}
+                    className="h-8 text-xs font-mono bg-muted/20"
+                  />
+                  <Input
+                    placeholder="Temp (°F)"
+                    value={temp}
+                    onChange={(e) => setTemp(e.target.value)}
+                    className="h-8 text-xs font-mono bg-muted/20"
+                  />
+                  <Input
+                    placeholder="Weight (kg)"
+                    type="number"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="h-8 text-xs font-mono bg-muted/20"
+                  />
+                  <Input
+                    placeholder="Height (cm)"
+                    type="number"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    className="h-8 text-xs font-mono bg-muted/20"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1.5 max-w-sm">
-                  <Label className="text-xs font-semibold">Follow-up Date</Label>
+              {/* 1-Click Fast Clinical Presets Strip */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="size-3.5 text-amber-500" /> 1-Click Clinical Presets (Auto-fills Diagnosis &amp; Rx)
+                </Label>
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                  {Object.entries(PRESETS).map(([key, p]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => applyPreset(key)}
+                      className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-muted/30 hover:bg-primary/10 hover:border-primary/40 border border-border/80 text-foreground transition-all shrink-0 shadow-2xs"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chief Complaint & Diagnosis Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Chief Complaint / Symptoms</Label>
+                  <Input
+                    placeholder="e.g. High fever with dry cough for 3 days"
+                    value={chiefComplaint}
+                    onChange={(e) => setChiefComplaint(e.target.value)}
+                    className="text-xs h-9 bg-card"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Diagnosis</Label>
+                  <Input
+                    placeholder="e.g. Acute Upper Respiratory Tract Infection"
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                    className="text-xs h-9 font-medium text-primary bg-card"
+                  />
+                </div>
+              </div>
+
+              {/* Frequently Prescribed Medicines Inserter */}
+              <div className="p-3 bg-muted/20 border border-border/70 rounded-2xl space-y-2">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="size-3 text-amber-500" /> 1-Click Medicine Inserter:
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {FAST_MEDS.map((med) => (
+                    <button
+                      key={med.name}
+                      type="button"
+                      onClick={() => addMedicine(med)}
+                      className="px-2 py-0.5 rounded-lg text-xs font-medium bg-card border border-border/80 hover:border-primary/50 hover:bg-primary/5 text-foreground transition-all shadow-2xs"
+                    >
+                      + {med.name.replace(/^(Tab|Cap|Syp)\s*/, "")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Prescription Textarea */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">Prescription (Rx) &amp; Advice</Label>
+                  <span className="text-[10px] text-muted-foreground">Autosaved locally</span>
+                </div>
+                <Textarea
+                  rows={5}
+                  value={treatmentPlan}
+                  onChange={(e) => setTreatmentPlan(e.target.value)}
+                  placeholder="1. Tab Paracetamol 650mg — 1-0-1 after food x 3 days&#10;2. Syp ORS — 1 sachet in 1L water sip continuously&#10;3. Physical rest & plenty of warm fluids."
+                  className="text-xs font-mono leading-relaxed bg-card"
+                />
+              </div>
+
+              {/* Follow-up & Quick Date Offsets */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Label className="text-xs font-semibold">Follow-up:</Label>
                   <Input
                     type="date"
-                    value={f.follow_up_date}
-                    onChange={(e) => setF({ ...f, follow_up_date: e.target.value })}
-                    className="bg-card cursor-pointer"
+                    value={followUpDate}
+                    onChange={(e) => setFollowUpDate(e.target.value)}
+                    className="h-8 text-xs w-36 bg-card"
                   />
+                  {[
+                    { label: "+3d", days: 3 },
+                    { label: "+5d", days: 5 },
+                    { label: "+1w", days: 7 },
+                    { label: "+2w", days: 14 },
+                    { label: "+1m", days: 30 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + chip.days);
+                        setFollowUpDate(d.toISOString().slice(0, 10));
+                      }}
+                      className="px-2 py-1 text-[11px] rounded-lg bg-muted border border-border/80 hover:bg-muted/80 text-foreground font-semibold"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="pt-8 flex justify-between border-t border-border/40 flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setActiveTab("soap")}>
-                  <ChevronRight className="size-4 rotate-180 mr-1" /> Back
-                </Button>
-                <div className="flex gap-2 flex-wrap">
-                  <Button variant="ghost" onClick={onClose}>
-                    Cancel
+              {/* STICKY SPEED ACTION BAR */}
+              <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handlePrintSlip}
+                    className="h-9 text-xs gap-1.5 rounded-xl border-border/80"
+                  >
+                    <Printer className="size-3.5" /> Print Rx
                   </Button>
-                  <Button onClick={save} disabled={saving} className="bg-primary text-primary-foreground font-semibold shadow-xs">
-                    {saving ? "Saving…" : "Complete Consultation"}
-                  </Button>
+                  {patientPhone && (
+                    <a
+                      href={`https://wa.me/${patientPhone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 text-xs gap-1.5 rounded-xl text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+                      >
+                        <MessageSquare className="size-3.5" /> WhatsApp
+                      </Button>
+                    </a>
+                  )}
                 </div>
+
+                {/* Primary Complete & Next Patient CTA */}
+                <Button
+                  size="lg"
+                  onClick={handleCompleteAndNext}
+                  disabled={saving}
+                  className="h-10 px-6 bg-primary text-primary-foreground font-bold text-xs sm:text-sm gap-2 rounded-xl shadow-md"
+                >
+                  <CheckCircle2 className="size-4" />
+                  {saving ? "Completing…" : "⚡ Complete & Next Patient"}
+                </Button>
               </div>
-            </TabsContent>
-          </Tabs>
+            </Card>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      ) : (
+        /* ARCHIVED / PAST CONSULTATIONS TAB */
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {historyRows.map((c) => (
+              <Card key={c.id} className="p-4 border-border/80 bg-card shadow-xs space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-sm text-foreground">{c.patient_name}</h3>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(c.created_at).toLocaleDateString("en-IN", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                  {c.diagnosis && (
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 font-bold">
+                      {c.diagnosis}
+                    </Badge>
+                  )}
+                </div>
+
+                {c.chief_complaint && (
+                  <p className="text-xs text-muted-foreground bg-muted/20 p-2 rounded-lg border border-border/60">
+                    <b>Symptoms:</b> {c.chief_complaint}
+                  </p>
+                )}
+
+                {c.treatment_plan && (
+                  <p className="text-xs font-mono text-foreground bg-muted/30 p-2 rounded-lg border border-border/60 whitespace-pre-wrap">
+                    {c.treatment_plan}
+                  </p>
+                )}
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
