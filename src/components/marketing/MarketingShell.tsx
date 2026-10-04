@@ -19,6 +19,7 @@ import { CommandPalette } from "./CommandPalette";
 const MARKETING_NAV = [
   { label: "Features", to: "/features" as const },
   { label: "How it works", to: "/how-it-works" as const },
+  { label: "Docs / Guide", to: "/docs" as const },
   { label: "FAQ", to: "/faq" as const },
 ];
 
