@@ -354,121 +354,123 @@ function QueuePage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="space-y-4 max-w-5xl mx-auto pb-12">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
-              Today's OPD Queue
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-display font-bold tracking-tight text-foreground">
+              Today's Queue
             </h1>
-            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 font-bold">
+            <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/20 font-bold px-2 py-0">
               {new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", weekday: "short" })}
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Confirmed → Check-in → Waiting → Consultation → WhatsApp Rx in 1 tap.
+          <p className="text-xs text-muted-foreground truncate hidden sm:block">
+            Real-time patient flow: Confirmed ➔ Check-in ➔ In Consult ➔ WhatsApp Rx.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setBoard(true)} className="h-9 text-xs gap-1.5">
-            <Monitor className="size-4 text-primary" /> Waiting Board
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => setBoard(true)} className="h-8 text-xs px-2.5 gap-1 rounded-xl">
+            <Monitor className="size-3.5 text-primary" /> <span className="hidden xs:inline">Board</span>
           </Button>
-          <Button size="sm" onClick={() => setAdding(true)} className="h-9 text-xs gap-1.5 font-semibold shadow-xs">
-            <Plus className="size-4" /> Issue Token
+          <Button size="sm" onClick={() => setAdding(true)} className="h-8 text-xs px-3 gap-1 font-semibold rounded-xl shadow-xs">
+            <Plus className="size-3.5" /> Issue Token
           </Button>
         </div>
       </div>
 
-      {/* KPI Cockpit Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-        <Card className="p-3.5 sm:p-4 border-border/80 bg-card shadow-xs flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
-            <Stethoscope className="size-5" />
+      {/* Streamlined Horizontal Micro-Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="p-2.5 rounded-2xl bg-card border border-border/70 shadow-2xs flex items-center gap-2.5">
+          <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
+            <Stethoscope className="size-4" />
           </div>
           <div className="min-w-0">
-            <div className="text-[11px] text-muted-foreground font-semibold uppercase">Now Serving</div>
-            <div className="text-sm sm:text-base font-bold text-foreground truncate">
-              {servingItem ? servingItem.patient_name : "Nobody active"}
+            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Serving</div>
+            <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+              {servingItem ? servingItem.patient_name : "None active"}
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-3.5 sm:p-4 border-border/80 bg-card shadow-xs flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-amber-500/10 text-amber-600 grid place-items-center shrink-0">
-            <Clock className="size-5" />
+        <div className="p-2.5 rounded-2xl bg-card border border-border/70 shadow-2xs flex items-center gap-2.5">
+          <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 grid place-items-center shrink-0">
+            <Clock className="size-4" />
           </div>
-          <div>
-            <div className="text-[11px] text-muted-foreground font-semibold uppercase">Waiting in OPD</div>
-            <div className="text-lg sm:text-xl font-bold text-foreground">{waitingList.length}</div>
-          </div>
-        </Card>
-
-        <Card className="p-3.5 sm:p-4 border-border/80 bg-card shadow-xs flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-blue-500/10 text-blue-600 grid place-items-center shrink-0">
-            <Calendar className="size-5" />
-          </div>
-          <div>
-            <div className="text-[11px] text-muted-foreground font-semibold uppercase">Confirmed Today</div>
-            <div className="text-lg sm:text-xl font-bold text-foreground">{confirmedList.length}</div>
-          </div>
-        </Card>
-
-        <Card className="p-3.5 sm:p-4 border-border/80 bg-card shadow-xs flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-zinc-500/10 text-zinc-600 grid place-items-center shrink-0">
-            <CheckCircle2 className="size-5" />
-          </div>
-          <div>
-            <div className="text-[11px] text-muted-foreground font-semibold uppercase">Completed</div>
-            <div className="text-lg sm:text-xl font-bold text-foreground">{doneList.length}</div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Hero Call Next Patient Bar */}
-      <Card className="p-4 sm:p-5 border-primary/30 bg-gradient-to-r from-primary/[0.04] via-primary/[0.02] to-transparent shadow-sm flex items-center justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <span className="text-[10px] font-bold tracking-wider text-primary uppercase flex items-center gap-1.5">
-            <Sparkles className="size-3" /> Next Patient in Line
-          </span>
-          <div className="text-base sm:text-lg font-bold text-foreground">
-            {waitingList[0]
-              ? `${waitingList[0].patient_name} · Waiting in OPD`
-              : confirmedList[0]
-                ? `${confirmedList[0].patient_name} · Confirmed for today`
-                : "No patients waiting in queue"}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {waitingList[0]?.problem || confirmedList[0]?.problem || "Ready for consultation"}
+          <div className="min-w-0">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Waiting</div>
+            <div className="text-xs sm:text-sm font-bold text-foreground">
+              {waitingList.length} <span className="text-[10px] text-muted-foreground font-normal">in OPD</span>
+            </div>
           </div>
         </div>
-        <Button
-          size="lg"
-          onClick={callNext}
-          disabled={waitingList.length === 0 && confirmedList.length === 0}
-          className="h-10 px-5 bg-primary text-primary-foreground font-bold text-xs sm:text-sm gap-2 shadow-sm rounded-xl shrink-0"
-        >
-          <PhoneCall className="size-4" /> Call Next Patient
-        </Button>
-      </Card>
 
-      {/* Queue Filter Bar & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-2.5 rounded-2xl bg-card border border-border/70 shadow-2xs flex items-center gap-2.5">
+          <div className="size-8 rounded-xl bg-blue-500/10 text-blue-600 grid place-items-center shrink-0">
+            <Calendar className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Upcoming</div>
+            <div className="text-xs sm:text-sm font-bold text-foreground">
+              {confirmedList.length} <span className="text-[10px] text-muted-foreground font-normal">booked</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-2xl bg-card border border-border/70 shadow-2xs flex items-center gap-2.5">
+          <div className="size-8 rounded-xl bg-zinc-500/10 text-zinc-600 grid place-items-center shrink-0">
+            <CheckCircle2 className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Completed</div>
+            <div className="text-xs sm:text-sm font-bold text-foreground">
+              {doneList.length} <span className="text-[10px] text-muted-foreground font-normal">treated</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Call Next Patient Prompt (Only shown when patients are in queue) */}
+      {(waitingList.length > 0 || confirmedList.length > 0) && (
+        <div className="p-3.5 sm:p-4 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/[0.06] via-primary/[0.02] to-transparent shadow-xs flex items-center justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
+            <span className="text-[10px] font-bold tracking-wider text-primary uppercase flex items-center gap-1">
+              <Sparkles className="size-3" /> Next in line
+            </span>
+            <div className="text-sm sm:text-base font-bold text-foreground truncate">
+              {waitingList[0]
+                ? `${waitingList[0].patient_name} (Waiting in OPD)`
+                : `${confirmedList[0].patient_name} (Upcoming)`}
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={callNext}
+            className="h-9 px-4 bg-primary text-primary-foreground font-bold text-xs gap-1.5 rounded-xl shadow-xs shrink-0"
+          >
+            <PhoneCall className="size-3.5" /> Call Next
+          </Button>
+        </div>
+      )}
+
+      {/* Queue Status Tabs & Search Bar */}
+      <div className="space-y-2">
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
           {[
-            { key: "all", label: "All Today", count: queueList.length },
-            { key: "waiting", label: "Waiting Room", count: waitingList.length },
+            { key: "all", label: "All", count: queueList.length },
+            { key: "waiting", label: "Waiting", count: waitingList.length },
             { key: "serving", label: "In Consult", count: servingItem ? 1 : 0 },
             { key: "confirmed", label: "Upcoming", count: confirmedList.length },
-            { key: "done", label: "Completed", count: doneList.length },
+            { key: "done", label: "Done", count: doneList.length },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
                 activeTab === tab.key
                   ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                  : "bg-card hover:bg-muted/60 text-muted-foreground border-border/80"
+                  : "bg-card hover:bg-muted/60 text-muted-foreground border-border/70"
               }`}
             >
               <span>{tab.label}</span>
@@ -485,13 +487,13 @@ function QueuePage() {
           ))}
         </div>
 
-        <div className="relative sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search patient name or phone…"
+            placeholder="Search queue by patient name, phone, or symptom…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-9 text-xs"
+            className="pl-8 h-9 text-xs rounded-xl bg-card"
           />
         </div>
       </div>
