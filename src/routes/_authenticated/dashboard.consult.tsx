@@ -456,17 +456,7 @@ function ConsultCockpitPage() {
 
       toast.success(`✅ Consultation completed for ${patientName}!`);
 
-      // 4. Send WhatsApp Prescription preview if phone exists
-      if (patientPhone) {
-        const cleanP = patientPhone.replace(/\D/g, "");
-        const waNum = cleanP.length === 10 ? `91${cleanP}` : cleanP;
-        const msg = encodeURIComponent(
-          `*🏥 ${clinic?.clinic_name || "Clinic"} — Clinical Summary*\n👤 Patient: *${patientName}*\n📅 Date: ${new Date().toLocaleDateString()}\n\n📝 *Diagnosis:* ${diagnosis || "Consultation Completed"}\n💊 *Prescription (Rx):*\n${treatmentPlan || "Advised rest and adequate hydration."}\n\n${followUpDate ? `🗓️ *Follow-up:* ${new Date(followUpDate).toLocaleDateString()}\n` : ""}_Take medicines as prescribed._`
-        );
-        window.open(`https://wa.me/${waNum}?text=${msg}`, "_blank");
-      }
-
-      // 5. Instantly advance to the NEXT waiting patient without page reload
+      // 4. Instantly advance to the NEXT waiting patient without page reload or redirection
       const remainingWaiting = queue.filter(
         (q) => q.status === "waiting" && q.patient_name !== patientName
       );
