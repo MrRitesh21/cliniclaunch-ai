@@ -111,6 +111,22 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
     installed_modules = (mods ?? []).map((m: any) => m.module_id);
   }
 
+  const doctorQuery = clinic.organization_id
+    ? sb
+        .from("doctors")
+        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order, is_active")
+        .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
+        .neq("is_active", false)
+        .order("sort_order")
+        .order("created_at")
+    : sb
+        .from("doctors")
+        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order, is_active")
+        .eq("clinic_id", clinic.id)
+        .neq("is_active", false)
+        .order("sort_order")
+        .order("created_at");
+
   const [{ data: dbReviews }, { data: dbDoctors }] = await Promise.all([
     sb
       .from("reviews")
@@ -118,13 +134,7 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
       .eq("clinic_id", clinic.id)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
-    sb
-      .from("doctors")
-      .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
-      .eq("organization_id", clinic.organization_id)
-      .eq("is_active", true)
-      .order("sort_order")
-      .order("created_at"),
+    doctorQuery,
   ]);
 
   return {

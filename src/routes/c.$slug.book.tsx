@@ -168,36 +168,77 @@ function BookPage() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    function processDoctorList(activeList: DoctorOption[]) {
+      const ownerName = (clinic.doctor_name || "").trim();
+      const cleanOwnerName = ownerName.toLowerCase().replace(/^dr\.?\s*/, "").trim();
+
+      const ownerAlreadyInList =
+        cleanOwnerName &&
+        activeList.some(
+          (d) =>
+            d.name
+              .toLowerCase()
+              .replace(/^dr\.?\s*/, "")
+              .trim() === cleanOwnerName,
+        );
+
+      const merged: DoctorOption[] = [];
+      if (ownerName && !ownerAlreadyInList) {
+        merged.push({
+          id: "owner",
+          name: ownerName.startsWith("Dr.") ? ownerName : `Dr. ${ownerName}`,
+          specialization: clinic.specialization || null,
+          qualification: clinic.qualification || null,
+          consultation_fee: clinic.consultation_fee || null,
+          avatar_url: (clinic as any).avatar_url || null,
+          bio: (clinic as any).bio || null,
+          experience_years: (clinic as any).experience_years || null,
+        });
+      }
+
+      activeList.forEach((d) => {
+        if (!merged.some((m) => m.id === d.id)) {
+          merged.push(d);
+        }
+      });
+
+      setDoctors(merged);
+      setSelectedDoctorId((prev) =>
+        prev && merged.some((m) => m.id === prev) ? prev : merged[0]?.id || "owner",
+      );
+    }
+
     const activeFromLoader = (
       Array.isArray((clinic as any).active_doctors) ? (clinic as any).active_doctors : []
     ) as DoctorOption[];
-    const ownerName = clinic.doctor_name;
-    const list = [...activeFromLoader];
-    const hasOwnerInList = activeFromLoader.length > 0;
 
-    const merged: DoctorOption[] = [];
-    if (ownerName && !hasOwnerInList) {
-      merged.push({
-        id: "owner",
-        name: ownerName.startsWith("Dr.") ? ownerName : `Dr. ${ownerName}`,
-        specialization: clinic.specialization || null,
-        qualification: clinic.qualification || null,
-        consultation_fee: clinic.consultation_fee || null,
-        avatar_url: (clinic as any).avatar_url || null,
-        bio: (clinic as any).bio || null,
-        experience_years: (clinic as any).experience_years || null,
-      });
+    processDoctorList(activeFromLoader);
+
+    // Also fetch live doctors to bypass any stale server/redis cache
+    if (clinic.id) {
+      const query = clinic.organization_id
+        ? supabase
+            .from("doctors")
+            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
+            .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
+            .neq("is_active", false)
+            .order("sort_order")
+            .order("created_at")
+        : supabase
+            .from("doctors")
+            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
+            .eq("clinic_id", clinic.id)
+            .neq("is_active", false)
+            .order("sort_order")
+            .order("created_at");
+
+      query.then(({ data }) => {
+        if (data && data.length > 0) {
+          processDoctorList(data as DoctorOption[]);
+        }
+      }).catch(() => {});
     }
-
-    list.forEach((d) => {
-      merged.push(d);
-    });
-
-    setDoctors(merged);
-    setSelectedDoctorId((prev) =>
-      prev && merged.some((m) => m.id === prev) ? prev : merged[0]?.id || "owner",
-    );
-  }, [clinic.organization_id, clinic.doctor_name, (clinic as any).active_doctors]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clinic.id, clinic.organization_id, clinic.doctor_name, (clinic as any).active_doctors]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     try {
