@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  DEFAULT_VAPID_PUBLIC_KEY,
   getPushConfig,
   listMyPushDevices,
   removePushSubscription,
@@ -105,18 +106,19 @@ export function usePushNotifications() {
       const canPush =
         typeof window !== "undefined" &&
         "serviceWorker" in navigator &&
-        "PushManager" in window &&
-        "Notification" in window;
+        ("Notification" in window || "PushManager" in window || isIos() || /Android|iPhone|iPad/i.test(navigator.userAgent));
       if (cancelled) return;
-      setSupported(canPush);
+      setSupported(Boolean(canPush));
       if (!canPush) return;
 
-      setPermission(Notification.permission);
+      if ("Notification" in window) {
+        setPermission(Notification.permission);
+      }
 
-      const cfg = await getPushConfig();
+      const cfg = await getPushConfig().catch(() => ({ configured: true, publicKey: DEFAULT_VAPID_PUBLIC_KEY }));
       if (cancelled) return;
-      setConfigured(cfg.configured);
-      setPublicKey(cfg.publicKey);
+      setConfigured(cfg?.configured ?? true);
+      setPublicKey(cfg?.publicKey || DEFAULT_VAPID_PUBLIC_KEY);
 
       // Ensure service worker is registered
       let reg = await navigator.serviceWorker.getRegistration();
@@ -125,8 +127,8 @@ export function usePushNotifications() {
       }
       if (cancelled) return;
       setServiceWorkerReady(Boolean(reg));
-      if (reg) {
-        const existing = await reg.pushManager.getSubscription();
+      if (reg && reg.pushManager) {
+        const existing = await reg.pushManager.getSubscription().catch(() => null);
         if (!cancelled) setSubscribed(Boolean(existing));
       }
       await refreshDevices();
@@ -138,7 +140,8 @@ export function usePushNotifications() {
   }, [refreshDevices]);
 
   const enable = useCallback(async () => {
-    if (!supported || !publicKey) return { ok: false, reason: "unsupported" as const };
+    const vapidKey = publicKey || DEFAULT_VAPID_PUBLIC_KEY;
+    if (typeof window === "undefined") return { ok: false, reason: "unsupported" as const };
     setBusy(true);
     try {
       // 1. Ensure service worker is registered & active
@@ -153,23 +156,29 @@ export function usePushNotifications() {
       if (!reg) return { ok: false, reason: "no-service-worker" as const };
 
       // 2. Request permission (Promise + Callback fallback for older WebViews)
-      let result: NotificationPermission;
-      try {
-        result = await Notification.requestPermission();
-      } catch {
-        result = await new Promise<NotificationPermission>((resolve) => {
-          Notification.requestPermission(resolve);
-        });
+      let result: NotificationPermission = "granted";
+      if ("Notification" in window) {
+        try {
+          result = await Notification.requestPermission();
+        } catch {
+          result = await new Promise<NotificationPermission>((resolve) => {
+            Notification.requestPermission(resolve);
+          });
+        }
+        setPermission(result);
+        if (result !== "granted") return { ok: false, reason: "denied" as const };
       }
-      setPermission(result);
-      if (result !== "granted") return { ok: false, reason: "denied" as const };
 
       // 3. Obtain push subscription
-      let sub = await reg.pushManager.getSubscription();
+      if (!reg.pushManager) {
+        return { ok: false, reason: "unsupported" as const };
+      }
+
+      let sub = await reg.pushManager.getSubscription().catch(() => null);
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as BufferSource,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as BufferSource,
         });
       }
 
@@ -193,7 +202,7 @@ export function usePushNotifications() {
     } finally {
       setBusy(false);
     }
-  }, [supported, publicKey, refreshDevices]);
+  }, [publicKey, refreshDevices]);
 
   const disable = useCallback(async () => {
     setBusy(true);

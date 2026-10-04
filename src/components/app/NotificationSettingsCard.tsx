@@ -22,8 +22,14 @@ export function NotificationSettingsCard() {
       toast.error("Notifications blocked. Allow them in your browser site settings.");
     } else if (res.reason === "no-service-worker") {
       toast.error("Open the published app (or installed app) to enable notifications.");
+    } else if (res.reason === "unsupported") {
+      if (push.needsIosInstall) {
+        toast.info("On iOS: Tap Share → Add to Home Screen to enable notifications.");
+      } else {
+        toast.error("This browser does not support push notifications.");
+      }
     } else {
-      toast.error("This browser does not support push notifications.");
+      toast.error((res as any).error || "Push notification setup failed on this device.");
     }
   };
 
