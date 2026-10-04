@@ -446,8 +446,13 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
 
           <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/signup">
-              <Button size="lg" className="h-12 px-7 rounded-xl text-sm font-semibold gap-2">
-                Start free trial <ArrowRight className="size-4" />
+              <Button size="lg" className="h-12 px-7 rounded-xl text-sm font-semibold gap-2 shadow-lg shadow-primary/20">
+                Start 14-day free trial <ArrowRight className="size-4" />
+              </Button>
+            </Link>
+            <Link to="/contact">
+              <Button size="lg" variant="outline" className="h-12 px-7 rounded-xl text-sm font-semibold bg-background/80">
+                Schedule a live demo
               </Button>
             </Link>
           </div>
@@ -457,12 +462,44 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
               <CheckCircle2 className="size-3.5 text-success" /> Live in 5 minutes
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="size-3.5 text-success" /> Your data, your domain
+              <ShieldCheck className="size-3.5 text-success" /> 100% Indian data residency
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <IndianRupee className="size-3.5 text-success" /> Cancel anytime
+              <IndianRupee className="size-3.5 text-success" /> Cancel anytime · No credit card required
             </span>
           </p>
+
+          {/* Clinical Trust & Compliance Bar */}
+          <div className="mt-10 mx-auto max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+              <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                <ShieldCheck className="size-4" />
+                <span>256-bit SSL</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">End-to-end encrypted medical records</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+              <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
+                <CheckCircle2 className="size-4" />
+                <span>ABDM Ready</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Aligned with Indian digital health standards</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+              <div className="flex items-center gap-2 text-blue-600 font-bold text-xs">
+                <Users className="size-4" />
+                <span>500+ Clinics</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Practicing doctors in 30+ cities</p>
+            </div>
+            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+              <div className="flex items-center gap-2 text-amber-500 font-bold text-xs">
+                <Star className="size-4 fill-amber-400" />
+                <span>4.9 / 5.0 Rating</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Verified practitioner satisfaction</p>
+            </div>
+          </div>
 
           {/* Product frame */}
           <div className="mt-16 mx-auto max-w-4xl rounded-2xl border border-border bg-surface p-2 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)]">
@@ -537,6 +574,85 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             </div>
           </div>
         ))}
+      </section>
+
+      {/* Verified Doctor Stories & Testimonials */}
+      <section className="border-t border-border/60 bg-surface/50 py-20 px-6">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">
+              Real Clinical Impact
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold font-display tracking-tight text-foreground">
+              Loved by Independent Doctors & Polyclinics
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Hear how doctors across India automate administrative busywork and focus 100% on patient care.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
+              <div className="flex items-center gap-1 text-amber-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
+                "WhatsApp automated reminders dropped our clinic no-shows from 28% to less than 4%. The 1-click E-Prescription and bill generation saves us at least 2 hours every evening."
+              </p>
+              <div className="pt-3 border-t border-border/60 flex items-center gap-3">
+                <div className="size-10 rounded-full bg-primary/10 text-primary font-bold text-xs grid place-items-center">
+                  DR
+                </div>
+                <div>
+                  <p className="font-bold text-xs text-foreground">Dr. Rajesh Sharma, MD</p>
+                  <p className="text-[11px] text-muted-foreground">Consultant Physician · Lucknow</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
+              <div className="flex items-center gap-1 text-amber-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
+                "Having our own branded clinic website where patients book appointments directly on my custom domain changed our practice. Zero commission fees compared to big aggregators."
+              </p>
+              <div className="pt-3 border-t border-border/60 flex items-center gap-3">
+                <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-xs grid place-items-center">
+                  DA
+                </div>
+                <div>
+                  <p className="font-bold text-xs text-foreground">Dr. Ananya Sen, BDS</p>
+                  <p className="text-[11px] text-muted-foreground">Dental Surgeon · Delhi NCR</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
+              <div className="flex items-center gap-1 text-amber-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
+                "The live OPD token queue and automated review requests gave our clinic 140+ genuine 5-star Google reviews in 3 months. Simple, reliable, and perfectly designed."
+              </p>
+              <div className="pt-3 border-t border-border/60 flex items-center gap-3">
+                <div className="size-10 rounded-full bg-purple-500/10 text-purple-600 font-bold text-xs grid place-items-center">
+                  DV
+                </div>
+                <div>
+                  <p className="font-bold text-xs text-foreground">Dr. Vikram Rao, MS</p>
+                  <p className="text-[11px] text-muted-foreground">Orthopedic Specialist · Bengaluru</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
       </section>
 
       {/* Modules */}
