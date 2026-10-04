@@ -141,22 +141,37 @@ export function usePushNotifications() {
     if (!supported || !publicKey) return { ok: false, reason: "unsupported" as const };
     setBusy(true);
     try {
-      let reg = (await navigator.serviceWorker.getRegistration()) ?? null;
-      if (!reg && "serviceWorker" in navigator) {
-        reg = (await navigator.serviceWorker.register("/sw.js").catch(() => null)) ?? null;
+      // 1. Ensure service worker is registered & active
+      let reg: ServiceWorkerRegistration | null = null;
+      if ("serviceWorker" in navigator) {
+        try {
+          reg = await navigator.serviceWorker.ready;
+        } catch {
+          reg = (await navigator.serviceWorker.register("/sw.js").catch(() => null)) ?? null;
+        }
       }
       if (!reg) return { ok: false, reason: "no-service-worker" as const };
 
-      const result = await Notification.requestPermission();
+      // 2. Request permission (Promise + Callback fallback for older WebViews)
+      let result: NotificationPermission;
+      try {
+        result = await Notification.requestPermission();
+      } catch {
+        result = await new Promise<NotificationPermission>((resolve) => {
+          Notification.requestPermission(resolve);
+        });
+      }
       setPermission(result);
       if (result !== "granted") return { ok: false, reason: "denied" as const };
 
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({
+      // 3. Obtain push subscription
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as BufferSource,
-        }));
+        });
+      }
 
       await savePushSubscription({
         data: {
@@ -173,6 +188,8 @@ export function usePushNotifications() {
       setSubscribed(true);
       await refreshDevices();
       return { ok: true as const };
+    } catch (err) {
+      return { ok: false, reason: "error" as const, error: (err as Error).message };
     } finally {
       setBusy(false);
     }
