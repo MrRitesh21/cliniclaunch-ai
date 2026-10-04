@@ -3,6 +3,7 @@
 // recorded as queued until a provider is connected.
 
 import { baileysSend, baileysStatus, clinicSessionId } from "./baileys.server";
+import { renderTemplate } from "./whatsapp";
 
 export type AudienceSegment =
   "all_patients" | "recent_visitors" | "lapsed_patients" | "new_leads" | "all_leads";
@@ -26,15 +27,7 @@ export interface Recipient {
   email: string | null;
 }
 
-export function renderTemplate(
-  body: string,
-  vars: Record<string, string | number | null | undefined>,
-) {
-  return body.replace(/\{(\w+)\}/g, (_m, k: string) => {
-    const v = vars[k];
-    return v === undefined || v === null ? "" : String(v);
-  });
-}
+export { renderTemplate };
 
 export async function resolveAudience(
   sb: any,

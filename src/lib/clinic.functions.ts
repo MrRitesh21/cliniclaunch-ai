@@ -102,14 +102,14 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
   const doctorQuery = clinic.organization_id
     ? sb
         .from("doctors")
-        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order, is_active")
+        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order, is_active")
         .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
         .neq("is_active", false)
         .order("sort_order")
         .order("created_at")
     : sb
         .from("doctors")
-        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order, is_active")
+        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order, is_active")
         .eq("clinic_id", clinic.id)
         .neq("is_active", false)
         .order("sort_order")
@@ -613,8 +613,8 @@ export const createBooking = createServerFn({ method: "POST" })
     // Queue Token Auto-Sync for today's offline/walk-in appointments
     try {
       if (orgId && (data.appointment_type === "offline" || data.source === "walkin")) {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const apptDateStr = new Date(data.scheduled_at).toISOString().slice(0, 10);
+        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+        const apptDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(data.scheduled_at));
         
         if (apptDateStr === todayStr) {
           const { data: maxToken } = await sb
@@ -797,7 +797,7 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 
     // Auto-update queue token status when appointment changes
     try {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
       if (data.status === "completed") {
         await sb
           .from("queue_tokens" as any)

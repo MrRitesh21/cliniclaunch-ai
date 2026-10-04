@@ -267,7 +267,14 @@ function MedCatalog({
 
   async function save() {
     if (!f.name.trim()) return toast.error("Name required");
-    const payload = { organization_id: orgId, ...f };
+    const payload = {
+      organization_id: orgId,
+      name: f.name.trim(),
+      strength: f.strength.trim() || null,
+      form: f.form.trim() || null,
+      default_dose: f.default_dose.trim() || null,
+      default_instructions: f.default_instructions.trim() || null,
+    };
     const { error } =
       open === "new" || open === null
         ? await supabase.from("medications" as any).insert(payload)
@@ -481,54 +488,67 @@ function RxSheet({
     const valid = items.filter((it) => it.drug_name.trim());
     if (valid.length === 0) return toast.error("Add at least one drug");
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    let rxId = existing?.id;
-    if (existing) {
-      await supabase
-        .from("prescriptions" as any)
-        .update({
-          patient_id: patientId,
-          patient_name: patientName.trim(),
-          notes,
-        })
-        .eq("id", existing.id);
-      await supabase
-        .from("prescription_items" as any)
-        .delete()
-        .eq("prescription_id", existing.id);
-    } else {
-      const { data, error } = await supabase
-        .from("prescriptions" as any)
-        .insert({
-          organization_id: orgId,
-          patient_id: patientId,
-          patient_name: patientName.trim(),
-          notes,
-          issued_by: u.user?.id ?? null,
-        })
-        .select("id")
-        .single();
-      if (error || !data) {
-        setSaving(false);
-        return toast.error(error?.message ?? "Failed");
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      let rxId = existing?.id;
+      const cleanPatientId = patientId && patientId !== "__manual" ? patientId : null;
+      const cleanPatientName = patientName.trim();
+      const cleanNotes = notes.trim() || null;
+
+      if (existing) {
+        const { error: rxErr } = await supabase
+          .from("prescriptions" as any)
+          .update({
+            patient_id: cleanPatientId,
+            patient_name: cleanPatientName,
+            notes: cleanNotes,
+          })
+          .eq("id", existing.id);
+        if (rxErr) throw rxErr;
+
+        await supabase
+          .from("prescription_items" as any)
+          .delete()
+          .eq("prescription_id", existing.id);
+      } else {
+        const { data, error } = await supabase
+          .from("prescriptions" as any)
+          .insert({
+            organization_id: orgId,
+            patient_id: cleanPatientId,
+            patient_name: cleanPatientName,
+            notes: cleanNotes,
+            issued_by: u.user?.id ?? null,
+          })
+          .select("id")
+          .single();
+        if (error || !data) {
+          throw error || new Error("Failed to create prescription");
+        }
+        rxId = (data as any).id;
       }
-      rxId = (data as any).id;
+      const itemsPayload = valid.map((it, idx) => ({
+        organization_id: orgId,
+        prescription_id: rxId,
+        medication_id: it.medication_id && it.medication_id !== "__custom" ? it.medication_id : null,
+        drug_name: it.drug_name.trim(),
+        dose: it.dose.trim() || null,
+        frequency: it.frequency.trim() || null,
+        duration: it.duration.trim() || null,
+        instructions: it.instructions.trim() || null,
+        position: idx,
+      }));
+      if (itemsPayload.length) {
+        const { error: itemsErr } = await supabase.from("prescription_items" as any).insert(itemsPayload);
+        if (itemsErr) throw itemsErr;
+      }
+      setSaving(false);
+      toast.success("Saved");
+      onSaved();
+    } catch (err) {
+      setSaving(false);
+      toast.error((err as Error).message || "Failed to save prescription");
     }
-    const itemsPayload = valid.map((it, idx) => ({
-      organization_id: orgId,
-      prescription_id: rxId,
-      medication_id: it.medication_id,
-      drug_name: it.drug_name,
-      dose: it.dose,
-      frequency: it.frequency,
-      duration: it.duration,
-      instructions: it.instructions,
-      position: idx,
-    }));
-    if (itemsPayload.length) await supabase.from("prescription_items" as any).insert(itemsPayload);
-    setSaving(false);
-    toast.success("Saved");
-    onSaved();
   }
 
   return (
@@ -538,7 +558,7 @@ function RxSheet({
           <SheetTitle>{existing ? "Edit prescription" : "New prescription"}</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Patient</Label>
               <Select
@@ -579,14 +599,14 @@ function RxSheet({
             </div>
             {items.map((it, i) => (
               <Card key={i} className="p-3 space-y-2">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Select
                     value={it.medication_id ?? "__custom"}
                     onValueChange={(v) =>
                       v === "__custom" ? updItem(i, { medication_id: null }) : pickMed(i, v)
                     }
                   >
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="From catalog" />
                     </SelectTrigger>
                     <SelectContent>
@@ -599,17 +619,19 @@ function RxSheet({
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    placeholder="Drug name"
-                    value={it.drug_name}
-                    onChange={(e) => updItem(i, { drug_name: e.target.value })}
-                    className="flex-1"
-                  />
-                  <Button size="icon" variant="ghost" onClick={() => removeItem(i)}>
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <div className="flex gap-2 flex-1">
+                    <Input
+                      placeholder="Drug name"
+                      value={it.drug_name}
+                      onChange={(e) => updItem(i, { drug_name: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button size="icon" variant="ghost" onClick={() => removeItem(i)} className="shrink-0">
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Input
                     placeholder="Dose (1 tab)"
                     value={it.dose}

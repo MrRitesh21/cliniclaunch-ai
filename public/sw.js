@@ -1,5 +1,5 @@
-const CACHE_NAME = "clinicx-pwa-v4";
-const STATIC_ASSETS = ["/", "/manifest.webmanifest", "/icon-512.png", "/logo-icon.png"];
+const CACHE_NAME = "clinicx-pwa-v5";
+const STATIC_ASSETS = ["/", "/manifest.webmanifest", "/icon-512.png", "/logo-icon.png", "/logo.png"];
 
 // Install Event — pre-cache core static shell
 self.addEventListener("install", (event) => {

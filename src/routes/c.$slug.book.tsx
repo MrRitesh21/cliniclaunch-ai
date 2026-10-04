@@ -42,6 +42,7 @@ type DoctorOption = {
   avatar_url?: string | null;
   bio?: string | null;
   experience_years?: number | null;
+  working_hours?: any;
 };
 
 export const Route = createFileRoute("/c/$slug/book")({
@@ -81,6 +82,41 @@ export const Route = createFileRoute("/c/$slug/book")({
 });
 
 const SLOT_MINUTES = 30;
+const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+
+function resolveSchedule(schedule: any, fallbackWh: any) {
+  if (schedule && typeof schedule === "object" && !Array.isArray(schedule)) {
+    const activeDays: number[] = [];
+    let defaultStart = "09:00";
+    let defaultEnd = "17:00";
+
+    DAY_NAMES.forEach((dayName, idx) => {
+      const dayObj = schedule[dayName];
+      if (dayObj && typeof dayObj === "object" && dayObj.enabled) {
+        activeDays.push(idx);
+        if (dayObj.start) defaultStart = dayObj.start;
+        if (dayObj.end) defaultEnd = dayObj.end;
+      }
+    });
+
+    if (activeDays.length > 0) {
+      return { days: activeDays, start: defaultStart, end: defaultEnd, perDay: schedule };
+    }
+  }
+
+  const rawWh = (typeof fallbackWh === "object" && fallbackWh ? fallbackWh : {}) as {
+    days?: number[];
+    start?: string;
+    end?: string;
+  };
+  const days = Array.isArray(rawWh.days) && rawWh.days.length > 0
+    ? rawWh.days.filter((d) => typeof d === "number" && d >= 0 && d <= 6)
+    : [1, 2, 3, 4, 5];
+  const start = typeof rawWh.start === "string" && rawWh.start ? rawWh.start : "09:00";
+  const end = typeof rawWh.end === "string" && rawWh.end ? rawWh.end : "17:00";
+
+  return { days: days.length > 0 ? days : [1, 2, 3, 4, 5], start, end, perDay: null };
+}
 
 function formatTime12h(d?: Date | null): string {
   if (!d) return "—";
@@ -90,19 +126,21 @@ function formatTime12h(d?: Date | null): string {
 function DoctorAvatar({ doc, size = "md" }: { doc: DoctorOption; size?: "sm" | "md" | "lg" }) {
   const sz = size === "lg" ? "size-20" : size === "md" ? "size-14" : "size-10";
   const txt = size === "lg" ? "text-2xl" : size === "md" ? "text-lg" : "text-sm";
-  const initials = doc.name
+  const safeName = (doc?.name || "Doctor").trim();
+  const initials = safeName
     .replace(/^Dr\.?\s*/i, "")
     .split(" ")
+    .filter(Boolean)
     .map((n) => n[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase();
+    .toUpperCase() || "DR";
   return (
     <div
       className={`${sz} rounded-full bg-primary/10 text-primary shrink-0 overflow-hidden grid place-items-center`}
     >
-      {doc.avatar_url ? (
-        <img src={doc.avatar_url} alt={doc.name} className="size-full object-cover" />
+      {doc?.avatar_url ? (
+        <img src={doc.avatar_url} alt={safeName} className="size-full object-cover" />
       ) : (
         <span className={`font-display ${txt}`}>{initials}</span>
       )}
@@ -125,11 +163,22 @@ function BookPage() {
     : null;
   const apptOn = !mods || mods.includes("appointments");
   const consultOn = !mods || mods.includes("consultation");
-  const wh = (clinic.working_hours ?? {}) as { start?: string; end?: string; days?: number[] };
+  const fallbackWh = clinic.working_hours ?? {};
 
-  const workingDays = Array.isArray(wh.days) && wh.days.length > 0 ? wh.days : [1, 2, 3, 4, 5];
-  const startTime = wh.start ?? "09:00";
-  const endTime = wh.end ?? "17:00";
+  const storageKey = `booking_draft_${clinic.slug}`;
+  const [doctors, setDoctors] = useState<DoctorOption[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [appointmentType, setAppointmentType] = useState<"online" | "offline">("offline");
+
+  const selectedDoctor = useMemo(
+    () => doctors.find((d) => d.id === selectedDoctorId) ?? null,
+    [doctors, selectedDoctorId],
+  );
+
+  const activeSchedule = useMemo(
+    () => resolveSchedule(selectedDoctor?.working_hours, fallbackWh),
+    [selectedDoctor?.working_hours, fallbackWh],
+  );
 
   const days = useMemo(() => {
     const out: Date[] = [];
@@ -138,15 +187,11 @@ function BookPage() {
     for (let i = 0; i < 14; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
-      if (workingDays.includes(d.getDay())) out.push(d);
+      if (activeSchedule.days.includes(d.getDay())) out.push(d);
     }
     return out;
-  }, [workingDays]);
+  }, [activeSchedule.days]);
 
-  const storageKey = `booking_draft_${clinic.slug}`;
-  const [doctors, setDoctors] = useState<DoctorOption[]>([]);
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
-  const [appointmentType, setAppointmentType] = useState<"online" | "offline">("offline");
   const [selectedDay, setSelectedDay] = useState<Date | null>(days[0] ?? null);
   const [bookedAt, setBookedAt] = useState<Set<number>>(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -166,6 +211,16 @@ function BookPage() {
     null,
   );
   const [hydrated, setHydrated] = useState(false);
+
+  // Sync selectedDay when active schedule days change
+  useEffect(() => {
+    if (days.length > 0) {
+      if (!selectedDay || !days.some((d) => d.toDateString() === selectedDay.toDateString())) {
+        setSelectedDay(days[0]);
+        setSelectedSlot(null);
+      }
+    }
+  }, [days, selectedDay]);
 
   useEffect(() => {
     function processDoctorList(activeList: DoctorOption[]) {
@@ -193,6 +248,7 @@ function BookPage() {
           avatar_url: (clinic as any).avatar_url || null,
           bio: (clinic as any).bio || null,
           experience_years: (clinic as any).experience_years || null,
+          working_hours: clinic.working_hours || null,
         });
       }
 
@@ -219,14 +275,14 @@ function BookPage() {
       const query = clinic.organization_id
         ? supabase
             .from("doctors")
-            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
+            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order")
             .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
             .neq("is_active", false)
             .order("sort_order")
             .order("created_at")
         : supabase
             .from("doctors")
-            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
+            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order")
             .eq("clinic_id", clinic.id)
             .neq("is_active", false)
             .order("sort_order")
@@ -279,15 +335,11 @@ function BookPage() {
     }
   }, [hydrated, storageKey, selectedDoctorId, appointmentType, selectedDay, selectedSlot, form]);
 
-  const selectedDoctor = useMemo(
-    () => doctors.find((d) => d.id === selectedDoctorId) ?? null,
-    [doctors, selectedDoctorId],
-  );
-
   useEffect(() => {
     if (!selectedDay) return;
     setLoadingSlots(true);
     const from = new Date(selectedDay);
+    from.setHours(0, 0, 0, 0);
     const to = new Date(selectedDay);
     to.setHours(23, 59, 59, 999);
     const dbDoctorId = selectedDoctorId === "owner" ? null : selectedDoctorId;
@@ -314,8 +366,20 @@ function BookPage() {
 
   const slots = useMemo(() => {
     if (!selectedDay) return [];
-    const [sh, sm] = startTime.split(":").map(Number);
-    const [eh, em] = endTime.split(":").map(Number);
+    let startStr = activeSchedule.start;
+    let endStr = activeSchedule.end;
+
+    if (activeSchedule.perDay) {
+      const dayName = DAY_NAMES[selectedDay.getDay()];
+      const customDay = activeSchedule.perDay[dayName];
+      if (customDay && typeof customDay === "object") {
+        if (customDay.start) startStr = customDay.start;
+        if (customDay.end) endStr = customDay.end;
+      }
+    }
+
+    const [sh, sm] = (startStr || "09:00").split(":").map((v) => Number(v) || 0);
+    const [eh, em] = (endStr || "17:00").split(":").map((v) => Number(v) || 0);
     const start = new Date(selectedDay);
     start.setHours(sh, sm, 0, 0);
     const end = new Date(selectedDay);
@@ -331,7 +395,7 @@ function BookPage() {
       if (d > now) out.push(d);
     }
     return out;
-  }, [selectedDay, startTime, endTime]);
+  }, [selectedDay, activeSchedule]);
 
   const nameError =
     form.name.trim().length === 0
@@ -361,15 +425,16 @@ function BookPage() {
     }
     setSubmitting(true);
     try {
+      const cleanAge = form.age.trim() ? Math.min(130, Math.max(0, parseInt(form.age.trim(), 10))) : null;
       const appt = await createBooking({
         data: {
           clinic_id: clinic.id,
-          patient_name: form.name,
-          patient_phone: form.phone,
-          patient_email: form.email,
-          patient_age: form.age ? Number(form.age) : null,
+          patient_name: form.name.trim(),
+          patient_phone: form.phone.trim(),
+          patient_email: form.email.trim(),
+          patient_age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
           patient_gender: (form.gender || null) as "male" | "female" | "other" | null,
-          problem: form.problem,
+          problem: form.problem.trim(),
           scheduled_at: selectedSlot.toISOString(),
           appointment_type: appointmentType,
           doctor_id: selectedDoctorId === "owner" ? null : selectedDoctorId,

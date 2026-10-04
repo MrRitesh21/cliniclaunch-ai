@@ -82,6 +82,16 @@ type PatientOpt = { id: string; name: string; phone: string | null };
 type ApptOpt = { id: string; patient_name: string; scheduled_at: string | null; status: string };
 
 // Vitals status checker
+function escapeHtml(str?: string | null): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getBpStatus(bp: string) {
   if (!bp || !bp.includes("/")) return null;
   const [sysStr, diaStr] = bp.split("/");
@@ -328,7 +338,7 @@ function ConsultPage() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Clinical Summary - ${c.patient_name}</title>
+          <title>Clinical Summary - ${escapeHtml(c.patient_name)}</title>
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; color: #1f2937; margin: 40px; line-height: 1.6; }
             .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 25px; }
@@ -353,14 +363,14 @@ function ConsultPage() {
         </head>
         <body>
           <div class="header">
-            <div class="clinic-title">${org?.name ?? "Medical Clinic"}</div>
+            <div class="clinic-title">${escapeHtml(org?.name ?? "Medical Clinic")}</div>
             <div class="doc-subtitle">Clinical Consultation Record</div>
           </div>
           
           <div class="meta-grid">
-            <div><strong>Patient Name:</strong> ${c.patient_name}</div>
+            <div><strong>Patient Name:</strong> ${escapeHtml(c.patient_name)}</div>
             <div><strong>Consultation Date:</strong> ${new Date(c.created_at).toLocaleString()}</div>
-            <div><strong>Record ID:</strong> ${c.id.slice(0, 8).toUpperCase()}</div>
+            <div><strong>Record ID:</strong> ${escapeHtml(c.id.slice(0, 8).toUpperCase())}</div>
             <div><strong>Follow-up Date:</strong> ${c.follow_up_date ? new Date(c.follow_up_date).toLocaleDateString() : "None scheduled"}</div>
           </div>
 
@@ -369,11 +379,11 @@ function ConsultPage() {
               ? `
           <div class="section-title">Patient Vitals & Measurements</div>
           <div class="vitals-bar">
-            ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${c.bp} mmHg</div></div>` : ""}
-            ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${c.pulse} bpm</div></div>` : ""}
-            ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${c.temperature} °F</div></div>` : ""}
-            ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${c.weight} kg</div></div>` : ""}
-            ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${c.height} cm</div></div>` : ""}
+            ${c.bp ? `<div class="vitals-item"><div class="vitals-label">BP</div><div class="vitals-val">${escapeHtml(c.bp)} mmHg</div></div>` : ""}
+            ${c.pulse ? `<div class="vitals-item"><div class="vitals-label">Pulse</div><div class="vitals-val">${escapeHtml(c.pulse)} bpm</div></div>` : ""}
+            ${c.temperature ? `<div class="vitals-item"><div class="vitals-label">Temp</div><div class="vitals-val">${escapeHtml(c.temperature)} °F</div></div>` : ""}
+            ${c.weight ? `<div class="vitals-item"><div class="vitals-label">Weight</div><div class="vitals-val">${escapeHtml(c.weight)} kg</div></div>` : ""}
+            ${c.height ? `<div class="vitals-item"><div class="vitals-label">Height</div><div class="vitals-val">${escapeHtml(c.height)} cm</div></div>` : ""}
             ${bmiStr ? `<div class="vitals-item"><div class="vitals-label">BMI</div><div class="vitals-val">${bmiStr}</div></div>` : ""}
           </div>
           `
@@ -384,7 +394,7 @@ function ConsultPage() {
             c.chief_complaint
               ? `
           <div class="section-title">Chief Complaint</div>
-          <div class="content-block">${c.chief_complaint}</div>
+          <div class="content-block">${escapeHtml(c.chief_complaint)}</div>
           `
               : ""
           }
@@ -393,7 +403,7 @@ function ConsultPage() {
             c.history
               ? `
           <div class="section-title">Medical History</div>
-          <div class="content-block">${c.history}</div>
+          <div class="content-block">${escapeHtml(c.history)}</div>
           `
               : ""
           }
@@ -402,7 +412,7 @@ function ConsultPage() {
             c.examination
               ? `
           <div class="section-title">Clinical Examination Findings</div>
-          <div class="content-block">${c.examination}</div>
+          <div class="content-block">${escapeHtml(c.examination)}</div>
           `
               : ""
           }
@@ -411,7 +421,7 @@ function ConsultPage() {
             c.diagnosis
               ? `
           <div class="section-title">Diagnosis</div>
-          <div class="content-block" style="font-weight: 600; font-size: 16px; color: #1e3a8a;">${c.diagnosis}</div>
+          <div class="content-block" style="font-weight: 600; font-size: 16px; color: #1e3a8a;">${escapeHtml(c.diagnosis)}</div>
           `
               : ""
           }
@@ -420,7 +430,7 @@ function ConsultPage() {
             c.treatment_plan
               ? `
           <div class="section-title">Treatment Plan & Recommendations</div>
-          <div class="content-block">${c.treatment_plan}</div>
+          <div class="content-block">${escapeHtml(c.treatment_plan)}</div>
           `
               : ""
           }
@@ -709,34 +719,55 @@ function ConsultSheet({
       return;
     }
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    const payload: any = {
-      organization_id: orgId,
-      patient_id: patientId,
-      patient_name: patientName.trim(),
-      appointment_id: appointmentId,
-      created_by: u.user?.id ?? null,
-      ...f,
-      follow_up_date: f.follow_up_date || null,
-    };
-    const { error } = existing
-      ? await supabase
-          .from("consultations" as any)
-          .update(payload)
-          .eq("id", existing.id)
-      : await supabase.from("consultations" as any).insert(payload);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const payload: any = {
+        organization_id: orgId,
+        patient_id: patientId,
+        patient_name: patientName.trim(),
+        appointment_id: appointmentId,
+        created_by: u.user?.id ?? null,
+        chief_complaint: f.chief_complaint.trim() || null,
+        history: f.history.trim() || null,
+        examination: f.examination.trim() || null,
+        diagnosis: f.diagnosis.trim() || null,
+        treatment_plan: f.treatment_plan.trim() || null,
+        bp: f.bp.trim() || null,
+        pulse: f.pulse.trim() || null,
+        temperature: f.temperature.trim() || null,
+        weight: f.weight.trim() || null,
+        height: f.height.trim() || null,
+        follow_up_date: f.follow_up_date || null,
+      };
+      const { error } = existing
+        ? await supabase
+            .from("consultations" as any)
+            .update(payload)
+            .eq("id", existing.id)
+        : await supabase.from("consultations" as any).insert(payload);
 
-    if (!error && appointmentId) {
-      // Mark appointment completed to trigger automatic revenue ledger & queue completion
-      await supabase.from("appointments").update({ status: "completed" }).eq("id", appointmentId);
+      if (!error && appointmentId) {
+        // Mark appointment completed to trigger automatic revenue ledger & queue completion
+        await supabase.from("appointments").update({ status: "completed" }).eq("id", appointmentId);
+        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+        await supabase
+          .from("queue_tokens" as any)
+          .update({ status: "done", completed_at: new Date().toISOString() })
+          .eq("organization_id", orgId)
+          .eq("queue_date", todayStr)
+          .eq("patient_name", patientName.trim());
+      }
+
+      setSaving(false);
+      if (error) return toast.error(error.message);
+      toast.success(
+        existing ? "Clinical record updated" : "Clinical record saved & appointment marked completed",
+      );
+      onSaved();
+    } catch (err) {
+      setSaving(false);
+      toast.error((err as Error).message || "Failed to save consultation");
     }
-
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(
-      existing ? "Clinical record updated" : "Clinical record saved & appointment marked completed",
-    );
-    onSaved();
   }
 
   return (

@@ -249,7 +249,7 @@ export const Route = createFileRoute("/api/wa/cron")({
             const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
             const { data: clinic } = await sb
               .from("clinics")
-              .select("slug")
+              .select("slug, clinic_name")
               .eq("id", p.clinic_id)
               .maybeSingle();
             const clinicLink = clinic?.slug ? `${origin}/c/${clinic.slug}` : "";
@@ -262,7 +262,7 @@ export const Route = createFileRoute("/api/wa/cron")({
               recipientName: p.name,
               variables: {
                 patient_name: p.name,
-                clinic_name: clinic?.slug ?? "Clinic",
+                clinic_name: clinic?.clinic_name || clinic?.slug || "Clinic",
                 clinic_link: clinicLink,
               },
             });
@@ -315,7 +315,7 @@ export const Route = createFileRoute("/api/wa/cron")({
             const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
             const { data: clinic } = await sb
               .from("clinics")
-              .select("slug")
+              .select("slug, clinic_name")
               .eq("id", v.clinic_id)
               .maybeSingle();
             const clinicLink = clinic?.slug ? `${origin}/c/${clinic.slug}` : "";
@@ -330,7 +330,7 @@ export const Route = createFileRoute("/api/wa/cron")({
                 patient_name: v.patient_name,
                 vaccine_name: v.vaccine_name,
                 due_date: new Date(v.due_date).toLocaleDateString(),
-                clinic_name: clinic?.slug ?? "Clinic",
+                clinic_name: clinic?.clinic_name || clinic?.slug || "Clinic",
                 clinic_link: clinicLink,
               },
             });

@@ -1,7 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type ValueType = "money_saved" | "money_gained" | "time_saved_minutes";
+
+const valueEventSchema = z.object({
+  organizationId: z.string().uuid(),
+  moduleKey: z.string().trim().min(1).max(100),
+  eventType: z.string().trim().min(1).max(100),
+  valueType: z.enum(["money_saved", "money_gained", "time_saved_minutes"]),
+  valueAmount: z.number().min(0),
+  description: z.string().trim().max(1000).optional(),
+  relatedId: z.string().trim().max(100).optional(),
+});
 
 /**
  * Authenticated logger. For internal server-side use, prefer calling the
@@ -9,15 +20,7 @@ export type ValueType = "money_saved" | "money_gained" | "time_saved_minutes";
  */
 export const logValueEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: {
-    organizationId: string;
-    moduleKey: string;
-    eventType: string;
-    valueType: ValueType;
-    valueAmount: number;
-    description?: string;
-    relatedId?: string;
-  }) => input)
+  .validator((input: unknown) => valueEventSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("value_events").insert({
       organization_id: data.organizationId,
@@ -97,12 +100,17 @@ export interface ValueSummary {
   }>;
 }
 
+const valueSummaryInputSchema = z.object({
+  organizationId: z.string().uuid(),
+  period: z
+    .enum(["this_week", "this_month", "last_30_days", "all_time", "last_month"])
+    .optional()
+    .default("this_month"),
+});
+
 export const getValueSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: { organizationId: string; period?: PeriodKey }) => ({
-    organizationId: input.organizationId,
-    period: (input.period ?? "this_month") as PeriodKey,
-  }))
+  .validator((input: unknown) => valueSummaryInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<ValueSummary> => {
     const { from, to } = getPeriodRange(data.period);
 

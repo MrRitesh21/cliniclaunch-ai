@@ -5,13 +5,7 @@
 // permission to read whatsapp_templates / insert whatsapp_logs for the org.
 
 import { baileysSend, baileysStatus, clinicSessionId } from "./baileys.server";
-
-function render(body: string, vars: Record<string, string | number | null | undefined>): string {
-  return body.replace(/\{(\w+)\}/g, (_, k) => {
-    const v = vars[k];
-    return v === undefined || v === null ? "" : String(v);
-  });
-}
+import { renderTemplate } from "./whatsapp";
 
 export async function notifyClinicEvent(opts: {
   sb: any;
@@ -40,7 +34,7 @@ export async function notifyClinicEvent(opts: {
       .maybeSingle();
     if (!tpl || !tpl.is_active) return { ok: false, status: "skipped", error: "template inactive" };
 
-    const message = render(tpl.body, variables);
+    const message = renderTemplate(tpl.body, variables);
     const digits = (recipientPhone || "").replace(/[^\d]/g, "");
     const waLink = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 

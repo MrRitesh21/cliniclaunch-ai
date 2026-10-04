@@ -260,12 +260,24 @@ export const DEFAULT_TEMPLATES: Array<{
 
 export function renderTemplate(
   body: string,
-  vars: Record<string, string | number | undefined>,
+  vars: Record<string, string | number | null | undefined>,
 ): string {
-  // Support both {var} and variable_name for flexibility
+  if (!body) return "";
   return body.replace(/\{(\w+)\}/g, (_, k) => {
-    const v = vars[k];
-    return v === undefined || v === null ? `{${k}}` : String(v);
+    let v = vars?.[k];
+    if (v === undefined || v === null || v === "undefined" || v === "null") {
+      // Alias fallbacks for common naming variations
+      if (k === "name") v = vars?.["patient_name"];
+      else if (k === "patient_name") v = vars?.["name"];
+      else if (k === "phone") v = vars?.["patient_phone"] ?? vars?.["clinic_phone"];
+      else if (k === "patient_phone") v = vars?.["phone"];
+      else if (k === "doctor_name") v = vars?.["doctor"];
+      else if (k === "clinic_name") v = vars?.["clinic"];
+    }
+    if (v === undefined || v === null || v === "undefined" || v === "null") {
+      return "";
+    }
+    return String(v);
   });
 }
 

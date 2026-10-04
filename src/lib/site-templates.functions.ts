@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAdminAuth } from "./admin-auth.functions";
 
 const slugSchema = z.string().min(1).max(100);
 const uuid = z.string().uuid();
@@ -45,12 +46,15 @@ export const setClinicTemplateChoice = createServerFn({ method: "POST" })
 
 // ------------------------------------------------------------------ admin only
 
-export const adminListTemplates = createServerFn({ method: "GET" }).handler(async () => {
-  const { adminListTemplatesImpl } = await import("./site-templates.server");
-  return adminListTemplatesImpl();
-});
+export const adminListTemplates = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .handler(async () => {
+    const { adminListTemplatesImpl } = await import("./site-templates.server");
+    return adminListTemplatesImpl();
+  });
 
 export const adminSaveTemplate = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
   .validator((input: unknown) =>
     z
       .object({
@@ -77,6 +81,7 @@ export const adminSaveTemplate = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteTemplate = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
   .validator((input: unknown) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data }) => {
     const { adminDeleteTemplateImpl } = await import("./site-templates.server");
@@ -84,6 +89,7 @@ export const adminDeleteTemplate = createServerFn({ method: "POST" })
   });
 
 export const adminAssignTemplate = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
   .validator((input: unknown) =>
     z.object({ clinic_id: uuid, template_id: uuid.nullable(), note: z.string().trim().max(300).nullish() }).parse(input),
   )
@@ -93,6 +99,7 @@ export const adminAssignTemplate = createServerFn({ method: "POST" })
   });
 
 export const adminSearchClinics = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
   .validator((input: unknown) => z.object({ q: z.string().max(120).default("") }).parse(input))
   .handler(async ({ data }) => {
     const { adminSearchClinicsImpl } = await import("./site-templates.server");

@@ -1,14 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { renderTemplate } from "./whatsapp";
 
 export const sendTestWhatsAppFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator(z.object({
-    phone: z.string(),
-    templateKey: z.string(),
+    phone: z.string().trim().min(5).max(30),
+    templateKey: z.string().trim().min(1).max(100),
     variables: z.record(z.any()),
-    organizationId: z.string(),
+    organizationId: z.string().uuid(),
   }))
   .handler(async ({ data }) => {
     const { phone, templateKey, variables, organizationId } = data;
@@ -39,8 +41,13 @@ export const sendTestWhatsAppFn = createServerFn({ method: "POST" })
     if (clinic?.wa_status === "ready" && clinic.wa_session_id) {
       try {
         const { baileysSend } = await import("./baileys.server");
-        await baileysSend(clinic.wa_session_id, phone, message);
-        messageResult = "Test message sent via WhatsApp bridge";
+        const sendRes = await baileysSend(clinic.wa_session_id, phone, message);
+        if (!sendRes.ok) {
+          status = "failed";
+          messageResult = `Bridge error: ${sendRes.error || "Send failed"}`;
+        } else {
+          messageResult = "Test message sent via WhatsApp bridge";
+        }
       } catch (err: any) {
         status = "failed";
         messageResult = `Bridge error: ${err.message}`;
@@ -56,7 +63,7 @@ export const sendTestWhatsAppFn = createServerFn({ method: "POST" })
       template_key: templateKey,
       message,
       status,
-      sent_at: new Date().toISOString(),
+      sent_at: status === "sent" ? new Date().toISOString() : null,
       metadata: { is_test: true, result: messageResult }
     });
     

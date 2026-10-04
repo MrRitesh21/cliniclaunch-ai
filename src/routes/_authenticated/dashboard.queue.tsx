@@ -59,11 +59,14 @@ const STATUS: Record<Status, { label: string; color: string }> = {
   skipped: { label: "Skipped", color: "bg-muted text-muted-foreground" },
 };
 
-/** Local YYYY-MM-DD. toISOString() would shift the date for IST clinics
- *  after 05:30, silently starting tomorrow's queue in the evening. */
+/** Local YYYY-MM-DD for Asia/Kolkata / local clinic timezone. */
 function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  } catch {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
 }
 
 function QueuePage() {
@@ -131,13 +134,13 @@ function QueuePage() {
   /** Mean minutes from issue to call, over today's already-called tokens.
    *  Only meaningful once a couple have been called, so gate on length. */
   const avgWait = useMemo(() => {
-    const called = tokens.filter((t) => t.called_at);
+    const called = tokens.filter((t) => t.called_at && t.created_at);
     if (called.length < 2) return null;
-    const total = called.reduce(
-      (sum, t) => sum + (new Date(t.called_at!).getTime() - new Date(t.created_at).getTime()),
-      0,
-    );
-    return Math.round(total / called.length / 60000);
+    const total = called.reduce((sum, t) => {
+      const diff = new Date(t.called_at!).getTime() - new Date(t.created_at).getTime();
+      return sum + (isNaN(diff) || diff < 0 ? 0 : diff);
+    }, 0);
+    return Math.max(0, Math.round(total / called.length / 60000));
   }, [tokens]);
 
   async function setStatus(id: string, status: Status) {
@@ -330,27 +333,40 @@ function IssueDialog({
   async function save() {
     if (!name.trim()) return toast.error("Patient name required");
     setSaving(true);
-    let errRes: any = null;
     try {
+      const { data: maxToken } = await supabase
+        .from("queue_tokens" as any)
+        .select("token_number")
+        .eq("organization_id", orgId)
+        .eq("queue_date", date)
+        .order("token_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const nextTokenNum = ((maxToken as any)?.token_number ?? 0) + 1;
+
       const { error } = await supabase.from("queue_tokens" as any).insert({
         organization_id: orgId,
         queue_date: date,
-        patient_id: patientId,
+        token_number: nextTokenNum,
+        patient_id: patientId && patientId !== "__manual" ? patientId : null,
         patient_name: name.trim(),
         patient_phone: phone.trim() || null,
         priority,
         note: note.trim() || null,
+        status: "waiting",
       });
-      errRes = error;
-    } catch (e: any) {
-      errRes = e;
+
+      if (error && !error.message?.includes("schema cache")) {
+        throw error;
+      }
+      toast.success(`Token #${nextTokenNum} issued successfully`);
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to issue token");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    if (errRes && !errRes.message?.includes("schema cache")) {
-      return toast.error(errRes.message || "Failed to issue token");
-    }
-    toast.success("Token issued successfully");
-    onSaved();
   }
 
   return (
