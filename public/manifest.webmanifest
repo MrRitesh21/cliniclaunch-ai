@@ -1,19 +1,48 @@
 {
+  "id": "/",
   "name": "ClinicX — Doctor Console & Practice OS",
   "short_name": "ClinicX",
   "description": "Native-style medical practice console. Manage appointments, patient EHR, billing, and WhatsApp automation on mobile, tablet, and desktop.",
-  "start_url": "/login",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0c2340",
   "theme_color": "#0c2340",
+  "prefer_related_applications": false,
   "categories": ["medical", "business", "productivity"],
   "icons": [
-    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/logo-icon.png", "sizes": "574x434", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
     {
@@ -21,28 +50,28 @@
       "short_name": "Bookings",
       "description": "View & manage daily patient appointments",
       "url": "/dashboard/appointments",
-      "icons": [{ "src": "/logo.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Patients & CRM",
       "short_name": "Patients",
       "description": "Search patient records & medical history",
       "url": "/dashboard/patients",
-      "icons": [{ "src": "/logo.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "WhatsApp Bot",
       "short_name": "WhatsApp",
       "description": "Automated reminders & review collection",
       "url": "/dashboard/whatsapp",
-      "icons": [{ "src": "/logo.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Clinical Notes",
       "short_name": "Consult",
       "description": "EHR visit journals & e-prescriptions",
       "url": "/dashboard/consult",
-      "icons": [{ "src": "/logo.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

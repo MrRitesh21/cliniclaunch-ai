@@ -46,6 +46,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus } from "@/lib/clinic.functions";
 import { readCache, writeCache } from "@/lib/persist-cache";
 import { useOnline } from "@/hooks/useOnline";
+import { usePWAInstall } from "@/lib/pwa";
+import { Download } from "lucide-react";
 
 interface TodayAppointment {
   id: string;
@@ -238,6 +240,7 @@ function Overview() {
   };
 
   const displayName = getGreetingName();
+  const { isInstallable, isInstalled, installApp } = usePWAInstall();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
@@ -312,6 +315,28 @@ function Overview() {
           </div>
         </div>
       </div>
+
+      {/* 1-Click PWA App Install Prompt for Mobile Devices */}
+      {!isInstalled && (
+        <div className="sm:hidden flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-primary/10 border border-primary/25 shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="size-9 rounded-xl bg-primary text-primary-foreground grid place-items-center shrink-0">
+              <Download className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground">Install ClinicX Mobile App</p>
+              <p className="text-[11px] text-muted-foreground truncate">1-tap home screen access & instant alerts</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={installApp}
+            className="h-8 px-3 rounded-xl text-xs font-bold shrink-0 bg-primary text-primary-foreground"
+          >
+            Install
+          </Button>
+        </div>
+      )}
 
       {/* Push Notification Opt-in Prompt */}
       <DashboardPushPrompt />
