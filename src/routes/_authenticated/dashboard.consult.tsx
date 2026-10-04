@@ -1016,6 +1016,49 @@ function ConsultSheet({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Drug Allergies & Clinical Alerts */}
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Clinical Allergies &amp; Chronic Conditions
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "NKDA (No Known Allergies)",
+                      "Penicillin Allergy",
+                      "Sulfa Drugs Allergy",
+                      "NSAID / Aspirin Allergy",
+                      "Diabetic",
+                      "Hypertensive",
+                      "Asthmatic",
+                    ].map((alert) => {
+                      const active = f.history.includes(alert);
+                      return (
+                        <button
+                          key={alert}
+                          type="button"
+                          onClick={() => {
+                            setF((prev) => ({
+                              ...prev,
+                              history: active
+                                ? prev.history.replace(alert, "").replace(/,\s*,/g, ",").trim()
+                                : prev.history ? `${prev.history}, ${alert}` : alert,
+                            }));
+                          }}
+                          className={`px-2 py-0.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                            active
+                              ? alert.includes("Allergy")
+                                ? "bg-rose-500 text-white border-rose-600 shadow-xs"
+                                : "bg-primary text-primary-foreground border-primary shadow-xs"
+                              : "bg-card text-muted-foreground hover:text-foreground border-border"
+                          }`}
+                        >
+                          {alert}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </Card>
 
               {/* Vitals Grid */}
@@ -1196,17 +1239,61 @@ function ConsultSheet({
             {/* TAB 3: Treatment & Follow-up */}
             <TabsContent value="treatment" className="space-y-5 focus-visible:outline-none">
               <div className="space-y-4">
-                <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                  <HeartPulse className="size-4 text-red-600" /> Treatment Plan & Recommendations
-                </h4>
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                    <HeartPulse className="size-4 text-red-600" /> Treatment Plan &amp; Prescription (Rx)
+                  </h4>
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    Click chip to inject medicine into prescription
+                  </span>
+                </div>
+
+                {/* Frequently Prescribed Medicines Quick Chips */}
+                <div className="p-3 bg-muted/20 border border-border/70 rounded-xl space-y-2">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="size-3 text-amber-500" /> Quick Medicine Presets:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { name: "Tab Paracetamol 650mg", dose: "1-0-1 after food x 3 days" },
+                      { name: "Tab Amoxicillin+Clav 625mg", dose: "1-0-1 after meals x 5 days" },
+                      { name: "Tab Azithromycin 500mg", dose: "1-0-0 before meals x 3 days" },
+                      { name: "Tab Pantoprazole 40mg", dose: "1-0-0 before breakfast x 7 days" },
+                      { name: "Tab Levocetirizine 5mg", dose: "0-0-1 at night x 5 days" },
+                      { name: "Tab Telmisartan 40mg", dose: "1-0-0 morning x 30 days" },
+                      { name: "Tab Metformin 500mg", dose: "1-0-1 with meals x 30 days" },
+                      { name: "Tab Ondansetron 4mg", dose: "1 tab SOS for nausea" },
+                      { name: "Syp ORS / Electrolyte", dose: "1 sachet in 1L water sip through day" },
+                    ].map((med) => (
+                      <button
+                        key={med.name}
+                        type="button"
+                        onClick={() => {
+                          const line = `• ${med.name} — ${med.dose}`;
+                          setF((prev) => ({
+                            ...prev,
+                            treatment_plan: prev.treatment_plan
+                              ? `${prev.treatment_plan}\n${line}`
+                              : line,
+                          }));
+                          toast.success(`Added ${med.name}`);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-card border border-border/80 hover:border-primary/50 hover:bg-primary/5 text-foreground transition-all shadow-2xs"
+                      >
+                        + {med.name.replace(/^(Tab|Cap|Syp)\s*/, "")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Treatment Plan</Label>
+                  <Label className="text-xs font-semibold">Prescription &amp; Advice</Label>
                   <Textarea
-                    rows={5}
+                    rows={6}
                     value={f.treatment_plan}
                     onChange={(e) => setF({ ...f, treatment_plan: e.target.value })}
                     placeholder="Enter prescribed medications, dosages, dietary restrictions, rest recommendations..."
-                    className="bg-card font-mono text-sm leading-relaxed"
+                    className="bg-card font-mono text-xs leading-relaxed"
                   />
                 </div>
 
@@ -1221,16 +1308,16 @@ function ConsultSheet({
                 </div>
               </div>
 
-              <div className="pt-8 flex justify-between border-t border-border/40">
+              <div className="pt-8 flex justify-between border-t border-border/40 flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setActiveTab("soap")}>
                   <ChevronRight className="size-4 rotate-180 mr-1" /> Back
                 </Button>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="ghost" onClick={onClose}>
                     Cancel
                   </Button>
-                  <Button onClick={save} disabled={saving}>
-                    {saving ? "Saving…" : "Save Consultation"}
+                  <Button onClick={save} disabled={saving} className="bg-primary text-primary-foreground font-semibold shadow-xs">
+                    {saving ? "Saving…" : "Complete Consultation"}
                   </Button>
                 </div>
               </div>
