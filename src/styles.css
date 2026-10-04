@@ -43,7 +43,7 @@
 
 :root {
   --radius: 12px; /* Set default to lg for 12px cards */
-  --background: #f8fafc; /* Slate 50 */
+  --background: #f8fafc; /* Crisp Slate 50 */
   --foreground: #0f172a; /* Slate 900 */
   --surface: #ffffff;
   --surface-foreground: #0f172a;
@@ -52,31 +52,31 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  /* Modern Indigo */
-  --primary: #4f46e5; /* Indigo 600 */
+  /* Premium Healthcare Medical Blue / Indigo */
+  --primary: #2563eb; /* Blue 600 */
   --primary-foreground: #ffffff;
 
-  /* Softer Slate Neutrals */
+  /* Refined Neutral Accents */
   --secondary: #f1f5f9; /* Slate 100 */
-  --secondary-foreground: #334155; /* Slate 700 */
+  --secondary-foreground: #1e293b; /* Slate 800 */
   --accent: #f1f5f9;
-  --accent-foreground: #334155;
+  --accent-foreground: #1e293b;
   --muted: #f1f5f9;
   --muted-foreground: #64748b; /* Slate 500 */
 
-  /* Semantic */
+  /* High-Trust Medical Semantic Tokens */
   --destructive: #e11d48; /* Rose 600 */
   --destructive-foreground: #ffffff;
-  --success: #10b981; /* Emerald 500 */
+  --success: #059669; /* Emerald 600 */
   --success-foreground: #ffffff;
-  --warning: #f59e0b; /* Amber 500 */
+  --warning: #d97706; /* Amber 600 */
   --warning-foreground: #ffffff;
-  --info: #0ea5e9; /* Sky 500 */
+  --info: #0284c7; /* Sky 600 */
   --info-foreground: #ffffff;
 
-  --border: #e2e8f0; /* Slate 200 - lighter */
+  --border: #e2e8f0; /* Slate 200 */
   --input: #e2e8f0;
-  --ring: #4f46e5; /* Indigo 600 */
+  --ring: #2563eb; /* Blue 600 */
 }
 
 html.dark,

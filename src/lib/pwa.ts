@@ -94,7 +94,15 @@ if (typeof window !== "undefined") {
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(globalDeferredPrompt);
   const [isInstallable, setIsInstallable] = useState(Boolean(globalDeferredPrompt));
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.startsWith("android-app://") ||
+      localStorage.getItem("clinicx_pwa_installed") === "true"
+    );
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -102,9 +110,12 @@ export function usePWAInstall() {
     // Check if already running in standalone mode (installed)
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone
+      (window.navigator as any).standalone === true ||
+      document.referrer.startsWith("android-app://") ||
+      localStorage.getItem("clinicx_pwa_installed") === "true"
     ) {
       setIsInstalled(true);
+      setIsInstallable(false);
       return;
     }
 
@@ -123,6 +134,7 @@ export function usePWAInstall() {
     const handleInstalled = () => {
       setIsInstalled(true);
       setIsInstallable(false);
+      localStorage.setItem("clinicx_pwa_installed", "true");
       globalDeferredPrompt = null;
       setDeferredPrompt(null);
     };
@@ -144,6 +156,7 @@ export function usePWAInstall() {
     if (outcome === "accepted") {
       setIsInstalled(true);
       setIsInstallable(false);
+      localStorage.setItem("clinicx_pwa_installed", "true");
       globalDeferredPrompt = null;
       setDeferredPrompt(null);
     }

@@ -398,7 +398,7 @@ function SidebarContent({
   onToggleCollapse?: () => void;
 }) {
   const { theme, setTheme } = useTheme();
-  const { isInstallable, installApp } = usePWAInstall();
+  const { isInstalled, installApp } = usePWAInstall();
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
@@ -544,22 +544,24 @@ function SidebarContent({
           </div>
         </div>
 
-        {/* Permanent 1-Click PWA Install Action */}
-        <button
-          type="button"
-          onClick={installApp}
-          title="Install Mobile App"
-          className="flex w-full items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all active:scale-98 shadow-xs border border-primary/20 my-1"
-        >
-          <div className="size-6 rounded-lg bg-primary text-primary-foreground grid place-items-center shrink-0">
-            <Download className="size-3.5" />
-          </div>
-          <span
-            className={`truncate font-bold ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+        {/* 1-Click PWA Install Action (Hidden when already installed) */}
+        {!isInstalled && (
+          <button
+            type="button"
+            onClick={installApp}
+            title="Install Mobile App"
+            className="flex w-full items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all active:scale-98 shadow-xs border border-primary/20 my-1"
           >
-            Install Mobile App
-          </span>
-        </button>
+            <div className="size-6 rounded-lg bg-primary text-primary-foreground grid place-items-center shrink-0">
+              <Download className="size-3.5" />
+            </div>
+            <span
+              className={`truncate font-bold ${isCollapsed ? "hidden group-hover/mainsidebar:inline" : "inline"}`}
+            >
+              Install Mobile App
+            </span>
+          </button>
+        )}
 
         <button
           onClick={signOut}
