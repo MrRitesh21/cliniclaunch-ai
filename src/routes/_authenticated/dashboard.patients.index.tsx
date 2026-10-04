@@ -203,19 +203,22 @@ function PatientsPage() {
             "patient_name, patient_phone, patient_email, patient_age, patient_gender, scheduled_at, status",
           )
           .eq("clinic_id", clinic.id)
-          .order("scheduled_at", { ascending: false }),
+          .order("scheduled_at", { ascending: false })
+          .then((r) => (r.error ? { data: [] } : r)),
         supabase
-          .from("consultations")
+          .from("consultations" as any)
           .select("*")
-          .eq("clinic_id", clinic.id)
-          .order("created_at", { ascending: false }),
-        supabase.from("patients").select("id, name").eq("clinic_id", clinic.id).order("name"),
-        supabase.from("doctors").select("id, name").eq("clinic_id", clinic.id).order("name"),
+          .order("created_at", { ascending: false })
+          .limit(100)
+          .then((r) => (r.error ? { data: [] } : r)),
+        supabase.from("patients").select("id, name").eq("clinic_id", clinic.id).order("name").then((r) => (r.error ? { data: [] } : r)),
+        supabase.from("doctors").select("id, name").eq("clinic_id", clinic.id).order("name").then((r) => (r.error ? { data: [] } : r)),
         supabase
-          .from("inventory_items")
+          .from("inventory_items" as any)
           .select("id, name, unit, quantity")
-          .eq("clinic_id", clinic.id)
-          .order("name"),
+          .eq("organization_id", orgId)
+          .order("name")
+          .then((r) => (r.error ? { data: [] } : r)),
       ]);
 
       const byPhone = new Map<string, Patient>();
@@ -250,11 +253,16 @@ function PatientsPage() {
       });
 
       setPatients(Array.from(byPhone.values()));
-      setEmrVisits((visitsRes.data as any[]) ?? []);
+      setEmrVisits(
+        ((visitsRes.data as any[]) ?? []).map((v) => ({
+          ...v,
+          visit_date: v.visit_date || v.created_at?.slice(0, 10) || todayISO(),
+        }))
+      );
       setPatientOpts((patientsRes.data as any[]) ?? []);
       setDoctorOpts((doctorsRes.data as any[]) ?? []);
       setInventoryItems((invRes.data as any[]) ?? []);
-      setPharmacyBatches((pharmRes.data as any[]) ?? []);
+      setPharmacyBatches([]);
     } catch (e) {
       console.error("Error loading patient data:", e);
     } finally {
@@ -285,7 +293,7 @@ function PatientsPage() {
     const month = today.slice(0, 7);
     return {
       total: emrVisits.length,
-      thisMonth: emrVisits.filter((v) => v.visit_date.startsWith(month)).length,
+      thisMonth: emrVisits.filter((v) => (v.visit_date ?? v.created_at ?? "").startsWith(month)).length,
       followUps: emrVisits.filter((v) => v.follow_up_date && v.follow_up_date <= today).length,
       patientsCount: new Set(emrVisits.map((v) => v.patient_id).filter(Boolean)).size,
     };
@@ -312,12 +320,12 @@ function PatientsPage() {
   const filteredEmrVisits = useMemo(() => {
     let r = emrVisits;
     if (patientFilter !== "all") r = r.filter((v) => v.patient_id === patientFilter);
-    if (dateFilter) r = r.filter((v) => v.visit_date.startsWith(dateFilter));
+    if (dateFilter) r = r.filter((v) => (v.visit_date ?? v.created_at ?? "").startsWith(dateFilter));
     const q = recordSearch.trim().toLowerCase();
     if (q) {
       r = r.filter(
         (v) =>
-          v.patient_name.toLowerCase().includes(q) ||
+          v.patient_name?.toLowerCase().includes(q) ||
           (v.diagnosis ?? "").toLowerCase().includes(q) ||
           (v.chief_complaint ?? "").toLowerCase().includes(q),
       );
