@@ -3,10 +3,29 @@ import { AppNotInstalled } from "./AppNotInstalled";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo, ReactNode, memo } from "react";
 
+const CORE_ACTIVE_APPS = new Set([
+  "queue",
+  "consult",
+  "consultation",
+  "appointments",
+  "patients",
+  "prescriptions",
+  "records",
+  "emr",
+  "crm",
+  "analytics",
+  "overview",
+  "website",
+  "website_builder",
+  "qr_appointment",
+  "qr_checkin",
+]);
+
 export const AppGuard = memo(({ appKey, children }: { appKey: string; children: ReactNode }) => {
   const { org, installedModuleIds } = useOrganization();
 
   const isInstalled = useMemo(() => {
+    if (CORE_ACTIVE_APPS.has(appKey)) return true;
     return installedModuleIds.includes(appKey);
   }, [installedModuleIds, appKey]);
 
