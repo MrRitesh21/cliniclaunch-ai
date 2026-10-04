@@ -20,7 +20,14 @@ export type WaTemplateKey =
   | "bill_payment_reminder"
   | "health_camp_invite"
   | "birthday_wishes"
-  | "abnormal_report_alert";
+  | "abnormal_report_alert"
+  // Doctor Time-Saving Automations
+  | "rx_dispatch"
+  | "symptom_intake"
+  | "instant_reschedule"
+  | "after_hours_emergency"
+  | "chronic_care_recall"
+  | "doctor_morning_digest";
 
 export const DEFAULT_TEMPLATES: Array<{
   key: WaTemplateKey;
@@ -198,6 +205,55 @@ export const DEFAULT_TEMPLATES: Array<{
       "normal_range",
       "flag_reason",
     ],
+    audience: "doctor",
+  },
+  // ── Doctor Time-Saving Automations ──────────────────────────────────────────
+  {
+    key: "rx_dispatch",
+    name: "Digital Rx & Dosage Schedule Dispatch",
+    description: "Instantly sends digital E-Prescription PDF and medicine dosage schedule to patient's WhatsApp right after consultation.",
+    body: "📋 *Digital Prescription from Dr. {doctor_name}*\n\nDear {patient_name},\nHere is your official prescription record for today's consultation at *{clinic_name}*.\n\n🔗 *Download Prescription PDF:* {rx_pdf_url}\n\n💊 *Dosage Notes:* {dosage_instructions}\nFollow-up date: {followup_date}\n\nFor emergencies call: {clinic_phone}",
+    variables: ["doctor_name", "patient_name", "clinic_name", "rx_pdf_url", "dosage_instructions", "followup_date", "clinic_phone"],
+    audience: "patient",
+  },
+  {
+    key: "symptom_intake",
+    name: "AI Pre-Visit Intake & Triage Bot",
+    description: "Saves doctor 5+ mins per patient by auto-collecting chief complaints and vitals 1 hour before scheduled visit.",
+    body: "🩺 Hi {patient_name}! Your consultation with Dr. {doctor_name} is in ~1 hour.\n\nTo help Dr. prepare for your visit, please reply with:\n1. Main symptom/problem you are facing\n2. Any current ongoing medications\n3. Recent BP/Sugar reading (if available)\n\nThank you! ✨",
+    variables: ["patient_name", "doctor_name"],
+    audience: "patient",
+  },
+  {
+    key: "instant_reschedule",
+    name: "1-Tap Self-Serve Reschedule / Cancellation",
+    description: "Eliminates phone tag by allowing patients to self-reschedule or cancel via instant link.",
+    body: "🔄 Hi {patient_name}, need to change your visit time with Dr. {doctor_name}?\n\n📅 Current Slot: {date} at {time}\n\n👉 Pick a new slot instantly without calling: {reschedule_link}\nOr reply *CANCEL* to cancel.",
+    variables: ["patient_name", "doctor_name", "date", "time", "reschedule_link"],
+    audience: "patient",
+  },
+  {
+    key: "after_hours_emergency",
+    name: "After-Hours & Emergency Smart Responder",
+    description: "Auto-replies when patients text outside clinic hours with emergency numbers and next morning booking slot.",
+    body: "🏥 *{clinic_name} — After-Hours Care*\n\nOur clinic is currently closed (Hours: {working_hours}).\n\n🚨 For Medical Emergencies: Call emergency helpline *{emergency_phone}* or visit nearest ER.\n\n📅 For regular OPD: Book tomorrow's first slot online: {booking_link}",
+    variables: ["clinic_name", "working_hours", "emergency_phone", "booking_link"],
+    audience: "patient",
+  },
+  {
+    key: "chronic_care_recall",
+    name: "Chronic Care (Diabetes/BP/Thyroid) Recall",
+    description: "Auto-recalls recurring chronic patients every 30/60/90 days for vital monitoring and prescription refills.",
+    body: "🩺 Hi {patient_name}, this is a health reminder from Dr. {doctor_name} at *{clinic_name}*.\n\nIt has been {days_since_visit} days since your last {condition_name} evaluation. Regular check-ups help maintain optimal control.\n\n👉 Book your follow-up checkup: {booking_link}",
+    variables: ["patient_name", "doctor_name", "clinic_name", "days_since_visit", "condition_name", "booking_link"],
+    audience: "patient",
+  },
+  {
+    key: "doctor_morning_digest",
+    name: "Doctor Morning OPD & Revenue Briefing",
+    description: "Delivers an 8:00 AM WhatsApp briefing to the doctor with today's booked schedule, VIP cases, and queue overview.",
+    body: "☀️ *Good Morning Dr. {doctor_name}!*\n\n📊 *Today's OPD Schedule ({date}):*\n• Total Appointments: *{total_appointments}*\n• In-Clinic Visits: {in_clinic_count}\n• Video Consultations: {video_count}\n• First Patient: {first_patient_time} ({first_patient_name})\n\n🏥 Have a productive clinical day at {clinic_name}!",
+    variables: ["doctor_name", "date", "total_appointments", "in_clinic_count", "video_count", "first_patient_time", "first_patient_name", "clinic_name"],
     audience: "doctor",
   },
 ];

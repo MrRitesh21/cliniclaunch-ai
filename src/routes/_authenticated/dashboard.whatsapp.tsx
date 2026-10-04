@@ -103,6 +103,18 @@ type LogRow = {
 
 const TEMPLATE_GROUPS: { label: string; icon: React.ReactNode; keys: WaTemplateKey[] }[] = [
   {
+    label: "Doctor Time Savers",
+    icon: <Sparkles className="size-4 text-amber-500" />,
+    keys: [
+      "rx_dispatch",
+      "symptom_intake",
+      "instant_reschedule",
+      "after_hours_emergency",
+      "chronic_care_recall",
+      "doctor_morning_digest",
+    ],
+  },
+  {
     label: "Appointment Flow",
     icon: <Clock className="size-4" />,
     keys: [
@@ -204,8 +216,23 @@ function WhatsAppPage() {
             date: "Today",
             time: "10:00 AM",
             clinic_name: clinic?.clinic_name || "ClinicX",
+            clinic_phone: clinic?.phone || "+91 9876543210",
+            emergency_phone: clinic?.phone || "+91 9876543210",
+            working_hours: "9:00 AM - 8:00 PM",
             consult_info: "Video Link: https://clinicx.app/join/test ",
             clinic_link: `https://clinicx.app/c/${clinic?.slug}`,
+            booking_link: `https://clinicx.app/c/${clinic?.slug}/book`,
+            reschedule_link: `https://clinicx.app/c/${clinic?.slug}/book?reschedule=true`,
+            rx_pdf_url: `https://clinicx.app/c/${clinic?.slug}/rx/sample.pdf`,
+            dosage_instructions: "Paracetamol 650mg (1 Tab after meals), Azithromycin 500mg (1 Tab OD x 3 days)",
+            followup_date: "Next Monday",
+            condition_name: "Hypertension / Blood Pressure",
+            days_since_visit: "30",
+            total_appointments: "12",
+            in_clinic_count: "9",
+            video_count: "3",
+            first_patient_time: "10:00 AM",
+            first_patient_name: "Rahul Sharma",
           },
         },
       });
