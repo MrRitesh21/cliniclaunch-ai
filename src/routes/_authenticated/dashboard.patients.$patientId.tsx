@@ -110,12 +110,22 @@ function PatientProfilePage() {
 
           setAppointments(apptData ?? []);
 
-          const { data: visitData } = await supabase
+          let { data: visitData } = await supabase
             .from("consultations")
             .select("*")
             .eq("clinic_id", clinic.id)
             .eq("patient_id", patientData.id)
             .order("created_at", { ascending: false });
+
+          if (!visitData || visitData.length === 0) {
+            const { data: nameVisits } = await supabase
+              .from("consultations")
+              .select("*")
+              .eq("clinic_id", clinic.id)
+              .eq("patient_name", patientData.name)
+              .order("created_at", { ascending: false });
+            visitData = nameVisits;
+          }
 
           setEmrVisits(visitData ?? []);
         } else {
