@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Users,
   Clock,
+  Phone,
 } from "lucide-react";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { AppGuard } from "@/components/app/AppGuard";
