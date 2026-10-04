@@ -44,10 +44,15 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 let envChecked = false;
 
-function applySecurityHeaders(res: Response, durationMs = 0): Response {
+function applySecurityHeaders(res: Response, durationMs = 0, pathname = ""): Response {
   const headers = new Headers(res.headers);
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("X-Frame-Options", "DENY");
+  // Allow same-origin and platform iframe previews
+  headers.set("X-Frame-Options", "SAMEORIGIN");
+  headers.set(
+    "Content-Security-Policy",
+    "frame-ancestors 'self' https://*.digiwil.com https://*.vercel.app;",
+  );
   headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   headers.set("X-XSS-Protection", "1; mode=block");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
