@@ -15,6 +15,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { InstallAppPrompt } from "@/components/app/InstallAppPrompt";
 import { NotificationInbox } from "@/components/app/NotificationInbox";
 import { OfflineBanner } from "@/components/app/OfflineBanner";
+import { PullToRefresh } from "@/components/app/PullToRefresh";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -1042,7 +1043,9 @@ function DashboardLayout() {
             {isSubscriptionExpired && pathname !== "/dashboard/billing" ? (
               <SubscriptionExpiredView />
             ) : (
-              <Outlet />
+              <PullToRefresh>
+                <Outlet />
+              </PullToRefresh>
             )}
           </div>
 
