@@ -190,6 +190,31 @@ function RootContent() {
 
   useEffect(() => {
     import("../lib/pwa").then((m) => m.registerPWA());
+
+    // Auto-reload on deployment chunk mismatch / stale dynamic imports
+    const handleChunkError = (e: ErrorEvent | PromiseRejectionEvent) => {
+      const msg = (e instanceof ErrorEvent ? e.message : (e as PromiseRejectionEvent).reason?.message) || "";
+      if (
+        msg.includes("Failed to fetch dynamically imported module") ||
+        msg.includes("Failed to load resource") ||
+        msg.includes("dynamically imported module")
+      ) {
+        const lastReload = sessionStorage.getItem("clinicx_chunk_reload");
+        const now = Date.now();
+        if (!lastReload || now - Number(lastReload) > 10000) {
+          sessionStorage.setItem("clinicx_chunk_reload", String(now));
+          window.location.reload();
+        }
+      }
+    };
+
+    window.addEventListener("error", handleChunkError);
+    window.addEventListener("unhandledrejection", handleChunkError);
+
+    return () => {
+      window.removeEventListener("error", handleChunkError);
+      window.removeEventListener("unhandledrejection", handleChunkError);
+    };
   }, []);
 
   const { data: mStatus } = useQuery({
