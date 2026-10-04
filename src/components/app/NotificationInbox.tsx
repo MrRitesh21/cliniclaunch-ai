@@ -121,8 +121,22 @@ export function NotificationInbox() {
       .catch(() => undefined);
   }, [markRead, refresh]);
 
-  const handleOpen = async (item: InboxItem) => {
-    setDetailItem(item);
+  const resolveTargetUrl = (item: InboxItem) => {
+    if (item.url) return item.url.split("?")[0];
+    const cat = (item.category || "").toLowerCase();
+    const title = (item.title || "").toLowerCase();
+    if (cat.includes("book") || cat.includes("appoint") || title.includes("booking") || title.includes("appointment")) return "/dashboard/appointments";
+    if (cat.includes("walkin") || cat.includes("walk-in") || title.includes("walk-in")) return "/dashboard/walkins";
+    if (cat.includes("review") || title.includes("review") || title.includes("feedback")) return "/dashboard/reviews";
+    if (cat.includes("lead") || title.includes("lead")) return "/dashboard/leads";
+    if (cat.includes("prescription") || cat.includes("rx") || title.includes("prescription")) return "/dashboard/prescriptions";
+    if (cat.includes("consult") || title.includes("consultation")) return "/dashboard/consult";
+    if (cat.includes("bill") || cat.includes("pay") || title.includes("bill")) return "/dashboard/billing";
+    if (cat.includes("queue") || title.includes("queue") || title.includes("token")) return "/dashboard/queue";
+    return "/dashboard";
+  };
+
+  const handleOpen = (item: InboxItem) => {
     if (!item.read_at) {
       setItems((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, read_at: new Date().toISOString() } : i)),
@@ -130,12 +144,16 @@ export function NotificationInbox() {
       setUnread((n) => Math.max(0, n - 1));
       markRead({ data: { id: item.id, opened: true } }).catch(() => undefined);
     }
+    const target = resolveTargetUrl(item);
+    setOpen(false);
+    navigate({ to: target as any }).catch(() => undefined);
   };
 
   const handleAction = (item: InboxItem) => {
     setOpen(false);
     setDetailItem(null);
-    if (item.url) navigate({ to: item.url.split("?")[0] as string }).catch(() => undefined);
+    const target = resolveTargetUrl(item);
+    navigate({ to: target as any }).catch(() => undefined);
   };
 
   const handleMarkAll = async () => {
