@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Check, Eye, Monitor, Tablet, Smartphone, X } from "lucide-react";
+import { Search, Check, Eye, Monitor, Tablet, Smartphone, X, Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import type { MarketplaceTemplate, TemplateCategory } from "../types";
 import { allTemplates, categories } from "../data/templatesData";
 import { TemplateLivePreview } from "../components/TemplateLivePreview";
@@ -16,6 +16,7 @@ export function TemplatesView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [previewTemplate, setPreviewTemplate] = useState<MarketplaceTemplate | null>(null);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const filteredTemplates = allTemplates.filter((tpl) => {
     const matchesCat = selectedCat === "all" || tpl.category === selectedCat;
@@ -203,64 +204,112 @@ export function TemplatesView() {
 
       {/* Responsive Live Preview Modal */}
       {previewTemplate && (
-        <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
-          <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-4 sm:p-6 rounded-2xl">
+        <Dialog
+          open={!!previewTemplate}
+          onOpenChange={() => {
+            setPreviewTemplate(null);
+            setIsFullscreen(false);
+          }}
+        >
+          <DialogContent
+            className={`transition-all duration-300 flex flex-col p-3 sm:p-5 ${
+              isFullscreen
+                ? "fixed inset-0 z-50 max-w-none w-screen h-screen rounded-none m-0 border-0"
+                : "max-w-5xl max-h-[94vh] rounded-2xl"
+            }`}
+          >
             <DialogHeader className="flex flex-row items-center justify-between shrink-0 pb-2 border-b">
-              <div>
-                <DialogTitle className="text-base font-bold flex items-center gap-2">
-                  <span>{previewTemplate.name}</span>
-                  <Badge variant="outline" className="text-[10px] font-normal">
+              <div className="min-w-0 pr-2">
+                <DialogTitle className="text-sm sm:text-base font-bold flex items-center gap-2 truncate">
+                  <span className="truncate">{previewTemplate.name}</span>
+                  <Badge variant="outline" className="text-[10px] font-normal shrink-0">
                     {previewTemplate.categoryLabel}
                   </Badge>
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground">{previewTemplate.description}</p>
+                <p className="text-xs text-muted-foreground truncate hidden sm:block">
+                  {previewTemplate.description}
+                </p>
               </div>
 
-              {/* Device & Height Box Adjuster Controls */}
-              {/* Device Breakpoint Controls inside Preview Modal */}
-              <div className="flex items-center gap-1 bg-muted p-1 rounded-xl text-xs">
-                <button
-                  onClick={() => setPreviewDevice("desktop")}
-                  className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
-                    previewDevice === "desktop"
-                      ? "bg-background text-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+              {/* Device & Fullscreen Controls */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 bg-muted p-1 rounded-xl text-xs">
+                  <button
+                    onClick={() => setPreviewDevice("desktop")}
+                    className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
+                      previewDevice === "desktop"
+                        ? "bg-background text-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Monitor className="size-3.5" /> <span className="hidden sm:inline">Desktop</span>
+                  </button>
+                  <button
+                    onClick={() => setPreviewDevice("tablet")}
+                    className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
+                      previewDevice === "tablet"
+                        ? "bg-background text-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Tablet className="size-3.5" /> <span className="hidden sm:inline">Tablet</span>
+                  </button>
+                  <button
+                    onClick={() => setPreviewDevice("mobile")}
+                    className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
+                      previewDevice === "mobile"
+                        ? "bg-background text-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Smartphone className="size-3.5" /> <span className="hidden sm:inline">Mobile</span>
+                  </button>
+                </div>
+
+                {/* Fullscreen toggle button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8 rounded-xl shrink-0"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                 >
-                  <Monitor className="size-3.5" /> Desktop
-                </button>
-                <button
-                  onClick={() => setPreviewDevice("tablet")}
-                  className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
-                    previewDevice === "tablet"
-                      ? "bg-background text-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                </Button>
+
+                {/* Open in external tab */}
+                <a
+                  href={`/c/${clinic?.slug}?tpl=${encodeURIComponent(previewTemplate.id)}&tc=${encodeURIComponent(previewTemplate.colorPreset.primary)}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden sm:inline-block"
                 >
-                  <Tablet className="size-3.5" /> Tablet
-                </button>
-                <button
-                  onClick={() => setPreviewDevice("mobile")}
-                  className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium transition-all ${
-                    previewDevice === "mobile"
-                      ? "bg-background text-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Smartphone className="size-3.5" /> Mobile
-                </button>
+                  <Button variant="outline" size="icon" className="size-8 rounded-xl shrink-0" title="Open preview in new tab">
+                    <ExternalLink className="size-4" />
+                  </Button>
+                </a>
               </div>
             </DialogHeader>
 
             {/* Iframe Live Preview Container with Dynamic Sizing */}
-            <div className="flex-1 bg-muted/30 rounded-2xl overflow-hidden flex items-center justify-center p-3 relative border my-2 max-h-[70vh]">
+            <div
+              className={`flex-1 bg-muted/30 rounded-2xl overflow-hidden flex items-center justify-center p-2 sm:p-3 relative border my-2 ${
+                isFullscreen ? "h-[calc(100vh-130px)] max-h-none" : "max-h-[72vh]"
+              }`}
+            >
               <div
                 className={`bg-background transition-all duration-300 rounded-2xl shadow-2xl overflow-hidden border ${
-                  previewDevice === "mobile"
-                    ? "w-[375px] h-[520px] max-h-[60vh]"
-                    : previewDevice === "tablet"
-                      ? "w-[768px] h-[520px] max-h-[62vh]"
-                      : "w-full h-[520px] max-h-[65vh]"
+                  isFullscreen
+                    ? previewDevice === "mobile"
+                      ? "w-[390px] h-full"
+                      : previewDevice === "tablet"
+                        ? "w-[768px] h-full"
+                        : "w-full h-full"
+                    : previewDevice === "mobile"
+                      ? "w-[375px] h-[520px] max-h-[60vh]"
+                      : previewDevice === "tablet"
+                        ? "w-[768px] h-[520px] max-h-[62vh]"
+                        : "w-full h-[520px] max-h-[65vh]"
                 }`}
               >
                 <iframe
@@ -278,11 +327,14 @@ export function TemplatesView() {
                 Swapping templates updates layout & colors instantly while preserving all clinic
                 text.
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 ml-auto">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setPreviewTemplate(null)}
+                  onClick={() => {
+                    setPreviewTemplate(null);
+                    setIsFullscreen(false);
+                  }}
                   className="h-9 text-xs rounded-xl"
                 >
                   Close Preview
@@ -292,6 +344,7 @@ export function TemplatesView() {
                   onClick={() => {
                     handleApply(previewTemplate);
                     setPreviewTemplate(null);
+                    setIsFullscreen(false);
                   }}
                   className="h-9 px-4 font-semibold text-xs rounded-xl bg-primary text-primary-foreground gap-1.5"
                 >
