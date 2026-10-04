@@ -260,39 +260,56 @@ function Overview() {
         </div>
       )}
 
-      {/* Doctor Header & Operational Cockpit */}
-      <PageHeader
-        title={`${greeting}, ${displayName}`}
-        description={`${clinic.clinic_name} • ${new Date().toLocaleDateString("en-US", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        })}`}
-        actions={
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+      {/* Executive Doctor Header Card */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/5 p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {clinic.clinic_name} • Practice Active
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground">
+              {greeting}, <span className="text-primary">{displayName}</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1 sm:pt-0">
             <Button
+              size="default"
               onClick={() => navigate({ to: "/dashboard/prescriptions" })}
-              className="bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90 h-9 px-3.5 text-xs gap-1.5 flex-1 sm:flex-initial"
+              className="h-10 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-md hover:bg-primary/90 gap-2 flex-1 sm:flex-initial"
             >
               <Stethoscope className="size-4" /> Start Consultation
             </Button>
             <Button
               variant="outline"
+              size="default"
               onClick={() => navigate({ to: "/dashboard/walkins" })}
-              className="h-9 text-xs gap-1.5 px-3"
+              className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent"
             >
               <UserPlus className="size-4 text-emerald-600 dark:text-emerald-400" /> Walk-in
             </Button>
             <Button
               variant="outline"
+              size="default"
               onClick={() => navigate({ to: "/dashboard/queue" })}
-              className="h-9 text-xs gap-1.5 px-3"
+              className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent"
             >
               <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {/* Push Notification Opt-in Prompt */}
       <DashboardPushPrompt />
