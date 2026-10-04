@@ -70,6 +70,7 @@ function Overview() {
   const clinic = useClinic();
   const { org } = useOrganization();
   const navigate = useNavigate();
+  const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
   const [stats, setStats] = useState<{
     todayTotal: number;
@@ -240,7 +241,6 @@ function Overview() {
   };
 
   const displayName = getGreetingName();
-  const { isInstallable, isInstalled, installApp } = usePWAInstall();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 

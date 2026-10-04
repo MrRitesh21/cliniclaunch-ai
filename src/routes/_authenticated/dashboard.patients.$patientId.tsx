@@ -208,8 +208,12 @@ function PatientProfilePage() {
       };
 
       recognition.onerror = (e: any) => {
-        console.error("Speech recognition error:", e);
         setIsRecording(false);
+        if (e.error === "not-allowed") {
+          toast.error("Microphone permission denied. Enable microphone access in browser settings.");
+        } else if (e.error !== "no-speech" && e.error !== "aborted") {
+          toast.info("Voice dictation paused.");
+        }
       };
 
       recognition.onend = () => {
