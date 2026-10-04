@@ -150,15 +150,41 @@ export function usePWAInstall() {
 
   const installApp = async () => {
     const promptEvent = deferredPrompt || globalDeferredPrompt;
-    if (!promptEvent) return;
-    promptEvent.prompt();
-    const { outcome } = await promptEvent.userChoice;
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-      setIsInstallable(false);
-      localStorage.setItem("clinicx_pwa_installed", "true");
-      globalDeferredPrompt = null;
-      setDeferredPrompt(null);
+    if (promptEvent) {
+      try {
+        promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        if (outcome === "accepted") {
+          setIsInstalled(true);
+          setIsInstallable(false);
+          localStorage.setItem("clinicx_pwa_installed", "true");
+          globalDeferredPrompt = null;
+          setDeferredPrompt(null);
+        }
+        return;
+      } catch (err) {
+        console.warn("[PWA] Prompt error:", err);
+      }
+    }
+
+    // Fallback guidance for iOS Safari, Chrome iOS, and desktop browsers without native event
+    const isIosDevice =
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
+    const { toast } = await import("sonner");
+
+    if (isIosDevice) {
+      toast.info("Install on iPhone / iPad", {
+        description: "1. Tap the Share button in Safari (box with arrow ↑)\n2. Scroll down & tap 'Add to Home Screen' (+)",
+        duration: 8000,
+      });
+    } else {
+      toast.info("Install ClinicX App", {
+        description: "Tap the browser menu (⋮) and choose 'Install App' or 'Add to Home screen'.",
+        duration: 6000,
+      });
     }
   };
 
