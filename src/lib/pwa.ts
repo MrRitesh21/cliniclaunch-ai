@@ -81,10 +81,19 @@ async function cleanup() {
   }
 }
 
+// Global capture for beforeinstallprompt so early events are never lost
+let globalDeferredPrompt: any = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e: Event) => {
+    e.preventDefault();
+    globalDeferredPrompt = e;
+  });
+}
+
 // React Hook for 1-Click PWA App Installation
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(globalDeferredPrompt);
+  const [isInstallable, setIsInstallable] = useState(Boolean(globalDeferredPrompt));
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
@@ -99,8 +108,14 @@ export function usePWAInstall() {
       return;
     }
 
+    if (globalDeferredPrompt) {
+      setDeferredPrompt(globalDeferredPrompt);
+      setIsInstallable(true);
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
+      globalDeferredPrompt = e;
       setDeferredPrompt(e);
       setIsInstallable(true);
     };
@@ -108,6 +123,7 @@ export function usePWAInstall() {
     const handleInstalled = () => {
       setIsInstalled(true);
       setIsInstallable(false);
+      globalDeferredPrompt = null;
       setDeferredPrompt(null);
     };
 
@@ -121,14 +137,16 @@ export function usePWAInstall() {
   }, []);
 
   const installApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    const promptEvent = deferredPrompt || globalDeferredPrompt;
+    if (!promptEvent) return;
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
     if (outcome === "accepted") {
       setIsInstalled(true);
       setIsInstallable(false);
+      globalDeferredPrompt = null;
+      setDeferredPrompt(null);
     }
-    setDeferredPrompt(null);
   };
 
   return { isInstallable, isInstalled, installApp };

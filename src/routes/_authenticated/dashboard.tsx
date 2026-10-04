@@ -544,18 +544,10 @@ function SidebarContent({
           </div>
         </div>
 
-        {/* Permanent PWA Install Action */}
+        {/* Permanent 1-Click PWA Install Action */}
         <button
           type="button"
-          onClick={() => {
-            if (isInstallable) {
-              installApp();
-            } else if (isIos()) {
-              toast.info("To install on iOS: Tap Share in Safari → Add to Home Screen.");
-            } else {
-              toast.info("To install: Tap browser menu (⋮) → Install app or Add to Home screen.");
-            }
-          }}
+          onClick={installApp}
           title="Install Mobile App"
           className="flex w-full items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all active:scale-98 shadow-xs border border-primary/20 my-1"
         >
