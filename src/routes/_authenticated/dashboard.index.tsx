@@ -283,30 +283,32 @@ function Overview() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-1 sm:pt-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 sm:pt-0 w-full sm:w-auto">
             <Button
               size="default"
               onClick={() => navigate({ to: "/dashboard/prescriptions" })}
-              className="h-10 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-md hover:bg-primary/90 gap-2 flex-1 sm:flex-initial"
+              className="h-10 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-md hover:bg-primary/90 gap-2 w-full sm:w-auto justify-center"
             >
               <Stethoscope className="size-4" /> Start Consultation
             </Button>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => navigate({ to: "/dashboard/walkins" })}
-              className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent"
-            >
-              <UserPlus className="size-4 text-emerald-600 dark:text-emerald-400" /> Walk-in
-            </Button>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => navigate({ to: "/dashboard/queue" })}
-              className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent"
-            >
-              <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
-            </Button>
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => navigate({ to: "/dashboard/walkins" })}
+                className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent justify-center"
+              >
+                <UserPlus className="size-4 text-emerald-600 dark:text-emerald-400" /> Walk-in
+              </Button>
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => navigate({ to: "/dashboard/queue" })}
+                className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent justify-center"
+              >
+                <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
+              </Button>
+            </div>
           </div>
         </div>
       </div>
