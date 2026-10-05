@@ -1052,63 +1052,63 @@ function DashboardLayout() {
               </PullToRefresh>
             )}
           </div>
+        </main>
+      </div>
 
-          {/* Mobile bottom tab bar — primary 5 tabs */}
-          <nav
-            className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border/80 bg-background/90 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.04)]"
-            style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
-          >
-            <div
-              className="grid"
-              style={{ gridTemplateColumns: `repeat(${totalTabsCount}, minmax(0, 1fr))` }}
-            >
-              {primaryMobileNav.slice(0, 4).map((n) => {
-                const active = isActive(n.to, n.exact);
-                return (
-                  <Link
-                    key={n.to}
-                    to={n.to}
-                    className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
-                      active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
-                    }`}
-                  >
-                    <div
-                      className={`grid place-items-center size-8 rounded-xl transition-all ${
-                        active
-                          ? "bg-primary/15 text-primary scale-105 shadow-xs"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      <n.icon className="size-4" />
-                    </div>
-                    <span className="text-[10px] leading-none tracking-tight">{n.label}</span>
-                  </Link>
-                );
-              })}
-
-              {/* 5th Tab: More / Menu Trigger */}
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(true)}
+      {/* Mobile bottom tab bar — fixed firmly to screen viewport bottom */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/80 bg-background/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
+      >
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: `repeat(${totalTabsCount}, minmax(0, 1fr))` }}
+        >
+          {primaryMobileNav.slice(0, 4).map((n) => {
+            const active = isActive(n.to, n.exact);
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
                 className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
-                  mobileMenuOpen ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
+                  active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
                 }`}
               >
                 <div
                   className={`grid place-items-center size-8 rounded-xl transition-all ${
-                    mobileMenuOpen
+                    active
                       ? "bg-primary/15 text-primary scale-105 shadow-xs"
                       : "text-muted-foreground"
                   }`}
                 >
-                  <Menu className="size-4" />
+                  <n.icon className="size-4" />
                 </div>
-                <span className="text-[10px] leading-none tracking-tight">More</span>
-              </button>
+                <span className="text-[10px] leading-none tracking-tight">{n.label}</span>
+              </Link>
+            );
+          })}
+
+          {/* 5th Tab: More / Menu Trigger */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
+              mobileMenuOpen ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
+            }`}
+          >
+            <div
+              className={`grid place-items-center size-8 rounded-xl transition-all ${
+                mobileMenuOpen
+                  ? "bg-primary/15 text-primary scale-105 shadow-xs"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Menu className="size-4" />
             </div>
-          </nav>
-        </main>
-      </div>
+            <span className="text-[10px] leading-none tracking-tight">More</span>
+          </button>
+        </div>
+      </nav>
 
       <InstallAppPrompt />
 
