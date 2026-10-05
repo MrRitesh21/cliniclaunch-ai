@@ -1,59 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { toast } from "sonner";
-import {
-  ListOrdered,
-  Plus,
-  PhoneCall,
-  Check,
-  SkipForward,
-  Trash2,
-  Monitor,
-  Stethoscope,
-  Clock,
-  UserCheck,
-  Calendar,
-  MessageSquare,
-  Search,
-  ArrowRight,
-  CheckCircle2,
-  Sparkles,
-  Phone,
-} from "lucide-react";
-import { AppGuard } from "@/components/app/AppGuard";
-import { EmptyState } from "@/components/app/EmptyState";
-import { StatsCard } from "@/components/app/StatsCard";
-import { useOrganization } from "@/hooks/useOrganization";
-import { useClinic } from "./dashboard";
-import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AvatarInitials } from "@/components/ui/skeleton-rows";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/dashboard/queue")({
-  component: () => (
-    <AppGuard appKey="queue">
-      <QueuePage />
-    </AppGuard>
-  ),
+  component: () => <Navigate to="/dashboard/consult" replace />,
 });
 
 type QueueItem = {

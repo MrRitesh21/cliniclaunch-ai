@@ -268,7 +268,12 @@ const NAV_SECTIONS = [
         module: "appointments",
       },
       { to: "/dashboard/qr", label: "QR & Walk-ins", icon: QrCode, module: "qr_appointment" },
-      { to: "/dashboard/queue", label: "Queue", icon: ListOrdered, module: "queue" },
+      {
+        to: "/dashboard/consult",
+        label: "OPD Queue & Consult",
+        icon: Stethoscope,
+        module: "consultation",
+      },
       { to: "/dashboard/leads", label: "Leads", icon: MessageSquare },
       { to: "/dashboard/patients", label: "Patients", icon: Users, module: "crm" },
     ] as NavItem[],
@@ -297,7 +302,6 @@ const NAV_SECTIONS = [
   {
     label: "Clinical",
     items: [
-      { to: "/dashboard/consult", label: "Consult", icon: Video, module: "consultation" },
       { to: "/dashboard/assistant", label: "AI Assistant", icon: Sparkles, module: "ai_assistant" },
       { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
       {

@@ -132,7 +132,7 @@ export function NotificationInbox() {
     if (cat.includes("prescription") || cat.includes("rx") || title.includes("prescription")) return "/dashboard/prescriptions";
     if (cat.includes("consult") || title.includes("consultation")) return "/dashboard/consult";
     if (cat.includes("bill") || cat.includes("pay") || title.includes("bill")) return "/dashboard/billing";
-    if (cat.includes("queue") || title.includes("queue") || title.includes("token")) return "/dashboard/queue";
+    if (cat.includes("queue") || title.includes("queue") || title.includes("token")) return "/dashboard/consult";
     return "/dashboard";
   };
 

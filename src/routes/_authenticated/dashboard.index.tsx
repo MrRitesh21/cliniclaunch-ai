@@ -309,7 +309,7 @@ function Overview() {
               <Button
                 variant="outline"
                 size="default"
-                onClick={() => navigate({ to: "/dashboard/queue" })}
+                onClick={() => navigate({ to: "/dashboard/consult" })}
                 className="h-10 px-3.5 rounded-xl text-xs sm:text-sm font-semibold gap-1.5 border-border/80 hover:bg-accent justify-center"
               >
                 <Clock className="size-4 text-amber-600 dark:text-amber-400" /> Queue
