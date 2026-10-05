@@ -660,94 +660,110 @@ export const createBooking = createServerFn({ method: "POST" })
       console.error("createBooking: patients upsert failed", patientErr);
     }
 
-    // WhatsApp side-effects (best-effort)
-    try {
-      const { notifyClinicEvent } = await import("./notify.server");
-      const { data: clinic } = await sb
-        .from("clinics")
-        .select("personal_phone, phone, doctor_name, clinic_name")
-        .eq("id", data.clinic_id)
-        .maybeSingle();
-      const c = clinic as { personal_phone?: string | null; phone?: string | null; doctor_name?: string | null; clinic_name?: string | null } | null;
-      const doctorPhone = c?.personal_phone || c?.phone || null;
-      const dt = new Date(data.scheduled_at);
-      const date = dt.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
-      const time = dt.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
-
-      const isWalkin = data.source === "walkin";
-      const doctorTemplate = isWalkin ? "walkin_doctor_alert" : "appointment_alert";
-
-      if (doctorPhone) {
-        await notifyClinicEvent({
-          sb, clinicId: data.clinic_id,
-          templateKey: doctorTemplate,
-          recipientPhone: doctorPhone,
-          recipientName: c?.doctor_name ?? null,
-          appointmentId: appt.id,
-          variables: {
-            patient_name: data.patient_name,
-            patient_phone: data.patient_phone,
-            date, time,
-            appointment_type: data.appointment_type,
-            problem: data.problem,
-          },
-        });
-      }
-
-      if (isWalkin && data.patient_phone) {
-        await notifyClinicEvent({
-          sb, clinicId: data.clinic_id,
-          templateKey: "walkin_confirmation",
-          recipientPhone: data.patient_phone,
-          recipientName: data.patient_name,
-          appointmentId: appt.id,
-          variables: {
-            patient_name: data.patient_name,
-            clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
-            doctor_name: c?.doctor_name ?? "",
-            time, date,
-          },
-        });
-      } else if (data.patient_phone) {
-        await notifyClinicEvent({
-          sb, clinicId: data.clinic_id,
-          templateKey: "appointment_received",
-          recipientPhone: data.patient_phone,
-          recipientName: data.patient_name,
-          appointmentId: appt.id,
-          variables: {
-            patient_name: data.patient_name,
-            clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
-            doctor_name: c?.doctor_name ?? "your doctor",
-            time, date,
-          },
-        });
-      }
-
-      // Web Push Alert directly to Doctor's Phone / Devices
-      if (clinicRow?.organization_id) {
-        const { data: clinicOwner } = await sb
+    // WhatsApp & Push notifications side-effects (non-blocking background task)
+    void (async () => {
+      try {
+        const { notifyClinicEvent } = await import("./notify.server");
+        const { data: clinic } = await sb
           .from("clinics")
-          .select("owner_id")
+          .select("personal_phone, phone, doctor_name, clinic_name")
           .eq("id", data.clinic_id)
           .maybeSingle();
+        const c = clinic as { personal_phone?: string | null; phone?: string | null; doctor_name?: string | null; clinic_name?: string | null } | null;
+        const doctorPhone = c?.personal_phone || c?.phone || null;
+        const dt = new Date(data.scheduled_at);
+        const date = dt.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
+        const time = dt.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
 
-        if (clinicOwner?.owner_id) {
-          const { sendPushToUser } = await import("./web-push.server");
-          await sendPushToUser(clinicOwner.owner_id, {
-            title: isWalkin ? `🏥 Walk-in Check-in: ${data.patient_name}` : `📅 New Booking: ${data.patient_name}`,
-            body: `${data.appointment_type === "online" ? "Video Consultation" : "In-Clinic"} · ${date} at ${time}${data.problem ? ` · ${data.problem.slice(0, 50)}` : ""}`,
-            icon: "/icon-512.png",
-            badge: "/icon-512.png",
-            url: `/dashboard/appointments`,
-            tag: `appt-${appt.id}`,
-          }, {
-            category: "booking",
-            inbox: true,
-          }).catch(() => {});
+        const isWalkin = data.source === "walkin";
+        const doctorTemplate = isWalkin ? "walkin_doctor_alert" : "appointment_alert";
+
+        const tasks: Promise<any>[] = [];
+
+        if (doctorPhone) {
+          tasks.push(
+            notifyClinicEvent({
+              sb, clinicId: data.clinic_id,
+              templateKey: doctorTemplate,
+              recipientPhone: doctorPhone,
+              recipientName: c?.doctor_name ?? null,
+              appointmentId: appt.id,
+              variables: {
+                patient_name: data.patient_name,
+                patient_phone: data.patient_phone,
+                date, time,
+                appointment_type: data.appointment_type,
+                problem: data.problem,
+              },
+            }).catch(() => {})
+          );
         }
-      }
-    } catch { /* swallow */ }
+
+        if (isWalkin && data.patient_phone) {
+          tasks.push(
+            notifyClinicEvent({
+              sb, clinicId: data.clinic_id,
+              templateKey: "walkin_confirmation",
+              recipientPhone: data.patient_phone,
+              recipientName: data.patient_name,
+              appointmentId: appt.id,
+              variables: {
+                patient_name: data.patient_name,
+                clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
+                doctor_name: c?.doctor_name ?? "",
+                time, date,
+              },
+            }).catch(() => {})
+          );
+        } else if (data.patient_phone) {
+          tasks.push(
+            notifyClinicEvent({
+              sb, clinicId: data.clinic_id,
+              templateKey: "appointment_received",
+              recipientPhone: data.patient_phone,
+              recipientName: data.patient_name,
+              appointmentId: appt.id,
+              variables: {
+                patient_name: data.patient_name,
+                clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
+                doctor_name: c?.doctor_name ?? "your doctor",
+                time, date,
+              },
+            }).catch(() => {})
+          );
+        }
+
+        // Web Push Alert directly to Doctor's Phone / Devices
+        if (clinicRow?.organization_id) {
+          tasks.push(
+            sb
+              .from("clinics")
+              .select("owner_id")
+              .eq("id", data.clinic_id)
+              .maybeSingle()
+              .then(async ({ data: clinicOwner }: { data: any }) => {
+                if (clinicOwner?.owner_id) {
+                  const { sendPushToUser } = await import("./web-push.server");
+                  await sendPushToUser(clinicOwner.owner_id, {
+                    title: isWalkin ? `🏥 Walk-in Check-in: ${data.patient_name}` : `📅 New Booking: ${data.patient_name}`,
+                    body: `${data.appointment_type === "online" ? "Video Consultation" : "In-Clinic"} · ${date} at ${time}${data.problem ? ` · ${data.problem.slice(0, 50)}` : ""}`,
+                    icon: "/icon-512.png",
+                    badge: "/icon-512.png",
+                    url: `/dashboard/appointments`,
+                    tag: `appt-${appt.id}`,
+                  }, {
+                    category: "booking",
+                    inbox: true,
+                  }).catch(() => {});
+                }
+              })
+              .catch(() => {})
+          );
+        }
+
+        await Promise.allSettled(tasks);
+      } catch { /* swallow */ }
+    })();
 
     return appt;
   });
@@ -776,13 +792,24 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => z.object({
     id: z.string().uuid(),
-    status: z.enum(["pending", "confirmed", "completed", "cancelled", "no_show"]),
+    status: z.enum([
+      "pending",
+      "confirmed",
+      "checked_in",
+      "waiting",
+      "serving",
+      "in_consultation",
+      "completed",
+      "cancelled",
+      "no_show",
+    ]),
   }).parse(input))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+    const dbStatus = data.status === "in_consultation" ? "serving" : data.status === "checked_in" ? "waiting" : data.status;
     const { data: appt, error } = await sb
       .from("appointments")
-      .update({ status: data.status })
+      .update({ status: dbStatus })
       .eq("id", data.id)
       .select("*, clinics(id, organization_id, doctor_name, slug)")
       .single();
@@ -805,7 +832,21 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
           .eq("organization_id", (appt as any).organization_id)
           .eq("queue_date", todayStr)
           .eq("patient_name", appt.patient_name);
-      } else if (data.status === "cancelled") {
+      } else if (data.status === "serving" || data.status === "in_consultation") {
+        await sb
+          .from("queue_tokens" as any)
+          .update({ status: "serving", called_at: new Date().toISOString() })
+          .eq("organization_id", (appt as any).organization_id)
+          .eq("queue_date", todayStr)
+          .eq("patient_name", appt.patient_name);
+      } else if (data.status === "checked_in" || data.status === "waiting") {
+        await sb
+          .from("queue_tokens" as any)
+          .update({ status: "waiting" })
+          .eq("organization_id", (appt as any).organization_id)
+          .eq("queue_date", todayStr)
+          .eq("patient_name", appt.patient_name);
+      } else if (data.status === "cancelled" || data.status === "no_show") {
         await sb
           .from("queue_tokens" as any)
           .update({ status: "skipped", completed_at: new Date().toISOString() })
