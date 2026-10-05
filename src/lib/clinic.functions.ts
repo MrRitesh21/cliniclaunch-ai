@@ -500,6 +500,28 @@ export const createBooking = createServerFn({ method: "POST" })
     const sb = await adminClient();
 
 
+    // Reject duplicate active booking for the same patient on the same day
+    const bookingDay = new Date(data.scheduled_at);
+    const startOfDay = new Date(bookingDay);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(bookingDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const { data: duplicateAppt } = await sb
+      .from("appointments")
+      .select("id, scheduled_at, status")
+      .eq("clinic_id", data.clinic_id)
+      .eq("patient_phone", data.patient_phone)
+      .gte("scheduled_at", startOfDay.toISOString())
+      .lte("scheduled_at", endOfDay.toISOString())
+      .neq("status", "cancelled")
+      .maybeSingle();
+
+    if (duplicateAppt) {
+      const timeStr = new Date(duplicateAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      throw new Error(`An appointment already exists for this phone number today at ${timeStr}.`);
+    }
+
     // Walk-in rule enforcement
     if (data.source === "walkin") {
       const { data: rules } = await sb

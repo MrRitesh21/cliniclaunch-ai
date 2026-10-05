@@ -139,6 +139,29 @@ function AppointmentsPage() {
       const cleanDoctorId = apptDoctorId && apptDoctorId.trim().length === 36 ? apptDoctorId.trim() : null;
       const feeNum = apptFee ? Math.max(0, Number(apptFee) || 0) : (clinic?.consultation_fee ?? 500);
 
+      // Check for duplicate booking on same day
+      const startOfDay = new Date(scheduledDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(scheduledDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const { data: existingAppt } = await supabase
+        .from("appointments")
+        .select("id, scheduled_at")
+        .eq("clinic_id", clinic.id)
+        .eq("patient_phone", cleanPhone)
+        .gte("scheduled_at", startOfDay.toISOString())
+        .lte("scheduled_at", endOfDay.toISOString())
+        .neq("status", "cancelled")
+        .maybeSingle();
+
+      if (existingAppt) {
+        const timeStr = new Date(existingAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        toast.error(`Patient already has an appointment today at ${timeStr}.`);
+        setAddingAppt(false);
+        return;
+      }
+
       // 1. Direct authenticated appointment creation
       const apptPayload = {
         clinic_id: clinic.id,
