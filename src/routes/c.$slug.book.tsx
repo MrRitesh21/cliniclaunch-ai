@@ -288,7 +288,7 @@ function BookPage() {
             .order("sort_order")
             .order("created_at");
 
-      query.then(({ data }) => {
+      Promise.resolve(query).then(({ data }) => {
         if (data && data.length > 0) {
           processDoctorList(data as DoctorOption[]);
         }

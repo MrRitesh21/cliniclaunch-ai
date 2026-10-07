@@ -1,12 +1,11 @@
-/**
- * Multi-Tenant Security & Scope Validation Engine for ClinicX
- * Guarantees zero cross-tenant data leakage by enforcing tenant parameter checks.
+/** Tenant query scope. Shape checks alone are NOT authorization; resolve membership
+ * and clinic ownership through withTenantContext before using an untrusted selection.
  */
 
 export interface TenantContext {
-  organizationId: string;
-  clinicId?: string | null;
-  userId?: string;
+  readonly organizationId: string;
+  readonly clinicId?: string | null;
+  readonly userId?: string;
 }
 
 export class TenantScopeError extends Error {
@@ -16,17 +15,13 @@ export class TenantScopeError extends Error {
   }
 }
 
-/**
- * Validates that an organization or clinic ID is non-empty and well-formed.
- * Throws TenantScopeError if missing.
- */
+/** Validate UUID shape only. This does not establish membership or entitlement. */
 export function assertTenantScope(tenant: TenantContext): TenantContext {
-  if (
-    !tenant.organizationId ||
-    typeof tenant.organizationId !== "string" ||
-    tenant.organizationId.trim() === ""
-  ) {
-    throw new TenantScopeError("Execution blocked: missing or invalid organizationId context");
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!tenant || typeof tenant.organizationId !== "string" || !uuid.test(tenant.organizationId) ||
+      (tenant.clinicId != null && !uuid.test(tenant.clinicId)) ||
+      (tenant.userId != null && !uuid.test(tenant.userId))) {
+    throw new TenantScopeError("Execution blocked: missing or invalid tenant UUID context");
   }
   return tenant;
 }

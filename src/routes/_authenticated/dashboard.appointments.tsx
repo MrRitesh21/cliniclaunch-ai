@@ -156,9 +156,9 @@ function AppointmentsPage() {
         .maybeSingle();
 
       if (existingAppt) {
-        const timeStr = new Date(existingAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        const timeStr = existingAppt.scheduled_at ? new Date(existingAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "an unspecified time";
         toast.error(`Patient already has an appointment today at ${timeStr}.`);
-        setAddingAppt(false);
+        setAddOpen(false);
         return;
       }
 
@@ -221,8 +221,7 @@ function AppointmentsPage() {
           },
           { onConflict: "clinic_id,phone" },
         )
-        .then(() => {})
-        .catch(() => {});
+        .then(() => {}, () => {});
 
       toast.success("Appointment added successfully!");
       setAddOpen(false);

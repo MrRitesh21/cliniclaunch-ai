@@ -1,12 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   listAdminSubscriptions,
+  getAdminStats,
+  getAdminCustomerBilling,
   updateSubscriptionStatus,
   updateDoctorProfile,
 } from "@/lib/admin.functions";
+import { utcDate } from "@/lib/subscription-analytics";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +40,199 @@ import {
   Edit,
 } from "lucide-react";
 
+function CustomerBillingDetail({ clinicId }: { clinicId: string }) {
+  const fn = useServerFn(getAdminCustomerBilling);
+  const [paymentPage, setPaymentPage] = useState(0);
+  const [eventPage, setEventPage] = useState(0);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-customer-billing", clinicId, paymentPage, eventPage],
+    queryFn: () => fn({ data: { clinicId, paymentPage, eventPage, pageSize: 20 } }),
+  });
+  if (isLoading) return <p role="status">Loading customer billing…</p>;
+  if (error || !data)
+    return (
+      <p role="alert">
+        Customer billing unavailable.{" "}
+        <Button variant="outline" onClick={() => refetch()}>
+          Retry
+        </Button>
+      </p>
+    );
+  const s = data.subscription;
+  const inr = (paise: number) =>
+    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100);
+  return (
+    <div className="space-y-5 text-sm">
+      <div>
+        <h3 className="text-lg font-semibold">{data.clinic.clinic_name}</h3>
+        <p>
+          Owner: {data.owner.name || data.owner.email || data.owner.id || "Not recorded"} ·{" "}
+          {data.owner.email || "Email not recorded"}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {utcDate(data.asOf)} · cohort: {data.cohort}
+        </p>
+      </div>
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <dt className="text-muted-foreground">Current plan / effective state</dt>
+          <dd>
+            {data.plan?.name ?? "No plan"} · {data.effectiveState} (stored: {s?.status ?? "none"})
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Billing cycle / authority</dt>
+          <dd>
+            {s?.billing_cycle ?? "—"} · {s?.access_source ?? "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Trial start → end</dt>
+          <dd>
+            {utcDate(s?.trial_started_at)} → {utcDate(s?.trial_ends_at)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Grace ends</dt>
+          <dd>{utcDate(s?.grace_ends_at)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Paid-through / scheduled renewal</dt>
+          <dd>
+            {utcDate(s?.current_period_end)} {s?.cancel_at_period_end ? "· renewal cancelled" : ""}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Historical legacy payments</dt>
+          <dd>{data.legacyPaymentsNotVerified} not verified; excluded from recurring analytics</dd>
+        </div>
+      </dl>
+      <section>
+        <h4 className="font-semibold mb-2">Organization usage · all time</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            "patients",
+            "appointments",
+            "completed_appointments",
+            "visits",
+            "prescriptions",
+            "invoices",
+            "staff",
+            "doctors",
+          ].map((k) => (
+            <div key={k}>
+              <span className="text-muted-foreground capitalize">{k.replaceAll("_", " ")}</span>
+              <p className="font-semibold">
+                {data.usage[k] == null ? "Unavailable" : String(data.usage[k])}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Clinical billing usage is not SaaS recurring revenue. No patient records are downloaded.
+        </p>
+      </section>
+      <section>
+        <h4 className="font-semibold">Canonical captured SaaS payments ({data.payments.total})</h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr>
+                <th className="text-left p-2">Payment</th>
+                <th className="text-left p-2">Plan / cycle</th>
+                <th className="text-left p-2">Amount</th>
+                <th className="text-left p-2">Invoice paid period (UTC)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.payments.records.map((p) => (
+                <tr key={p.id} className="border-t">
+                  <td className="p-2 font-mono">
+                    {p.payment_id}
+                    <br />
+                    {p.invoice_id}
+                  </td>
+                  <td className="p-2">
+                    {p.plan_id} / {p.billing_cycle}
+                  </td>
+                  <td className="p-2">{inr(p.amount_paise)}</td>
+                  <td className="p-2">
+                    {utcDate(p.period_start)} → {utcDate(p.period_end)}
+                    <br />
+                    Recorded: {utcDate(p.created_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!data.payments.records.length && (
+          <p className="text-muted-foreground py-3">
+            No verified captured SaaS payments on this page.
+          </p>
+        )}
+        <div className="flex gap-2 mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!paymentPage}
+            onClick={() => setPaymentPage((p) => p - 1)}
+          >
+            Previous payments
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!data.payments.hasMore}
+            onClick={() => setPaymentPage((p) => p + 1)}
+          >
+            Next payments
+          </Button>
+        </div>
+      </section>
+      <section>
+        <h4 className="font-semibold">Subscription events ({data.events.total})</h4>
+        <ul>
+          {data.events.records.map((e) => (
+            <li className="border-b py-2" key={e.id}>
+              <strong>{e.kind.replaceAll("_", " ")}</strong> · effective {utcDate(e.effective_at)}
+              <span className="block text-xs text-muted-foreground">
+                Recorded {utcDate(e.recorded_at)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {!data.events.records.length && (
+          <p className="text-muted-foreground py-3">No subscription events on this page.</p>
+        )}
+        <div className="flex gap-2 mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!eventPage}
+            onClick={() => setEventPage((p) => p - 1)}
+          >
+            Previous events
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!data.events.hasMore}
+            onClick={() => setEventPage((p) => p + 1)}
+          >
+            Next events
+          </Button>
+        </div>
+      </section>
+      <Button asChild variant="outline">
+        <Link to="/admin/doctors/$id" params={{ id: clinicId }}>
+          Open existing clinic administration
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_admin/admin/subscriptions")({
   component: SubscriptionsPage,
 });
@@ -45,7 +241,17 @@ function SubscriptionsPage() {
   const queryClient = useQueryClient();
   const fn = useServerFn(listAdminSubscriptions);
   const updateFn = useServerFn(updateSubscriptionStatus);
-  const { data, isLoading } = useQuery({ queryKey: ["admin-subscriptions"], queryFn: () => fn() });
+  const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState<
+    "all" | "trialing" | "ending_soon" | "paid" | "expired_trial" | "past_due" | "excluded"
+  >("all");
+  const [detailClinic, setDetailClinic] = useState<string | null>(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-subscriptions", page, filter],
+    queryFn: () => fn({ data: { page, pageSize: 25, ...(filter === "all" ? {} : { filter }) } }),
+  });
+  const statsFn = useServerFn(getAdminStats);
+  const { data: stats } = useQuery({ queryKey: ["admin-stats"], queryFn: () => statsFn() });
 
   const updateMut = useMutation({
     mutationFn: (args: { id: string; action: "cancel" | "reactivate" | "mark_expired" }) =>
@@ -65,7 +271,7 @@ function SubscriptionsPage() {
 
   const setDuration = (months: number) => {
     const d = new Date();
-    d.setMonth(d.getMonth() + months);
+    d.setUTCMonth(d.getUTCMonth() + months);
     setEditPeriodEnd(d.toISOString().split("T")[0]);
   };
 
@@ -124,29 +330,37 @@ function SubscriptionsPage() {
     );
   }
 
-  const {
-    activeCount = 0,
-    trialCount = 0,
-    expiredCount = 0,
-    totalCount = 0,
-    subscriptions = [],
-  } = data || {};
+  if (error)
+    return (
+      <div className="p-6" role="alert">
+        Customer billing could not be loaded. No totals are available.{" "}
+        <Button variant="outline" onClick={() => refetch()}>
+          Retry
+        </Button>
+      </div>
+    );
+  const { totalCount = 0, subscriptions = [] } = data || {};
+  const activeCount = stats?.paidCustomers ?? "—";
+  const trialCount = stats?.trialSubs ?? "—";
+  const expiredCount = stats?.expiredTrials ?? "—";
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground font-display">Subscriptions</h1>
         <p className="text-sm text-muted-foreground">
-          Manage billing plans and cycles for all registered accounts.
+          Read current subscriptions, canonical SaaS payments and usage without provider
+          reconciliation.
         </p>
       </div>
 
+      <p className="text-sm text-muted-foreground" role="note">Legacy grants, trial extensions, raw cancellation/reactivation and refunds are disabled. Ask the clinic owner to use /dashboard/billing. Medical data is retained; deletion requires approved retention, export and legal-hold review.</p>
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="p-4 flex items-center justify-between">
           <div>
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Total Accounts
+              Clinics in this view
             </span>
             <div className="text-2xl font-extrabold text-foreground mt-1">{totalCount}</div>
           </div>
@@ -173,7 +387,7 @@ function SubscriptionsPage() {
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-rose-500">
           <div>
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Expired / Churned
+              Expired unpaid trials
             </span>
             <div className="text-2xl font-extrabold text-rose-600 mt-1">{expiredCount}</div>
           </div>
@@ -181,6 +395,42 @@ function SubscriptionsPage() {
         </Card>
       </div>
 
+      {error && (
+        <Card role="alert" className="p-4 text-destructive">
+          Customer billing could not be loaded.{" "}
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] })} variant="outline">
+            Retry
+          </Button>
+        </Card>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Label htmlFor="billing-filter">Customer filter</Label>
+        <select
+          id="billing-filter"
+          className="border rounded-md p-2 bg-background"
+          value={filter}
+          onChange={(e) => {
+            setFilter(e.target.value as typeof filter);
+            setPage(0);
+          }}
+        >
+          <option value="all">All clinics (including excluded)</option>
+          <option value="trialing">Active trials</option>
+          <option value="ending_soon">Trials ending in 7 days</option>
+          <option value="paid">Verified paid</option>
+          <option value="expired_trial">Expired unpaid trials</option>
+          <option value="past_due">Payment recovery</option>
+          <option value="excluded">Excluded test/internal/fraud</option>
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {data ? utcDate(data.asOf) : "Snapshot unavailable"}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        KPI cards exclude test/internal/fraud. One paid customer is one organization; this paginated
+        list counts clinics. Stored state is shown separately from effective access. Manual grants
+        are not paid revenue.
+      </p>
       {/* Subscription Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -189,7 +439,7 @@ function SubscriptionsPage() {
               <tr>
                 <th className="text-left px-4 py-3">Doctor / Clinic</th>
                 <th className="text-left px-4 py-3">Plan Level</th>
-                <th className="text-left px-4 py-3">Period Ends</th>
+                <th className="text-left px-4 py-3">Paid-through / trial end (UTC)</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Gateway Sub ID</th>
                 <th className="text-right px-4 py-3">Actions</th>
@@ -199,7 +449,7 @@ function SubscriptionsPage() {
               {subscriptions.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
-                    No active subscriptions.
+                    No clinics match this filter. Select All clinics to inspect other accounts.
                   </td>
                 </tr>
               )}
@@ -208,12 +458,22 @@ function SubscriptionsPage() {
                   <td className="px-4 py-3">
                     <div className="font-semibold text-foreground">{s.doctorName}</div>
                     <div className="text-xs text-muted-foreground">{s.clinicName}</div>
+                    {s.cohort !== "production" && (
+                      <Badge variant="secondary">Excluded: {s.cohort}</Badge>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      Trial: {utcDate(s.trialStart)} → {utcDate(s.trialEnd)}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={s.plan === "No Plan" ? "secondary" : "default"}>{s.plan}</Badge>
+                    <div className="text-xs text-muted-foreground">
+                      {s.billingCycle ?? "No cycle"} ·{" "}
+                      {s.paid ? "Captured paid" : "Not verified paid"}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
-                    {s.end ? new Date(s.end).toLocaleDateString() : "—"}
+                    {s.end ? utcDate(s.end) : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <Badge
@@ -227,54 +487,67 @@ function SubscriptionsPage() {
                     >
                       {s.status}
                     </Badge>
+                    <div className="text-xs text-muted-foreground">
+                      Stored: {s.storedStatus ?? "none"}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-xs font-mono text-muted-foreground/70">
                     {s.razorpayId}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex gap-1.5 justify-end">
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                        onClick={() => setDetailClinic(s.clinicId)}
+                      >
+                        Billing details
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-7 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                        disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                         onClick={() => startEditSub(s)}
                       >
                         <Edit className="size-3.5 mr-1" /> Edit
                       </Button>
-                      {s.status !== "cancelled" && s.status !== "expired" && (
+                      {s.subscriptionId && s.status !== "cancelled" && s.status !== "expired" && (
                         <Button
                           size="sm"
                           variant="outline"
                           className="text-rose-600 border-rose-200 hover:bg-rose-50 h-7"
-                          disabled={updateMut.isPending}
+                          disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                           onClick={() => {
                             if (confirm(`Cancel subscription for ${s.doctorName}?`))
-                              updateMut.mutate({ id: s.id, action: "cancel" });
+                              updateMut.mutate({ id: s.subscriptionId, action: "cancel" });
                           }}
                         >
                           <XCircle className="size-3.5 mr-1" /> Cancel
                         </Button>
                       )}
-                      {(s.status === "cancelled" || s.status === "expired") && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-7"
-                          disabled={updateMut.isPending}
-                          onClick={() => {
-                            // Open the edit dialog pre-filled for reactivation so the
-                            // admin picks a new billing period end before we mark it active.
-                            const next = new Date();
-                            next.setDate(next.getDate() + 30);
-                            setEditingSub(s);
-                            setEditPlanId(s.planId || planNameToId(s.plan));
-                            setEditStatus("active");
-                            setEditPeriodEnd(next.toISOString().split("T")[0]);
-                          }}
-                        >
-                          <PlayCircle className="size-3.5 mr-1" /> Reactivate
-                        </Button>
-                      )}
+                      {s.subscriptionId &&
+                        (s.storedStatus === "cancelled" || s.storedStatus === "expired") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-7"
+                            disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                            onClick={() => {
+                              // Open the edit dialog pre-filled for reactivation so the
+                              // admin picks a new billing period end before we mark it active.
+                              const next = new Date();
+                              next.setUTCDate(next.getUTCDate() + 30);
+                              setEditingSub(s);
+                              setEditPlanId(s.planId || planNameToId(s.plan));
+                              setEditStatus("active");
+                              setEditPeriodEnd(next.toISOString().split("T")[0]);
+                            }}
+                          >
+                            <PlayCircle className="size-3.5 mr-1" /> Reactivate
+                          </Button>
+                        )}
                     </div>
                   </td>
                 </tr>
@@ -284,6 +557,37 @@ function SubscriptionsPage() {
         </div>
       </Card>
 
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span>
+          {totalCount} clinics · page {page + 1}
+        </span>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={page === 0 || isLoading}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!data?.hasMore || isLoading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+      {detailClinic && (
+        <Dialog open onOpenChange={(open) => !open && setDetailClinic(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Customer billing details</DialogTitle>
+            </DialogHeader>
+            <CustomerBillingDetail clinicId={detailClinic} />
+          </DialogContent>
+        </Dialog>
+      )}
       {editingSub && (
         <Dialog open={!!editingSub} onOpenChange={(open) => !open && setEditingSub(null)}>
           <DialogContent className="sm:max-w-[500px]">
@@ -338,7 +642,7 @@ function SubscriptionsPage() {
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor="editPeriodEnd">Subscription Period End Date</Label>
+                  <Label htmlFor="editPeriodEnd">Subscription Period End Date (UTC)</Label>
                   {editPlanId !== "free" && (
                     <div className="flex gap-1 flex-wrap">
                       <Button
@@ -399,7 +703,7 @@ function SubscriptionsPage() {
                     periodEnd: editPeriodEnd || null,
                   })
                 }
-                disabled={editSubMut.isPending}
+                disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
               >
                 {editSubMut.isPending ? "Saving..." : "Save Changes"}
               </Button>

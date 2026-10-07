@@ -3,13 +3,16 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "node scripts/check-local-env.mjs && vite dev",
     "check:local-env": "node scripts/check-local-env.mjs",
     "cf:cache-rules": "node scripts/apply-cloudflare-cache-rules.mjs",
     "cf:cache-rules:dry": "node scripts/apply-cloudflare-cache-rules.mjs --dry-run",
-    "build": "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS=1 vite build",
-    "build:dev": "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS=1 vite build --mode development",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "check:auth-guards": "node scripts/check-auth-guards.mjs",
@@ -49,10 +52,10 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.108.2",
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/vite": "4.3.0",
     "@tanstack/react-query": "^5.83.0",
-    "@tanstack/react-router": "1.170.20",
-    "@tanstack/react-start": "1.168.37",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-start": "1.168.60",
     "bullmq": "5.81.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -95,7 +98,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.16"
+    "vite": "8.0.16"
   },
   "overrides": {
     "seroval": "^1.6.2",

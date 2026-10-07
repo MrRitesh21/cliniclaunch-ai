@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminAuth } from "./admin-auth.functions";
+import { adminCustomerPageInput, adminCustomerInput } from "./subscription-analytics";
 
 // Admin authentication is handled entirely by Supabase Auth + the `user_roles`
 // table (see admin.login.tsx, _admin/route.tsx and getAdminMe in
@@ -17,12 +18,14 @@ export const getAdminStats = createServerFn({ method: "GET" })
 export const listAdminDoctors = createServerFn({ method: "GET" })
   .middleware([requireAdminAuth])
   .validator(
-    z.object({
-      search: z.string().optional(),
-      plan: z.string().optional(),
-      status: z.string().optional(),
-      limit: z.number().optional(),
-    }).optional()
+    z
+      .object({
+        search: z.string().optional(),
+        plan: z.string().optional(),
+        status: z.string().optional(),
+        limit: z.number().optional(),
+      })
+      .optional(),
   )
   .handler(async ({ data: input }) => {
     const { listAdminDoctorsImpl } = await import("./admin.server");
@@ -51,7 +54,13 @@ export const updateDoctorProfile = createServerFn({ method: "POST" })
       planId: z.string().nullable().optional(),
       status: z.string().optional(),
       periodEnd: z.string().nullable().optional(),
-    })
+    }).strict().superRefine((input, ctx) => {
+      for (const key of ["planId", "status", "periodEnd"] as const) {
+        if (Object.prototype.hasOwnProperty.call(input, key)) ctx.addIssue({
+          code: "custom", path: [key], message: "Profile-only update; use the clinic owner's billing page for subscription commands",
+        });
+      }
+    }),
   )
   .handler(async ({ data: input }) => {
     const { updateDoctorProfileImpl } = await import("./admin.server");
@@ -67,7 +76,7 @@ export const changeDoctorPlan = createServerFn({ method: "POST" })
       extendDays: z.number().optional(),
       grantFreeMonth: z.boolean().optional(),
       cancelSub: z.boolean().optional(),
-    })
+    }),
   )
   .handler(async ({ data: input }) => {
     const { changeDoctorPlanImpl } = await import("./admin.server");
@@ -108,9 +117,33 @@ export const clearDoctorPatientsData = createServerFn({ method: "POST" })
 
 export const listAdminSubscriptions = createServerFn({ method: "GET" })
   .middleware([requireAdminAuth])
-  .handler(async () => {
+  .validator(adminCustomerPageInput)
+  .handler(async ({ data }) => {
     const { listAdminSubscriptionsImpl } = await import("./admin.server");
-    return listAdminSubscriptionsImpl();
+    return listAdminSubscriptionsImpl(data);
+  });
+
+/** Billing-only customer detail: aggregated usage, no patient records or raw payloads. */
+export const getAdminCustomerBilling = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .validator(adminCustomerInput)
+  .handler(async ({ data }) => {
+    const { getAdminCustomerBillingImpl } = await import("./admin.server");
+    return getAdminCustomerBillingImpl(data);
+  });
+
+/** Explicit non-financial, time-bounded exception. SQL independently rechecks super-admin authority. */
+export const grantAdminDocumentedOverride = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(z.object({
+    organizationId: z.string().uuid(),
+    planId: z.enum(["starter", "growth", "professional", "enterprise"]),
+    expiresAt: z.string().datetime({ offset: true }),
+    reason: z.string().trim().min(10).max(500),
+  }).strict())
+  .handler(async ({ data }) => {
+    const { grantAdminDocumentedOverrideImpl } = await import("./admin.server");
+    return grantAdminDocumentedOverrideImpl(data);
   });
 
 export const getAdminPlans = createServerFn({ method: "GET" })
@@ -131,7 +164,7 @@ export const updatePlanDetails = createServerFn({ method: "POST" })
       moduleIds: z.array(z.string()).optional(),
       discountedMonthlyPrice: z.number().nullable().optional(),
       discountedYearlyPrice: z.number().nullable().optional(),
-    })
+    }),
   )
   .handler(async ({ data: input }) => {
     const { updatePlanDetailsImpl } = await import("./admin.server");
@@ -156,7 +189,7 @@ export const createCoupon = createServerFn({ method: "POST" })
       expiresAt: z.string().optional(),
       applicablePlan: z.string().optional(),
       razorpayOfferId: z.string().optional(),
-    })
+    }),
   )
   .handler(async ({ data: input }) => {
     const { createCouponImpl } = await import("./admin.server");
@@ -195,7 +228,9 @@ export const toggleFeatureFlag = createServerFn({ method: "POST" })
 
 export const updateFeatureFlagOverrides = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
-  .validator(z.object({ key: z.string(), plans: z.array(z.string()), doctorIds: z.array(z.string()) }))
+  .validator(
+    z.object({ key: z.string(), plans: z.array(z.string()), doctorIds: z.array(z.string()) }),
+  )
   .handler(async ({ data: input }) => {
     const { updateFeatureFlagOverridesImpl } = await import("./admin.server");
     return updateFeatureFlagOverridesImpl(input);
@@ -216,7 +251,7 @@ export const createAnnouncement = createServerFn({ method: "POST" })
       body: z.string(),
       type: z.enum(["info", "warning", "success", "maintenance"]),
       targetPlans: z.array(z.string()),
-    })
+    }),
   )
   .handler(async ({ data: input }) => {
     const { createAnnouncementImpl } = await import("./admin.server");
@@ -247,7 +282,7 @@ export const createEmailCampaign = createServerFn({ method: "POST" })
       bodyHtml: z.string(),
       targetSegment: z.string(),
       status: z.enum(["draft", "sent"]),
-    })
+    }),
   )
   .handler(async ({ data: input }) => {
     const { createEmailCampaignImpl } = await import("./admin.server");
@@ -350,10 +385,12 @@ export const saveSystemSettings = createServerFn({ method: "POST" })
 
 export const testIntegration = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
-  .validator(z.object({
-    provider: z.enum(["wati", "razorpay", "openai"]),
-    settings: z.record(z.string(), z.string()),
-  }))
+  .validator(
+    z.object({
+      provider: z.enum(["wati", "razorpay", "openai"]),
+      settings: z.record(z.string(), z.string()),
+    }),
+  )
   .handler(async ({ data: input }) => {
     const { testIntegrationImpl } = await import("./admin.server");
     return testIntegrationImpl(input);
@@ -410,7 +447,7 @@ export const createPlan = createServerFn({ method: "POST" })
       yearlyPrice: z.number().int().min(0),
       features: z.array(z.string()).optional(),
       sortOrder: z.number().int().optional(),
-    })
+    }),
   )
   .handler(async ({ data: input }) => {
     const { createPlanImpl } = await import("./admin.server");
@@ -425,43 +462,44 @@ export const deletePlan = createServerFn({ method: "POST" })
     return deletePlanImpl(input);
   });
 
-export const checkMaintenanceStatus = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const settings = {
-      maintenance_mode: "false",
-      maintenance_message: "We're upgrading the platform. Back in 2 hours.",
-      platform_name: "ClinicX",
-      support_email: "support@clinicx.in"
-    };
+export const checkMaintenanceStatus = createServerFn({ method: "GET" }).handler(async () => {
+  const settings = {
+    maintenance_mode: "false",
+    maintenance_message: "We're upgrading the platform. Back in 2 hours.",
+    platform_name: "ClinicX",
+    support_email: "support@clinicx.in",
+  };
 
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data, error } = await supabaseAdmin
-        .from("system_settings")
-        .select("key, value")
-        .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("system_settings")
+      .select("key, value")
+      .in("key", ["maintenance_mode", "maintenance_message", "platform_name", "support_email"]);
 
-      if (error) {
-        console.error("[checkMaintenanceStatus] Error fetching system settings:", error.message);
-        return settings;
-      }
-
-      (data ?? []).forEach((row: any) => {
-        if (row.key === "maintenance_mode") settings.maintenance_mode = row.value;
-        if (row.key === "maintenance_message") settings.maintenance_message = row.value;
-        if (row.key === "platform_name") settings.platform_name = row.value;
-        if (row.key === "support_email") settings.support_email = row.value;
-      });
-    } catch (err) {
-      console.error("[checkMaintenanceStatus] Failed to load maintenance status:", err);
+    if (error) {
+      console.error("[checkMaintenanceStatus] Error fetching system settings:", error.message);
+      return settings;
     }
 
-    return settings;
-  });
+    (data ?? []).forEach((row: any) => {
+      if (row.key === "maintenance_mode") settings.maintenance_mode = row.value;
+      if (row.key === "maintenance_message") settings.maintenance_message = row.value;
+      if (row.key === "platform_name") settings.platform_name = row.value;
+      if (row.key === "support_email") settings.support_email = row.value;
+    });
+  } catch (err) {
+    console.error("[checkMaintenanceStatus] Failed to load maintenance status:", err);
+  }
+
+  return settings;
+});
 
 export const listModuleControls = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
-  .validator(z.object({ orgId: z.string().uuid().optional(), search: z.string().max(100).optional() }))
+  .validator(
+    z.object({ orgId: z.string().uuid().optional(), search: z.string().max(100).optional() }),
+  )
   .handler(async ({ data }) => {
     const { listModuleControlsImpl } = await import("./admin.server");
     return listModuleControlsImpl(data);
@@ -478,7 +516,11 @@ export const setModuleGlobal = createServerFn({ method: "POST" })
 export const setOrgModuleOverride = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
   .validator(
-    z.object({ orgId: z.string().uuid(), moduleId: z.string().min(1), state: z.enum(["on", "off", "default"]) }),
+    z.object({
+      orgId: z.string().uuid(),
+      moduleId: z.string().min(1),
+      state: z.enum(["on", "off", "default"]),
+    }),
   )
   .handler(async ({ data }) => {
     const { setOrgModuleOverrideImpl } = await import("./admin.server");

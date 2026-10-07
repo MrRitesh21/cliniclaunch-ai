@@ -18,7 +18,7 @@ import {
   ArrowUpRight,
   Activity,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { utcDate } from "@/lib/subscription-analytics";
 
 export const Route = createFileRoute("/_admin/admin/dashboard")({
   component: AdminDashboard,
@@ -28,13 +28,16 @@ function inr(rupees: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(rupees);
 }
 
 function AdminDashboard() {
   const fn = useServerFn(getAdminStats);
-  const { data, isLoading } = useQuery({ queryKey: ["admin-stats"], queryFn: () => fn() });
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: () => fn(),
+  });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
@@ -57,7 +60,8 @@ function AdminDashboard() {
               Welcome back, Admin.
             </h1>
             <p className="mt-2 text-primary-foreground/70 max-w-xl text-sm sm:text-base">
-              Platform-wide metrics, subscriptions and doctor activity — updated in real time.
+              Captured SaaS revenue and current subscription records. Trials never count as paid
+              revenue.
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
@@ -132,10 +136,25 @@ function AdminDashboard() {
         </Link>
       </div>
 
+      {error && (
+        <Card role="alert" className="p-4 border-destructive text-destructive">
+          Billing analytics could not be loaded. Check admin access and migration status.{" "}
+          <Button variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </Card>
+      )}
+      {data && (
+        <p className="text-xs text-muted-foreground">
+          Snapshot {utcDate(data.asOf)} · {data.excludedClinics} test/internal/fraud clinics
+          excluded · {data.legacyUnverifiedSubscriptions} legacy subscriptions not counted as
+          verified paid.
+        </p>
+      )}
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <Kpi
-          label="Total Doctors"
+          label="Total Clinics"
           value={data?.totalDoctors ?? "—"}
           hint={data ? `+${data.newThisWeek} this week` : ""}
           icon={Users}
@@ -143,7 +162,7 @@ function AdminDashboard() {
           trend="up"
         />
         <Kpi
-          label="Active Subs"
+          label="Paid Customers"
           value={data?.activeSubs ?? "—"}
           hint={data ? `${data.trialSubs} trialing` : ""}
           icon={CreditCard}
@@ -152,7 +171,7 @@ function AdminDashboard() {
         <Kpi
           label="MRR"
           value={data ? inr(data.mrr) : "—"}
-          hint="Monthly recurring"
+          hint="Captured, monthly-normalized"
           icon={IndianRupee}
           loading={isLoading}
           accent
@@ -172,22 +191,88 @@ function AdminDashboard() {
           loading={isLoading}
         />
         <Kpi
-          label="Churn (mo)"
-          value={data?.expiredThisMonth ?? "—"}
-          hint="Expired/cancelled"
+          label="Churn (30d)"
+          value={data?.churnRate == null ? "—" : `${data.churnRate}%`}
+          hint={data ? `${data.churnedCustomers} / ${data.openingPaidCustomers} opening paid` : ""}
           icon={TrendingDown}
           loading={isLoading}
           danger
         />
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <Kpi
+          label="Active trials"
+          value={data?.trialSubs ?? "—"}
+          icon={Users}
+          loading={isLoading}
+        />
+        <Kpi
+          label="Ending in 7 days"
+          value={data?.trialsEndingSoon ?? "—"}
+          icon={Bell}
+          loading={isLoading}
+        />
+        <Kpi
+          label="Expired unpaid trials"
+          value={data?.expiredTrials ?? "—"}
+          icon={TrendingDown}
+          loading={isLoading}
+        />
+        <Kpi
+          label="Trial conversion"
+          value={data?.conversionRate == null ? "—" : `${data.conversionRate}%`}
+          hint={
+            data ? `${data.convertedTrials} / ${data.eligibleCompletedTrials} matured trials` : ""
+          }
+          icon={TrendingUp}
+          loading={isLoading}
+        />
+        <Kpi
+          label="Failed payments (30d)"
+          value={data?.failedPayments ?? "—"}
+          hint={data ? `${data.failedPaymentCustomers} customers` : ""}
+          icon={CreditCard}
+          loading={isLoading}
+        />
+        <Kpi
+          label="Avg / paid customer"
+          value={data?.averageRevenuePerClinic == null ? "—" : inr(data.averageRevenuePerClinic)}
+          hint="MRR / paid organizations"
+          icon={IndianRupee}
+          loading={isLoading}
+        />
+      </div>
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold">Plan and subscription distribution</h3>
+        <div className="flex flex-wrap gap-4 text-sm">
+          {data?.planDistribution.map((d) => (
+            <span key={d.planId}>
+              {d.planId}: <strong>{d.customers}</strong> paid
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-4 text-sm">
+          {data?.statusDistribution.map((d) => (
+            <span key={d.status}>
+              {d.status}: <strong>{d.customers}</strong>
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Conversion: first captured payment within trial + 7-day grace, among trials whose grace
+          ended. Churn: opening paid organizations no longer paid after 30 days / opening paid
+          organizations. A dash means no eligible denominator. Scheduled cancellation remains paid
+          until verified paid-through expiry. Exclusions apply to every KPI.
+        </p>
+      </Card>
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="p-5 lg:col-span-2 border-border/60">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-display font-semibold text-foreground text-base">
-                Doctor signups
+                Clinic signups
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">Last 30 days</p>
             </div>
@@ -203,22 +288,26 @@ function AdminDashboard() {
         <Card className="p-5 border-border/60 relative overflow-hidden">
           <div className="absolute -top-8 -right-8 size-32 rounded-full bg-primary/5 blur-2xl" />
           <h3 className="font-display font-semibold text-foreground text-base mb-1">
-            Revenue runway
+            Paid revenue run-rate
           </h3>
-          <p className="text-xs text-muted-foreground mb-4">Projected annual gross</p>
+          <p className="text-xs text-muted-foreground mb-4">ARR is MRR × 12, not money collected</p>
           <div className="text-3xl font-display font-bold text-primary tracking-tight">
-            {data ? inr(data.mrr * 12) : "—"}
+            {data ? inr(data.arr) : "—"}
           </div>
           <div className="mt-6 pt-4 border-t border-border/60 grid grid-cols-2 gap-3 text-xs">
             <div>
-              <div className="text-muted-foreground">Total volume</div>
+              <div className="text-muted-foreground">Avg / paid customer</div>
               <div className="font-semibold text-foreground mt-0.5">
-                {data ? inr(data.mrr * 1.4) : "—"}
+                {data
+                  ? data.averageRevenuePerClinic == null
+                    ? "—"
+                    : inr(data.averageRevenuePerClinic)
+                  : "—"}
               </div>
             </div>
             <div>
-              <div className="text-muted-foreground">Active accounts</div>
-              <div className="font-semibold text-foreground mt-0.5">{data?.activeSubs ?? 0}</div>
+              <div className="text-muted-foreground">Paid organizations</div>
+              <div className="font-semibold text-foreground mt-0.5">{data?.activeSubs ?? "—"}</div>
             </div>
           </div>
         </Card>
@@ -251,7 +340,7 @@ function AdminDashboard() {
                   </div>
                 </div>
                 <div className="text-[10px] text-muted-foreground/70 shrink-0">
-                  {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                  {utcDate(c.created_at)}
                 </div>
               </div>
             ))}
@@ -264,7 +353,7 @@ function AdminDashboard() {
 
         <Card className="p-5 border-border/60">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-semibold text-foreground">Expiring soon</h3>
+            <h3 className="font-display font-semibold text-foreground">Trials ending soon</h3>
             <Link
               to="/admin/subscriptions"
               className="text-xs text-muted-foreground hover:text-primary"
@@ -274,7 +363,7 @@ function AdminDashboard() {
           </div>
           <div className="space-y-1">
             {(data?.expiringSubs ?? []).map((s: any) => {
-              const end = s.current_period_end ?? s.trial_ends_at;
+              const end = s.trial_ends_at;
               return (
                 <div
                   key={s.id}
@@ -283,9 +372,7 @@ function AdminDashboard() {
                   <div className="text-sm text-foreground/80 capitalize font-medium">
                     {s.status}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {end ? formatDistanceToNow(new Date(end), { addSuffix: true }) : "—"}
-                  </div>
+                  <div className="text-xs text-muted-foreground">{end ? utcDate(end) : "—"}</div>
                 </div>
               );
             })}
@@ -323,7 +410,7 @@ function AdminDashboard() {
                     +{inr(t.amount)}
                   </div>
                   <div className="text-[10px] text-muted-foreground/70">
-                    {new Date(t.created_at).toLocaleDateString()}
+                    {utcDate(t.created_at)}
                   </div>
                 </div>
               </div>
@@ -341,10 +428,10 @@ function AdminDashboard() {
         <Card className="p-5 lg:col-span-2 border-border/60">
           <h3 className="font-display font-semibold text-foreground mb-4">Platform health</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Health label="Supabase DB" ok />
-            <Health label="Admin Session" ok />
-            <Health label="Razorpay" ok />
-            <Health label="WhatsApp Gateway" ok />
+            <Health label="Billing snapshot" ok={!!data && !error} note="Unavailable" />
+            <Health label="Provider health" ok={false} note="Not checked by read-only dashboard" />
+            <Health label="WhatsApp health" ok={false} note="Not checked" />
+            <Health label="Data scope" ok={false} note="SaaS billing only; no patient records" />
           </div>
         </Card>
         <Card className="p-5 border-border/60">

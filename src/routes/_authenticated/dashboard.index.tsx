@@ -41,7 +41,7 @@ import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials, SkeletonStatCards } from "@/components/ui/skeleton-rows";
-import { SetupChecklistCard } from "@/components/dashboard/SetupChecklistCard";
+import { ClinicTrialJourney } from "@/components/billing/ClinicTrialJourney";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus } from "@/lib/clinic.functions";
 import { readCache, writeCache } from "@/lib/persist-cache";
@@ -68,7 +68,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 
 function Overview() {
   const clinic = useClinic();
-  const { org } = useOrganization();
+  const { org, entitlement } = useOrganization();
   const navigate = useNavigate();
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
@@ -161,8 +161,7 @@ function Overview() {
               .gte("scheduled_at", startOfDay.toISOString())
               .lte("scheduled_at", endOfDay.toISOString())
               .in("status", ["waiting", "confirmed", "pending"])
-              .then((r) => (r.error ? { count: 0 } : r))
-              .catch(() => ({ count: 0 }))
+              .then((r) => (r.error ? { count: 0 } : r), () => ({ count: 0 }))
           : Promise.resolve({ count: 0 }),
       ]);
 
@@ -385,7 +384,7 @@ function Overview() {
       </div>
       {/* End Quick Toolbar Shortcuts */}
 
-      <SetupChecklistCard clinic={clinic} />
+      {entitlement && <ClinicTrialJourney snapshot={entitlement} clinic={clinic} checklist />}
 
       {/* Key Practice Statistics */}
       {stats === null ? (

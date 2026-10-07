@@ -309,6 +309,10 @@ export const saveExpense = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertOrgMember(supabase, userId, data.organizationId);
+    const { data: clinic, error: clinicError } = await supabase
+      .from("clinics").select("id")
+      .eq("id", data.clinicId).eq("organization_id", data.organizationId).maybeSingle();
+    if (clinicError || !clinic) throw new Error("Clinic not found");
     const { vendorKey } = await import("./finance.server");
 
     const payload = {
@@ -332,10 +336,17 @@ export const saveExpense = createServerFn({ method: "POST" })
     let before: unknown = null;
     let id = data.id;
     if (id) {
-      const { data: prev } = await supabaseAdmin.from("expenses").select("*").eq("id", id).maybeSingle();
-      before = prev ?? null;
-      const { error } = await supabaseAdmin.from("expenses").update(payload).eq("id", id);
+      const { data: prev, error: readError } = await supabaseAdmin.from("expenses")
+        .select("*").eq("id", id).eq("organization_id", data.organizationId).maybeSingle();
+      if (readError) throw new Error(readError.message);
+      if (!prev) throw new Error("Expense not found");
+      before = prev;
+      // Ordinary edits must not reassign tenant ownership or the original creator.
+      const { organization_id: _organizationId, created_by: _createdBy, ...changes } = payload;
+      const { data: updated, error } = await supabaseAdmin.from("expenses")
+        .update(changes).eq("id", id).eq("organization_id", data.organizationId).select("id").maybeSingle();
       if (error) throw new Error(error.message);
+      if (!updated) throw new Error("Expense not found");
     } else {
       const { data: created, error } = await supabaseAdmin.from("expenses").insert(payload).select("id").single();
       if (error) throw new Error(error.message);

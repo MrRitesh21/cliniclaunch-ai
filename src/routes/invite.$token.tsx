@@ -64,11 +64,7 @@ function InvitePage() {
       setAccepting(false);
       return toast.error(`Invite is for ${invite.email}. Sign in with that email.`);
     }
-    const { error: e1 } = await supabase.from("organization_members").insert({
-      organization_id: invite.organization_id,
-      user_id: user.id,
-      role: invite.role as any,
-    });
+    const { error: e1 } = await (supabase as any).rpc("accept_invite", { _token: token });
     if (e1) {
       setAccepting(false);
       return toast.error(e1.message);
@@ -85,41 +81,9 @@ function InvitePage() {
       await supabase.from("profiles").upsert({ id: user.id, full_name: resolvedName });
     }
 
-    // Auto-create doctor profile if role is doctor
-    if (invite.role === "doctor") {
-      const docName = resolvedName;
+    // The immutable invitation authority creates the doctor profile when required.
 
-      const { data: existingDoc } = await supabase
-        .from("doctors")
-        .select("id")
-        .eq("organization_id", invite.organization_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!existingDoc) {
-        const { data: clinicRow } = await supabase
-          .from("clinics")
-          .select("id")
-          .eq("organization_id", invite.organization_id)
-          .maybeSingle();
-
-        await supabase.from("doctors").insert({
-          organization_id: invite.organization_id,
-          clinic_id: clinicRow?.id || null,
-          user_id: user.id,
-          name: docName,
-          is_active: true,
-          consultation_fee: 500,
-          specialization: "",
-          qualification: "",
-        });
-      }
-    }
-
-    await supabase
-      .from("organization_invites" as any)
-      .update({ accepted_at: new Date().toISOString() })
-      .eq("id", invite.id);
+    // Membership, accepted_at and audit were committed atomically by accept_invite.
     toast.success(`Joined ${invite.organization?.name ?? "organization"}`);
     setAccepting(false);
     if (np) {

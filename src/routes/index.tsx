@@ -1,3 +1,4 @@
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -127,11 +128,11 @@ export const Route = createFileRoute("/")({
     };
   },
   component: Landing,
-  errorComponent: ({ error }) => (
+  errorComponent: (_props: ErrorComponentProps) => (
     <div className="min-h-screen grid place-items-center text-center px-4">
       <div>
         <h1 className="font-display text-2xl font-bold">Something went wrong</h1>
-        <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+        <p className="text-muted-foreground mt-2 text-sm">We could not load this page. Please try again.</p>
       </div>
     </div>
   ),

@@ -10,6 +10,7 @@ import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useOrganization } from "@/hooks/useOrganization";
+import { recoveryRoute, trialMessage } from "@/components/billing/clinicx-ux";
 import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
 import { InstallAppPrompt } from "@/components/app/InstallAppPrompt";
@@ -91,59 +92,12 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function SubscriptionExpiredView() {
-  const navigate = useNavigate();
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
-      <div className="relative mb-6">
-        <div className="absolute inset-0 bg-destructive/10 rounded-full blur-xl animate-pulse" />
-        <div className="relative size-16 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive grid place-items-center animate-bounce duration-1000">
-          <Lock className="size-8" />
-        </div>
-      </div>
-      <h2 className="font-display text-2xl font-bold tracking-tight mb-2 text-foreground">
-        Subscription Expired
-      </h2>
-      <p className="text-sm text-muted-foreground max-w-md mb-8 leading-relaxed">
-        Your access to ClinicX has been suspended because your subscription has expired. Please
-        renew your subscription to restore your clinic dashboard, booking website, and automation
-        apps.
-      </p>
-
-      <div className="grid gap-4 w-full max-w-sm border rounded-xl p-5 bg-card/50 backdrop-blur-sm mb-8 text-left border-border">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-          Locked Features Include:
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <div className="size-2 rounded-full bg-destructive shrink-0" />
-            <span>Online Booking Website & Custom Domain</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <div className="size-2 rounded-full bg-destructive shrink-0" />
-            <span>Automated WhatsApp Reminders & Recalls</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <div className="size-2 rounded-full bg-destructive shrink-0" />
-            <span>Electronic Prescriptions & Patient History</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <div className="size-2 rounded-full bg-destructive shrink-0" />
-            <span>Staff Roles & Inventory Control</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center">
-        <Button
-          onClick={() => navigate({ to: "/dashboard/billing" })}
-          className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-md py-5"
-        >
-          <CreditCard className="size-4 mr-2" />
-          Renew Subscription
-        </Button>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto max-w-lg rounded-xl border bg-card p-6 space-y-3">
+    <h2 className="font-display text-xl">Clinic operations are paused</h2>
+    <p className="text-sm text-muted-foreground">Expiry does not delete your records. Billing, account settings, support and authorized export remain available.</p>
+    <Link to="/dashboard/billing" className="text-primary underline">Choose a plan or export clinic data</Link>
+    <div><Link to="/dashboard/settings" className="text-sm underline">Account and clinic settings</Link></div>
+  </div>;
 }
 
 export function useClinic() {
@@ -172,29 +126,14 @@ export function useClinic() {
       const targetId = getImpersonationCookie() || user.id;
 
       // 1. Get the organization they belong to
-      let { data: mem } = await supabase
+      const { data: mem, error: membershipError } = await supabase
         .from("organization_members")
         .select("organization_id")
         .eq("user_id", targetId)
         .limit(1);
 
-      let orgId = mem?.[0]?.organization_id;
-
-      if (!orgId) {
-        const { data: newOrg } = await supabase
-          .from("organizations" as any)
-          .insert({ name: "Medical Clinic Workspace" })
-          .select("id")
-          .maybeSingle();
-        if (newOrg) {
-          orgId = (newOrg as any).id;
-          await supabase.from("organization_members" as any).insert({
-            organization_id: orgId,
-            user_id: targetId,
-            role: "owner",
-          });
-        }
-      }
+      if (membershipError) return; // Unknown membership must not create a workspace.
+      const orgId = mem?.[0]?.organization_id;
 
       let clinicData: Clinic | null = null;
       if (orgId) {
@@ -206,35 +145,7 @@ export function useClinic() {
         clinicData = (clinics?.[0] as Clinic | undefined) ?? null;
       }
 
-      // 2. Fallback to owner_id if organization membership is not set yet
-      if (!clinicData) {
-        const { data: clinics } = await supabase
-          .from("clinics")
-          .select("*")
-          .eq("owner_id", targetId)
-          .order("domain_status", { ascending: false })
-          .order("created_at", { ascending: false })
-          .limit(1);
-        clinicData = (clinics?.[0] as Clinic | undefined) ?? null;
-      }
-
-      // 3. Auto-provision default clinic if still missing so user is never blocked by "Create a clinic first"
-      if (!clinicData && orgId) {
-        const cleanSlug = `clinic-${targetId.slice(0, 8)}`;
-        const { data: createdClinic } = await supabase
-          .from("clinics")
-          .insert({
-            organization_id: orgId,
-            owner_id: targetId,
-            clinic_name: "My Medical Clinic",
-            doctor_name: user.email?.split("@")[0] ?? "Dr. Doctor",
-            slug: cleanSlug,
-            is_published: true,
-          })
-          .select("*")
-          .maybeSingle();
-        clinicData = createdClinic as Clinic | null;
-      }
+      // Reads never provision or publish. Only the atomic onboarding endpoint launches a trial.
 
       if (clinicData) writeCache(`clinic:${targetId}`, clinicData);
       if (active) setClinic(clinicData);
@@ -588,7 +499,7 @@ function DashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const clinic = useClinic();
   const { isReady, user } = useAuthReady();
-  const { org, role, installedModuleIds, planModuleIds, isSubscriptionExpired } = useOrganization();
+  const { org, role, installedModuleIds, planModuleIds, isSubscriptionExpired, entitlement, authorityError, refresh } = useOrganization();
   const router = useRouter();
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -824,7 +735,7 @@ function DashboardLayout() {
   const totalTabsCount = Math.min(primaryMobileNav.length, 4) + 1;
 
   useEffect(() => {
-    if (clinic === null) {
+    if (clinic === null && org === null && !authorityError) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         const user = session?.user;
         if (user?.email) {
@@ -848,7 +759,7 @@ function DashboardLayout() {
         }
       });
     }
-  }, [clinic, navigate]);
+  }, [clinic, org, authorityError, navigate]);
 
   async function signOut() {
     clearDemoSessionFlags();
@@ -862,7 +773,7 @@ function DashboardLayout() {
     clearDemoSessionFlags();
     clearCachePrefix();
     await supabase.auth.signOut();
-    toast.success("Starting your 14-day free trial setup");
+    toast.info("Continue signup to start your 30-day free trial — no payment method needed.");
     window.location.href = "/login";
   }
 
@@ -1044,7 +955,8 @@ function DashboardLayout() {
           <div
             className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-3 sm:px-5 lg:px-6 pt-3 pb-24 md:pb-6"} page-enter`}
           >
-            {isSubscriptionExpired && pathname !== "/dashboard/billing" ? (
+            {entitlement && !entitlement.can_write && entitlement.can_read && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
+            {authorityError && !recoveryRoute(pathname) ? <div role="alert" className="rounded-lg border p-6">{authorityError}<Button variant="outline" onClick={() => void refresh()} className="mt-3">Retry access check</Button></div> : org === undefined && !recoveryRoute(pathname) ? <div role="status">Checking clinic access…</div> : isSubscriptionExpired && !recoveryRoute(pathname) ? (
               <SubscriptionExpiredView />
             ) : (
               <PullToRefresh>

@@ -266,12 +266,11 @@ function ConsultCockpitPage() {
               .order("scheduled_at", { ascending: true })
           : Promise.resolve({ data: [] }),
         supabase
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .select("*")
           .eq("queue_date", dateStr)
           .order("token_number")
-          .then((r) => (r.error ? { data: [] } : r))
-          .catch(() => ({ data: [] })),
+          .then((r) => (r.error ? { data: [] } : r), () => ({ data: [] })),
         supabase
           .from("patients")
           .select("id, name, phone")
@@ -447,12 +446,11 @@ function ConsultCockpitPage() {
       // 3. Mark token completed
       const todayStr = todayDateStr();
       await supabase
-        .from("queue_tokens" as any)
+        .from("queue_tokens")
         .update({ status: "done", completed_at: new Date().toISOString() })
         .eq("queue_date", todayStr)
         .eq("patient_name", patientName.trim())
-        .then(() => {})
-        .catch(() => {});
+        .then(() => {}, () => {});
 
       toast.success(`✅ Consultation completed for ${patientName}!`);
 

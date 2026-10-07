@@ -518,7 +518,7 @@ export const createBooking = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (duplicateAppt) {
-      const timeStr = new Date(duplicateAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const timeStr = duplicateAppt.scheduled_at ? new Date(duplicateAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "an unspecified time";
       throw new Error(`An appointment already exists for this phone number today at ${timeStr}.`);
     }
 
@@ -640,7 +640,7 @@ export const createBooking = createServerFn({ method: "POST" })
         
         if (apptDateStr === todayStr) {
           const { data: maxToken } = await sb
-            .from("queue_tokens" as any)
+            .from("queue_tokens")
             .select("token_number")
             .eq("organization_id", orgId)
             .eq("queue_date", todayStr)
@@ -648,10 +648,10 @@ export const createBooking = createServerFn({ method: "POST" })
             .limit(1)
             .maybeSingle();
 
-          const nextTokenNum = ((maxToken as any)?.token_number ?? 0) + 1;
-          await sb.from("queue_tokens" as any).insert({
+          const nextTokenNum = (maxToken?.token_number ?? 0) + 1;
+          await sb.from("queue_tokens").insert({
             organization_id: orgId,
-            clinic_id: data.clinic_id,
+            appointment_id: appt.id,
             queue_date: todayStr,
             token_number: nextTokenNum,
             patient_name: data.patient_name,
@@ -700,7 +700,7 @@ export const createBooking = createServerFn({ method: "POST" })
         const isWalkin = data.source === "walkin";
         const doctorTemplate = isWalkin ? "walkin_doctor_alert" : "appointment_alert";
 
-        const tasks: Promise<any>[] = [];
+        const tasks: PromiseLike<unknown>[] = [];
 
         if (doctorPhone) {
           tasks.push(
@@ -778,8 +778,7 @@ export const createBooking = createServerFn({ method: "POST" })
                     inbox: true,
                   }).catch(() => {});
                 }
-              })
-              .catch(() => {})
+              }, () => {})
           );
         }
 
@@ -849,28 +848,28 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
       if (data.status === "completed") {
         await sb
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .update({ status: "done", completed_at: new Date().toISOString() })
           .eq("organization_id", (appt as any).organization_id)
           .eq("queue_date", todayStr)
           .eq("patient_name", appt.patient_name);
       } else if (data.status === "serving" || data.status === "in_consultation") {
         await sb
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .update({ status: "serving", called_at: new Date().toISOString() })
           .eq("organization_id", (appt as any).organization_id)
           .eq("queue_date", todayStr)
           .eq("patient_name", appt.patient_name);
       } else if (data.status === "checked_in" || data.status === "waiting") {
         await sb
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .update({ status: "waiting" })
           .eq("organization_id", (appt as any).organization_id)
           .eq("queue_date", todayStr)
           .eq("patient_name", appt.patient_name);
       } else if (data.status === "cancelled" || data.status === "no_show") {
         await sb
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .update({ status: "skipped", completed_at: new Date().toISOString() })
           .eq("organization_id", (appt as any).organization_id)
           .eq("queue_date", todayStr)

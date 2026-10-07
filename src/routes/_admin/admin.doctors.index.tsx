@@ -207,6 +207,7 @@ function DoctorsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-display">All Doctors</h1>
+          <p className="text-sm text-muted-foreground" role="note">Legacy subscription editing is disabled. Profile-only corrections remain available from doctor details. Ask the clinic owner to use /dashboard/billing.</p>
           <p className="text-sm text-muted-foreground">
             {rows.length} result{rows.length === 1 ? "" : "s"}
           </p>
@@ -487,7 +488,7 @@ function DoctorsPage() {
                     periodEnd: editPeriodEnd || null,
                   })
                 }
-                disabled={updateProfileMut.isPending}
+                disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
               >
                 {updateProfileMut.isPending ? "Saving..." : "Save Changes"}
               </Button>

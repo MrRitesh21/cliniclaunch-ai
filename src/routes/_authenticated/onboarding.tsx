@@ -30,31 +30,11 @@ import {
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { resolveAvailableOrgSlug } from "@/lib/clinic.functions";
-import {
-  startOnboardingTrialSubscription,
-  activateRazorpaySubscription,
-  verifySubscriptionStatus,
-} from "@/lib/razorpay.functions";
+import { provisionClinicTrial, getClinicSubscription } from "@/lib/subscription.functions";
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
+import { pricePresentation } from "@/components/billing/clinicx-ux";
 
-declare global {
-  interface Window {
-    Razorpay?: new (opts: Record<string, unknown>) => { open: () => void };
-  }
-}
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined") return resolve(false);
-    if (window.Razorpay) return resolve(true);
-    const s = document.createElement("script");
-    s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
 
 type BusinessType = Database["public"]["Enums"]["business_type"];
 type Plan = Database["public"]["Tables"]["plans"]["Row"];
@@ -267,6 +247,8 @@ function Onboarding() {
   const platformName = mStatus?.platform_name || "ClinicX";
 
   const [checking, setChecking] = useState(true);
+  const [workspaceCheckError, setWorkspaceCheckError] = useState<string | null>(null);
+  const [checkRetry, setCheckRetry] = useState(0);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -278,8 +260,8 @@ function Onboarding() {
   const [orgName, setOrgName] = useState("");
   const [orgSlug, setOrgSlug] = useState("");
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
-  const [planId, setPlanId] = useState<string>("professional");
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
+  const [planId, setPlanId] = useState<string>("growth");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
   const [quickSetup, setQuickSetup] = useState(true);
 
@@ -290,25 +272,27 @@ function Onboarding() {
       return;
     }
     (async () => {
-      const { data } = await supabase
+      setWorkspaceCheckError(null);
+      const { data, error: membershipError } = await supabase
         .from("organization_members")
         .select("organization_id")
         .eq("user_id", user.id)
         .limit(1);
+      if (membershipError) { setWorkspaceCheckError("Your workspace membership couldn't be verified. No new workspace has been created."); return; }
       if (data && data.length > 0) {
         navigate({ to: "/dashboard" });
         return;
       }
 
       if (user.email) {
-        const { data: invite } = await supabase
+        const { data: invite, error: inviteError } = await supabase
           .from("organization_invites" as any)
           .select("token")
           .eq("email", user.email.toLowerCase())
           .is("accepted_at", null)
           .limit(1)
           .maybeSingle();
-
+        if (inviteError) { setWorkspaceCheckError("Pending clinic invitations couldn't be verified. Retry before starting a new practice."); return; }
         const inviteToken = (invite as any)?.token as string | undefined;
         if (inviteToken) {
           navigate({ to: `/invite/${inviteToken}` });
@@ -317,8 +301,8 @@ function Onboarding() {
       }
 
       setChecking(false);
-    })();
-  }, [isReady, user, navigate]);
+    })().catch(() => setWorkspaceCheckError("Workspace discovery is unavailable. Retry before starting a new practice."));
+  }, [isReady, user, navigate, checkRetry]);
 
   useEffect(() => {
     (async () => {
@@ -414,7 +398,7 @@ function Onboarding() {
     if (!currentPlan || !draftRestored || quickSetup) return;
     const hasChanged = prevPlanId.current !== planId || prevBusinessType.current !== businessType;
     if (hasChanged) {
-      const planModules = currentPlan.module_ids ?? [];
+      const planModules = modules.filter(m => m.is_available).map(m => m.id);
       setSelectedModules(new Set(planModules));
       prevPlanId.current = planId;
       prevBusinessType.current = businessType;
@@ -425,7 +409,7 @@ function Onboarding() {
     if (!currentPlan || !draftRestored || !quickSetup) return;
     const hasChanged = prevPlanId.current !== planId || prevBusinessType.current !== businessType;
     if (hasChanged) {
-      const planModules = currentPlan.module_ids ?? [];
+      const planModules = modules.filter(m => m.is_available).map(m => m.id);
       const rec = profile?.recommendedModules ?? [];
       const tailored = rec.length > 0 ? planModules.filter((m) => rec.includes(m)) : planModules;
       setSelectedModules(new Set(tailored));
@@ -443,166 +427,67 @@ function Onboarding() {
   }
 
   async function finish() {
-    if (!user) return;
-    if (!orgSlug || !businessType || !doctorName.trim()) {
-      toast.error("Please fill in your doctor name");
+    if (!user || !businessType || !doctorName.trim() || !orgName.trim() || !orgSlug) {
+      toast.error("Please complete your clinic and doctor details");
       return;
     }
     setSaving(true);
-
+    let provisioned = false;
     try {
       const { slug } = await resolveAvailableOrgSlug({ data: { base: orgSlug } });
-      const orgId = crypto.randomUUID();
-
-      toast.message("Initializing payment gateway...", {
-        description: "Setting up your ₹1 trial.",
-      });
-      const res = await startOnboardingTrialSubscription({
-        data: {
-          plan_id: planId,
-          billing_cycle: billingCycle,
-          organization_id: orgId,
-        },
-      });
-
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        setSaving(false);
-        toast.error("Failed to load Razorpay SDK");
-        return;
+      const result = await provisionClinicTrial({ data: {
+        slug, name: orgName.trim(), doctorName: doctorName.trim(), businessType,
+      } });
+      provisioned = true;
+      // Identity, membership, doctor and trial are atomic and owned by the server.
+      // Only ordinary profile configuration is updated here; never subscription fields.
+      const { error } = await supabase.from("clinics").update({
+        specialization: specialization.trim(),
+        experience_years: Math.max(0, parseInt(experienceYears) || 0),
+        consultation_fee: Math.max(0, parseFloat(consultationFee) || 0),
+        public_email: user.email ?? "",
+      }).eq("id", result.clinic_id).eq("organization_id", result.organization_id);
+      if (error) throw new Error("Your trial started, but profile settings could not be saved. Complete them in clinic settings.");
+      const { error: doctorError } = await supabase.from("doctors").update({
+        specialization: specialization.trim(),
+        consultation_fee: Math.max(0, parseFloat(consultationFee) || 0),
+      }).eq("organization_id", result.organization_id).eq("user_id", user.id);
+      if (doctorError) throw new Error("Your trial started, but doctor settings could not be saved. Complete them in Doctors.");
+      const modulesToInstall = quickSetup
+        ? profile?.recommendedModules ?? [] : Array.from(selectedModules);
+      const moduleRows = modulesToInstall.filter(id => modules.some(m => m.id === id && m.is_available)).map(module_id => ({
+        organization_id: result.organization_id, module_id, installed_by: user.id,
+      }));
+      if (moduleRows.length) {
+        const { error: moduleError } = await supabase.from("organization_modules").upsert(moduleRows, { onConflict: "organization_id,module_id" });
+        if (moduleError) throw new Error("Your trial started, but app preferences could not be saved. Choose apps in the dashboard.");
       }
-
-      const rp = new window.Razorpay!({
-        key: res.key_id,
-        subscription_id: res.subscription_id,
-        name: platformName,
-        description: `Trial setup for ${planId} plan`,
-        image: "/logo.avif",
-        handler: async (response: any) => {
-          setSaving(true);
-          try {
-            toast.message("Verifying payment...", { description: "Setting up your workspace." });
-
-            const check = await verifySubscriptionStatus({
-              data: {
-                subscription_id: response?.razorpay_subscription_id || res.subscription_id,
-              },
-            });
-            if (!check.active) {
-              throw new Error("Payment verification failed. Subscription is not authorized.");
-            }
-
-            const { error: orgErr } = await supabase
-              .from("organizations")
-              .insert({ id: orgId, name: orgName, slug, business_type: businessType });
-            if (orgErr) throw new Error(orgErr.message ?? "Failed to create organization");
-
-            const { data: clinicRow, error: clinicErr } = await supabase
-              .from("clinics")
-              .insert({
-                organization_id: orgId,
-                owner_id: user.id,
-                slug,
-                clinic_name: orgName,
-                doctor_name: doctorName.trim(),
-                specialization: specialization.trim(),
-                qualification: "",
-                experience_years: parseInt(experienceYears) || 0,
-                consultation_fee: parseFloat(consultationFee) || 0,
-                public_email: user.email ?? "",
-                is_published: true,
-                published_at: new Date().toISOString(),
-              })
-              .select("id")
-              .single();
-            if (clinicErr) console.warn("Clinic create failed:", clinicErr.message);
-            const clinicId = clinicRow?.id ?? null;
-
-            const isSoloPractice =
-              businessType === "doctor" ||
-              businessType === "dentist" ||
-              businessType === "physiotherapist" ||
-              businessType === "therapist";
-            if (isSoloPractice) {
-              await supabase.from("doctors").insert({
-                organization_id: orgId,
-                clinic_id: clinicId,
-                user_id: user.id,
-                name: doctorName.trim(),
-                is_active: true,
-              });
-            }
-
-            const planModuleIds = currentPlan?.module_ids ?? [];
-            const recommended = profile?.recommendedModules ?? [];
-            const tailored = planModuleIds.filter((m) => recommended.includes(m));
-            const modulesToInstall = quickSetup
-              ? new Set([...tailored])
-              : new Set([...tailored, ...Array.from(selectedModules)]);
-            const moduleRows = Array.from(modulesToInstall).map((mid) => ({
-              organization_id: orgId,
-              module_id: mid,
-              installed_by: user.id,
-            }));
-            if (moduleRows.length > 0)
-              await supabase.from("organization_modules").insert(moduleRows);
-
-            await activateRazorpaySubscription({
-              data: {
-                subscription_id: response?.razorpay_subscription_id || res.subscription_id,
-                payment_id: response?.razorpay_payment_id || undefined,
-              },
-            });
-
-            await supabase.from("organization_onboarding").insert({
-              organization_id: orgId,
-              current_step: 7,
-              business_type_set: true,
-              plan_selected: true,
-              modules_selected: true,
-              completed: true,
-              completed_at: new Date().toISOString(),
-            });
-
-            localStorage.removeItem(`onboarding_draft_${user.id}`);
-
-            setSaving(false);
-            toast.success("Workspace launched!");
-            if (!isSoloPractice) {
-              toast.message("Add your doctors", {
-                description: "Add each doctor patients can book with.",
-              });
-              navigate({ to: "/dashboard/doctors" });
-            } else {
-              navigate({ to: "/dashboard" });
-            }
-          } catch (err: any) {
-            console.error("Workspace launch failed:", err);
-            toast.error(err.message || "Failed to setup workspace");
-            setSaving(false);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setSaving(false);
-            toast.message("Payment cancelled", {
-              description: "Authorize the ₹1 trial verification to start.",
-            });
-          },
-        },
-        theme: { color: "#2563eb" },
-      });
-      rp.open();
-    } catch (err: any) {
+      const snapshot = await getClinicSubscription({ data: { organizationId: result.organization_id } });
+      if (snapshot.effective_state !== "trialing") throw new Error("Your workspace was created. Review its current subscription status in Billing.");
+      const [profileRead, doctorRead, modulesRead] = await Promise.all([
+        supabase.from("clinics").select("id, specialization, experience_years, consultation_fee, public_email").eq("id", result.clinic_id).eq("organization_id", result.organization_id).single(),
+        supabase.from("doctors").select("specialization, consultation_fee").eq("organization_id", result.organization_id).eq("user_id", user.id).single(),
+        supabase.from("organization_modules").select("module_id").eq("organization_id", result.organization_id),
+      ]);
+      if (profileRead.error || doctorRead.error || modulesRead.error || profileRead.data?.specialization !== specialization.trim() || profileRead.data.experience_years !== Math.max(0, parseInt(experienceYears) || 0) || profileRead.data.consultation_fee !== Math.max(0, parseFloat(consultationFee) || 0) || profileRead.data.public_email !== (user.email ?? "") || doctorRead.data?.specialization !== specialization.trim() || doctorRead.data.consultation_fee !== Math.max(0, parseFloat(consultationFee) || 0) || !moduleRows.every(row => modulesRead.data?.some(m => m.module_id === row.module_id))) {
+        throw new Error("Profile configuration readback failed. Your workspace is preserved; review settings before continuing.");
+      }
+      localStorage.removeItem(`onboarding_draft_${user.id}`);
+      toast.success("Welcome to ClinicX. Your 30-day free trial has started.");
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to start your trial. Please try again.");
+      // Never repeat provisioning after a successful launch just to retry configuration.
+      if (provisioned) navigate({ to: "/dashboard/settings" });
+    } finally {
       setSaving(false);
-      toast.error(err.message || "Failed to initiate subscription setup");
     }
   }
 
   if (checking)
     return (
       <div className="min-h-screen grid place-items-center text-muted-foreground">
-        <Loader2 className="size-6 animate-spin" />
+        {workspaceCheckError ? <div role="alert" className="max-w-md p-6 space-y-3"><p>{workspaceCheckError}</p><Button variant="outline" onClick={() => setCheckRetry(n => n + 1)}>Retry workspace check</Button></div> : <Loader2 className="size-6 animate-spin" />}
       </div>
     );
 
@@ -799,7 +684,8 @@ function Onboarding() {
               <div>
                 <h2 className="font-display text-xl font-bold">Choose a plan</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  All plans include a 14-day free trial. Switch or cancel anytime.
+                  Your 30-day trial needs no payment method. Plan selection is a preference only; choose a paid plan later in Billing.
+                  Configured catalog prices are not verified renewal quotes; Billing confirms current provider pricing.
                 </p>
               </div>
               <div className="flex items-center gap-1 p-1 bg-muted rounded-lg text-xs font-semibold">
@@ -813,17 +699,13 @@ function Onboarding() {
                   onClick={() => setBillingCycle("yearly")}
                   className={`px-3.5 py-1.5 rounded-md transition ${billingCycle === "yearly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
                 >
-                  Yearly{" "}
-                  <Badge variant="secondary" className="ml-1 text-[10px]">
-                    2 mo free
-                  </Badge>
+                  Yearly
                 </button>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 {plans.map((p) => {
                   const active = planId === p.id;
-                  const price =
-                    billingCycle === "monthly" ? p.monthly_price : Math.round(p.yearly_price / 12);
+                  const price = pricePresentation(p, billingCycle).total;
                   return (
                     <button
                       key={p.id}
@@ -840,7 +722,7 @@ function Onboarding() {
                           {price === 0 ? "Free" : `₹${price.toLocaleString()}`}
                           {price > 0 && (
                             <span className="text-[11px] text-muted-foreground font-normal ml-0.5">
-                              /mo
+                              {billingCycle === "monthly" ? "/month" : "/year"}
                             </span>
                           )}
                         </div>
@@ -885,19 +767,15 @@ function Onboarding() {
                   <p className="text-xs text-muted-foreground">
                     Based on your {businessType} practice, we'll install{" "}
                     {
-                      (currentPlan?.module_ids ?? []).filter((m) =>
-                        (profile?.recommendedModules ?? []).includes(m),
-                      ).length
+                      modules.filter(m => m.is_available && (profile?.recommendedModules ?? []).includes(m.id)).length
                     }{" "}
-                    essential apps so you can start accepting bookings immediately.
+                    available apps. Complete clinic hours and online-booking settings before accepting bookings.
                   </p>
                   <ul className="space-y-1.5 text-xs">
-                    {(currentPlan?.module_ids ?? [])
-                      .filter((m) => (profile?.recommendedModules ?? []).includes(m))
-                      .map((m) => {
-                        const mod = modules.find((x) => x.id === m);
+                    {modules.filter(m => m.is_available && (profile?.recommendedModules ?? []).includes(m.id))
+                      .map((mod) => {
                         return mod ? (
-                          <li key={m} className="flex items-center gap-2 text-foreground">
+                          <li key={mod.id} className="flex items-center gap-2 text-foreground">
                             <Check className="size-3.5 text-primary shrink-0" /> {mod.name}
                           </li>
                         ) : null;
@@ -908,7 +786,7 @@ function Onboarding() {
                 <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
                   {modules.map((m) => {
                     const checked = selectedModules.has(m.id);
-                    const includedInPlan = (currentPlan?.module_ids ?? []).includes(m.id);
+                    const includedInPlan = m.is_available;
                     const disabled = !includedInPlan;
                     return (
                       <button
@@ -948,7 +826,7 @@ function Onboarding() {
                             )}
                             {!includedInPlan && (
                               <Badge variant="outline" className="text-[9px]">
-                                Requires {m.min_plan}
+                                Currently unavailable
                               </Badge>
                             )}
                           </div>
@@ -982,18 +860,18 @@ function Onboarding() {
                   value={BUSINESS_TYPES.find((b) => b.id === businessType)?.label ?? ""}
                 />
                 <Row
-                  label="Plan"
-                  value={`${currentPlan?.name ?? "Professional"} (${billingCycle === "monthly" ? "Monthly" : "Yearly"})`}
+                  label="Future plan preference"
+                  value={`${currentPlan?.name ?? "Not selected"} (${billingCycle === "monthly" ? "Monthly" : "Yearly"})`}
                 />
                 <Row
                   label="Apps"
                   value={`${quickSetup ? "Recommended" : `${selectedModules.size} custom`} setup`}
                 />
-                <Row label="Trial" value="14 days for ₹1" />
+                <Row label="Trial" value="30 days free · no payment method" />
               </Card>
               <p className="text-[10px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                You'll be charged ₹1 immediately to verify your payment method. Your subscription
-                renews after 14 days. Cancel anytime.
+                Start running your clinic for 30 days free. No automatic paid renewal is created.
+                Complete hours, staff, prescription, billing and booking settings from your dashboard checklist.
               </p>
             </div>
           )}
@@ -1021,7 +899,7 @@ function Onboarding() {
                   </>
                 ) : (
                   <>
-                    Pay ₹1 & Launch <Sparkles className="size-3.5 ml-1.5" />
+                    Start free trial <Sparkles className="size-3.5 ml-1.5" />
                   </>
                 )}
               </Button>

@@ -1,4 +1,19 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useOrganization } from "@/hooks/useOrganization";
+import { useClinic } from "./dashboard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Monitor, Plus, Stethoscope, Clock, Calendar, CheckCircle2, Sparkles, PhoneCall, Search, ListOrdered, Phone, UserCheck, Check, MessageSquare } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/queue")({
   component: () => <Navigate to="/dashboard/consult" replace />,
@@ -73,11 +88,10 @@ function QueuePage() {
 
       const [tokenRes, apptRes, patientRes] = await Promise.all([
         supabase
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .select("*")
           .eq("queue_date", date)
-          .then((res) => (res.error ? { data: [] } : res))
-          .catch(() => ({ data: [] })),
+          .then((res) => (res.error ? { data: [] } : res), () => ({ data: [] })),
         clinicId
           ? supabase
               .from("appointments")
@@ -93,8 +107,7 @@ function QueuePage() {
               .select("id, name, phone")
               .eq("organization_id", orgId)
               .order("name")
-              .then((res) => (res.error ? { data: [] } : res))
-              .catch(() => ({ data: [] }))
+              .then((res) => (res.error ? { data: [] } : res), () => ({ data: [] }))
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -246,7 +259,7 @@ function QueuePage() {
           .eq("id", item.appointment_id);
       } else {
         await supabase
-          .from("queue_tokens" as any)
+          .from("queue_tokens")
           .update({ status: "done", completed_at: new Date().toISOString() })
           .eq("id", item.id);
       }
@@ -269,17 +282,8 @@ function QueuePage() {
         serving={
           servingItem
             ? {
-                id: servingItem.id,
                 token_number: servingItem.token_number || 1,
-                patient_id: servingItem.patient_id || null,
                 patient_name: servingItem.patient_name,
-                patient_phone: servingItem.patient_phone,
-                status: "serving",
-                priority: servingItem.priority,
-                note: servingItem.problem || null,
-                called_at: servingItem.called_at || null,
-                completed_at: null,
-                created_at: servingItem.created_at,
               }
             : null
         }
@@ -638,7 +642,7 @@ function IssueDialog({
     setSaving(true);
     try {
       const { data: maxToken } = await supabase
-        .from("queue_tokens" as any)
+        .from("queue_tokens")
         .select("token_number")
         .eq("organization_id", orgId)
         .eq("queue_date", date)
@@ -646,9 +650,9 @@ function IssueDialog({
         .limit(1)
         .maybeSingle();
 
-      const nextTokenNum = ((maxToken as any)?.token_number ?? 0) + 1;
+      const nextTokenNum = (maxToken?.token_number ?? 0) + 1;
 
-      const { error } = await supabase.from("queue_tokens" as any).insert({
+      const { error } = await supabase.from("queue_tokens").insert({
         organization_id: orgId,
         queue_date: date,
         token_number: nextTokenNum,

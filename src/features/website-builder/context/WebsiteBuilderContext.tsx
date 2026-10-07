@@ -9,7 +9,7 @@ import {
   type SectionVariants,
 } from "@/components/site/types";
 import { normalizeLeadPopup } from "@/components/clinic/lead-capture";
-import type { EditorState, WebsiteTab, DeviceMode, DesignTokens, PageItem } from "../types";
+import type { EditorState, WebsiteTab, DeviceMode, DesignTokens, PageItem, MarketplaceTemplate } from "../types";
 
 const defaultDesignTokens: DesignTokens = {
   brandName: "",
@@ -121,7 +121,7 @@ type WebsiteBuilderContextType = {
   togglePublish: (next: boolean) => Promise<void>;
   triggerGscSubmission: () => Promise<void>;
   applyThemePreset: (themeId: string, primaryColor: string) => void;
-  applyTemplatePreset: (templateId: string, variants: Required<SectionVariants>) => void;
+  applyTemplatePreset: (tpl: MarketplaceTemplate | { id: string; variants: Required<SectionVariants> }) => void;
 };
 
 const WebsiteBuilderContext = createContext<WebsiteBuilderContextType | null>(null);

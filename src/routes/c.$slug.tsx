@@ -1,3 +1,4 @@
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Outlet, Link, useRouterState, notFound } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { getClinicBySlug, getClinicPublicSchema } from "@/lib/clinic.functions";
@@ -93,11 +94,11 @@ export const Route = createFileRoute("/c/$slug")({
       </div>
     </div>
   ),
-  errorComponent: ({ error }) => (
+  errorComponent: (_props: ErrorComponentProps) => (
     <div className="min-h-screen grid place-items-center text-center px-4">
       <div>
         <h1 className="font-display text-2xl">Couldn't load this clinic</h1>
-        <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+        <p className="text-muted-foreground mt-2 text-sm">We could not load this page. Please try again.</p>
       </div>
     </div>
   ),

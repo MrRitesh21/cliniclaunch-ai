@@ -16,6 +16,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
@@ -88,6 +89,8 @@ import { Route as AuthenticatedDashboardStaffRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardWalkinsRouteImport } from './routes/_authenticated/dashboard.walkins'
 import { Route as AuthenticatedDashboardWebsiteRouteImport } from './routes/_authenticated/dashboard.website'
 import { Route as AuthenticatedDashboardWhatsappRouteImport } from './routes/_authenticated/dashboard.whatsapp'
+import { Route as ApiInternalClinicxBillingJobsRouteImport } from './routes/api/internal/clinicx-billing-jobs'
+import { Route as ApiInternalClinicxJobsRouteImport } from './routes/api/internal/clinicx-jobs'
 import { Route as ApiPublicHealthzRouteImport } from './routes/api/public/healthz'
 import { Route as ApiPublicPushEventRouteImport } from './routes/api.public.push-event'
 import { Route as ApiWaCronRouteImport } from './routes/api.wa.cron'
@@ -140,6 +143,11 @@ const BookRoute = BookRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -533,6 +541,17 @@ const AuthenticatedDashboardWhatsappRoute =
     path: '/whatsapp',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const ApiInternalClinicxBillingJobsRoute =
+  ApiInternalClinicxBillingJobsRouteImport.update({
+    id: '/api/internal/clinicx-billing-jobs',
+    path: '/api/internal/clinicx-billing-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalClinicxJobsRoute = ApiInternalClinicxJobsRouteImport.update({
+  id: '/api/internal/clinicx-jobs',
+  path: '/api/internal/clinicx-jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHealthzRoute = ApiPublicHealthzRouteImport.update({
   id: '/api/public/healthz',
   path: '/api/public/healthz',
@@ -645,6 +664,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
+  '/docs': typeof DocsRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -715,6 +735,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/walkins': typeof AuthenticatedDashboardWalkinsRoute
   '/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
+  '/api/internal/clinicx-billing-jobs': typeof ApiInternalClinicxBillingJobsRoute
+  '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/wa/cron': typeof ApiWaCronRoute
@@ -744,6 +766,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
+  '/docs': typeof DocsRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -810,6 +833,8 @@ export interface FileRoutesByTo {
   '/dashboard/walkins': typeof AuthenticatedDashboardWalkinsRoute
   '/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
+  '/api/internal/clinicx-billing-jobs': typeof ApiInternalClinicxBillingJobsRoute
+  '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/wa/cron': typeof ApiWaCronRoute
@@ -842,6 +867,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
+  '/docs': typeof DocsRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -912,6 +938,8 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/walkins': typeof AuthenticatedDashboardWalkinsRoute
   '/_authenticated/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/_authenticated/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
+  '/api/internal/clinicx-billing-jobs': typeof ApiInternalClinicxBillingJobsRoute
+  '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/wa/cron': typeof ApiWaCronRoute
@@ -943,6 +971,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/contact'
+    | '/docs'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1013,6 +1042,8 @@ export interface FileRouteTypes {
     | '/dashboard/walkins'
     | '/dashboard/website'
     | '/dashboard/whatsapp'
+    | '/api/internal/clinicx-billing-jobs'
+    | '/api/internal/clinicx-jobs'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/wa/cron'
@@ -1042,6 +1073,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/contact'
+    | '/docs'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1108,6 +1140,8 @@ export interface FileRouteTypes {
     | '/dashboard/walkins'
     | '/dashboard/website'
     | '/dashboard/whatsapp'
+    | '/api/internal/clinicx-billing-jobs'
+    | '/api/internal/clinicx-jobs'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/wa/cron'
@@ -1139,6 +1173,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/contact'
+    | '/docs'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1209,6 +1244,8 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/walkins'
     | '/_authenticated/dashboard/website'
     | '/_authenticated/dashboard/whatsapp'
+    | '/api/internal/clinicx-billing-jobs'
+    | '/api/internal/clinicx-jobs'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/wa/cron'
@@ -1241,6 +1278,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   ContactRoute: typeof ContactRoute
+  DocsRoute: typeof DocsRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   HowItWorksRoute: typeof HowItWorksRoute
@@ -1267,6 +1305,8 @@ export interface RootRouteChildren {
   LSlugRoute: typeof LSlugRoute
   RSlugRoute: typeof RSlugRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiInternalClinicxBillingJobsRoute: typeof ApiInternalClinicxBillingJobsRoute
+  ApiInternalClinicxJobsRoute: typeof ApiInternalClinicxJobsRoute
   ApiPublicHealthzRoute: typeof ApiPublicHealthzRoute
   ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
   ApiWaCronRoute: typeof ApiWaCronRoute
@@ -1324,6 +1364,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -1830,6 +1877,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardWhatsappRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/api/internal/clinicx-billing-jobs': {
+      id: '/api/internal/clinicx-billing-jobs'
+      path: '/api/internal/clinicx-billing-jobs'
+      fullPath: '/api/internal/clinicx-billing-jobs'
+      preLoaderRoute: typeof ApiInternalClinicxBillingJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/clinicx-jobs': {
+      id: '/api/internal/clinicx-jobs'
+      path: '/api/internal/clinicx-jobs'
+      fullPath: '/api/internal/clinicx-jobs'
+      preLoaderRoute: typeof ApiInternalClinicxJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/healthz': {
       id: '/api/public/healthz'
       path: '/api/public/healthz'
@@ -2167,6 +2228,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   ContactRoute: ContactRoute,
+  DocsRoute: DocsRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   HowItWorksRoute: HowItWorksRoute,
@@ -2194,6 +2256,8 @@ const rootRouteChildren: RootRouteChildren = {
   LSlugRoute: LSlugRoute,
   RSlugRoute: RSlugRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiInternalClinicxBillingJobsRoute: ApiInternalClinicxBillingJobsRoute,
+  ApiInternalClinicxJobsRoute: ApiInternalClinicxJobsRoute,
   ApiPublicHealthzRoute: ApiPublicHealthzRoute,
   ApiPublicPushEventRoute: ApiPublicPushEventRoute,
   ApiWaCronRoute: ApiWaCronRoute,

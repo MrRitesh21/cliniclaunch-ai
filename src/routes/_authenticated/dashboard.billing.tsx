@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import {
   Dialog,
   DialogContent,
@@ -15,38 +14,30 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import {
-  Check,
-  Crown,
-  Loader2,
-  Receipt,
-  Tag,
-  AlertTriangle,
-  ShieldAlert,
-  Sparkles,
-  Building,
-  MessageSquareWarning,
-  ArrowRight,
-} from "lucide-react";
+import { Check, AlertTriangle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
-import { ValueReceiptCard } from "@/components/value/ValueReceiptCard";
+import { ClinicTrialJourney } from "@/components/billing/ClinicTrialJourney";
+import {
+  collectClinicBackup,
+  limitPresentation,
+  pricePresentation,
+  mergeBillingPage,
+} from "@/components/billing/clinicx-ux";
+import { getClinicSubscription, exportClinicDataPage } from "@/lib/subscription.functions";
+import { z } from "zod";
 import { PlanCompareTable } from "@/components/billing/PlanCompareTable";
 import { useServerFn } from "@tanstack/react-start";
 import {
   startRazorpaySubscription,
   cancelRazorpaySubscription,
-  validateCoupon,
+  checkSubscriptionDowngrade,
+  changeRazorpaySubscription,
+  resumeRazorpaySubscription,
+  reconcileRecurringSubscriptionCommand,
+  getSubscriptionRenewalQuote,
+  listSubscriptionBillingPage,
+  getSubscriptionInvoice,
   activateRazorpaySubscription,
   syncRazorpaySubscription,
   listBillingReminders,
@@ -73,8 +64,62 @@ function loadRazorpayScript(): Promise<boolean> {
 
 type Plan = Database["public"]["Tables"]["plans"]["Row"];
 type Module = Database["public"]["Tables"]["modules"]["Row"];
-type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
-type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
+// Forward catalog migrations are not present in the shared generated types yet.
+// Keep this narrow read-only boundary explicit instead of widening Supabase to any.
+interface CatalogTransport {
+  from(table: "plan_limits" | "plan_features" | "clinicx_feature_aliases"): {
+    select(columns: string): PromiseLike<{ data: unknown[] | null; error: unknown }>;
+  };
+}
+const catalogTransport = supabase as unknown as CatalogTransport;
+const financialRow = z.object({
+  id: z.string(),
+  amount_paise: z.number().int().positive().safe(),
+  status: z.string(),
+  created_at: z.string(),
+  invoice_number: z.string().optional(),
+  payment_id: z.string().optional(),
+});
+const cursorSchema = z.object({ created_at: z.string(), id: z.string() });
+const pageSchema = z.object({
+  kind: z.enum(["payments", "invoices", "legacy_invoices"]),
+  currency: z.literal("INR"),
+  amount_unit: z.enum(["paise", "unclassified"]),
+  entries: z.array(z.record(z.unknown())),
+  has_more: z.boolean(),
+  next_cursor: cursorSchema.nullable(),
+});
+type HistoryKind = "payments" | "invoices" | "legacy_invoices";
+type HistoryPage = z.infer<typeof pageSchema>;
+type BillingHistory = Partial<Record<HistoryKind, HistoryPage>>;
+const pendingChangeSchema = z.object({
+  id: z.string(),
+  plan_id: z.string(),
+  billing_cycle: z.enum(["monthly", "yearly"]),
+  amount_paise: z.number().int().positive().safe(),
+  effective_at: z.string(),
+});
+const renewalSchema = z.discriminatedUnion("available", [
+  z.object({ available: z.literal(false), reason: z.string() }),
+  z.object({
+    available: z.literal(true),
+    currency: z.literal("INR"),
+    amount_unit: z.literal("paise"),
+    provider_status: z.string(),
+    plan_id: z.string(),
+    billing_cycle: z.enum(["monthly", "yearly"]),
+    will_renew: z.boolean(),
+    amount_paise: z.number().int().positive().safe().nullable(),
+    next_charge_at: z.number().int().positive().nullable(),
+    recurring_amount_paise: z.number().int().positive().safe(),
+    pending_change: pendingChangeSchema.nullable(),
+    reason: z.string().nullable(),
+    payment_method: z.string().optional(),
+    can_change: z.boolean().optional(),
+    can_resume: z.boolean().optional(),
+  }),
+]);
+type RenewalQuote = z.infer<typeof renewalSchema>;
 
 import { useClinic } from "./dashboard";
 
@@ -84,35 +129,26 @@ export const Route = createFileRoute("/_authenticated/dashboard/billing")({
 
 function BillingPage() {
   const clinic = useClinic();
-  const { org, isSubscriptionExpired, refresh } = useOrganization();
+  const { org, role, entitlement, authorityError, isSubscriptionExpired, refresh } =
+    useOrganization();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
-  const [sub, setSub] = useState<Subscription | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [cycle, setCycle] = useState<"monthly" | "yearly">("yearly");
+  const [catalogLimits, setCatalogLimits] = useState<Record<string, Record<string, number | null>>>(
+    {},
+  );
+  const [catalogFeatures, setCatalogFeatures] = useState<Record<string, string[]>>({});
+  const [featureAliases, setFeatureAliases] = useState<Record<string, string>>({});
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
   const cycleInitialized = useRef(false);
   const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
-  const [coupon, setCoupon] = useState("");
-  const [discount, setDiscount] = useState(0); // percent (display only)
-  const [discountRupees, setDiscountRupees] = useState(0);
-  const [couponApplied, setCouponApplied] = useState<string | null>(null);
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelStep, setCancelStep] = useState<1 | 2>(1);
-  const [cancelReason, setCancelReason] = useState("");
-  const [cancelConfirmText, setCancelConfirmText] = useState("");
-  const [patientCount, setPatientCount] = useState<number>(0);
-  const [staffCount, setStaffCount] = useState<number>(0);
-
-  const startFn = useServerFn(startRazorpaySubscription);
-  const cancelFn = useServerFn(cancelRazorpaySubscription);
-  const validateCouponFn = useServerFn(validateCoupon);
-  const activateFn = useServerFn(activateRazorpaySubscription);
-  const syncFn = useServerFn(syncRazorpaySubscription);
-  const listRemindersFn = useServerFn(listBillingReminders);
-  const dismissReminderFn = useServerFn(dismissBillingReminder);
+  const [exporting, setExporting] = useState(false);
+  const [history, setHistory] = useState<BillingHistory | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [reminders, setReminders] = useState<
     Array<{
       id: string;
@@ -124,286 +160,575 @@ function BillingPage() {
     }>
   >([]);
   const [syncing, setSyncing] = useState(false);
-
-  async function refreshReminders(orgId: string) {
+  const canManageBilling = role === "owner" || role === "admin";
+  const paidMandate = entitlement?.subscription.access_source === "verified_payment";
+  const [renewal, setRenewal] = useState<RenewalQuote | null>(null);
+  const [renewalError, setRenewalError] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [commandId, setCommandId] = useState("");
+  const [invoice, setInvoice] = useState<Awaited<ReturnType<typeof getSubscriptionInvoice>> | null>(
+    null,
+  );
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
+  const [historyBusy, setHistoryBusy] = useState<HistoryKind | "all" | null>(null);
+  const workspace = useRef({ id: org?.id, role, epoch: 0 });
+  // Invalidate closures during render, before any account-change effects run.
+  if (workspace.current.id !== org?.id || workspace.current.role !== role)
+    workspace.current = { id: org?.id, role, epoch: workspace.current.epoch + 1 };
+  const billingRequest = useRef(0);
+  useEffect(() => {
+    const token = workspace.current;
+    return () => {
+      if (workspace.current === token) workspace.current = { ...token, epoch: token.epoch + 1 };
+    };
+  }, [org?.id, role]);
+  const recurringBlocked =
+    paidMandate &&
+    (!renewal?.available ||
+      renewal.provider_status !== "active" ||
+      !!renewal.pending_change ||
+      renewal.can_change === false ||
+      (!!renewal.payment_method && renewal.payment_method !== "card") ||
+      !!entitlement?.subscription.cancel_at_period_end);
+  const changeFn = useServerFn(changeRazorpaySubscription);
+  const resumeFn = useServerFn(resumeRazorpaySubscription);
+  const commandFn = useServerFn(reconcileRecurringSubscriptionCommand);
+  const renewalFn = useServerFn(getSubscriptionRenewalQuote);
+  const invoiceFn = useServerFn(getSubscriptionInvoice);
+  const startFn = useServerFn(startRazorpaySubscription);
+  const cancelFn = useServerFn(cancelRazorpaySubscription);
+  const activateFn = useServerFn(activateRazorpaySubscription);
+  const syncFn = useServerFn(syncRazorpaySubscription);
+  const listRemindersFn = useServerFn(listBillingReminders);
+  const dismissReminderFn = useServerFn(dismissBillingReminder);
+  const historyFn = useServerFn(listSubscriptionBillingPage);
+  const downgradeFn = useServerFn(checkSubscriptionDowngrade);
+  const exportFn = useServerFn(exportClinicDataPage);
+  const currentPlan = plans.find((p) => p.id === entitlement?.subscription.plan_id);
+  const recommended = plans.find((p) => p.id === entitlement?.recommendation.plan_id);
+  const refreshBilling = useCallback(
+    async function refreshBilling(orgId: string): Promise<RenewalQuote | null> {
+      const token = workspace.current;
+      const request = ++billingRequest.current;
+      if (token.id !== orgId) return null;
+      setHistoryBusy("all");
+      const fresh = () => workspace.current === token && billingRequest.current === request;
+      const [quoteResult, historyResult, reminderResult] = await Promise.allSettled([
+        renewalFn({ data: { organization_id: orgId } }),
+        Promise.all(
+          (["payments", "invoices", "legacy_invoices"] as const).map((kind) =>
+            historyFn({ data: { organization_id: orgId, kind, cursor: null, limit: 50 } }),
+          ),
+        ),
+        listRemindersFn({ data: { organization_id: orgId } }),
+      ]);
+      if (!fresh()) return null;
+      let quote: RenewalQuote | null = null;
+      try {
+        if (quoteResult.status !== "fulfilled") throw quoteResult.reason;
+        quote = renewalSchema.parse(quoteResult.value);
+        setRenewal(quote);
+        setRenewalError(null);
+      } catch {
+        setRenewal(null);
+        setRenewalError(
+          "Renewal quote could not be verified. Check status or reconcile an outstanding command; do not resend a billing change.",
+        );
+      }
+      try {
+        if (historyResult.status !== "fulfilled") throw historyResult.reason;
+        const pages: BillingHistory = {};
+        historyResult.value.forEach((raw, i) => {
+          const kind = (["payments", "invoices", "legacy_invoices"] as const)[i];
+          const page = pageSchema.parse(raw);
+          if (page.kind !== kind) throw new Error("History response mismatch");
+          if (kind !== "legacy_invoices")
+            page.entries = page.entries.map((row) => financialRow.parse(row));
+          pages[kind] = mergeBillingPage(null, page);
+        });
+        setHistory(pages);
+        setHistoryError(null);
+      } catch {
+        setHistory(null);
+        setHistoryError("Billing history couldn't be verified. Please retry.");
+      }
+      if (reminderResult.status === "fulfilled") setReminders(reminderResult.value);
+      else setReminders([]);
+      setHistoryBusy(null);
+      return quote;
+    },
+    [renewalFn, historyFn, listRemindersFn],
+  );
+  async function loadMoreHistory(kind: HistoryKind) {
+    if (!org || historyBusy) return;
+    const previous = history?.[kind];
+    if (!previous?.has_more || !previous.next_cursor) return;
+    const token = workspace.current;
+    const request = billingRequest.current;
+    setHistoryBusy(kind);
     try {
-      const rows = await listRemindersFn({ data: { organization_id: orgId } });
-      setReminders(rows ?? []);
+      const page = pageSchema.parse(
+        await historyFn({
+          data: { organization_id: org.id, kind, cursor: previous.next_cursor, limit: 50 },
+        }),
+      );
+      if (workspace.current !== token || request !== billingRequest.current) return;
+      if (kind !== "legacy_invoices")
+        page.entries = page.entries.map((row) => financialRow.parse(row));
+      const merged = mergeBillingPage(previous, page);
+      setHistory((current) => ({ ...current, [kind]: merged }));
+      setHistoryError(null);
     } catch {
-      /* ignore */
+      if (workspace.current === token)
+        setHistoryError(
+          "Older entries could not be verified. Your loaded history is unchanged; retry.",
+        );
+    } finally {
+      if (workspace.current === token && request === billingRequest.current) setHistoryBusy(null);
     }
   }
-
+  async function previewInvoice(invoiceId: string) {
+    if (!org || invoiceBusy) return;
+    const token = workspace.current;
+    setInvoice(null);
+    setInvoiceBusy(true);
+    try {
+      const detail = await invoiceFn({ data: { organization_id: org.id, invoice_id: invoiceId } });
+      if (workspace.current !== token) return;
+      if (
+        detail.organization_id !== org.id ||
+        detail.id !== invoiceId ||
+        detail.status !== "paid" ||
+        detail.currency !== "INR" ||
+        detail.amount_unit !== "paise" ||
+        detail.authority_version !== "clinicx-v1"
+      )
+        throw new Error("Invoice readback mismatch");
+      setInvoice(detail);
+    } catch {
+      if (workspace.current === token)
+        toast.error("Invoice could not be verified. No document was generated.");
+    } finally {
+      if (workspace.current === token) setInvoiceBusy(false);
+    }
+  }
   async function handleSync() {
-    if (!org) return;
+    if (!org || !canManageBilling) return;
+    const token = workspace.current;
     setSyncing(true);
     try {
-      const r = await syncFn({ data: { organization_id: org.id } });
-      if ((r as { ok?: boolean }).ok) {
-        const { data: s } = await supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("organization_id", org.id)
-          .maybeSingle();
-        setSub((s ?? null) as Subscription | null);
-        await refreshReminders(org.id);
-        toast.success(`Synced — status: ${(r as { status?: string }).status ?? "unknown"}`);
-      } else {
-        toast.info((r as { reason?: string }).reason ?? "Nothing to sync");
-      }
+      await syncFn({ data: { organization_id: org.id } });
+      if (workspace.current !== token) return;
+      await refresh();
+      await refreshBilling(org.id);
+      if (workspace.current === token) toast.info("Subscription status refreshed from the server.");
     } catch (e) {
-      toast.error((e as Error).message);
+      if (workspace.current === token)
+        toast.error(e instanceof Error ? e.message : "Unable to refresh billing");
     } finally {
-      setSyncing(false);
+      if (workspace.current === token) setSyncing(false);
     }
   }
-
   async function handleDismiss(id: string) {
     if (!org) return;
+    const token = workspace.current;
     try {
       await dismissReminderFn({ data: { id, organization_id: org.id } });
-      setReminders((prev) => prev.filter((r) => r.id !== id));
-    } catch (e) {
-      toast.error((e as Error).message);
+      const rows = await listRemindersFn({ data: { organization_id: org.id } });
+      if (workspace.current === token) setReminders(rows);
+    } catch {
+      if (workspace.current === token) toast.error("Unable to dismiss the reminder");
     }
   }
-
   useEffect(() => {
-    if (!org) return;
+    if (!org?.id) return;
     let active = true;
+    setHistory(null);
+    setHistoryError(null);
+    setPlans([]);
     (async () => {
-      const [{ data: p }, { data: m }, { data: s }, { data: inv }] = await Promise.all([
-        supabase.from("plans").select("*").order("sort_order"),
-        supabase.from("modules").select("*").order("sort_order"),
-        supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle(),
-        supabase
-          .from("invoices")
-          .select("*")
-          .eq("organization_id", org.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      if (!active) return;
-      setPlans((p ?? []) as Plan[]);
-      setModules((m ?? []) as Module[]);
-      setSub((s ?? null) as Subscription | null);
-      setInvoices((inv ?? []) as Invoice[]);
-      void refreshReminders(org.id);
-
-      // Query staff count usage statistics
-      supabase
-        .from("organization_members")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", org.id)
-        .then(({ count }) => {
-          if (active && count !== null) setStaffCount(count);
-        });
-
-      if (!cycleInitialized.current) {
-        if (s?.billing_cycle) {
-          setCycle(s.billing_cycle as "monthly" | "yearly");
-        }
-        cycleInitialized.current = true;
+      try {
+        const [p, m, l, f, a] = await Promise.all([
+          supabase.from("plans").select("*").order("sort_order"),
+          supabase.from("modules").select("*").order("sort_order"),
+          catalogTransport.from("plan_limits").select("plan_id, limit_name, limit_value"),
+          catalogTransport.from("plan_features").select("plan_id, feature"),
+          catalogTransport.from("clinicx_feature_aliases").select("alias, feature"),
+        ]);
+        for (const result of [p, m, l, f, a]) if (result.error) throw result.error;
+        if (!active) return;
+        const order = ["starter", "growth", "professional", "enterprise"];
+        setPlans(
+          (p.data ?? [])
+            .filter((p) => order.includes(p.id))
+            .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)),
+        );
+        setModules(m.data ?? []);
+        const limits: Record<string, Record<string, number | null>> = {};
+        for (const row of (l.data ?? []) as unknown as Array<{
+          plan_id: string;
+          limit_name: string;
+          limit_value: number | null;
+        }>)
+          (limits[row.plan_id] ??= {})[row.limit_name] = row.limit_value;
+        const features: Record<string, string[]> = {};
+        for (const row of (f.data ?? []) as unknown as Array<{ plan_id: string; feature: string }>)
+          (features[row.plan_id] ??= []).push(row.feature);
+        setCatalogLimits(limits);
+        setCatalogFeatures(features);
+        setFeatureAliases(
+          Object.fromEntries(
+            ((a.data ?? []) as unknown as Array<{ alias: string; feature: string }>).map((row) => [
+              row.alias,
+              row.feature,
+            ]),
+          ),
+        );
+        setCatalogError(null);
+      } catch {
+        if (active)
+          setCatalogError(
+            "Plan configuration could not be loaded. No prices or limits have been guessed.",
+          );
       }
     })();
     return () => {
       active = false;
     };
-  }, [org]);
-
+  }, [org?.id]);
+  const [renderedWorkspace, setRenderedWorkspace] = useState(org?.id);
   useEffect(() => {
-    if (!clinic?.id) return;
-    // Count actual unique patients from appointments history
-    supabase
-      .from("appointments")
-      .select("patient_phone")
-      .eq("clinic_id", clinic.id)
-      .then(({ data }) => {
-        const uniquePhones = new Set((data ?? []).map((r) => r.patient_phone).filter(Boolean));
-        setPatientCount(uniquePhones.size);
-      });
-  }, [clinic?.id]);
-
-  async function applyCoupon() {
-    if (!coupon || !pendingPlan) return;
-    setValidatingCoupon(true);
-    try {
-      const base =
-        cycle === "monthly"
-          ? (pendingPlan.discounted_monthly_price ?? pendingPlan.monthly_price)
-          : (pendingPlan.discounted_yearly_price ?? pendingPlan.yearly_price);
-      const res = await validateCouponFn({
-        data: {
-          code: coupon.trim(),
-          plan_id: pendingPlan.id,
-          billing_cycle: cycle,
-          base_amount: base,
-        },
-      });
-      setDiscountRupees(res.discount_rupees);
-      setDiscount(res.discount_type === "percent" ? res.discount_value : 0);
-      setCouponApplied(res.code);
-      toast.success(
-        res.discount_type === "percent"
-          ? `Coupon ${res.code} applied — ${res.discount_value}% off (₹${res.discount_rupees.toLocaleString()})`
-          : `Coupon ${res.code} applied — ₹${res.discount_rupees.toLocaleString()} off`,
-      );
-    } catch (e) {
-      setDiscount(0);
-      setDiscountRupees(0);
-      setCouponApplied(null);
-      toast.error((e as Error).message || "Invalid coupon");
-    } finally {
-      setValidatingCoupon(false);
+    ++billingRequest.current;
+    setHistory(null);
+    setHistoryError(null);
+    setRenewal(null);
+    setRenewalError(null);
+    setReminders([]);
+    setPendingPlan(null);
+    setShowCancelDialog(false);
+    setCancelReason("");
+    setCommandId("");
+    setInvoice(null);
+    setProcessing(false);
+    setCancelling(false);
+    setSyncing(false);
+    setExporting(false);
+    setHistoryBusy(null);
+    setInvoiceBusy(false);
+    setCheckoutMessage(null);
+    cycleInitialized.current = false;
+    setRenderedWorkspace(org?.id);
+    if (org?.id && canManageBilling) void refreshBilling(org.id);
+  }, [org?.id, canManageBilling, refreshBilling]);
+  useEffect(() => {
+    if (!cycleInitialized.current && entitlement) {
+      if (["monthly", "yearly"].includes(entitlement.subscription.billing_cycle ?? ""))
+        setCycle(entitlement.subscription.billing_cycle as "monthly" | "yearly");
+      cycleInitialized.current = true;
     }
-  }
-
-  function resetCouponState() {
-    setCoupon("");
-    setDiscount(0);
-    setDiscountRupees(0);
-    setCouponApplied(null);
-  }
-
+  }, [entitlement]);
   async function confirmUpgrade() {
-    if (!org || !pendingPlan) return;
+    if (
+      !org ||
+      !pendingPlan ||
+      !canManageBilling ||
+      !entitlement ||
+      processing ||
+      (paidMandate && recurringBlocked)
+    )
+      return;
+    const token = workspace.current;
+    const fresh = () => workspace.current === token;
     setProcessing(true);
-
+    setCheckoutMessage(null);
+    let opened = false;
     try {
-      const loaded = await loadRazorpayScript();
-      if (!loaded)
+      const preflight = z
+        .object({
+          allowed: z.boolean(),
+          violations: z.array(
+            z.object({ limit: z.string(), used: z.number(), maximum: z.number() }),
+          ),
+        })
+        .parse(await downgradeFn({ data: { organization_id: org.id, plan_id: pendingPlan.id } }));
+      if (!fresh()) return;
+      if (!preflight.allowed)
         throw new Error(
-          "Couldn't load the payment window. Check your internet connection and try again.",
+          preflight.violations
+            .map((v) => `${v.limit}: ${v.used} used; this plan supports ${v.maximum}`)
+            .join(". "),
         );
+      if (paidMandate) {
+        const command = await changeFn({
+          data: { organization_id: org.id, plan_id: pendingPlan.id, billing_cycle: cycle },
+        });
+        if (!fresh()) return;
+        await refresh();
+        const quote = await refreshBilling(org.id);
+        if (!fresh()) return;
+        const pending = quote?.available ? quote.pending_change : null;
+        if (
+          command.state !== "scheduled" ||
+          !pending ||
+          pending.id !== command.id ||
+          pending.plan_id !== pendingPlan.id ||
+          pending.billing_cycle !== cycle ||
+          pending.amount_paise !== command.amount_paise ||
+          pending.effective_at !== command.effective_at
+        )
+          throw new Error(
+            "Scheduled change could not be confirmed. Reconcile the existing command; do not send another change.",
+          );
+        setCheckoutMessage(
+          `Plan change scheduled for ${new Date(pending.effective_at).toLocaleString()}. This is not an active upgrade or a paid grant; verified captured payment controls access. The boundary charge may still use the current plan amount.`,
+        );
+        setPendingPlan(null);
+        return;
+      }
       const res = await startFn({
-        data: {
-          plan_id: pendingPlan.id,
-          billing_cycle: cycle,
-          organization_id: org.id,
-          ...(couponApplied ? { coupon_code: couponApplied } : {}),
-        },
+        data: { plan_id: pendingPlan.id, billing_cycle: cycle, organization_id: org.id },
       });
+      if (!fresh()) return;
+      if (!res.attempt_id) throw new Error("Checkout attempt binding is missing");
+      if (!(await loadRazorpayScript()))
+        throw new Error(
+          "Couldn't load checkout. Your subscription has not changed; retry using the same pending checkout.",
+        );
+      if (!fresh()) return;
       const rp = new window.Razorpay!({
         key: res.key_id,
         subscription_id: res.subscription_id,
         recurring: 1,
         name: "ClinicX",
         description: `${pendingPlan.name} · ${cycle}`,
-        prefill: { email: (org as unknown as { contact_email?: string }).contact_email ?? "" },
         theme: { color: "#2563eb" },
-        handler: async (response: any) => {
-          toast.success("Autopay mandate set up — activating subscription…");
-
-          // Instantly update local subscription state for immediate UI feedback
-          setSub({
-            plan_id: pendingPlan.id,
-            billing_cycle: cycle,
-            status: "active",
-            gateway: "razorpay",
-            organization_id: org.id,
-            gateway_subscription_id: response?.razorpay_subscription_id || res.subscription_id,
-            created_at: new Date().toISOString(),
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(
-              Date.now() + (cycle === "yearly" ? 365 : 30) * 24 * 60 * 60 * 1000,
-            ).toISOString(),
-            id: sub?.id || "",
-            trial_ends_at: null,
-          } as any);
-
-          setPendingPlan(null);
-          resetCouponState();
-
+        handler: async (response: {
+          razorpay_payment_id?: string;
+          razorpay_subscription_id?: string;
+          razorpay_signature?: string;
+        }) => {
+          if (!fresh()) return;
+          setCheckoutMessage(
+            "Payment submitted. Waiting for server verification; your current access has not changed.",
+          );
           try {
-            // Immediately verify and activate the subscription in the database!
-            await activateFn({
+            if (
+              !response.razorpay_payment_id ||
+              !response.razorpay_subscription_id ||
+              !response.razorpay_signature
+            )
+              throw new Error("Checkout verification fields are missing");
+            const result = await activateFn({
               data: {
-                subscription_id: response?.razorpay_subscription_id || res.subscription_id,
-                payment_id: response?.razorpay_payment_id || undefined,
+                subscription_id: response.razorpay_subscription_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                organization_id: org.id,
+                attempt_id: res.attempt_id,
               },
             });
-          } catch (err) {
-            console.error("Immediate activation failed, waiting for webhook fallback:", err);
+            if (!fresh()) return;
+            await refresh();
+            const latest = await getClinicSubscription({ data: { organizationId: org.id } });
+            if (!fresh()) return;
+            if (
+              result.success &&
+              latest.organization_id === org.id &&
+              latest.effective_state === "active" &&
+              latest.subscription.access_source === "verified_payment" &&
+              latest.subscription.plan_id === pendingPlan.id &&
+              latest.subscription.billing_cycle === cycle
+            ) {
+              setCheckoutMessage("Your ClinicX subscription is active.");
+              toast.success("Subscription confirmed by the server.");
+            } else
+              setCheckoutMessage(
+                "Payment confirmation is pending. Refresh status later; mandate authorization alone does not activate paid access.",
+              );
+            await refreshBilling(org.id);
+            if (fresh()) setPendingPlan(null);
+          } catch {
+            if (fresh())
+              setCheckoutMessage(
+                "We couldn't confirm your payment. Don't make another payment until status has been checked. Your existing access has not been upgraded.",
+              );
+          } finally {
+            if (fresh()) setProcessing(false);
           }
-
-          // Sync with database and refresh organization context
-          const { data: s } = await supabase
-            .from("subscriptions")
-            .select("*")
-            .eq("organization_id", org.id)
-            .maybeSingle();
-          if (s) {
-            setSub(s as Subscription);
-          }
-          const { data: inv } = await supabase
-            .from("invoices")
-            .select("*")
-            .eq("organization_id", org.id)
-            .order("created_at", { ascending: false });
-          setInvoices((inv ?? []) as Invoice[]);
-          await refresh();
         },
         modal: {
           ondismiss: () => {
-            setProcessing(false);
-            toast.info("Payment cancelled. You can try again anytime.");
+            if (fresh()) {
+              setProcessing(false);
+              setCheckoutMessage("Checkout closed. No paid activation has been assumed.");
+            }
           },
         },
       });
-      // Razorpay emits a `payment.failed` event when the mandate/UPI is declined.
-      (rp as unknown as { on?: (event: string, cb: (r: any) => void) => void }).on?.(
+      (rp as unknown as { on?: (event: string, cb: () => void) => void }).on?.(
         "payment.failed",
-        (resp: any) => {
-          const reason =
-            resp?.error?.description ||
-            resp?.error?.reason ||
-            "Please try a different payment method.";
-          toast.error(`Payment failed: ${reason}`, {
-            duration: 8000,
-            action: { label: "Try again", onClick: () => rp.open() },
-          });
-          setProcessing(false);
+        () => {
+          if (fresh()) {
+            setProcessing(false);
+            setCheckoutMessage(
+              "Payment failed. Review billing status before trying another payment method.",
+            );
+          }
         },
       );
       rp.open();
+      opened = true;
     } catch (e) {
-      const msg = (e as Error).message || "Something went wrong. Please try again.";
-      // Common gateway/config errors get a friendlier message.
-      const friendly = /razorpay keys? not configured|401|unauthori[sz]ed/i.test(msg)
-        ? "Payments aren't configured yet. Please contact support."
-        : /no route matched|404/i.test(msg)
-          ? "Payment provider is unreachable right now. Please try again in a minute."
-          : msg;
-      toast.error(friendly, { duration: 6000 });
+      if (fresh()) {
+        setCheckoutMessage(
+          "Billing could not be confirmed. Check server status or reconcile the existing command before retrying; no paid activation is assumed.",
+        );
+        toast.error(e instanceof Error ? e.message : "Checkout is unavailable");
+        if (paidMandate) {
+          setRenewal(null);
+          setRenewalError("A billing change needs readback. Do not resend an ambiguous command.");
+        }
+      }
     } finally {
-      setProcessing(false);
+      if (!opened && fresh()) setProcessing(false);
     }
   }
-
   async function confirmCancelPlan() {
-    if (!org) return;
+    if (!org || !canManageBilling || cancelling) return;
+    const token = workspace.current;
     setCancelling(true);
     try {
-      await cancelFn({ data: { organization_id: org.id } });
-      toast.success("Subscription scheduled for cancellation");
-      const { data: s } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("organization_id", org.id)
-        .maybeSingle();
-      setSub((s ?? null) as Subscription | null);
+      const result = await cancelFn({
+        data: {
+          organization_id: org.id,
+          ...(cancelReason.trim() ? { reason: cancelReason.trim() } : {}),
+        },
+      });
+      if (workspace.current !== token) return;
+      await refresh();
+      const [latest, quote] = await Promise.all([
+        getClinicSubscription({ data: { organizationId: org.id } }),
+        refreshBilling(org.id),
+      ]);
+      if (workspace.current !== token) return;
+      if (
+        !result.ok ||
+        !result.mandate_stopped ||
+        latest.organization_id !== org.id ||
+        !latest.subscription.cancel_at_period_end ||
+        latest.subscription.current_period_end !== result.paid_through ||
+        !quote?.available ||
+        quote.will_renew ||
+        quote.provider_status !== "cancelled"
+      )
+        throw new Error(
+          "Cancellation could not be confirmed. Reconcile the existing command before retrying.",
+        );
+      toast.success("Renewal stopped now. Access continues through the confirmed paid period.");
       setShowCancelDialog(false);
-      setCancelStep(1);
-      setCancelReason("");
-      setCancelConfirmText("");
     } catch (e) {
-      toast.error((e as Error).message);
+      if (workspace.current === token)
+        toast.error(e instanceof Error ? e.message : "Cancellation could not be confirmed");
     } finally {
-      setCancelling(false);
+      if (workspace.current === token) setCancelling(false);
+    }
+  }
+  async function handleResume() {
+    if (
+      !org ||
+      !canManageBilling ||
+      processing ||
+      !renewal?.available ||
+      renewal.provider_status !== "paused" ||
+      renewal.can_resume === false ||
+      entitlement?.subscription.cancel_at_period_end
+    )
+      return;
+    const token = workspace.current;
+    setProcessing(true);
+    try {
+      const result = await resumeFn({ data: { organization_id: org.id } });
+      if (workspace.current !== token) return;
+      await refresh();
+      const quote = await refreshBilling(org.id);
+      if (workspace.current !== token) return;
+      if (
+        !result.ok ||
+        result.requires_new_mandate !== false ||
+        !quote?.available ||
+        quote.provider_status !== "active" ||
+        !quote.will_renew
+      )
+        throw new Error(
+          "Resume could not be confirmed. Reconcile the existing command; no new mandate was created.",
+        );
+      toast.success(
+        "Merchant-paused renewal resumed. Paid access still follows verified payments.",
+      );
+    } catch (e) {
+      if (workspace.current === token)
+        toast.error(e instanceof Error ? e.message : "Unable to resume merchant-paused renewal");
+    } finally {
+      if (workspace.current === token) setProcessing(false);
+    }
+  }
+  async function handleReconcileCommand() {
+    if (!org || !canManageBilling || syncing || !commandId) return;
+    const token = workspace.current;
+    setSyncing(true);
+    try {
+      const result = await commandFn({ data: { organization_id: org.id, command_id: commandId } });
+      if (workspace.current !== token) return;
+      await refresh();
+      const quote = await refreshBilling(org.id);
+      if (workspace.current !== token) return;
+      if (!quote?.available || !["confirmed", "scheduled", "applied"].includes(result.state))
+        throw new Error(
+          "Command is not independently confirmed; contact support. No billing mutation was resent.",
+        );
+      setCheckoutMessage(
+        "Existing command checked against provider evidence. No change, cancel or resume request was resent; paid access still follows captured payments.",
+      );
+    } catch (e) {
+      if (workspace.current === token)
+        toast.error(e instanceof Error ? e.message : "Command reconciliation is unavailable");
+    } finally {
+      if (workspace.current === token) setSyncing(false);
+    }
+  }
+  async function handleExport() {
+    if (!org || !entitlement?.can_export) return;
+    const token = workspace.current;
+    setExporting(true);
+    try {
+      const backup = await collectClinicBackup(org.id, (request) => exportFn({ data: request }));
+      if (workspace.current !== token) return;
+      const url = URL.createObjectURL(
+        new Blob(
+          [JSON.stringify({ ...backup, server_snapshot_at: entitlement.server_now }, null, 2)],
+          { type: "application/json" },
+        ),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `clinicx-backup-${org.id}.json`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(
+        `Export prepared: ${backup.total_records.toLocaleString()} records across ${Object.keys(backup.tables).length} tables.`,
+      );
+    } catch {
+      if (workspace.current === token)
+        toast.error(
+          "Export couldn't be completed. No partial backup was downloaded. Please retry.",
+        );
+    } finally {
+      if (workspace.current === token) setExporting(false);
     }
   }
 
-  const currentPlan = plans.find((p) => p.id === sub?.plan_id);
-
+  if (renderedWorkspace !== org?.id || (entitlement && entitlement.organization_id !== org?.id))
+    return <p role="status">Loading billing for the selected clinic…</p>;
   return (
     <div className="space-y-8">
       <header>
@@ -441,175 +766,252 @@ function BillingPage() {
         </div>
       )}
 
-      {/* Current subscription */}
-      <Card className="p-6">
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div className="flex items-start gap-3">
-            <div className="size-12 rounded-xl bg-primary/10 grid place-items-center">
-              <Crown className="size-6 text-primary" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-display text-xl">
-                  {currentPlan?.name
-                    ? `${currentPlan.name} ${sub?.status === "trialing" ? "(Trial)" : ""}`
-                    : "No plan"}
-                </h2>
-                {sub?.status === "trialing" && (
-                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                    Trialing
-                  </Badge>
-                )}
-                {sub?.status === "active" && !sub?.cancel_at_period_end && (
-                  <Badge variant="secondary">Active</Badge>
-                )}
-                {sub?.status === "active" && sub?.cancel_at_period_end && (
-                  <Badge
-                    variant="outline"
-                    className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/30 dark:text-amber-400"
-                  >
-                    Cancelling at period end
-                  </Badge>
-                )}
-                {(sub?.status as string) === "pending" && (
-                  <Badge variant="outline">Payment pending</Badge>
-                )}
-                {(sub?.status as string) === "cancelled" && (
-                  <Badge variant="destructive">Cancelled</Badge>
+      {authorityError && (
+        <Card className="p-5" role="alert">
+          <p>{authorityError}</p>
+          <Button variant="outline" onClick={() => void refresh()}>
+            Retry access check
+          </Button>
+        </Card>
+      )}
+      {checkoutMessage && (
+        <Card className="p-4" role="status">
+          {checkoutMessage}
+        </Card>
+      )}
+      {entitlement && <ClinicTrialJourney snapshot={entitlement} clinic={clinic} />}
+      <Card className="p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="font-display text-xl">
+              Current subscription · {currentPlan?.name ?? "Not configured"}
+            </h2>
+            <Badge variant="outline" className="mt-2">
+              {entitlement?.effective_state.replaceAll("_", " ") ?? "Checking access"}
+            </Badge>
+            <p className="text-sm text-muted-foreground mt-2">
+              Billing cycle: {entitlement?.subscription.billing_cycle ?? "Not configured"}
+            </p>
+            {entitlement?.subscription.current_period_end && (
+              <p className="text-sm mt-2">
+                {entitlement.subscription.cancel_at_period_end
+                  ? "Paid access through"
+                  : "Current paid period ends"}
+                : {new Date(entitlement.subscription.current_period_end).toLocaleString()}
+              </p>
+            )}
+            {renewal?.available ? (
+              <div className="text-sm mt-2 space-y-1">
+                <p>
+                  Provider mandate: {renewal.provider_status} ·{" "}
+                  {renewal.payment_method ??
+                    "Payment method checked server-side when changing billing"}
+                </p>
+                <p>
+                  Next renewal:{" "}
+                  {renewal.will_renew && renewal.next_charge_at
+                    ? new Date(renewal.next_charge_at * 1000).toLocaleString()
+                    : "Not renewing"}
+                </p>
+                <p>
+                  Verified next charge:{" "}
+                  {renewal.amount_paise !== null
+                    ? `₹${(renewal.amount_paise / 100).toLocaleString("en-IN")} (${renewal.billing_cycle})`
+                    : "No renewal charge scheduled"}
+                </p>
+                {renewal.pending_change && (
+                  <div className="border rounded-lg p-3 mt-3">
+                    <strong>Scheduled change — not current access</strong>
+                    <p>
+                      {renewal.pending_change.plan_id} · {renewal.pending_change.billing_cycle} · ₹
+                      {(renewal.pending_change.amount_paise / 100).toLocaleString("en-IN")}
+                    </p>
+                    <p>
+                      Provider schedule:{" "}
+                      {new Date(renewal.pending_change.effective_at).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      The boundary charge may still use the current amount. Only a captured,
+                      verified invoice applies the new plan.
+                    </p>
+                  </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">{currentPlan?.tagline}</p>
-              {sub?.trial_ends_at && new Date(sub.trial_ends_at) > new Date() && (
-                <p className="text-sm mt-2">
-                  Trial ends {new Date(sub.trial_ends_at).toLocaleDateString()}
-                </p>
-              )}
-              {sub?.current_period_end && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {sub?.cancel_at_period_end
-                    ? `Access ends on ${new Date(sub.current_period_end).toLocaleDateString()}`
-                    : `Next renewal ${new Date(sub.current_period_end).toLocaleDateString()}`}
-                </p>
-              )}
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-2">
+                Renewal quote: {renewal?.reason ?? "not loaded"}. Catalog prices below are not a
+                renewal quote.
+              </p>
+            )}
+            {renewalError && (
+              <p role="alert" className="text-sm mt-2">
+                {renewalError}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            {sub?.gateway === "razorpay" && sub?.gateway_subscription_id && (
-              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
-                {syncing ? <Loader2 className="size-3 mr-1 animate-spin" /> : null}
-                Refresh status
-              </Button>
-            )}
-            {sub?.status === "active" && !sub?.cancel_at_period_end && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCancelDialog(true)}
-                disabled={cancelling}
-                className="text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-              >
-                Cancel subscription
-              </Button>
-            )}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={syncing}>
+              Refresh access
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={
+                !canManageBilling ||
+                syncing ||
+                entitlement?.subscription.access_source !== "verified_payment"
+              }
+            >
+              {syncing ? "Checking…" : "Check payment status"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCancelDialog(true)}
+              disabled={
+                !canManageBilling ||
+                cancelling ||
+                entitlement?.subscription.access_source !== "verified_payment" ||
+                !!entitlement?.subscription.cancel_at_period_end
+              }
+            >
+              Cancel future renewal
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResume}
+              disabled={
+                !canManageBilling ||
+                processing ||
+                !renewal?.available ||
+                renewal.provider_status !== "paused" ||
+                renewal.can_resume === false ||
+                !!entitlement?.subscription.cancel_at_period_end
+              }
+            >
+              Check & resume merchant-paused renewal
+            </Button>
           </div>
         </div>
+        {entitlement?.subscription.cancel_at_period_end && (
+          <p className="text-sm">
+            Renewal is stopped. Cancelled mandates cannot resume. A new mandate can be considered
+            only after canonical terminal confirmation and expiry of existing paid access.
+          </p>
+        )}
+        {!canManageBilling && (
+          <p className="text-sm text-muted-foreground">
+            Only clinic owners and admins can manage subscription payments or export data.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Paid plan/cycle changes use a cycle-end schedule on an active card mandate, not a new
+          checkout. UPI/eMandate, offers, unknown methods and unsupported states are blocked by
+          server checks. Resume supports merchant-paused mandates only, never cancelled or
+          customer-paused mandates.
+        </p>
+        {canManageBilling && (
+          <div className="space-y-2 border-t pt-3">
+            <label htmlFor="recurring-command" className="text-sm">
+              Outstanding command ID (from billing support)
+            </label>
+            <input
+              id="recurring-command"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              value={commandId}
+              onChange={(e) => setCommandId(e.target.value)}
+              placeholder="Command UUID"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!commandId || syncing}
+              onClick={handleReconcileCommand}
+            >
+              Check existing command — no resend
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Ambiguous changes stay blocked. This checks provider evidence only and never resends
+              the financial request.
+            </p>
+          </div>
+        )}
       </Card>
-
-      {/* Usage Limits */}
-      {sub && (
-        <Card className="p-6 border-border">
-          <h3 className="font-display font-semibold text-base mb-4">Plan Limits</h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="font-medium">Patient Records</span>
-                <span className="text-muted-foreground">
-                  {patientCount} /{" "}
-                  {sub.plan_id === "starter" ? 100 : sub.plan_id === "growth" ? 1000 : "Unlimited"}
-                </span>
-              </div>
-              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    (sub.plan_id === "starter" && patientCount >= 90) ||
-                    (sub.plan_id === "growth" && patientCount >= 900)
-                      ? "bg-destructive"
-                      : "bg-primary"
-                  }`}
-                  style={{
-                    width: `${
-                      sub.plan_id === "starter"
-                        ? Math.min(100, (patientCount / 100) * 100)
-                        : sub.plan_id === "growth"
-                          ? Math.min(100, (patientCount / 1000) * 100)
-                          : 100
-                    }%`,
-                  }}
-                />
-              </div>
-              {sub.plan_id === "starter" && patientCount >= 80 ? (
-                <p className="text-xs text-destructive font-medium">
-                  Near limit. Upgrade to Growth for 1,000 patients.
-                </p>
-              ) : sub.plan_id === "starter" ? (
-                <p className="text-xs text-muted-foreground">Upgrade when your clinic grows.</p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="font-medium">Staff Seats</span>
-                <span className="text-muted-foreground">
-                  {staffCount} /{" "}
-                  {sub.plan_id === "starter"
-                    ? 1
-                    : sub.plan_id === "growth"
-                      ? 5
-                      : sub.plan_id === "professional"
-                        ? 20
-                        : "Unlimited"}
-                </span>
-              </div>
-              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    (sub.plan_id === "starter" && staffCount >= 1) ||
-                    (sub.plan_id === "growth" && staffCount >= 5)
-                      ? "bg-destructive"
-                      : "bg-primary"
-                  }`}
-                  style={{
-                    width: `${
-                      sub.plan_id === "starter"
-                        ? Math.min(100, (staffCount / 1) * 100)
-                        : sub.plan_id === "growth"
-                          ? Math.min(100, (staffCount / 5) * 100)
-                          : sub.plan_id === "professional"
-                            ? Math.min(100, (staffCount / 20) * 100)
-                            : 100
-                    }%`,
-                  }}
-                />
-              </div>
-              {sub.plan_id === "starter" && staffCount >= 1 ? (
-                <p className="text-xs text-destructive font-medium">
-                  Staff limit reached. Upgrade to add more seats.
-                </p>
-              ) : sub.plan_id === "starter" ? (
-                <p className="text-xs text-muted-foreground">Upgrade to add staff members.</p>
-              ) : null}
-            </div>
+      {entitlement && (
+        <Card className="p-6 space-y-4">
+          <h3 className="font-display font-semibold">Plan Limits</h3>
+          <div className="grid sm:grid-cols-3 gap-5">
+            {(
+              [
+                ["Patient Records", entitlement.usage.patients, entitlement.limits.patients],
+                [
+                  "Staff Seats (including pending invitations)",
+                  entitlement.usage.staff + entitlement.usage.pending_staff_invites,
+                  entitlement.limits.staff,
+                ],
+                ["Doctors", entitlement.usage.doctors, entitlement.limits.doctors],
+              ] as Array<[string, number, number | null | undefined]>
+            ).map(([label, used, limit]) => {
+              const display = limitPresentation(used, limit);
+              return (
+                <div key={label} className="space-y-2">
+                  <div className="flex justify-between gap-2 text-sm">
+                    <span>{label}</span>
+                    <span className="text-muted-foreground">{display.text}</span>
+                  </div>
+                  {display.percent !== null && (
+                    <div
+                      role="progressbar"
+                      aria-label={label}
+                      aria-valuenow={display.percent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      className="h-2 rounded-full overflow-hidden bg-muted"
+                    >
+                      <div className="h-full bg-primary" style={{ width: `${display.percent}%` }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
-
+      {recommended && entitlement && (
+        <Card className="p-5 space-y-3">
+          <h3 className="font-display text-lg">Recommended for your clinic · {recommended.name}</h3>
+          <p className="text-sm text-muted-foreground">
+            Based on {entitlement.usage.patients} patient records, {entitlement.usage.doctors}{" "}
+            doctors, {entitlement.usage.staff} staff and {entitlement.usage.pending_staff_invites}{" "}
+            pending invitations. Recorded feature use:{" "}
+            {entitlement.usage.features_used.join(", ") || "none yet"}. This recommendation is
+            advisory; choose any plan that fits your clinic.
+          </p>
+          <Button
+            onClick={() => setPendingPlan(recommended)}
+            disabled={!canManageBilling || processing}
+          >
+            Continue with {recommended.name}
+          </Button>
+        </Card>
+      )}
+      {catalogError && <p role="alert">{catalogError}</p>}
+      {entitlement?.configuration_requires_reconciliation && (
+        <Card className="p-4 text-sm">
+          Your historical subscription requires pricing and entitlement reconciliation. No
+          historical price has been assumed verified. Contact support before changing billing.
+        </Card>
+      )}
       {/* Plans */}
       <div>
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div>
             <h2 className="font-display text-xl">Choose a plan</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Scale features as your clinic grows. No hidden charges.
+              Configured catalog prices, not verified renewal quotes. Checkout confirms provider
+              pricing; historical configuration may require reconciliation.
             </p>
           </div>
           <div className="flex items-center gap-1 p-1 bg-muted rounded-lg text-sm">
@@ -623,31 +1025,17 @@ function BillingPage() {
               onClick={() => setCycle("yearly")}
               className={`px-3 py-1.5 rounded-md transition ${cycle === "yearly" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
             >
-              Yearly{" "}
-              <Badge
-                variant="secondary"
-                className="ml-1 text-[10px] bg-indigo-50 text-indigo-700 border-none"
-              >
-                2 mo free
-              </Badge>
+              Yearly · see actual savings
             </button>
           </div>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((p) => {
-            const isCurrent = sub?.plan_id === p.id;
-            const hasDiscount =
-              cycle === "monthly"
-                ? p.discounted_monthly_price !== null && p.discounted_monthly_price !== undefined
-                : p.discounted_yearly_price !== null && p.discounted_yearly_price !== undefined;
-
-            const price =
-              cycle === "monthly"
-                ? (p.discounted_monthly_price ?? p.monthly_price)
-                : Math.round((p.discounted_yearly_price ?? p.yearly_price) / 12);
-
-            const originalPrice =
-              cycle === "monthly" ? p.monthly_price : Math.round(p.yearly_price / 12);
+            const isCurrent = entitlement?.subscription.plan_id === p.id;
+            const priceInfo = pricePresentation(p, cycle);
+            const hasDiscount = priceInfo.discounted;
+            const price = priceInfo.total;
+            const originalPrice = priceInfo.original;
 
             const isPopular = p.is_popular;
             const isEnterprise = p.id === "enterprise";
@@ -671,7 +1059,7 @@ function BillingPage() {
                 )}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <div className="font-display text-base font-semibold">{p.name}</div>
-                  {isCurrent && sub?.status === "trialing" && (
+                  {isCurrent && entitlement?.effective_state === "trialing" && (
                     <Badge
                       variant="outline"
                       className="text-[10px] border-amber-200 bg-amber-50 text-amber-700 font-medium"
@@ -679,7 +1067,7 @@ function BillingPage() {
                       Trial
                     </Badge>
                   )}
-                  {isCurrent && sub?.status === "active" && (
+                  {isCurrent && entitlement?.effective_state === "active" && (
                     <Badge
                       variant="outline"
                       className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-medium"
@@ -694,26 +1082,33 @@ function BillingPage() {
                     <span className="font-display text-2xl font-bold">
                       {price === 0 ? "Free" : `₹${price.toLocaleString()}`}
                     </span>
-                    {price > 0 && <span className="text-sm text-muted-foreground">/mo</span>}
+                    {price > 0 && (
+                      <span className="text-sm text-muted-foreground">
+                        /{cycle === "yearly" ? "year" : "month"}
+                      </span>
+                    )}
                     {hasDiscount && (
                       <span className="text-xs text-muted-foreground line-through ml-1.5">
-                        ₹{originalPrice.toLocaleString()}/mo
+                        ₹{originalPrice.toLocaleString()}/{cycle === "yearly" ? "year" : "month"}
                       </span>
                     )}
                   </div>
-                  {cycle === "yearly" && (
+                  {cycle === "yearly" && priceInfo.savings > 0 && (
                     <span className="text-xs text-emerald-600 font-medium block mt-1">
-                      {`Saves ₹${(p.monthly_price * 12 - p.yearly_price).toLocaleString()} / year`}
+                      {`Saves ₹${priceInfo.savings.toLocaleString("en-IN")} compared with 12 monthly payments`}
                     </span>
                   )}
                 </div>
                 <ul className="space-y-2 text-sm flex-1 mb-6 border-t pt-4">
-                  {((p.features as string[]) ?? []).map((f) => (
+                  {(catalogFeatures[p.id] ?? []).map((f) => (
                     <li key={f} className="flex items-start gap-2 text-foreground">
                       <Check
                         className={`size-3.5 mt-0.5 shrink-0 ${isEnterprise ? "text-amber-500" : "text-primary"}`}
                       />
-                      <span>{f}</span>
+                      <span>
+                        {modules.find((m) => (featureAliases[m.id] ?? m.id) === f)?.name ??
+                          f.replaceAll("_", " ")}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -727,7 +1122,14 @@ function BillingPage() {
                           ? "default"
                           : "secondary"
                   }
-                  disabled={isCurrent && !isSubscriptionExpired}
+                  disabled={
+                    !canManageBilling ||
+                    processing ||
+                    (isCurrent &&
+                      entitlement?.effective_state === "active" &&
+                      entitlement.subscription.billing_cycle === cycle &&
+                      !entitlement.subscription.cancel_at_period_end)
+                  }
                   onClick={() => setPendingPlan(p)}
                   className={`w-full mt-auto ${
                     isCurrent && !isSubscriptionExpired
@@ -739,13 +1141,13 @@ function BillingPage() {
                           : ""
                   }`}
                 >
-                  {isCurrent
-                    ? isSubscriptionExpired
-                      ? "Renew Plan"
-                      : sub?.status === "trialing"
-                        ? "Current plan (Trial)"
-                        : "Current plan"
-                    : "Upgrade / Select"}
+                  {isCurrent &&
+                  entitlement?.effective_state === "active" &&
+                  entitlement.subscription.billing_cycle === cycle
+                    ? "Current plan"
+                    : isCurrent
+                      ? "Continue / change cycle"
+                      : "Select plan"}
                 </Button>
               </Card>
             );
@@ -763,333 +1165,301 @@ function BillingPage() {
           <PlanCompareTable
             plans={plans}
             modules={modules}
-            currentPlanId={sub?.plan_id}
+            currentPlanId={entitlement?.subscription.plan_id}
             billingCycle={cycle}
-            onSelectPlan={(planId) => {
-              const p = plans.find((x) => x.id === planId);
-              if (p) setPendingPlan(p);
-            }}
+            planLimits={catalogLimits}
+            planFeatures={catalogFeatures}
+            featureAliases={featureAliases}
+            onSelectPlan={
+              canManageBilling
+                ? (planId) => {
+                    const p = plans.find((x) => x.id === planId);
+                    if (p) setPendingPlan(p);
+                  }
+                : undefined
+            }
           />
         </div>
       )}
 
-      {org?.id && <ValueReceiptCard organizationId={org.id} />}
-
-      {/* Invoices */}
-      <div>
-        <h2 className="font-display text-xl mb-3">Invoices</h2>
-        <Card className="divide-y">
-          {invoices.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">No invoices yet.</div>
-          ) : (
-            invoices.map((inv) => (
-              <div key={inv.id} className="p-4 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-muted grid place-items-center">
-                  <Receipt className="size-4" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{inv.invoice_number}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {inv.paid_at ? new Date(inv.paid_at).toLocaleDateString() : "—"}
+      <Card className="p-5 space-y-3">
+        <h2 className="font-display text-lg">Export Clinic Data</h2>
+        <p className="text-sm text-muted-foreground">
+          JSON backup of patients, appointments, visits, attachments metadata, prescriptions and
+          items, clinical invoices and items, clinical payments, clinic settings and doctors. Keep
+          the download secure: it contains sensitive clinical information. Export is available after
+          expiry to authorized owners/admins.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          This paginated export is not a transactionally consistent point-in-time snapshot. It
+          doesn't download attachment files or include SaaS payment history.
+        </p>
+        <Button onClick={handleExport} disabled={exporting || !entitlement?.can_export}>
+          {exporting ? "Preparing complete backup…" : "Export JSON backup"}
+        </Button>
+      </Card>
+      <div className="space-y-3">
+        <h2 className="font-display text-xl">Payment history & invoices</h2>
+        <p className="text-xs text-muted-foreground">
+          Verified INR charges are in paise. Load older entries separately for each list; historical
+          amounts remain unclassified.
+        </p>
+        {historyError && <p role="alert">{historyError}</p>}
+        {canManageBilling && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!!historyBusy}
+            onClick={() => org && void refreshBilling(org.id)}
+          >
+            Refresh billing history
+          </Button>
+        )}
+        {(["payments", "invoices", "legacy_invoices"] as const).map((kind) => (
+          <Card key={kind} className="divide-y">
+            <h3 className="p-4 font-medium">
+              {kind === "legacy_invoices"
+                ? "Historical / unverified invoices"
+                : kind === "payments"
+                  ? "Verified payments"
+                  : "Verified invoices"}
+            </h3>
+            {history?.[kind] ? (
+              <>
+                {!history[kind]!.entries.length && (
+                  <p className="p-4 text-sm text-muted-foreground">No entries in this page.</p>
+                )}
+                {history[kind]!.entries.map((row) => (
+                  <div
+                    key={String(row.id)}
+                    className="p-4 flex flex-wrap items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="min-w-0 break-all">
+                      {String(row.invoice_number ?? row.payment_id ?? row.id)} ·{" "}
+                      {new Date(String(row.created_at)).toLocaleDateString()}
+                    </span>
+                    {kind === "legacy_invoices" ? (
+                      <span>
+                        Recorded amount {String(row.historical_amount)} (unit unclassified)
+                      </span>
+                    ) : (
+                      <>
+                        <Badge variant="outline">{String(row.status)}</Badge>
+                        <span>₹{(Number(row.amount_paise) / 100).toLocaleString("en-IN")}</span>
+                      </>
+                    )}
+                    {kind === "invoices" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={invoiceBusy}
+                        onClick={() => void previewInvoice(String(row.id))}
+                      >
+                        View invoice
+                      </Button>
+                    )}
                   </div>
-                </div>
-                <Badge variant={inv.status === "paid" ? "secondary" : "outline"}>
-                  {inv.status}
-                </Badge>
-                <div className="font-mono text-sm">₹{inv.amount.toLocaleString()}</div>
-              </div>
-            ))
-          )}
-        </Card>
+                ))}
+                {history[kind]!.has_more && (
+                  <div className="p-4">
+                    <Button
+                      variant="outline"
+                      disabled={!!historyBusy}
+                      onClick={() => void loadMoreHistory(kind)}
+                    >
+                      {historyBusy === kind
+                        ? "Loading…"
+                        : `Load older ${kind.replaceAll("_", " ")}`}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="p-4 text-sm text-muted-foreground">
+                {canManageBilling
+                  ? "History is not loaded yet."
+                  : "History is available to owners/admins."}
+              </p>
+            )}
+          </Card>
+        ))}
       </div>
-
-      {/* Upgrade dialog */}
       <Dialog
-        open={!!pendingPlan}
-        onOpenChange={(o) => {
-          if (!o) {
-            setPendingPlan(null);
-            resetCouponState();
-          }
+        open={!!invoice}
+        onOpenChange={(open) => {
+          if (!open) setInvoice(null);
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm subscription</DialogTitle>
+            <DialogTitle>Verified subscription invoice</DialogTitle>
+            <DialogDescription>
+              Canonical paid invoice record, not a generated tax invoice or hosted PDF.
+            </DialogDescription>
+          </DialogHeader>
+          {invoice && (
+            <div className="space-y-3 text-sm">
+              <p>
+                {invoice.invoice_number} · paid · ₹
+                {(invoice.amount_paise / 100).toLocaleString("en-IN")}
+              </p>
+              <p>
+                Plan: {invoice.plan_id ?? "Historical plan not recorded"} ·{" "}
+                {invoice.billing_cycle ?? "Cycle not recorded"}
+              </p>
+              <p>
+                Period:{" "}
+                {invoice.period_start && invoice.period_end
+                  ? `${new Date(invoice.period_start).toLocaleString()} – ${new Date(invoice.period_end).toLocaleString()}`
+                  : "Historical period not verified"}
+              </p>
+              <p className="break-all">Payment: {invoice.payment_id}</p>
+              <Button
+                onClick={() => {
+                  if (invoice.organization_id !== org?.id) return;
+                  const url = URL.createObjectURL(
+                    new Blob([JSON.stringify(invoice, null, 2)], { type: "application/json" }),
+                  );
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `clinicx-invoice-${invoice.id}.json`;
+                  link.click();
+                  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}
+              >
+                Download verified invoice JSON
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!pendingPlan}
+        onOpenChange={(open) => {
+          if (!open && !processing) setPendingPlan(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {paidMandate ? "Schedule plan / cycle change" : "Confirm subscription"}
+            </DialogTitle>
+            <DialogDescription>
+              {paidMandate
+                ? "Change the existing supported card mandate at cycle end. No new checkout, immediate upgrade or proration. The server must independently confirm the schedule."
+                : "A mandate alone is not paid activation. The server must verify a captured subscription payment."}
+            </DialogDescription>
           </DialogHeader>
           {pendingPlan && (
             <div className="space-y-4">
               <Card className="p-4 bg-muted/40">
-                {(() => {
-                  const modalBaseAmount =
-                    cycle === "monthly"
-                      ? (pendingPlan.discounted_monthly_price ?? pendingPlan.monthly_price)
-                      : (pendingPlan.discounted_yearly_price ?? pendingPlan.yearly_price);
-                  const finalAmount = Math.max(0, modalBaseAmount - discountRupees);
-                  return (
-                    <>
-                      <div className="flex justify-between">
-                        <span>
-                          {pendingPlan.name} ({cycle})
-                        </span>
-                        <span className="font-mono">₹{modalBaseAmount.toLocaleString()}</span>
-                      </div>
-                      {discountRupees > 0 && (
-                        <div className="flex justify-between text-sm text-primary mt-1">
-                          <span>
-                            Discount{discount > 0 ? ` (${discount}%)` : ""} · {couponApplied}
-                          </span>
-                          <span>−₹{discountRupees.toLocaleString()}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between pt-2 mt-2 border-t font-medium">
-                        <span>Total</span>
-                        <span className="font-mono">₹{finalAmount.toLocaleString()}</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </Card>
-              <div>
-                <Label htmlFor="coupon" className="flex items-center gap-1">
-                  <Tag className="size-3.5" /> Coupon code
-                </Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    id="coupon"
-                    value={coupon}
-                    onChange={(e) => {
-                      setCoupon(e.target.value.toUpperCase());
-                      if (couponApplied) {
-                        setDiscount(0);
-                        setDiscountRupees(0);
-                        setCouponApplied(null);
-                      }
-                    }}
-                    placeholder="Enter code"
-                    disabled={!!couponApplied}
-                  />
-                  {couponApplied ? (
-                    <Button variant="outline" onClick={resetCouponState}>
-                      Remove
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={applyCoupon}
-                      disabled={validatingCoupon || !coupon.trim()}
-                    >
-                      {validatingCoupon ? "Checking…" : "Apply"}
-                    </Button>
-                  )}
+                <div className="flex justify-between">
+                  <span>
+                    {pendingPlan.name} ({cycle})
+                  </span>
+                  <span>
+                    ₹{pricePresentation(pendingPlan, cycle).total.toLocaleString("en-IN")} /{" "}
+                    {cycle === "yearly" ? "year" : "month"}
+                  </span>
                 </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Razorpay Autopay will set up a recurring mandate (UPI / card / netbanking). You can
-                cancel anytime.
+                <p className="text-xs text-muted-foreground mt-2">
+                  Catalog display only. Checkout requires a reconciled provider plan with a matching
+                  canonical amount.
+                </p>
+              </Card>
+              <p className="text-sm">
+                Your real usage is checked before selecting this plan. If a limit is exceeded,
+                resolve the difference first; records and users are not deleted automatically.
               </p>
+              <p className="text-xs text-muted-foreground">
+                Coupon checkout is unavailable until provider offers and first-cycle charges are
+                reconciled.
+              </p>
+              {entitlement?.configuration_requires_reconciliation && (
+                <p role="alert" className="text-sm">
+                  Historical billing requires reconciliation; checkout is paused.
+                </p>
+              )}
+              {paidMandate && (
+                <p className="text-sm">
+                  Your current effective plan stays unchanged until a captured invoice applies the
+                  change. UPI/eMandate cannot be changed in place; cancellation retains paid access
+                  and replacement requires expiry.
+                </p>
+              )}
+              {recurringBlocked && (
+                <p role="alert" className="text-sm">
+                  A verified active supported mandate without a pending change is required. Refresh
+                  status; cancelled/unsupported mandates and outstanding commands cannot be changed
+                  here.
+                </p>
+              )}
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setPendingPlan(null)}>
-              Cancel
+            <Button variant="ghost" onClick={() => setPendingPlan(null)} disabled={processing}>
+              Back
             </Button>
-            <Button onClick={confirmUpgrade} disabled={processing}>
-              {processing ? (
-                <>
-                  <Loader2 className="size-4 mr-2 animate-spin" /> Processing…
-                </>
-              ) : (
-                "Confirm"
-              )}
+            <Button
+              onClick={confirmUpgrade}
+              disabled={
+                processing ||
+                recurringBlocked ||
+                !canManageBilling ||
+                !entitlement ||
+                !!entitlement.configuration_requires_reconciliation
+              }
+            >
+              {processing
+                ? "Waiting for confirmation…"
+                : paidMandate
+                  ? "Check eligibility & schedule change"
+                  : "Check eligibility & continue"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Premium Cancellation Confirmation Dialog with Psychology & Friction */}
-      <Dialog
-        open={showCancelDialog}
-        onOpenChange={(open) => {
-          setShowCancelDialog(open);
-          if (!open) {
-            setCancelStep(1);
-            setCancelReason("");
-            setCancelConfirmText("");
-          }
-        }}
-      >
-        <DialogContent className="max-w-md md:max-w-lg overflow-y-auto max-h-[90vh]">
-          {cancelStep === 1 ? (
-            <div className="space-y-5">
-              <DialogHeader className="text-left">
-                <div className="flex items-center gap-2 text-amber-600 mb-1">
-                  <AlertTriangle className="size-5 shrink-0" />
-                  <span className="font-semibold text-sm tracking-wide uppercase">
-                    Critical Warning
-                  </span>
-                </div>
-                <DialogTitle className="font-display text-xl text-slate-900 leading-tight">
-                  Stop! Are you sure you want to turn off your clinic's growth engine?
-                </DialogTitle>
-                <p className="text-xs text-slate-500 mt-1">
-                  You are currently on the{" "}
-                  <strong className="text-slate-700">{currentPlan?.name}</strong> plan. Here is a
-                  projection of what happens if you deactivate:
-                </p>
-              </DialogHeader>
-
-              {/* Loss aversion cards */}
-              <div className="space-y-3">
-                <div className="flex gap-3 p-3 rounded-xl border border-red-100 bg-red-50/50">
-                  <ShieldAlert className="size-5 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      Custom Domain & Website Goes Offline
-                    </h4>
-                    <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                      Your online booking site for <strong>{org?.name || "your clinic"}</strong>{" "}
-                      will go completely dark. Patients searching for you on Google won't be able to
-                      book appointments online.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 p-3 rounded-xl border border-amber-100 bg-amber-50/50">
-                  <MessageSquareWarning className="size-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      WhatsApp Recall Automations Stop
-                    </h4>
-                    <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                      Clinics using WhatsApp recall automations typically bring back{" "}
-                      <strong>22% more patients</strong>. Your automated queue will be permanently
-                      deleted.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
-                  <Building className="size-5 text-slate-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Patient Database Locked</h4>
-                    <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                      Access to your <strong>{patientCount || 0} patient files</strong>, consult
-                      histories, and prescription archives will be frozen.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 p-3 rounded-xl border border-indigo-100 bg-indigo-50/40">
-                  <Sparkles className="size-5 text-indigo-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      Losing Grandfathered Special Pricing
-                    </h4>
-                    <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                      You are currently locked into a discounted tariff. If you cancel and rejoin
-                      later, you will have to pay the new, standard higher rate.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t flex flex-col gap-2">
-                <Button
-                  onClick={() => setShowCancelDialog(false)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md shadow-emerald-600/10 py-5 text-sm"
-                >
-                  Keep My Clinic Growing &rarr;
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => setCancelStep(2)}
-                  className="text-xs text-muted-foreground hover:text-rose-600 underline text-center transition-colors py-1.5"
-                >
-                  I understand the risks, proceed to cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              <DialogHeader className="text-left">
-                <DialogTitle className="font-display text-xl text-slate-900">
-                  Help us improve
-                </DialogTitle>
-                <p className="text-xs text-slate-500 mt-1">
-                  We are sorry to see you go. Why are you cancelling? (Select one)
-                </p>
-              </DialogHeader>
-
-              {/* Reasons select */}
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  { id: "too_expensive", label: "It is too expensive / Not worth the money" },
-                  { id: "hard_to_use", label: "It is too difficult to setup or use" },
-                  { id: "no_bookings", label: "I am not getting enough patient bookings" },
-                  { id: "missing_features", label: "It is missing features I need" },
-                  { id: "other", label: "Other / Switching to a different software" },
-                ].map((reason) => (
-                  <label
-                    key={reason.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${cancelReason === reason.id ? "border-indigo-600 bg-indigo-50/30 ring-1 ring-indigo-600" : "border-slate-100 hover:bg-slate-50"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="cancel_reason"
-                      checked={cancelReason === reason.id}
-                      onChange={() => setCancelReason(reason.id)}
-                      className="accent-indigo-600 size-4 shrink-0"
-                    />
-                    <span className="text-xs font-medium text-slate-700">{reason.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              {/* Confirmation friction input */}
-              <div className="space-y-2 border-t pt-4">
-                <Label className="text-xs font-bold text-slate-700 block">
-                  To confirm, type{" "}
-                  <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-rose-600 border border-slate-200">
-                    CANCEL MY PRACTICE
-                  </span>{" "}
-                  below:
-                </Label>
-                <Input
-                  value={cancelConfirmText}
-                  onChange={(e) => setCancelConfirmText(e.target.value)}
-                  placeholder="Type the exact phrase"
-                  className="w-full text-center tracking-wide font-medium bg-slate-50"
-                />
-              </div>
-
-              <div className="flex gap-2.5 pt-3 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCancelDialog(false)}
-                  className="flex-1 text-xs"
-                >
-                  Nevermind, Keep Plan
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={confirmCancelPlan}
-                  disabled={
-                    cancelling || cancelConfirmText !== "CANCEL MY PRACTICE" || !cancelReason
-                  }
-                  className="flex-1 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
-                >
-                  {cancelling ? (
-                    <>
-                      <Loader2 className="size-3.5 mr-2 animate-spin" /> Cancelling...
-                    </>
-                  ) : (
-                    "Confirm Cancellation"
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel future renewal?</DialogTitle>
+            <DialogDescription>
+              This stops future renewal through the verified provider. Paid access continues until
+              the confirmed paid-through date. Cancellation does not delete clinic records.
+              Authorized export remains available.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The mandate stops now while verified paid-through access remains. Cancelled mandates
+            cannot resume. Replacement requires terminal confirmation and paid-period expiry.
+          </p>
+          <label htmlFor="cancel-reason" className="text-sm">
+            Cancellation reason (optional)
+          </label>
+          <textarea
+            id="cancel-reason"
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            maxLength={500}
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDialog(false)}
+              disabled={cancelling}
+            >
+              Keep renewal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancelPlan}
+              disabled={cancelling || !canManageBilling}
+            >
+              {cancelling ? "Confirming cancellation…" : "Cancel future renewal"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

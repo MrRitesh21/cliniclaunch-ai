@@ -12,6 +12,26 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
     className:
       "bg-blue-50    text-blue-700    border-blue-200   dark:bg-blue-950/40   dark:text-blue-400   dark:border-blue-800",
   },
+  checked_in: {
+    label: "Checked In",
+    className:
+      "bg-amber-50   text-amber-700   border-amber-200  dark:bg-amber-950/40  dark:text-amber-400  dark:border-amber-800",
+  },
+  waiting: {
+    label: "In Waiting Room",
+    className:
+      "bg-amber-50   text-amber-700   border-amber-200  dark:bg-amber-950/40  dark:text-amber-400  dark:border-amber-800",
+  },
+  serving: {
+    label: "In Consult",
+    className:
+      "bg-purple-50  text-purple-700  border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
+  },
+  in_consultation: {
+    label: "In Consult",
+    className:
+      "bg-purple-50  text-purple-700  border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
+  },
   completed: {
     label: "Completed",
     className:

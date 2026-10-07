@@ -20,25 +20,23 @@ export async function getVerifiedAdmin() {
   const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
-  const { data: claims } = await sb.auth.getClaims(token);
-  const userId: string | undefined = claims?.claims?.sub;
-  const userEmail: string | undefined = claims?.claims?.email;
-  if (!userId) return null;
+  const { data: authData, error: authError } = await sb.auth.getUser(token);
+  const userId: string | undefined = authData?.user?.id;
+  const userEmail: string | undefined = authData?.user?.email;
+  if (authError || !userId) return null;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: roleRow } = await supabaseAdmin
-    .from("user_roles" as any)
-    .select("role")
-    .eq("user_id", userId)
-    .in("role", ["super_admin", "support"])
-    .maybeSingle();
-  if (!roleRow) return null;
+  const { data: roleRows, error: roleError } = await supabaseAdmin
+    .from("user_roles" as any).select("role").eq("user_id", userId)
+    .in("role", ["super_admin", "support"]);
+  if (roleError || !roleRows?.length) return null;
+  const role = roleRows.some((r) => r.role === "super_admin") ? "super_admin" : "support";
 
   return {
     id: userId,
     email: userEmail || "",
     name: userEmail?.split("@")[0] || "Admin",
-    role: (roleRow as any).role,
+    role,
     last_login_at: new Date().toISOString(),
   };
 }
@@ -68,118 +66,36 @@ export async function createAuditLog(
 // -------------------------------------------------------------
 // Page 1: Admin Dashboard Stats
 // -------------------------------------------------------------
+// These read RPCs run under the verified caller token. PostgreSQL independently
+// checks user_roles, even if a handler or frontend guard is bypassed.
+async function getAdminBillingReadClient() {
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  const token = getRequest()?.headers?.get("authorization")?.slice(7);
+  const { createClient } = await import("@supabase/supabase-js");
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export async function getAdminStatsImpl() {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  const sb = await getAdminBillingReadClient();
+  const { data, error } = await sb.rpc("clinicx_admin_billing_stats");
+  if (error) throw new Error("Billing analytics unavailable; verify admin authority and migrations");
+  const { adminBillingStatsSchema, parseAdminBilling } = await import("./subscription-analytics");
+  return parseAdminBilling(adminBillingStatsSchema, data);
+}
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  // Sync latest transactions from Razorpay API
-  await syncRazorpayTransactions(supabaseAdmin);
-
-  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-  const startOfDay = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-
-  const [
-    totalClinics,
-    clinicsThisWeek,
-    activeSubs,
-    trialSubs,
-    expiredThisMonth,
-    newSignupsToday,
-    recentClinics,
-    expiringSubs,
-    signupsTrend,
-    recentTransactions,
-  ] = await Promise.all([
-    supabaseAdmin.from("clinics").select("id", { count: "exact", head: true }),
-    supabaseAdmin
-      .from("clinics")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", since7),
-    supabaseAdmin
-      .from("subscriptions")
-      .select("id, plan_id, billing_cycle", { count: "exact" })
-      .in("status", ["active", "trialing"]),
-    supabaseAdmin
-      .from("subscriptions")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "trialing"),
-    supabaseAdmin
-      .from("subscriptions")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["cancelled", "expired"])
-      .gte("updated_at", startOfMonth),
-    supabaseAdmin
-      .from("clinics")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", startOfDay),
-    supabaseAdmin
-      .from("clinics")
-      .select("id, clinic_name, doctor_name, specialization, address, created_at, slug")
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabaseAdmin
-      .from("subscriptions")
-      .select("id, organization_id, status, current_period_end, trial_ends_at, plan_id")
-      .in("status", ["active", "trialing"])
-      .lte("current_period_end", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
-      .order("current_period_end", { ascending: true })
-      .limit(5),
-    supabaseAdmin
-      .from("clinics")
-      .select("created_at")
-      .gte("created_at", since30)
-      .order("created_at", { ascending: true }),
-    supabaseAdmin
-      .from("transactions" as any)
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ]);
-
-  // Compute MRR from active+trialing subs joined to plans
-  const plans = await supabaseAdmin.from("plans").select("id, monthly_price, yearly_price");
-  const planMap = new Map<string, { m: number; y: number }>();
-  ((plans.data ?? []) as any[]).forEach((p) =>
-    planMap.set(p.id, { m: Number(p.monthly_price ?? 0), y: Number(p.yearly_price ?? 0) }),
-  );
-  let mrr = 0;
-  ((activeSubs.data ?? []) as any[]).forEach((s) => {
-    const p = planMap.get(s.plan_id);
-    if (!p) return;
-    mrr += s.billing_cycle === "yearly" ? p.y / 12 : p.m;
+export async function getAdminCustomerBillingImpl(input) {
+  const sb = await getAdminBillingReadClient();
+  const { adminCustomerInput, adminCustomerSchema, parseAdminBilling } = await import("./subscription-analytics");
+  const args = adminCustomerInput.parse(input);
+  const { data, error } = await sb.rpc("clinicx_admin_customer", {
+    p_clinic: args.clinicId, p_payment_page: args.paymentPage,
+    p_event_page: args.eventPage, p_limit: args.pageSize,
   });
-
-  // Daily signups bucket
-  const buckets: Record<string, number> = {};
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-    const key = d.toISOString().slice(0, 10);
-    buckets[key] = 0;
-  }
-  (signupsTrend.data ?? []).forEach((c: { created_at: string }) => {
-    const k = c.created_at.slice(0, 10);
-    if (k in buckets) buckets[k]++;
-  });
-  const signupsDaily = Object.entries(buckets).map(([date, count]) => ({ date, count }));
-
-  return {
-    totalDoctors: totalClinics.count ?? 0,
-    newThisWeek: clinicsThisWeek.count ?? 0,
-    activeSubs: activeSubs.count ?? 0,
-    trialSubs: trialSubs.count ?? 0,
-    expiredThisMonth: expiredThisMonth.count ?? 0,
-    newSignupsToday: newSignupsToday.count ?? 0,
-    mrr: Math.round(mrr),
-    arr: Math.round(mrr * 12),
-    recentClinics: recentClinics.data ?? [],
-    expiringSubs: expiringSubs.data ?? [],
-    signupsDaily,
-    recentTransactions: recentTransactions.data ?? [],
-  };
+  if (error) throw new Error("Customer billing unavailable; verify admin authority and migrations");
+  return parseAdminBilling(adminCustomerSchema, data);
 }
 
 // -------------------------------------------------------------
@@ -322,240 +238,41 @@ export async function getDoctorDetailsImpl(input: any) {
 export async function updateDoctorProfileImpl(input: any) {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: clinic } = await supabaseAdmin
-    .from("clinics")
-    .select("organization_id, suspended_at")
-    .eq("id", input.id)
-    .maybeSingle();
-
-  if (!clinic) throw new Error("Clinic not found");
-
-  // Handle suspension status
-  let suspendedAt = clinic.suspended_at;
-  if (input.status === "suspended") {
-    if (!suspendedAt) {
-      suspendedAt = new Date().toISOString();
-    }
-  } else if (input.status !== undefined) {
-    suspendedAt = null;
+  // Reject the complete request before profile writes; no partial financial edits.
+  const allowed = ["id", "doctorName", "clinicName", "specialization", "email", "phone", "city"];
+  if (!input || Object.keys(input).some((key) => !allowed.includes(key))) {
+    throw new Error("Profile-only update: billing authority fields are disabled. Use the clinic owner's billing page.");
   }
-
-  const updateData: any = {};
-  if (input.doctorName !== undefined) updateData.doctor_name = input.doctorName;
-  if (input.clinicName !== undefined) updateData.clinic_name = input.clinicName;
-  if (input.specialization !== undefined) updateData.specialization = input.specialization;
-  if (input.email !== undefined) updateData.email = input.email;
-  if (input.phone !== undefined) updateData.phone = input.phone;
-  if (input.city !== undefined) updateData.address = input.city;
-  if (input.status !== undefined) updateData.suspended_at = suspendedAt;
-
-  if (Object.keys(updateData).length > 0) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: clinic, error: lookupError } = await supabaseAdmin.from("clinics")
+    .select("id").eq("id", input.id).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (!clinic) throw new Error("Clinic not found");
+  const updateData: Record<string, string> = {};
+  for (const [key, column] of Object.entries({ doctorName: "doctor_name", clinicName: "clinic_name",
+    specialization: "specialization", email: "email", phone: "phone", city: "address" })) {
+    if (input[key] !== undefined) {
+      if (typeof input[key] !== "string" || input[key].length > 500) throw new Error("Invalid profile field");
+      updateData[column] = input[key];
+    }
+  }
+  if (Object.keys(updateData).length) {
     const { error } = await supabaseAdmin.from("clinics").update(updateData).eq("id", input.id);
-
     if (error) throw error;
   }
-
-  // Handle Plan / Subscription status & Period End Date
-  if (input.planId && input.planId !== "free") {
-    const { data: sub } = await supabaseAdmin
-      .from("subscriptions")
-      .select("*")
-      .eq("organization_id", clinic.organization_id)
-      .maybeSingle();
-
-    let subStatus = input.status === "suspended" ? "active" : input.status || "active";
-    if (subStatus === "canceled" || subStatus === "cancelled") {
-      subStatus = "cancelled";
-    }
-    if (subStatus === "free") {
-      subStatus = "active";
-    }
-
-    const periodEnd = input.periodEnd ? new Date(input.periodEnd).toISOString() : null;
-
-    if (sub) {
-      const { error: updateSubErr } = await supabaseAdmin
-        .from("subscriptions")
-        .update({
-          plan_id: input.planId,
-          status: subStatus as any,
-          current_period_end: periodEnd,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", sub.id);
-
-      if (updateSubErr) {
-        console.error("[updateDoctorProfileImpl] Subscription update error:", updateSubErr);
-        throw updateSubErr;
-      }
-    } else {
-      const { error: insertSubErr } = await supabaseAdmin.from("subscriptions").insert({
-        organization_id: clinic.organization_id,
-        plan_id: input.planId,
-        status: subStatus as any,
-        current_period_start: new Date().toISOString(),
-        current_period_end: periodEnd,
-      });
-
-      if (insertSubErr) {
-        console.error("[updateDoctorProfileImpl] Subscription insert error:", insertSubErr);
-        throw insertSubErr;
-      }
-    }
-
-    // Record transaction for admin manual plan modification
-    await supabaseAdmin.from("transactions").insert({
-      doctor_id: clinic.owner_id,
-      organization_id: clinic.organization_id, // Added organization_id
-      amount: 0, // ₹0 manual grant
-      currency: "INR",
-      status: "captured",
-      gateway: "manual",
-      plan: input.planId || "No Plan",
-      billing_cycle: input.billingCycle || "monthly",
-      gateway_payment_id: `MANUAL-ADMIN-${admin.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-      gateway_order_id: `Admin profile update: set status to ${subStatus}`,
-    } as never);
-  } else if (input.planId === "free" || !input.planId) {
-    const { error: deleteSubErr } = await supabaseAdmin
-      .from("subscriptions")
-      .delete()
-      .eq("organization_id", clinic.organization_id);
-
-    if (deleteSubErr) {
-      console.error("[updateDoctorProfileImpl] Subscription delete error:", deleteSubErr);
-      throw deleteSubErr;
-    }
-  }
-
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_profile_updated", "doctor", input.id, {
-    doctorName: input.doctorName,
-  });
-
+  await createAuditLog(supabaseAdmin, admin.id, "doctor_profile_updated", "doctor", input.id,
+    { fields: Object.keys(updateData) });
   return { success: true };
 }
 
 export async function changeDoctorPlanImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: clinic } = await supabaseAdmin
-    .from("clinics")
-    .select("organization_id, id, owner_id")
-    .eq("id", input.clinicId)
-    .maybeSingle();
-
-  if (!clinic) throw new Error("Clinic not found");
-
-  if (input.cancelSub) {
-    await supabaseAdmin
-      .from("subscriptions")
-      .update({ status: "cancelled", updated_at: new Date().toISOString() })
-      .eq("organization_id", clinic.organization_id);
-
-    await createAuditLog(supabaseAdmin, admin.id, "subscription_cancelled", "doctor", clinic.id);
-    return { success: true };
-  }
-
-  const { data: sub } = await supabaseAdmin
-    .from("subscriptions")
-    .select("*")
-    .eq("organization_id", clinic.organization_id)
-    .maybeSingle();
-
-  if (sub) {
-    let currentEnd = sub.current_period_end ? new Date(sub.current_period_end) : new Date();
-    if (input.extendDays) {
-      currentEnd.setDate(currentEnd.getDate() + input.extendDays);
-    }
-    if (input.grantFreeMonth) {
-      currentEnd.setMonth(currentEnd.getMonth() + 1);
-    }
-
-    await supabaseAdmin
-      .from("subscriptions")
-      .update({
-        plan_id: input.planId,
-        status: "active",
-        current_period_end: currentEnd.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sub.id);
-  } else {
-    const trialEnds = new Date();
-    trialEnds.setDate(trialEnds.getDate() + (input.extendDays || 30));
-
-    await supabaseAdmin.from("subscriptions").insert({
-      organization_id: clinic.organization_id,
-      plan_id: input.planId,
-      status: "active",
-      current_period_start: new Date().toISOString(),
-      current_period_end: trialEnds.toISOString(),
-    });
-  }
-
-  // Record transaction for admin manual plan modification
-  await supabaseAdmin.from("transactions").insert({
-    doctor_id: clinic.owner_id,
-    organization_id: clinic.organization_id, // Added organization_id
-    amount: 0, // ₹0 manual grant
-    currency: "INR",
-    status: "captured",
-    gateway: "manual",
-    plan: input.planId || "No Plan",
-    billing_cycle: "monthly",
-    gateway_payment_id: `MANUAL-ADMIN-${admin.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-    gateway_order_id: input.extendDays
-      ? `Extended trial by ${input.extendDays} days`
-      : input.grantFreeMonth
-        ? `Granted free month`
-        : `Admin plan change`,
-  } as never);
-
-  await createAuditLog(supabaseAdmin, admin.id, "plan_changed", "doctor", clinic.id, {
-    planId: input.planId,
-    extendDays: input.extendDays,
-    freeMonth: input.grantFreeMonth,
-  });
-
-  return { success: true };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Legacy plan grants, trial extensions and cancellation are disabled. The clinic owner must use /dashboard/billing for verified provider commands; a documented super-admin exception uses the separate audited override workflow.");
 }
 
 export async function issueRefundImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: clinic } = await supabaseAdmin
-    .from("clinics")
-    .select("owner_id, id")
-    .eq("id", input.clinicId)
-    .maybeSingle();
-
-  if (!clinic) throw new Error("Doctor not found");
-
-  await supabaseAdmin.from("transactions" as any).insert({
-    doctor_id: clinic.owner_id,
-    amount: -Math.round(input.amount * 100),
-    status: "refunded",
-    plan: "Refund",
-    currency: "INR",
-    refund_amount: Math.round(input.amount * 100),
-    created_at: new Date().toISOString(),
-  });
-
-  await createAuditLog(supabaseAdmin, admin.id, "refund_issued", "doctor", clinic.id, {
-    amount: input.amount,
-    reason: input.reason,
-  });
-
-  return { success: true };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Refund issuance is disabled: no provider refund authority is implemented. Escalate for approved payment-bound provider reconciliation; no refund has been issued or recorded.");
 }
 
 export async function toggleDoctorSuspensionImpl(input: any) {
@@ -598,104 +315,24 @@ export async function toggleDoctorSuspensionImpl(input: any) {
 }
 
 export async function deleteDoctorAccountImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: clinic } = await supabaseAdmin
-    .from("clinics")
-    .select("owner_id, organization_id, id")
-    .eq("id", input.id)
-    .maybeSingle();
-
-  if (!clinic) throw new Error("Doctor not found");
-
-  await Promise.all([
-    supabaseAdmin.from("patients").delete().eq("clinic_id", clinic.id),
-    supabaseAdmin.from("appointments").delete().eq("clinic_id", clinic.id),
-    supabaseAdmin.from("clinics").delete().eq("id", clinic.id),
-    supabaseAdmin.from("subscriptions").delete().eq("organization_id", clinic.organization_id),
-    supabaseAdmin
-      .from("organization_members")
-      .delete()
-      .eq("organization_id", clinic.organization_id),
-    supabaseAdmin.from("organizations").delete().eq("id", clinic.organization_id),
-    supabaseAdmin.from("profiles").delete().eq("id", clinic.id),
-  ]);
-
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_deleted", "doctor", input.id, {
-    owner_id: clinic.owner_id,
-  });
-  return { success: true };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Account deletion is disabled. Healthcare retention, owner approval, authorized export, legal-hold review and verified backup/recovery approval are required. Clinical data is preserved.");
 }
 
 export async function clearDoctorPatientsDataImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const [patients, appointments] = await Promise.all([
-    supabaseAdmin.from("patients").delete().eq("clinic_id", input.id),
-    supabaseAdmin.from("appointments").delete().eq("clinic_id", input.id),
-  ]);
-
-  if (patients.error || appointments.error) throw new Error("Failed to clear patient data");
-
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_patients_cleared", "doctor", input.id);
-  return { success: true };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Clinical data clearing is disabled. Follow the approved retention/export process; trial or payment expiry never authorizes deletion.");
 }
 
-// -------------------------------------------------------------
-// Page 5: Subscriptions & Billing
-// -------------------------------------------------------------
-export async function listAdminSubscriptionsImpl() {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const [subs, plansRes, clinics] = await Promise.all([
-    supabaseAdmin.from("subscriptions").select("*").order("created_at", { ascending: false }),
-    supabaseAdmin.from("plans").select("id, name, monthly_price, yearly_price"),
-    supabaseAdmin.from("clinics").select("id, doctor_name, clinic_name, organization_id"),
-  ]);
-
-  const clinicByOrg = new Map((clinics.data ?? []).map((c) => [c.organization_id, c]));
-  const planById = new Map((plansRes.data ?? []).map((p) => [p.id, p]));
-
-  const activeCount = (subs.data ?? []).filter((s) => s.status === "active").length;
-  const trialCount = (subs.data ?? []).filter((s) => s.status === "trialing").length;
-  const expiredCount = (subs.data ?? []).filter(
-    (s) => s.status === "expired" || s.status === "cancelled",
-  ).length;
-
-  const list = (subs.data ?? []).map((s) => {
-    const c = clinicByOrg.get(s.organization_id);
-    const p = planById.get(s.plan_id);
-    return {
-      id: s.id,
-      clinicId: c?.id ?? "",
-      planId: s.plan_id,
-      doctorName: c?.doctor_name ?? "Unknown Doctor",
-      clinicName: c?.clinic_name ?? "Unknown Clinic",
-      plan: p?.name ?? "No Plan",
-      amount: s.billing_cycle === "yearly" ? (p?.yearly_price ?? 0) : (p?.monthly_price ?? 0),
-      status: s.status,
-      start: s.current_period_start,
-      end: s.current_period_end ?? s.trial_ends_at,
-      razorpayId: s.razorpay_subscription_id ?? "—",
-    };
+export async function listAdminSubscriptionsImpl(input?) {
+  const sb = await getAdminBillingReadClient();
+  const { adminCustomerPageInput, adminCustomerPageSchema, parseAdminBilling } = await import("./subscription-analytics");
+  const args = adminCustomerPageInput.parse(input);
+  const { data, error } = await sb.rpc("clinicx_admin_customers", {
+    p_page: args?.page ?? 0, p_limit: args?.pageSize ?? 50, p_filter: args?.filter ?? null,
   });
-
-  return {
-    activeCount,
-    trialCount,
-    expiredCount,
-    totalCount: list.length,
-    subscriptions: list,
-  };
+  if (error) throw new Error("Billing analytics unavailable; verify admin authority and migrations");
+  return parseAdminBilling(adminCustomerPageSchema, data);
 }
 
 // -------------------------------------------------------------
@@ -712,7 +349,7 @@ export async function getAdminPlansImpl() {
 
 export async function updatePlanDetailsImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -752,7 +389,7 @@ export async function listCouponsImpl() {
 
 export async function createCouponImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -781,7 +418,7 @@ export async function createCouponImpl(input: any) {
 
 export async function toggleCouponActiveImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -800,93 +437,8 @@ export async function toggleCouponActiveImpl(input: any) {
   return { success: true };
 }
 
-export async function syncRazorpayTransactions(supabaseAdmin: any) {
-  try {
-    const { getPayments } = await import("@/lib/razorpay.server");
-    const rzpPayments = await getPayments(100);
-
-    if (rzpPayments?.items?.length > 0) {
-      // 1. Fetch all clinics to map organization_id and public_email to owner_id/doctor_id
-      const { data: clinics } = await supabaseAdmin
-        .from("clinics")
-        .select("organization_id, owner_id, public_email");
-
-      const clinicMap = new Map((clinics ?? []).map((c: any) => [c.organization_id, c.owner_id]));
-      const emailMap = new Map();
-      (clinics ?? []).forEach((c: any) => {
-        if (c.public_email) emailMap.set(c.public_email.toLowerCase().trim(), c.owner_id);
-      });
-
-      // 2. Fetch all subscriptions in database to map gateway_subscription_id to organization_id
-      const { data: subs } = await supabaseAdmin
-        .from("subscriptions")
-        .select("organization_id, gateway_subscription_id");
-      const subMap = new Map(
-        (subs ?? []).map((s: any) => [s.gateway_subscription_id, s.organization_id]),
-      );
-
-      // 3. Process payments
-      for (const item of rzpPayments.items) {
-        const rzpSubId = item.subscription_id || item.notes?.subscription_id || null;
-        let orgId = item.notes?.organization_id || null;
-        if (!orgId && rzpSubId) {
-          orgId = subMap.get(rzpSubId) || null;
-        }
-
-        // Fallback: fetch subscription directly from Razorpay if not resolved locally
-        if (!orgId && rzpSubId) {
-          try {
-            const { getSubscription } = await import("@/lib/razorpay.server");
-            const fetchedSub = await getSubscription(rzpSubId);
-            orgId = fetchedSub?.notes?.organization_id || null;
-          } catch (subErr) {
-            console.error(
-              `Failed to fetch subscription ${rzpSubId} from Razorpay API during sync:`,
-              subErr,
-            );
-          }
-        }
-
-        let doctorId = item.notes?.doctor_id || null;
-        if (!doctorId && orgId) {
-          doctorId = clinicMap.get(orgId) || null;
-        }
-        if (!doctorId && item.email) {
-          doctorId = emailMap.get(item.email.toLowerCase().trim()) || null;
-        }
-
-        const statusVal =
-          item.status === "captured" ? "captured" : item.status === "failed" ? "failed" : "success";
-
-        // Upsert transaction in the database
-        const { error } = await supabaseAdmin.from("transactions").upsert(
-          {
-            doctor_id: doctorId,
-            organization_id: orgId,
-            amount: item.amount / 100, // Razorpay stores in paise, convert to Rupees
-            currency: item.currency,
-            status: statusVal,
-            gateway: "razorpay",
-            plan: item.notes?.plan_id || null,
-            billing_cycle: item.notes?.billing_cycle || null,
-            gateway_payment_id: item.id,
-            razorpay_payment_id: item.id,
-            gateway_order_id: item.order_id || null,
-            razorpay_order_id: item.order_id || null,
-            created_at: new Date(item.created_at * 1000).toISOString(),
-          } as never,
-          { onConflict: "gateway_payment_id" },
-        );
-
-        if (error) {
-          console.error(`Failed to upsert transaction ${item.id}:`, error);
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Failed to sync Razorpay transactions:", err);
-  }
-}
+// Legacy bulk provider sync removed: GET paths must never settle payments.
+// Canonical signed-event reconciliation is owned by billing-webhook.server.ts.
 
 // -------------------------------------------------------------
 // Page 7: Transactions & Refunds
@@ -897,8 +449,7 @@ export async function listTransactionsImpl() {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Sync latest transactions from Razorpay API
-  await syncRazorpayTransactions(supabaseAdmin);
+  // Read-only: provider reconciliation belongs to the signed billing worker.
 
   const [txs, clinics, invoices, doctors] = await Promise.all([
     supabaseAdmin
@@ -1004,7 +555,7 @@ export async function listFeatureFlagsImpl() {
 
 export async function toggleFeatureFlagImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -1026,7 +577,7 @@ export async function toggleFeatureFlagImpl(input: any) {
 
 export async function updateFeatureFlagOverridesImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -1479,7 +1030,7 @@ export async function getSystemSettingsImpl() {
 
 export async function saveSystemSettingsImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -1508,91 +1059,13 @@ export async function saveSystemSettingsImpl(input: any) {
 // Extended: Impersonation, Password Reset, Publish Toggle
 // -------------------------------------------------------------
 export async function impersonateDoctorImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: clinic } = await supabaseAdmin
-    .from("clinics")
-    .select("id, owner_id, doctor_name, email")
-    .eq("id", input.clinicId)
-    .maybeSingle();
-  if (!clinic) throw new Error("Clinic not found");
-
-  // Respect the doctor's impersonation opt-out.
-  if (clinic.owner_id) {
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("impersonation_allowed")
-      .eq("id", clinic.owner_id)
-      .maybeSingle();
-    if (profile && profile.impersonation_allowed === false) {
-      throw new Error("This doctor has disabled account impersonation");
-    }
-  }
-
-  let email = clinic.email as string | null;
-  if (!email && clinic.owner_id) {
-    const { data: user } = await supabaseAdmin.auth.admin.getUserById(clinic.owner_id);
-    email = user?.user?.email ?? null;
-  }
-  if (!email) throw new Error("Doctor has no email on file");
-
-  const req = getRequest();
-  const origin =
-    req?.headers?.get("origin") ||
-    req?.headers?.get("referer")?.split("/").slice(0, 3).join("/") ||
-    "";
-  const redirectTo = `${origin}/dashboard`;
-
-  const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-    options: { redirectTo },
-  });
-  if (error) throw error;
-
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_impersonated", "doctor", clinic.id, {
-    email,
-    doctor_name: clinic.doctor_name,
-  });
-
-  return { url: link.properties?.action_link, email };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Owner-session impersonation is disabled: support cannot inherit owner billing authority. Use admin read/support workflows without creating an owner token.");
 }
 
 export async function resetDoctorPasswordImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: clinic } = await supabaseAdmin
-    .from("clinics")
-    .select("id, owner_id, email, doctor_name")
-    .eq("id", input.clinicId)
-    .maybeSingle();
-  if (!clinic?.owner_id) throw new Error("Clinic has no owner");
-
-  const tempPassword =
-    input.password && input.password.length >= 8
-      ? input.password
-      : crypto
-          .randomBytes(9)
-          .toString("base64")
-          .replace(/[^a-zA-Z0-9]/g, "")
-          .slice(0, 12) + "!A9";
-
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(clinic.owner_id, {
-    password: tempPassword,
-  });
-  if (error) throw error;
-
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_password_reset", "doctor", clinic.id, {
-    doctor_name: clinic.doctor_name,
-  });
-
-  return { password: tempPassword, email: clinic.email };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Admin-assigned owner passwords are disabled. The owner must use the normal account recovery flow; support cannot acquire owner billing authority.");
 }
 
 export async function toggleClinicPublishImpl(input: any) {
@@ -1633,37 +1106,13 @@ export async function toggleClinicPublishImpl(input: any) {
 // Extended: Subscription lifecycle actions
 // -------------------------------------------------------------
 export async function updateSubscriptionStatusImpl(input: any) {
-  const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
-  if (input.action === "cancel") patch.status = "cancelled";
-  else if (input.action === "reactivate") patch.status = "active";
-  else if (input.action === "mark_expired") patch.status = "expired";
-  else throw new Error("Unknown action");
-
-  const { error } = await supabaseAdmin.from("subscriptions").update(patch).eq("id", input.id);
-  if (error) throw error;
-
-  await createAuditLog(
-    supabaseAdmin,
-    admin.id,
-    `subscription_${input.action}`,
-    "subscription",
-    input.id,
-  );
-
-  return { success: true };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Legacy subscription status commands are disabled. The clinic owner must use /dashboard/billing for authorized provider cancellation/resume. Verified settlement and lifecycle jobs alone control paid access and expiry.");
 }
 
-// -------------------------------------------------------------
-// Extended: Coupon delete + Plan CRUD
-// -------------------------------------------------------------
 export async function deleteCouponImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { error } = await supabaseAdmin
@@ -1677,7 +1126,7 @@ export async function deleteCouponImpl(input: any) {
 
 export async function createPlanImpl(input: any) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { error } = await supabaseAdmin.from("plans").insert({
@@ -1723,7 +1172,7 @@ export async function testIntegrationImpl(input: {
   settings: Record<string, string>;
 }) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { provider, settings } = input;
 
@@ -1769,24 +1218,10 @@ export async function testIntegrationImpl(input: {
 }
 
 export async function deleteAuditLogImpl(input: { id: string }) {
-  const admin = await getVerifiedAdmin();
-  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { error } = await supabaseAdmin
-    .from("admin_audit_logs" as any)
-    .delete()
-    .eq("id", input.id);
-  if (error) throw error;
-
-  // We don't log the deletion of an audit log entry in the audit log itself
-  // to avoid confusion during tests, or we could if needed.
-  return { success: true };
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Audit deletion is disabled. Authority evidence must be retained under the approved audit retention policy.");
 }
 
-// -------------------------------------------------------------
-// Module / app on-off controls (global + per clinic)
-// -------------------------------------------------------------
 export async function listModuleControlsImpl(input: { orgId?: string; search?: string }) {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");
@@ -1815,7 +1250,7 @@ export async function listModuleControlsImpl(input: { orgId?: string; search?: s
 
 export async function setModuleGlobalImpl(input: { moduleId: string; enabled: boolean }) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { error } = await supabaseAdmin
     .from("modules")
@@ -1833,29 +1268,22 @@ export async function setModuleGlobalImpl(input: { moduleId: string; enabled: bo
 }
 
 export async function setOrgModuleOverrideImpl(input: {
-  orgId: string;
-  moduleId: string;
-  state: "on" | "off" | "default";
+  orgId: string; moduleId: string; state: "on" | "off" | "default";
+}) {
+  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
+  throw new Error("Legacy module grants are disabled: use a documented, time-bounded super-admin authority workflow.");
+}
+
+/** Separate, explicit exception; never a payment, trial extension or provider command. */
+export async function grantAdminDocumentedOverrideImpl(input: {
+  organizationId: string; planId: string; expiresAt: string; reason: string;
 }) {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const t = supabaseAdmin.from("organization_module_overrides" as any);
-  const { error } =
-    input.state === "default"
-      ? await t.delete().eq("organization_id", input.orgId).eq("module_id", input.moduleId)
-      : await t.upsert(
-          {
-            organization_id: input.orgId,
-            module_id: input.moduleId,
-            enabled: input.state === "on",
-            updated_by: admin.id,
-          },
-          { onConflict: "organization_id,module_id" },
-        );
-  if (error) throw error;
-  await createAuditLog(supabaseAdmin, admin.id, `module_clinic_${input.state}`, "organization", input.orgId, {
-    module: input.moduleId,
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
+  const sb = await getAdminBillingReadClient();
+  const { data, error } = await sb.rpc("clinicx_admin_documented_override", {
+    p_org: input.organizationId, p_plan: input.planId, p_expires: input.expiresAt, p_reason: input.reason,
   });
+  if (error || !data || data.success !== true) throw new Error("Documented override denied; verify reason, expiry, actor and database authority");
   return { success: true };
 }

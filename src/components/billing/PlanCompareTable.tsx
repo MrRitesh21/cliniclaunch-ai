@@ -7,14 +7,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Plan = Database["public"]["Tables"]["plans"]["Row"];
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 
-// Plan usage limits shown in the comparison. Mirrors the limits enforced in
-// dashboard.billing.tsx usage cards — keep both in sync if limits change.
-const PLAN_LIMITS: Record<string, { patients: string; staff: string }> = {
-  starter: { patients: "100", staff: "1" },
-  growth: { patients: "1,000", staff: "5" },
-  professional: { patients: "Unlimited", staff: "20" },
-  enterprise: { patients: "Unlimited", staff: "Unlimited" },
-};
+import { pricePresentation } from "./clinicx-ux";
 
 export function PlanCompareTable({
   plans,
@@ -22,7 +15,11 @@ export function PlanCompareTable({
   currentPlanId,
   billingCycle = "yearly",
   onSelectPlan,
+  planLimits = {}, planFeatures = {}, featureAliases = {},
 }: {
+  planLimits?: Record<string, Record<string, number | null>>;
+  planFeatures?: Record<string, string[]>;
+  featureAliases?: Record<string, string>;
   plans: Plan[];
   modules: Module[];
   currentPlanId?: string | null;
@@ -39,10 +36,11 @@ export function PlanCompareTable({
 
   if (plans.length === 0) return null;
 
-  const priceFor = (p: Plan) =>
-    billingCycle === "monthly"
-      ? (p.discounted_monthly_price ?? p.monthly_price)
-      : Math.round((p.discounted_yearly_price ?? p.yearly_price) / 12);
+  const priceFor = (p: Plan) => pricePresentation(p, billingCycle).total;
+  const limitFor = (id: string, key: string) => {
+    const limit = planLimits[id]?.[key];
+    return limit === null ? "Unlimited" : limit === undefined ? "Not configured" : limit.toLocaleString("en-IN");
+  };
 
   return (
     <div className="overflow-x-auto rounded-xl border">
@@ -63,7 +61,7 @@ export function PlanCompareTable({
                 </div>
                 <div className="mt-1">
                   <span className="font-display text-lg">₹{priceFor(p).toLocaleString()}</span>
-                  <span className="text-xs text-muted-foreground">/mo</span>
+                  <span className="text-xs text-muted-foreground">/{billingCycle === "yearly" ? "year" : "month"}</span>
                 </div>
                 {currentPlanId === p.id && (
                   <Badge variant="outline" className="mt-1 text-[10px]">
@@ -91,7 +89,7 @@ export function PlanCompareTable({
                 key={p.id}
                 className={`p-3 text-center font-medium ${p.is_popular ? "bg-primary/5" : ""}`}
               >
-                {PLAN_LIMITS[p.id]?.patients ?? "—"}
+                {limitFor(p.id, "patients")}
               </td>
             ))}
           </tr>
@@ -102,10 +100,12 @@ export function PlanCompareTable({
                 key={p.id}
                 className={`p-3 text-center font-medium ${p.is_popular ? "bg-primary/5" : ""}`}
               >
-                {PLAN_LIMITS[p.id]?.staff ?? "—"}
+                {limitFor(p.id, "staff")}
               </td>
             ))}
           </tr>
+
+          <tr className="border-b"><td className="p-3 text-muted-foreground">Doctors</td>{plans.map(p => <td key={p.id} className="p-3 text-center font-medium">{limitFor(p.id, "doctors")}</td>)}</tr>
 
           {/* Modules grouped by category */}
           {groupedModules.map((group) => (
@@ -130,7 +130,7 @@ export function PlanCompareTable({
                     </div>
                   </td>
                   {plans.map((p) => {
-                    const included = (p.module_ids ?? []).includes(m.id);
+                    const included = (planFeatures[p.id] ?? []).includes(featureAliases[m.id] ?? m.id);
                     return (
                       <td
                         key={p.id}
@@ -158,11 +158,10 @@ export function PlanCompareTable({
                   <Button
                     size="sm"
                     variant={p.is_popular ? "default" : "outline"}
-                    disabled={currentPlanId === p.id}
                     onClick={() => onSelectPlan(p.id)}
                     className="w-full text-xs"
                   >
-                    {currentPlanId === p.id ? "Current" : `Choose ${p.name}`}
+                    {`Choose ${p.name}`}
                   </Button>
                 </td>
               ))}

@@ -7,6 +7,7 @@ import {
   HeadContent,
   Scripts,
   useLocation,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -37,11 +38,12 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    // Never send raw thrown values, clinical details, SQL or credentials to telemetry.
+    const safeError = new Error(error instanceof Error ? "Route failed." : "Unexpected route failure.");
+    reportLovableError(safeError, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (

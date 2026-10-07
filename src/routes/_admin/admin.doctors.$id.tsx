@@ -297,7 +297,7 @@ function DoctorDetailPage() {
             <Button
               variant="secondary"
               size="sm"
-              disabled={impersonateMut.isPending}
+              disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
               onClick={() => impersonateMut.mutate()}
             >
               {impersonateMut.isPending ? (
@@ -392,7 +392,8 @@ function DoctorDetailPage() {
 
         {activeTab === "subscription" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Subscription Manager */}
+            <p className="text-sm text-muted-foreground" role="note">Legacy grants, trial extensions, raw cancellation/reactivation and refunds are disabled. Ask the clinic owner to use /dashboard/billing. Medical data is retained; deletion requires approved retention, export and legal-hold review.</p>
+      {/* Subscription Manager */}
             <Card className="p-4 sm:p-6 space-y-4">
               <h3 className="text-lg font-semibold text-foreground font-display">
                 Manage Subscription
@@ -431,7 +432,7 @@ function DoctorDetailPage() {
                   <Button
                     size="sm"
                     className="mt-2"
-                    disabled={!selectedPlan || changePlanMut.isPending}
+                    disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                     onClick={() => changePlanMut.mutate({ planId: selectedPlan })}
                   >
                     Change Plan
@@ -452,7 +453,7 @@ function DoctorDetailPage() {
                       size="sm"
                       variant="outline"
                       className="mt-2 w-full"
-                      disabled={!extendDays || changePlanMut.isPending}
+                      disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                       onClick={() =>
                         changePlanMut.mutate({
                           planId: subscription?.plan_id || "free_plan",
@@ -472,7 +473,7 @@ function DoctorDetailPage() {
                       size="sm"
                       variant="outline"
                       className="w-full"
-                      disabled={changePlanMut.isPending}
+                      disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                       onClick={() =>
                         changePlanMut.mutate({
                           planId: subscription?.plan_id || "free_plan",
@@ -489,7 +490,7 @@ function DoctorDetailPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={changePlanMut.isPending}
+                    disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                     onClick={() => {
                       if (confirm("Are you sure you want to cancel this doctor's subscription?")) {
                         changePlanMut.mutate({ planId: "", cancelSub: true });
@@ -506,7 +507,7 @@ function DoctorDetailPage() {
             <Card className="p-4 sm:p-6 space-y-4 h-fit">
               <h3 className="text-lg font-semibold text-foreground font-display">Issue Refund</h3>
               <p className="text-xs text-muted-foreground/70">
-                Issues partial or full cashback refund for any transactions.
+                Refund issuance is disabled until an approved payment-bound provider refund workflow is available. No refund has been issued.
               </p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -530,7 +531,7 @@ function DoctorDetailPage() {
                 </div>
                 <Button
                   variant="destructive"
-                  disabled={!refundAmount || !refundReason || refundMut.isPending}
+                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                   onClick={() => refundMut.mutate()}
                 >
                   {refundMut.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : null}
@@ -653,7 +654,7 @@ function DoctorDetailPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
-                  disabled={impersonateMut.isPending}
+                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                   onClick={() => impersonateMut.mutate()}
                 >
                   {impersonateMut.isPending ? (
@@ -665,7 +666,7 @@ function DoctorDetailPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={resetPasswordMut.isPending}
+                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                   onClick={() => {
                     if (
                       confirm(
@@ -738,14 +739,13 @@ function DoctorDetailPage() {
                 Danger Zone
               </h3>
               <p className="text-xs text-muted-foreground">
-                Permanently destroy medical files and credentials. This bypasses RLS and is
-                non-reversible.
+                Medical data is preserved. Deletion and bulk clearing are disabled pending owner approval, authorized export, healthcare retention/legal-hold review and backup/recovery approval.
               </p>
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   variant="outline"
                   className="text-amber-600 border-amber-200 hover:bg-amber-50"
-                  disabled={clearPatientsMut.isPending}
+                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                   onClick={() => {
                     if (
                       confirm(
@@ -760,7 +760,7 @@ function DoctorDetailPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  disabled={deleteDoctorMut.isPending}
+                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
                   onClick={() => {
                     if (
                       confirm(

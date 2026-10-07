@@ -1,3 +1,4 @@
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Button } from "@/components/ui/button";
@@ -30,12 +31,12 @@ export const Route = createFileRoute("/for/$specialty")({
     };
   },
   component: SpecialtyPage,
-  errorComponent: ({ error }) => (
+  errorComponent: (_props: ErrorComponentProps) => (
     <MarketingShell>
       <div className="min-h-[60vh] grid place-items-center px-4 text-center">
         <div>
           <h1 className="font-display text-2xl">Page unavailable</h1>
-          <p className="text-muted-foreground mt-2 text-sm">{error.message}</p>
+          <p className="text-muted-foreground mt-2 text-sm">We could not load this page. Please try again.</p>
         </div>
       </div>
     </MarketingShell>
