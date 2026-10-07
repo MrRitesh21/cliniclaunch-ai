@@ -88,7 +88,21 @@ function LoginPage() {
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      // Map Supabase auth errors to clear, actionable messages.
+      const code = (error as { code?: string }).code ?? "";
+      let message = error.message;
+      if (code === "email_not_confirmed" || /email.*not.*confirmed/i.test(error.message)) {
+        message = "Your email isn't confirmed yet. Check your inbox for the confirmation link, then try again.";
+      } else if (code === "invalid_credentials" || /invalid login credentials/i.test(error.message)) {
+        message = "Incorrect email or password. Please try again.";
+      } else if (code === "over_request_rate_limit" || /too many requests/i.test(error.message)) {
+        message = "Too many sign-in attempts. Please wait a minute and try again.";
+      } else if (code === "user_not_found") {
+        message = "No account found with this email. Create one on the Sign up tab.";
+      }
+      return toast.error(message);
+    }
     toast.success("Welcome back");
     navigate({ to: redirect ? (redirect as any) : "/dashboard" });
   }

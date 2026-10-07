@@ -145,7 +145,10 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      {/* suppressHydrationWarning: browser extensions (Grammarly etc.) inject
+          data-* attributes on <body> before React hydrates; this is expected
+          in dev browsers and must not surface as a hydration error. */}
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
