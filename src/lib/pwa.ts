@@ -25,7 +25,7 @@ export function registerPWA() {
   if (isPreview) return cleanup();
   if (new URL(window.location.href).searchParams.get("sw") === "off") return cleanup();
 
-  window.addEventListener("load", () => {
+  const doRegister = () => {
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
@@ -35,7 +35,13 @@ export function registerPWA() {
       .catch((err) => {
         console.warn("[ClinicX PWA] Service worker registration failed:", err);
       });
-  });
+  };
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    doRegister();
+  } else {
+    window.addEventListener("load", doRegister);
+  }
 }
 
 /**
@@ -84,16 +90,27 @@ async function cleanup() {
 // Global capture for beforeinstallprompt so early events are never lost
 let globalDeferredPrompt: any = null;
 if (typeof window !== "undefined") {
+  if ((window as any).__clinicx_deferred_prompt) {
+    globalDeferredPrompt = (window as any).__clinicx_deferred_prompt;
+  }
   window.addEventListener("beforeinstallprompt", (e: Event) => {
     e.preventDefault();
     globalDeferredPrompt = e;
+    (window as any).__clinicx_deferred_prompt = e;
+    window.dispatchEvent(new CustomEvent("clinicx:install-available", { detail: e }));
   });
 }
 
 // React Hook for 1-Click PWA App Installation
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(globalDeferredPrompt);
-  const [isInstallable, setIsInstallable] = useState(Boolean(globalDeferredPrompt));
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(() => {
+    if (typeof window === "undefined") return null;
+    return globalDeferredPrompt || (window as any).__clinicx_deferred_prompt || null;
+  });
+  const [isInstallable, setIsInstallable] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean(globalDeferredPrompt || (window as any).__clinicx_deferred_prompt);
+  });
   const [isInstalled, setIsInstalled] = useState(() => {
     if (typeof window === "undefined") return false;
     return (
@@ -103,6 +120,7 @@ export function usePWAInstall() {
       localStorage.getItem("clinicx_pwa_installed") === "true"
     );
   });
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -119,37 +137,66 @@ export function usePWAInstall() {
       return;
     }
 
-    if (globalDeferredPrompt) {
-      setDeferredPrompt(globalDeferredPrompt);
-      setIsInstallable(true);
-    }
+    const checkPrompt = () => {
+      const p = globalDeferredPrompt || (window as any).__clinicx_deferred_prompt;
+      if (p) {
+        setDeferredPrompt(p);
+        setIsInstallable(true);
+      }
+    };
+    checkPrompt();
 
     const handler = (e: Event) => {
       e.preventDefault();
       globalDeferredPrompt = e;
+      (window as any).__clinicx_deferred_prompt = e;
       setDeferredPrompt(e);
       setIsInstallable(true);
+    };
+
+    const handleCustom = (e: any) => {
+      const p = e.detail || globalDeferredPrompt || (window as any).__clinicx_deferred_prompt;
+      if (p) {
+        setDeferredPrompt(p);
+        setIsInstallable(true);
+      }
     };
 
     const handleInstalled = () => {
       setIsInstalled(true);
       setIsInstallable(false);
+      setShowModal(false);
       localStorage.setItem("clinicx_pwa_installed", "true");
       globalDeferredPrompt = null;
+      if (typeof window !== "undefined") (window as any).__clinicx_deferred_prompt = null;
       setDeferredPrompt(null);
     };
 
+    const handleOpenModal = () => {
+      setShowModal(true);
+    };
+
     window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("clinicx:install-available", handleCustom);
     window.addEventListener("appinstalled", handleInstalled);
+    window.addEventListener("clinicx:open-install-modal", handleOpenModal);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("clinicx:install-available", handleCustom);
       window.removeEventListener("appinstalled", handleInstalled);
+      window.removeEventListener("clinicx:open-install-modal", handleOpenModal);
     };
   }, []);
 
+  const openModal = () => setShowModal(true);
+
   const installApp = async () => {
-    const promptEvent = deferredPrompt || globalDeferredPrompt;
+    const promptEvent =
+      deferredPrompt ||
+      globalDeferredPrompt ||
+      (typeof window !== "undefined" ? (window as any).__clinicx_deferred_prompt : null);
+
     if (promptEvent) {
       try {
         promptEvent.prompt();
@@ -157,36 +204,35 @@ export function usePWAInstall() {
         if (outcome === "accepted") {
           setIsInstalled(true);
           setIsInstallable(false);
+          setShowModal(false);
           localStorage.setItem("clinicx_pwa_installed", "true");
           globalDeferredPrompt = null;
+          if (typeof window !== "undefined") (window as any).__clinicx_deferred_prompt = null;
           setDeferredPrompt(null);
+          const { toast } = await import("sonner");
+          toast.success("ClinicX App installed successfully!");
+          return { success: true, outcome: "accepted" };
         }
-        return;
+        return { success: false, outcome: "dismissed" };
       } catch (err) {
         console.warn("[PWA] Prompt error:", err);
       }
     }
 
-    // Fallback guidance for iOS Safari, Chrome iOS, and desktop browsers without native event
-    const isIosDevice =
-      typeof navigator !== "undefined" &&
-      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
-
-    const { toast } = await import("sonner");
-
-    if (isIosDevice) {
-      toast.info("Install on iPhone / iPad", {
-        description: "1. Tap the Share button in Safari (box with arrow ↑)\n2. Scroll down & tap 'Add to Home Screen' (+)",
-        duration: 8000,
-      });
-    } else {
-      toast.info("Install ClinicX App", {
-        description: "Tap the browser menu (⋮) and choose 'Install App' or 'Add to Home screen'.",
-        duration: 6000,
-      });
+    if (isInstalled) {
+      const { toast } = await import("sonner");
+      toast.success("ClinicX App is already installed on your device!");
+      return { success: true, alreadyInstalled: true };
     }
+
+    // Direct Play Store & App Store experience:
+    // Open install modal immediately without showing manual browser menu instructions
+    setShowModal(true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("clinicx:open-install-modal"));
+    }
+    return { success: false, openedModal: true };
   };
 
-  return { isInstallable, isInstalled, installApp };
+  return { isInstallable, isInstalled, installApp, showModal, setShowModal, openModal };
 }

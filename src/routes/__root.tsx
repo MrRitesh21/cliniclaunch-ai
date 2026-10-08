@@ -144,6 +144,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){window.__clinicx_deferred_prompt=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__clinicx_deferred_prompt=e;window.dispatchEvent(new CustomEvent('clinicx:install-available',{detail:e}));});})();`,
+          }}
+        />
       </head>
       {/* suppressHydrationWarning: browser extensions (Grammarly etc.) inject
           data-* attributes on <body> before React hydrates; this is expected

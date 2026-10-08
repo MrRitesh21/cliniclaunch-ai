@@ -14,6 +14,7 @@ import { recoveryRoute, trialMessage } from "@/components/billing/clinicx-ux";
 import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
 import { InstallAppPrompt } from "@/components/app/InstallAppPrompt";
+import { InstallAppModal } from "@/components/app/InstallAppModal";
 import { NotificationInbox } from "@/components/app/NotificationInbox";
 import { OfflineBanner } from "@/components/app/OfflineBanner";
 import { PullToRefresh } from "@/components/app/PullToRefresh";
@@ -1031,6 +1032,7 @@ function DashboardLayout() {
       </nav>
 
       <InstallAppPrompt />
+      <InstallAppModal />
 
       {profileOpen && user && (
         <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
