@@ -243,21 +243,74 @@ function AppointmentsPage() {
     if (!clinic?.id) return;
     setLoading(true);
     try {
-      type ApptStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+      // 1. Fetch appointments with clinic_id or organization_id
       let q = supabase
         .from("appointments")
-        .select("*, doctors(name)")
-        .eq("clinic_id", clinic.id)
+        .select("*")
         .order("scheduled_at", { ascending: false });
-      if (filter !== "all") q = q.eq("status", filter as ApptStatus);
-      const { data } = await q;
-      setRows((data ?? []) as unknown as Appt[]);
+
+      if (clinic.organization_id) {
+        q = q.or(`clinic_id.eq.${clinic.id},organization_id.eq.${clinic.organization_id}`);
+      } else {
+        q = q.eq("clinic_id", clinic.id);
+      }
+
+      const { data, error } = await q;
+      if (error) {
+        console.error("[Appointments] Failed to load appointments:", error);
+      }
+
+      // 2. Fetch consultations so direct walk-in visits also show up in appointments
+      const { data: consultData } = await supabase
+        .from("consultations" as any)
+        .select("*")
+        .eq("clinic_id", clinic.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      const existingApptIds = new Set((data ?? []).map((a: any) => a.id));
+      const directConsults: Appt[] = [];
+
+      ((consultData as any[]) ?? []).forEach((c) => {
+        if (c.appointment_id && existingApptIds.has(c.appointment_id)) return;
+        directConsults.push({
+          id: c.id,
+          patient_name: c.patient_name || "Walk-in Patient",
+          patient_phone: c.patient_phone || "",
+          patient_email: "",
+          patient_age: null,
+          patient_gender: null,
+          problem: c.chief_complaint || c.diagnosis || "In-clinic Consultation",
+          scheduled_at: c.created_at,
+          status: "completed",
+          appointment_type: "offline",
+          doctor_id: c.doctor_id || null,
+        });
+      });
+
+      // 3. Resolve doctor names safely without fragile embedded joins
+      const { data: docData } = await supabase
+        .from("doctors")
+        .select("id, name")
+        .eq("clinic_id", clinic.id);
+      const docMap = new Map<string, string>((docData ?? []).map((d) => [d.id, d.name]));
+
+      const combined = [...(data ?? []), ...directConsults].sort(
+        (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
+      );
+
+      const apptList = combined.map((r: any) => ({
+        ...r,
+        doctors: r.doctor_id && docMap.has(r.doctor_id) ? { name: docMap.get(r.doctor_id)! } : (r.doctors ?? null),
+      }));
+
+      setRows(apptList as unknown as Appt[]);
     } catch (e) {
       console.error("Failed to load appointments:", e);
     } finally {
       setLoading(false);
     }
-  }, [clinic?.id, filter]);
+  }, [clinic?.id, clinic?.organization_id]);
 
   useEffect(() => {
     load();
@@ -289,16 +342,18 @@ function AppointmentsPage() {
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
+      if (filter !== "all" && r.status !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
-        const matchesName = r.patient_name.toLowerCase().includes(q);
+        const matchesName = (r.patient_name || "").toLowerCase().includes(q);
         const matchesPhone = r.patient_phone?.includes(q);
         if (!matchesName && !matchesPhone) return false;
       }
       if (typeFilter !== "all" && r.appointment_type !== typeFilter) return false;
 
-      if (dateFilter !== "all") {
+      if (dateFilter !== "all" && r.scheduled_at) {
         const d = new Date(r.scheduled_at);
+        if (isNaN(d.getTime())) return false;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -321,7 +376,7 @@ function AppointmentsPage() {
 
       return true;
     });
-  }, [rows, search, typeFilter, dateFilter]);
+  }, [rows, filter, search, typeFilter, dateFilter]);
 
   async function setStatus(
     id: string,

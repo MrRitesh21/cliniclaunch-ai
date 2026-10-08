@@ -1,169 +1,210 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import type { SubscriptionSnapshot } from "@/lib/subscription.server";
-import { getClinicTrialEngagement } from "@/lib/trial-engagement.functions";
-import { trialCheckpoint, type TrialEngagement } from "@/lib/trial-engagement";
-import { activationSteps, trialMessage, type ActivationClinic } from "./clinicx-ux";
+import type { TrialEngagement } from "@/lib/trial-engagement";
+import { activationSteps, type ActivationClinic } from "./clinicx-ux";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  Sparkles,
+  ShieldCheck,
+} from "lucide-react";
 
 export function ClinicTrialJourney({
   snapshot,
   clinic,
   checklist = false,
-  engagement,
+  engagement: _engagement,
 }: {
   snapshot: SubscriptionSnapshot;
   clinic?: ActivationClinic | null;
   checklist?: boolean;
   engagement?: TrialEngagement;
 }) {
-  const [skipped, setSkipped] = useState<string[]>([]);
-  const query = useQuery({
-    queryKey: ["clinicx-trial-engagement", snapshot.organization_id, snapshot.subscription.id],
-    queryFn: () => getClinicTrialEngagement({ data: { organizationId: snapshot.organization_id } }),
-    enabled: !!snapshot.subscription.trial_started_at && !engagement,
-    staleTime: 30_000,
-    refetchInterval: snapshot.effective_state === "trialing" ? 60_000 : false,
-  });
-  // Never reuse another workspace's prop/cache result after a tenant switch.
-  const candidate = engagement ?? query.data;
-  const dto = candidate?.organization_id === snapshot.organization_id ? candidate : undefined;
-  const u = dto?.usage;
   const steps = activationSteps(snapshot.usage, clinic ?? null);
   const completed = steps.filter((s) => s.done).length;
-  const checkpoint = trialCheckpoint(dto ? { ...snapshot, server_now: dto.server_now } : snapshot);
-  const metrics: Array<[string, string | number]> = u
-    ? [
-        ["Patient records added", u.patients],
-        ["Appointments created", u.appointments],
-        ["Completed appointments", u.completed_appointments],
-        ["Visits recorded", u.visits],
-        ["Completed visits", u.completed_visits ?? "Not tracked"],
-        ["Prescriptions", u.prescriptions],
-        ["Clinical invoices", u.invoices],
-        ["Invoiced", `₹${u.invoiced_inr.toLocaleString("en-IN")}`],
-        ["Collected", `₹${u.collected_inr.toLocaleString("en-IN")}`],
-        ["Days active", u.days_active],
-      ]
-    : [];
+  const total = steps.length;
+  const pct = Math.round((completed / total) * 100);
+
+  // By default, if the user has completed 7+ steps or practice is active, keep it collapsed so it doesn't crowd daily workflow
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("clinicx_journey_collapsed");
+      if (saved !== null) return saved === "1";
+    }
+    return completed >= 7;
+  });
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("clinicx_journey_collapsed", next ? "1" : "0");
+      } catch {
+        // safe storage fallback
+      }
+      return next;
+    });
+  };
+
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const remainingCount = total - completed;
+  const isFullySetup = completed === total;
+
+  const stateLabel =
+    snapshot.effective_state === "active"
+      ? "Practice Active"
+      : snapshot.effective_state === "trialing"
+        ? "Trial Active"
+        : snapshot.effective_state.replaceAll("_", " ");
+
   return (
-    <Card className="p-5 space-y-4 border-primary/20">
-      <div className="flex justify-between gap-3 flex-wrap">
-        <h2 className="font-display text-lg">Your ClinicX Journey</h2>
-        <Badge variant="outline">{snapshot.effective_state.replaceAll("_", " ")}</Badge>
-      </div>
-      <p className="text-sm">
-        {trialMessage(dto ? { ...snapshot, server_now: dto.server_now } : snapshot)}
-      </p>
-      {snapshot.subscription.trial_ends_at && (
-        <p className="text-xs text-muted-foreground">
-          Trial ends {new Date(snapshot.subscription.trial_ends_at).toLocaleString()} · timezone{" "}
-          {Intl.DateTimeFormat().resolvedOptions().timeZone}
-        </p>
-      )}
-      {u ? (
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">
-            Trial-window activity · {new Date(u.window_started_at).toLocaleString()} –{" "}
-            {new Date(u.window_ended_at).toLocaleString()}
-          </p>
-          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-            {metrics.map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-muted-foreground text-xs">{label}</dt>
-                <dd className="font-semibold">{value}</dd>
+    <Card className="overflow-hidden border border-border/80 shadow-xs bg-card/90 transition-all">
+      {/* Clean Interactive Header Bar */}
+      <div className="p-4 sm:p-5 flex flex-col gap-3.5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center shrink-0">
+              {isFullySetup ? (
+                <ShieldCheck className="size-4.5" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-base sm:text-lg font-bold tracking-tight text-foreground">
+                  Your Clinic Journey
+                </h2>
+                <Badge
+                  variant="outline"
+                  className={`text-[11px] font-semibold px-2 py-0.5 capitalize ${
+                    snapshot.effective_state === "active"
+                      ? "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
+                      : "border-blue-500/30 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20"
+                  }`}
+                >
+                  {stateLabel}
+                </Badge>
               </div>
-            ))}
-          </dl>
-          <p className="text-xs text-muted-foreground mt-2">
-            Days active counts UTC days with recorded setup or clinical activity, not logins.
-            Invoiced and collected are separate clinical amounts, not estimated revenue. Visit
-            completion is not tracked by the existing EMR.
-          </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isFullySetup
+                  ? "Setup 100% complete — all clinical & automation tools are operational."
+                  : `${completed} of ${total} setup milestones finished (${pct}%)`}
+              </p>
+            </div>
+          </div>
+
+          {checklist && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleCollapse}
+              className="gap-1.5 text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <span>{isCollapsed ? "Show checklist" : "Minimize"}</span>
+              {isCollapsed ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
+            </Button>
+          )}
         </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {query.isError
-            ? "Trial activity could not be loaded. Retry later; your clinic records are unchanged."
-            : snapshot.subscription.trial_started_at
-              ? "Loading verified trial activity…"
-              : "No recorded trial window for this subscription."}
-        </p>
-      )}
-      {!!dto?.checkpoints.length && (
-        <details className="text-xs border-t pt-3">
-          <summary className="cursor-pointer">Recorded value checkpoints</summary>
-          <ul className="mt-2 space-y-2">
-            {dto.checkpoints.map((c) => (
-              <li key={c.kind}>
-                <strong>{c.kind.replaceAll("_", " ")}</strong> ·{" "}
-                {new Date(c.effective_at).toLocaleString()}
-                {c.usage && (
-                  <>
-                    {" "}
-                    · {c.usage.patients} patients · {c.usage.appointments} appointments ·{" "}
-                    {c.usage.prescriptions} prescriptions · ₹
-                    {c.usage.collected_inr.toLocaleString("en-IN")} collected
-                  </>
-                )}
-                <span className="block text-muted-foreground">
-                  Recorded {new Date(c.recorded_at).toLocaleString()}; counts use records within
-                  that window, with their current stored status/totals.
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-      {checklist && (
-        <div className="space-y-3 border-t pt-4">
-          <h3 className="font-medium">Clinic activation · {completed}/9 completed</h3>
-          <p className="text-xs text-muted-foreground">
-            Skipped steps stay incomplete. Configuration and first clinical activity are separate.
-          </p>
-          <ol className="grid sm:grid-cols-2 gap-2">
-            {steps.map((s) => (
-              <li
-                key={s.key}
-                className="flex items-center justify-between gap-2 rounded-lg border p-2 text-xs"
-              >
-                <Link to={s.to as "/dashboard/settings"} className="hover:underline">
-                  {s.done ? "✓ " : "○ "}
-                  {s.label}
-                  {skipped.includes(s.key) && !s.done ? " · skipped for now" : ""}
-                </Link>
-                {!s.done && ["staff", "billing", "booking"].includes(s.key) && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() =>
-                      setSkipped((old) =>
-                        old.includes(s.key) ? old.filter((k) => k !== s.key) : [...old, s.key],
-                      )
-                    }
+
+        {/* Minimalist Progress Meter */}
+        <div className="space-y-1.5">
+          <Progress value={pct} className="h-2 rounded-full bg-muted" />
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>
+              {isFullySetup
+                ? "All modules ready"
+                : remainingCount === 1
+                  ? "1 step left to complete setup"
+                  : `${remainingCount} steps remaining`}
+            </span>
+            <span className="font-semibold text-foreground">{pct}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Expandable Checklist Details */}
+      {checklist && !isCollapsed && (
+        <div className="border-t border-border/70 p-4 sm:p-5 bg-muted/15 space-y-3 animate-in fade-in-50 duration-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Setup Milestones
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {completed}/{total} Completed
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {steps.map((s) => {
+              const isSkipped = skipped.includes(s.key);
+              return (
+                <div
+                  key={s.key}
+                  className={`flex items-center justify-between gap-2 p-2.5 rounded-lg border text-xs transition-colors ${
+                    s.done
+                      ? "bg-emerald-500/5 border-emerald-500/20 text-foreground"
+                      : "bg-card border-border/80 text-foreground"
+                  }`}
+                >
+                  <Link
+                    to={s.to as "/dashboard/settings"}
+                    className="flex items-center gap-2 hover:underline flex-1 min-w-0"
                   >
-                    {skipped.includes(s.key) ? "Undo" : "Skip"}
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ol>
+                    {s.done ? (
+                      <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <div className="size-4 rounded-full border border-muted-foreground/40 shrink-0 grid place-items-center" />
+                    )}
+                    <span className={`truncate ${s.done ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                      {s.label}
+                    </span>
+                  </Link>
+
+                  {!s.done && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {["staff", "billing", "booking"].includes(s.key) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-1.5 text-[10px] text-muted-foreground"
+                          onClick={() =>
+                            setSkipped((old) =>
+                              old.includes(s.key) ? old.filter((k) => k !== s.key) : [...old, s.key],
+                            )
+                          }
+                        >
+                          {isSkipped ? "Undo" : "Skip"}
+                        </Button>
+                      )}
+                      <Link
+                        to={s.to as "/dashboard/settings"}
+                        className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        Setup <ArrowRight className="size-3" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/40">
+            <span>Need to upgrade or change subscription?</span>
+            <Link to="/dashboard/billing" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+              Compare plans <ArrowRight className="size-3" />
+            </Link>
+          </div>
         </div>
       )}
-      {checkpoint !== null && checkpoint >= 21 && (
-        <p className="text-xs text-muted-foreground">
-          {snapshot.recommendation.plan_id.charAt(0).toUpperCase() +
-            snapshot.recommendation.plan_id.slice(1)}{" "}
-          is an advisory fit based on stored patient counts, seats, doctors and features used. You
-          can compare all valid plans; no checkout is forced.
-        </p>
-      )}
-      <Link to="/dashboard/billing" className="inline-block text-sm text-primary underline">
-        Compare plans and export options
-      </Link>
     </Card>
   );
 }
