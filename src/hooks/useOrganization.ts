@@ -84,11 +84,14 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
   if (!force && cache && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
   if (inFlight) return inFlight;
   const token = generation;
-  inFlight = fetchSnapshot(userId).catch((): Snapshot => ({
-    ...EMPTY, org: cache?.org ?? null,
-    authorityError: "Subscription access could not be verified. Retry before continuing clinic operations.",
-    isSubscriptionExpired: true,
-  })).then(s => {
+  inFlight = fetchSnapshot(userId).catch((err: unknown): Snapshot => {
+    console.error("[useOrganization] fetchSnapshot failed:", err);
+    return {
+      ...EMPTY, org: cache?.org ?? null,
+      authorityError: "Subscription access could not be verified. Retry before continuing clinic operations.",
+      isSubscriptionExpired: true,
+    };
+  }).then(s => {
     if (token === generation && userId === cacheUserId) publish(s);
     return s;
   }).finally(() => { if (token === generation) inFlight = null; });
