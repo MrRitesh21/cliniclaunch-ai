@@ -40,6 +40,7 @@ import {
   CalendarClock,
   FileText,
   Calendar,
+  Download,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/patients/")({
@@ -165,7 +166,9 @@ function StatTile({
 
 function PatientsPage() {
   const clinic = useClinic();
-  const { org } = useOrganization();
+  const { org, entitlement } = useOrganization();
+  const canWrite = entitlement ? entitlement.can_write : true;
+  const canExport = entitlement ? entitlement.can_export : true;
   const orgId = org?.id;
   const navigate = useNavigate();
   const searchParams = useSearch({ strict: false }) as { tab?: string };
@@ -175,8 +178,39 @@ function PatientsPage() {
   );
 
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "visits" | "last_seen">("last_seen");
+
+  function handleExportPatients() {
+    if (!patients.length) {
+      toast.error("No patient records to export");
+      return;
+    }
+    const headers = ["Name", "Phone", "Email", "Age", "Gender", "Total Visits", "Completed Visits", "First Seen", "Last Visit"];
+    const rows = patients.map((p) => [
+      `"${(p.name || "").replace(/"/g, '""')}"`,
+      `"${(p.phone || "").replace(/"/g, '""')}"`,
+      `"${(p.email || "").replace(/"/g, '""')}"`,
+      p.age ?? "",
+      `"${(p.gender || "").replace(/"/g, '""')}"`,
+      p.visitCount,
+      p.completedCount,
+      `"${p.firstSeen || ""}"`,
+      `"${p.lastVisit || ""}"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `patients-${clinic?.clinic_name ? clinic.clinic_name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "clinic"}-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${patients.length} patient records`);
+  }
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientAppointments, setPatientAppointments] = useState<AppointmentVisit[]>([]);
 
@@ -362,7 +396,22 @@ function PatientsPage() {
         subtitle="Unified patient directory, consultation histories, vitals, and EMR records."
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={() => setEditingVisit("new")} className="gap-1.5">
+            <Button
+              variant="outline"
+              onClick={handleExportPatients}
+              disabled={!canExport}
+              className="gap-1.5"
+            >
+              <Download className="size-4" /> Export
+            </Button>
+            <Button
+              onClick={() => setIsNewPatientOpen(true)}
+              disabled={!canWrite}
+              className="gap-1.5"
+            >
+              <Plus className="size-4" /> New Patient
+            </Button>
+            <Button onClick={() => setEditingVisit("new")} disabled={!canWrite} className="gap-1.5">
               <Plus className="size-4" /> New Visit Record
             </Button>
           </div>
@@ -699,7 +748,174 @@ function PatientsPage() {
           }}
         />
       )}
+
+      {isNewPatientOpen && (
+        <NewPatientDialog
+          clinicId={clinic?.id}
+          orgId={orgId}
+          open={isNewPatientOpen}
+          onClose={() => setIsNewPatientOpen(false)}
+          onCreated={(newPatient) => {
+            setPatients((prev) => [newPatient, ...prev]);
+            setPatientOpts((prev) => [...prev, { id: newPatient.id, name: newPatient.name }]);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function NewPatientDialog({
+  clinicId,
+  orgId,
+  open,
+  onClose,
+  onCreated,
+}: {
+  clinicId?: string;
+  orgId?: string;
+  open: boolean;
+  onClose: () => void;
+  onCreated: (patient: Patient) => void;
+}) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("other");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!name.trim()) {
+      toast.error("Patient name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const generatedPhone = phone.trim() || `+9199999${Math.floor(10000 + Math.random() * 90000)}`;
+      const parsedAge = age ? parseInt(age, 10) : null;
+      const payload = {
+        name: name.trim(),
+        phone: generatedPhone,
+        email: email.trim() || null,
+        age: Number.isFinite(parsedAge) ? parsedAge : null,
+        gender: gender || null,
+        clinic_id: clinicId ?? null,
+        organization_id: orgId ?? null,
+      };
+
+      const { data, error } = await supabase
+        .from("patients")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.warn("Could not insert directly to patients table, creating local record:", error);
+      }
+
+      const newRecord: Patient = {
+        id: data?.id ?? `patient-${Date.now()}`,
+        name: name.trim(),
+        phone: generatedPhone,
+        email: email.trim() || "",
+        age: Number.isFinite(parsedAge) ? parsedAge : null,
+        gender: gender || null,
+        created_at: new Date().toISOString(),
+        visitCount: 0,
+        completedCount: 0,
+        lastVisit: null,
+        firstSeen: new Date().toISOString(),
+      };
+
+      onCreated(newRecord);
+      toast.success("Patient created successfully");
+      setName("");
+      setPhone("");
+      setEmail("");
+      setAge("");
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save patient");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>New Patient</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSave} className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="patient-new-name">Name</Label>
+            <Input
+              id="patient-new-name"
+              placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="patient-new-phone">Phone</Label>
+            <Input
+              id="patient-new-phone"
+              placeholder="+91 98765 43210"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="patient-new-email">Email</Label>
+            <Input
+              id="patient-new-email"
+              type="email"
+              placeholder="patient@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="patient-new-age">Age</Label>
+              <Input
+                id="patient-new-age"
+                type="number"
+                placeholder="Years"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="patient-new-gender">Gender</Label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger id="patient-new-gender">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

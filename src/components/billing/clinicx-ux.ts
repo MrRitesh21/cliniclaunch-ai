@@ -3,7 +3,7 @@ import type { SubscriptionSnapshot } from "@/lib/subscription.server";
 /** Presentation only. Actual access is ALWAYS snapshot.can_read/can_write. */
 export function trialMessage(s: SubscriptionSnapshot): string {
   if (s.effective_state === "grace_period")
-    return "Your free trial has ended. Existing clinic data is read-only during your grace period. Billing, account management and export remain available.";
+    return "Trial expired. Existing clinic data is read-only during your grace period. Billing, account management and export remain available.";
   if (
     !s.can_read &&
     s.effective_state !== "trialing" &&
@@ -12,7 +12,7 @@ export function trialMessage(s: SubscriptionSnapshot): string {
   )
     return "Clinic operations are paused. Choose a plan or export your clinic data. Expiry does not delete your records.";
   if (s.effective_state === "past_due")
-    return "We couldn't confirm your latest ClinicX payment. Review your payment status in Billing.";
+    return "Payment failed. Please update your payment method to keep clinic operations active.";
   if (s.effective_state !== "trialing") return "Your ClinicX subscription";
   const start = Date.parse(s.subscription.trial_started_at ?? "");
   const end = Date.parse(s.subscription.trial_ends_at ?? "");

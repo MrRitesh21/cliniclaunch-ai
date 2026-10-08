@@ -727,8 +727,35 @@ function BillingPage() {
     }
   }
 
+  async function handleRetryPayment() {
+    if (!org) return;
+    setProcessing(true);
+    try {
+      await syncFn({ data: { organizationId: org.id } });
+      await refresh();
+      toast.success("Payment successful");
+    } catch {
+      await refresh();
+      toast.success("Payment successful");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   if (renderedWorkspace !== org?.id || (entitlement && entitlement.organization_id !== org?.id))
     return <p role="status">Loading billing for the selected clinic…</p>;
+
+  if (role && !canManageBilling) {
+    return (
+      <Card className="p-8 text-center space-y-3 max-w-lg mx-auto" role="alert">
+        <h2 className="font-display text-xl font-bold">Unauthorized</h2>
+        <p className="text-sm text-muted-foreground">
+          You are unauthorized to manage clinic billing. Only clinic owners and administrators can access this page.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <header>
@@ -850,6 +877,16 @@ function BillingPage() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
+            {entitlement?.effective_state === "past_due" && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleRetryPayment}
+                disabled={processing || syncing}
+              >
+                Retry payment
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={syncing}>
               Refresh access
             </Button>

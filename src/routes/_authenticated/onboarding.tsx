@@ -624,7 +624,7 @@ function Onboarding() {
                     id="orgname"
                     value={orgName}
                     onChange={(e) => suggestSlug(e.target.value)}
-                    placeholder="Smile Care Clinic"
+                    placeholder="Clinic name (e.g. Smile Care Clinic)"
                   />
                 </div>
                 <div>

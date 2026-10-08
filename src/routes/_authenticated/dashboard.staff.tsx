@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Users, Plus, Trash2, Copy, Clock } from "lucide-react";
@@ -131,11 +131,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
 };
 
 function StaffPage() {
-  const { org, role } = useOrganization();
+  const { org, role, entitlement } = useOrganization();
   const orgId = org?.id;
   const canManage = role === "owner" || role === "admin";
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
+  const staffLimit = entitlement?.limits?.staff;
+  const isQuotaReached = typeof staffLimit === "number" && (members.length + invites.length) >= staffLimit;
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
   const [rolePermissions, setRolePermissions] = useState<Record<string, string[]>>(() => {
@@ -271,7 +273,7 @@ function StaffPage() {
         </div>
         {canManage && (
           <Button onClick={() => setInviting(true)}>
-            <Plus className="size-4 mr-1" /> Invite member
+            <Plus className="size-4 mr-1" /> Add member
           </Button>
         )}
       </div>
@@ -511,6 +513,7 @@ function StaffPage() {
       {inviting && orgId && (
         <InviteDialog
           orgId={orgId}
+          isQuotaReached={isQuotaReached}
           onClose={() => setInviting(false)}
           onSaved={() => {
             setInviting(false);
@@ -524,13 +527,16 @@ function StaffPage() {
 
 function InviteDialog({
   orgId,
+  isQuotaReached,
   onClose,
   onSaved,
 }: {
   orgId: string;
+  isQuotaReached?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("staff");
@@ -587,9 +593,27 @@ function InviteDialog({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{success ? "Member added successfully" : "Add staff member"}</DialogTitle>
+          <DialogTitle>{isQuotaReached ? "Plan limit reached" : success ? "Member added successfully" : "Add staff member"}</DialogTitle>
         </DialogHeader>
-        {!success ? (
+        {isQuotaReached ? (
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/30 dark:text-amber-200">
+              <h3 className="font-semibold text-sm">Plan limit reached</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your current plan does not allow adding more staff members. Upgrade your plan to add more team members.
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                onClose();
+                navigate({ to: "/dashboard/billing" });
+              }}
+              className="w-full"
+            >
+              Upgrade plan
+            </Button>
+          </div>
+        ) : !success ? (
           <div className="space-y-3">
             <div>
               <Label>Full name</Label>

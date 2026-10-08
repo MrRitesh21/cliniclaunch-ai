@@ -271,9 +271,9 @@ function Overview() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 {clinic.clinic_name} • Practice Active
-              </span>
+              </h2>
             </div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-extrabold tracking-tight text-foreground">
               {greeting}, <span className="text-primary">{displayName}</span>

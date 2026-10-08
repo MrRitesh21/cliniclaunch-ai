@@ -204,7 +204,7 @@ const NAV_SECTIONS = [
     label: "Operations",
     items: [
       { to: "/dashboard/doctors", label: "Doctors", icon: Stethoscope },
-      { to: "/dashboard/staff", label: "Staff", icon: Users, module: "staff" },
+      { to: "/dashboard/staff", label: "Team / Staff", icon: Users, module: "staff" },
       { to: "/dashboard/inventory", label: "Inventory", icon: Box, module: "inventory" },
       { to: "/dashboard/pharmacy", label: "Pharmacy", icon: Pill, module: "pharmacy" },
       { to: "/dashboard/finance", label: "Finance", icon: Receipt, module: "billing" },
@@ -955,7 +955,15 @@ function DashboardLayout() {
           <div
             className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-3 sm:px-5 lg:px-6 pt-3 pb-24 md:pb-6"} page-enter`}
           >
-            {entitlement && !entitlement.can_write && entitlement.can_read && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
+            {entitlement?.effective_state === "past_due" && (
+              <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/40 p-3 mb-4 text-sm flex items-center justify-between gap-3">
+                <span>Payment failed. Please update your payment method to keep clinic operations active.</span>
+                <Link to="/dashboard/billing" className="font-semibold underline shrink-0">
+                  Update payment
+                </Link>
+              </div>
+            )}
+            {entitlement && !entitlement.can_write && entitlement.can_read && entitlement.effective_state !== "past_due" && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
             {authorityError && !recoveryRoute(pathname) ? <div role="alert" className="rounded-lg border p-6">{authorityError}<Button variant="outline" onClick={() => void refresh()} className="mt-3">Retry access check</Button></div> : org === undefined && !recoveryRoute(pathname) ? <div role="status">Checking clinic access…</div> : isSubscriptionExpired && !recoveryRoute(pathname) ? (
               <SubscriptionExpiredView />
             ) : (

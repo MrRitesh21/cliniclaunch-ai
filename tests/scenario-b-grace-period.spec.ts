@@ -22,7 +22,7 @@ test.describe('Scenario B: Expiry, Grace Period, and Restoration', () => {
 
     // 4. Post-grace billing and verified payment
     await page.getByRole('link', { name: /billing/i }).click();
-    await page.getByRole('button', { name: /upgrade to growth/i }).click();
+    await page.getByRole('button', { name: /(upgrade to growth|select plan)/i }).first().click();
     
     // Assume payment flow completes (mocked in provider)
     // await page.getByRole('button', { name: /pay/i }).click();

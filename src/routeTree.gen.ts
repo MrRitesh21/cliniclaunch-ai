@@ -86,6 +86,7 @@ import { Route as AuthenticatedDashboardReviewsRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardSeoRouteImport } from './routes/_authenticated/dashboard.seo'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardStaffRouteImport } from './routes/_authenticated/dashboard.staff'
+import { Route as AuthenticatedDashboardTeamRouteImport } from './routes/_authenticated/dashboard.team'
 import { Route as AuthenticatedDashboardWalkinsRouteImport } from './routes/_authenticated/dashboard.walkins'
 import { Route as AuthenticatedDashboardWebsiteRouteImport } from './routes/_authenticated/dashboard.website'
 import { Route as AuthenticatedDashboardWhatsappRouteImport } from './routes/_authenticated/dashboard.whatsapp'
@@ -523,6 +524,12 @@ const AuthenticatedDashboardStaffRoute =
     path: '/staff',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardTeamRoute =
+  AuthenticatedDashboardTeamRouteImport.update({
+    id: '/team',
+    path: '/team',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardWalkinsRoute =
   AuthenticatedDashboardWalkinsRouteImport.update({
     id: '/walkins',
@@ -732,6 +739,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/seo': typeof AuthenticatedDashboardSeoRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/staff': typeof AuthenticatedDashboardStaffRoute
+  '/dashboard/team': typeof AuthenticatedDashboardTeamRoute
   '/dashboard/walkins': typeof AuthenticatedDashboardWalkinsRoute
   '/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
@@ -830,6 +838,7 @@ export interface FileRoutesByTo {
   '/dashboard/seo': typeof AuthenticatedDashboardSeoRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/staff': typeof AuthenticatedDashboardStaffRoute
+  '/dashboard/team': typeof AuthenticatedDashboardTeamRoute
   '/dashboard/walkins': typeof AuthenticatedDashboardWalkinsRoute
   '/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
@@ -935,6 +944,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/seo': typeof AuthenticatedDashboardSeoRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/staff': typeof AuthenticatedDashboardStaffRoute
+  '/_authenticated/dashboard/team': typeof AuthenticatedDashboardTeamRoute
   '/_authenticated/dashboard/walkins': typeof AuthenticatedDashboardWalkinsRoute
   '/_authenticated/dashboard/website': typeof AuthenticatedDashboardWebsiteRoute
   '/_authenticated/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
@@ -1039,6 +1049,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/dashboard/settings'
     | '/dashboard/staff'
+    | '/dashboard/team'
     | '/dashboard/walkins'
     | '/dashboard/website'
     | '/dashboard/whatsapp'
@@ -1137,6 +1148,7 @@ export interface FileRouteTypes {
     | '/dashboard/seo'
     | '/dashboard/settings'
     | '/dashboard/staff'
+    | '/dashboard/team'
     | '/dashboard/walkins'
     | '/dashboard/website'
     | '/dashboard/whatsapp'
@@ -1241,6 +1253,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/seo'
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/staff'
+    | '/_authenticated/dashboard/team'
     | '/_authenticated/dashboard/walkins'
     | '/_authenticated/dashboard/website'
     | '/_authenticated/dashboard/whatsapp'
@@ -1856,6 +1869,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardStaffRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/team': {
+      id: '/_authenticated/dashboard/team'
+      path: '/team'
+      fullPath: '/dashboard/team'
+      preLoaderRoute: typeof AuthenticatedDashboardTeamRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/walkins': {
       id: '/_authenticated/dashboard/walkins'
       path: '/walkins'
@@ -2140,6 +2160,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardSeoRoute: typeof AuthenticatedDashboardSeoRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardStaffRoute: typeof AuthenticatedDashboardStaffRoute
+  AuthenticatedDashboardTeamRoute: typeof AuthenticatedDashboardTeamRoute
   AuthenticatedDashboardWalkinsRoute: typeof AuthenticatedDashboardWalkinsRoute
   AuthenticatedDashboardWebsiteRoute: typeof AuthenticatedDashboardWebsiteRoute
   AuthenticatedDashboardWhatsappRoute: typeof AuthenticatedDashboardWhatsappRoute
@@ -2176,6 +2197,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardSeoRoute: AuthenticatedDashboardSeoRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardStaffRoute: AuthenticatedDashboardStaffRoute,
+    AuthenticatedDashboardTeamRoute: AuthenticatedDashboardTeamRoute,
     AuthenticatedDashboardWalkinsRoute: AuthenticatedDashboardWalkinsRoute,
     AuthenticatedDashboardWebsiteRoute: AuthenticatedDashboardWebsiteRoute,
     AuthenticatedDashboardWhatsappRoute: AuthenticatedDashboardWhatsappRoute,
