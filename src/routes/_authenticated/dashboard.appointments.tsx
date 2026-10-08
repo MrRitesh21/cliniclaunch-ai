@@ -296,7 +296,7 @@ function AppointmentsPage() {
       const docMap = new Map<string, string>((docData ?? []).map((d) => [d.id, d.name]));
 
       const combined = [...(data ?? []), ...directConsults].sort(
-        (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
+        (a, b) => new Date(b.scheduled_at || 0).getTime() - new Date(a.scheduled_at || 0).getTime()
       );
 
       const apptList = combined.map((r: any) => ({
