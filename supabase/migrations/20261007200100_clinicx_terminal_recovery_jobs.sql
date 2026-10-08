@@ -23,8 +23,8 @@ BEGIN
  INSERT INTO public.subscription_outbox(organization_id,event_id,kind,payload) VALUES(c.organization_id,v_event,'recurring_cancel_terminal_confirmed',jsonb_build_object('command_id',c.id,'provider_status',p_remote->>'status')) ON CONFLICT(event_id) DO NOTHING;
  RETURN to_jsonb(c);
 END $$;
-ALTER TABLE public.clinicx_recurring_commands ADD COLUMN recovery_after timestamptz NOT NULL DEFAULT now(),ADD COLUMN recovery_attempts integer NOT NULL DEFAULT 0;
-CREATE INDEX clinicx_recurring_recovery_due ON public.clinicx_recurring_commands(recovery_after,id) WHERE state IN ('reserved','uncertain');
+ALTER TABLE public.clinicx_recurring_commands ADD COLUMN IF NOT EXISTS recovery_after timestamptz NOT NULL DEFAULT now(),ADD COLUMN IF NOT EXISTS recovery_attempts integer NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS clinicx_recurring_recovery_due ON public.clinicx_recurring_commands(recovery_after,id) WHERE state IN ('reserved','uncertain');
 CREATE FUNCTION public.clinicx_claim_recurring_recovery(p_limit integer DEFAULT 2) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE result jsonb;

@@ -1,5 +1,5 @@
 -- Forward-only: a local cancellation flag is NOT proof the previous mandate stopped.
-ALTER TABLE public.clinicx_checkout_attempts ADD COLUMN provider_terminal_at timestamptz;
+ALTER TABLE public.clinicx_checkout_attempts ADD COLUMN IF NOT EXISTS provider_terminal_at timestamptz;
 CREATE FUNCTION public.clinicx_no_overlap_checkout() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE s public.subscriptions;

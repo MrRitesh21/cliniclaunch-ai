@@ -1,5 +1,5 @@
 -- Forward-only: service-fenced immediate send authority and ambiguous-send retention.
-ALTER TABLE public.clinicx_notification_delivery ADD COLUMN send_started_at timestamptz;
+ALTER TABLE public.clinicx_notification_delivery ADD COLUMN IF NOT EXISTS send_started_at timestamptz;
 -- Existing attempts might already have reached the provider; do not relabel them unsent.
 UPDATE public.clinicx_notification_delivery SET send_started_at=first_attempt_at WHERE attempts>0;
 CREATE FUNCTION public.clinicx_delivery_is_eligible(p_id uuid) RETURNS boolean

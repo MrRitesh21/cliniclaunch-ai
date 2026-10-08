@@ -12,7 +12,7 @@ CREATE TABLE public.clinicx_admin_overrides (
 );
 ALTER TABLE public.clinicx_admin_overrides ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.clinicx_admin_overrides FROM PUBLIC,anon,authenticated,service_role;
-ALTER TABLE public.subscriptions ADD COLUMN documented_override_id uuid REFERENCES public.clinicx_admin_overrides(id) ON DELETE RESTRICT;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS documented_override_id uuid REFERENCES public.clinicx_admin_overrides(id) ON DELETE RESTRICT;
 
 CREATE FUNCTION public.clinicx_admin_documented_override(p_org uuid,p_plan text,p_expires timestamptz,p_reason text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public SET timezone='UTC' AS $$

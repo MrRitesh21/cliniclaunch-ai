@@ -1,12 +1,12 @@
 -- Forward-only authority. Historical amounts/IDs are NOT rescaled, deduplicated or trusted.
 -- Requires subscription authority 130000..130500. Run pricing/provider inventory preflight before release.
-CREATE TABLE public.clinicx_provider_prices (
+CREATE TABLE IF NOT EXISTS public.clinicx_provider_prices (
  plan_id text NOT NULL REFERENCES public.plans(id), billing_cycle public.billing_cycle NOT NULL,
  provider_plan_id text NOT NULL UNIQUE CHECK(provider_plan_id ~ '^plan_[A-Za-z0-9]{1,64}$'),
  amount_paise bigint NOT NULL CHECK(amount_paise>0 AND amount_paise<=2147483647),
  reviewed_at timestamptz NOT NULL, PRIMARY KEY(plan_id,billing_cycle)
 );
-CREATE TABLE public.clinicx_checkout_attempts (
+CREATE TABLE IF NOT EXISTS public.clinicx_checkout_attempts (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE RESTRICT,
  actor_id uuid NOT NULL REFERENCES auth.users(id), plan_id text NOT NULL REFERENCES public.plans(id),
  billing_cycle public.billing_cycle NOT NULL, provider_plan_id text NOT NULL,
@@ -14,22 +14,22 @@ CREATE TABLE public.clinicx_checkout_attempts (
  state text NOT NULL DEFAULT 'creating' CHECK(state IN ('creating','pending','settled','failed','needs_reconciliation')),
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX clinicx_one_checkout ON public.clinicx_checkout_attempts(organization_id) WHERE state IN ('creating','pending','needs_reconciliation');
+CREATE UNIQUE INDEX IF NOT EXISTS clinicx_one_checkout ON public.clinicx_checkout_attempts(organization_id) WHERE state IN ('creating','pending','needs_reconciliation');
 ALTER TABLE public.transactions
- ADD COLUMN organization_id uuid REFERENCES public.organizations(id) ON DELETE RESTRICT,
- ADD COLUMN subscription_id uuid REFERENCES public.subscriptions(id) ON DELETE RESTRICT,
- ADD COLUMN checkout_attempt_id uuid REFERENCES public.clinicx_checkout_attempts(id) ON DELETE RESTRICT,
- ADD COLUMN canonical_amount_paise bigint CHECK(canonical_amount_paise>0),
- ADD COLUMN authority_version text,
- ADD COLUMN provider_invoice_id text;
-CREATE UNIQUE INDEX clinicx_payment_once ON public.transactions(gateway,gateway_payment_id) WHERE authority_version='clinicx-v1';
+ ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES public.organizations(id) ON DELETE RESTRICT,
+ ADD COLUMN IF NOT EXISTS subscription_id uuid REFERENCES public.subscriptions(id) ON DELETE RESTRICT,
+ ADD COLUMN IF NOT EXISTS checkout_attempt_id uuid REFERENCES public.clinicx_checkout_attempts(id) ON DELETE RESTRICT,
+ ADD COLUMN IF NOT EXISTS canonical_amount_paise bigint CHECK(canonical_amount_paise>0),
+ ADD COLUMN IF NOT EXISTS authority_version text,
+ ADD COLUMN IF NOT EXISTS provider_invoice_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS clinicx_payment_once ON public.transactions(gateway,gateway_payment_id) WHERE authority_version='clinicx-v1';
 ALTER TABLE public.invoices
- ADD COLUMN canonical_payment_id text,
- ADD COLUMN canonical_amount_paise bigint CHECK(canonical_amount_paise>0),
- ADD COLUMN authority_version text;
-CREATE UNIQUE INDEX clinicx_invoice_payment_once ON public.invoices(canonical_payment_id) WHERE authority_version='clinicx-v1';
-CREATE UNIQUE INDEX clinicx_provider_invoice_once ON public.invoices(razorpay_invoice_id) WHERE authority_version='clinicx-v1';
-ALTER TABLE public.webhook_events ADD COLUMN completed_at timestamptz, ADD COLUMN authority_version text;
+ ADD COLUMN IF NOT EXISTS canonical_payment_id text,
+ ADD COLUMN IF NOT EXISTS canonical_amount_paise bigint CHECK(canonical_amount_paise>0),
+ ADD COLUMN IF NOT EXISTS authority_version text;
+CREATE UNIQUE INDEX IF NOT EXISTS clinicx_invoice_payment_once ON public.invoices(canonical_payment_id) WHERE authority_version='clinicx-v1';
+CREATE UNIQUE INDEX IF NOT EXISTS clinicx_provider_invoice_once ON public.invoices(razorpay_invoice_id) WHERE authority_version='clinicx-v1';
+ALTER TABLE public.webhook_events ADD COLUMN IF NOT EXISTS completed_at timestamptz, ADD COLUMN IF NOT EXISTS authority_version text;
 ALTER TABLE public.clinicx_provider_prices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clinicx_checkout_attempts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.clinicx_provider_prices,public.clinicx_checkout_attempts,public.webhook_events FROM PUBLIC,anon,authenticated;

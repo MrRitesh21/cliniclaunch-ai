@@ -1,5 +1,5 @@
 -- Reuse the existing billing reminder UI/store, with event-level idempotency.
-ALTER TABLE public.subscription_reminders ADD COLUMN subscription_event_id uuid UNIQUE REFERENCES public.subscription_events(id) ON DELETE RESTRICT;
+ALTER TABLE public.subscription_reminders ADD COLUMN IF NOT EXISTS subscription_event_id uuid UNIQUE REFERENCES public.subscription_events(id) ON DELETE RESTRICT;
 REVOKE INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER ON public.subscription_reminders FROM PUBLIC,anon,authenticated;
 CREATE FUNCTION public.clinicx_billing_reminders(p_org uuid) RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$

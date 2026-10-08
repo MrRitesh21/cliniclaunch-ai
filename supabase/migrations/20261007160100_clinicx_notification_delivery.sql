@@ -1,11 +1,11 @@
 -- Reuse subscription_outbox, existing notification inbox and Resend transport.
-ALTER TABLE public.subscription_outbox ADD COLUMN prepared_at timestamptz;
-ALTER TABLE public.notifications ADD COLUMN clinicx_event_id uuid REFERENCES public.subscription_events(id) ON DELETE RESTRICT;
-CREATE UNIQUE INDEX clinicx_notification_event_user ON public.notifications(clinicx_event_id,user_id) WHERE clinicx_event_id IS NOT NULL;
+ALTER TABLE public.subscription_outbox ADD COLUMN IF NOT EXISTS prepared_at timestamptz;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS clinicx_event_id uuid REFERENCES public.subscription_events(id) ON DELETE RESTRICT;
+CREATE UNIQUE INDEX IF NOT EXISTS clinicx_notification_event_user ON public.notifications(clinicx_event_id,user_id) WHERE clinicx_event_id IS NOT NULL;
 -- Inbox clients may mark read, not alter event/tenant/recipient authority.
 REVOKE UPDATE ON public.notifications FROM authenticated;
 GRANT UPDATE(read_at) ON public.notifications TO authenticated;
-CREATE TABLE public.clinicx_engagement_preferences (
+CREATE TABLE IF NOT EXISTS public.clinicx_engagement_preferences (
  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE RESTRICT,
  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
  email_enabled boolean NOT NULL DEFAULT false,

@@ -1,5 +1,5 @@
 -- Four-eyes operator approval for same-price invoice attribution, never a generic bypass.
-CREATE TABLE public.clinicx_recurring_reviews (
+CREATE TABLE IF NOT EXISTS public.clinicx_recurring_reviews (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),command_id uuid NOT NULL REFERENCES public.clinicx_recurring_commands(id),
  payment_id text NOT NULL UNIQUE,invoice_id text NOT NULL UNIQUE,snapshot jsonb NOT NULL,
  old_quote jsonb NOT NULL,target_quote jsonb NOT NULL,quote jsonb,
@@ -11,9 +11,9 @@ CREATE TABLE public.clinicx_recurring_reviews (
 );
 ALTER TABLE public.clinicx_recurring_reviews ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.clinicx_recurring_reviews FROM PUBLIC,anon,authenticated,service_role;
-CREATE FUNCTION public.clinicx_recovery_fingerprint(p jsonb) RETURNS text
-LANGUAGE sql IMMUTABLE SET search_path=public AS $$
- SELECT encode(digest(jsonb_build_object('command_id',p->'command_id','actor_id',p->'actor_id','organization_id',p->'organization_id',
+CREATE OR REPLACE FUNCTION public.clinicx_recovery_fingerprint(p jsonb) RETURNS text
+LANGUAGE sql IMMUTABLE SET search_path=public,extensions AS $$
+ SELECT encode(extensions.digest(jsonb_build_object('command_id',p->'command_id','actor_id',p->'actor_id','organization_id',p->'organization_id',
  'subscription',jsonb_build_object('id',p->'subscription'->'id','plan_id',p->'subscription'->'plan_id','status',p->'subscription'->'status','quantity',p->'subscription'->'quantity','has_scheduled_changes',p->'subscription'->'has_scheduled_changes','offer_id',p->'subscription'->'offer_id'),
  'payment',jsonb_build_object('id',p->'payment'->'id','status',p->'payment'->'status','amount',p->'payment'->'amount','currency',p->'payment'->'currency','invoice_id',p->'payment'->'invoice_id','subscription_id',p->'payment'->'subscription_id'),
  'invoice',jsonb_build_object('id',p->'invoice'->'id','payment_id',p->'invoice'->'payment_id','subscription_id',p->'invoice'->'subscription_id','status',p->'invoice'->'status','amount',p->'invoice'->'amount','currency',p->'invoice'->'currency','billing_start',p->'invoice'->'billing_start','billing_end',p->'invoice'->'billing_end'),

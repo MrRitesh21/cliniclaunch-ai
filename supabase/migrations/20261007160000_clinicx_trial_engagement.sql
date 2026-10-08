@@ -1,5 +1,4 @@
--- Forward-only engagement extension. Preserve centralized access and immutable trial dates.
-CREATE TABLE public.clinicx_activation_days (
+CREATE TABLE IF NOT EXISTS public.clinicx_activation_days (
  subscription_id uuid NOT NULL REFERENCES public.subscriptions(id) ON DELETE RESTRICT,
  organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE RESTRICT,
  activity_day date NOT NULL,
@@ -10,7 +9,7 @@ ALTER TABLE public.clinicx_activation_days ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.clinicx_activation_days FROM PUBLIC,anon,authenticated;
 GRANT ALL ON public.clinicx_activation_days TO service_role;
 
-CREATE FUNCTION public.clinicx_capture_activation() RETURNS trigger
+CREATE OR REPLACE FUNCTION public.clinicx_capture_activation() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public SET timezone='UTC' AS $$
 DECLARE s public.subscriptions; k text; v jsonb:=to_jsonb(NEW);
 BEGIN
@@ -39,14 +38,17 @@ BEGIN
 END $$;
 DO $$ DECLARE t text; BEGIN
  FOREACH t IN ARRAY ARRAY['patients','appointments','patient_visits','prescriptions','patient_invoices','patient_payments','doctors','organization_members'] LOOP
+   EXECUTE format('DROP TRIGGER IF EXISTS clinicx_activation ON public.%I', t);
    EXECUTE format('CREATE TRIGGER clinicx_activation AFTER INSERT ON public.%I FOR EACH ROW EXECUTE FUNCTION public.clinicx_capture_activation()',t);
  END LOOP;
 END $$;
+DROP TRIGGER IF EXISTS clinicx_activation ON public.clinics;
 CREATE TRIGGER clinicx_activation AFTER INSERT OR UPDATE ON public.clinics FOR EACH ROW EXECUTE FUNCTION public.clinicx_capture_activation();
+DROP TRIGGER IF EXISTS clinicx_activation ON public.organization_onboarding;
 CREATE TRIGGER clinicx_activation AFTER INSERT OR UPDATE ON public.organization_onboarding FOR EACH ROW EXECUTE FUNCTION public.clinicx_capture_activation();
 REVOKE ALL ON FUNCTION public.clinicx_capture_activation() FROM PUBLIC,anon,authenticated;
 
-CREATE FUNCTION public.clinicx_trial_usage(p_org uuid,p_until timestamptz DEFAULT now()) RETURNS jsonb
+CREATE OR REPLACE FUNCTION public.clinicx_trial_usage(p_org uuid,p_until timestamptz DEFAULT now()) RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public SET timezone='UTC' AS $$
 DECLARE s public.subscriptions; v_end timestamptz; BEGIN
  SELECT * INTO s FROM public.subscriptions WHERE organization_id=p_org;
@@ -73,7 +75,7 @@ DECLARE s public.subscriptions; v_end timestamptz; BEGIN
  'days_active_basis','UTC days with persisted clinic setup or clinical mutations; not logins',
  'completed_visits_unavailable_reason','EMR has no visit completion status or timestamp');
 END $$;
-CREATE FUNCTION public.clinicx_trial_engagement(p_org uuid) RETURNS jsonb
+CREATE OR REPLACE FUNCTION public.clinicx_trial_engagement(p_org uuid) RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
 DECLARE s public.subscriptions; BEGIN
  IF auth.uid() IS NULL OR NOT public.is_org_member(p_org,auth.uid()) THEN RAISE EXCEPTION 'Tenant membership required' USING ERRCODE='42501'; END IF;
@@ -100,10 +102,10 @@ DECLARE v_event uuid; v_payload jsonb:=p_payload; BEGIN
  INSERT INTO public.subscription_outbox(organization_id,event_id,kind,payload,available_at) VALUES(p_sub.organization_id,v_event,p_key,v_payload,p_at);
  RETURN 1;
 END $$;
-CREATE INDEX clinicx_patients_trial_time ON public.patients(organization_id,created_at);
-CREATE INDEX clinicx_appointments_trial_time ON public.appointments(organization_id,created_at);
-CREATE INDEX clinicx_visits_trial_time ON public.patient_visits(organization_id,created_at);
-CREATE INDEX clinicx_prescriptions_trial_time ON public.prescriptions(organization_id,created_at);
-CREATE INDEX clinicx_clinical_invoices_trial_time ON public.patient_invoices(organization_id,created_at);
+CREATE INDEX IF NOT EXISTS clinicx_patients_trial_time ON public.patients(organization_id,created_at);
+CREATE INDEX IF NOT EXISTS clinicx_appointments_trial_time ON public.appointments(organization_id,created_at);
+CREATE INDEX IF NOT EXISTS clinicx_visits_trial_time ON public.patient_visits(organization_id,created_at);
+CREATE INDEX IF NOT EXISTS clinicx_prescriptions_trial_time ON public.prescriptions(organization_id,created_at);
+CREATE INDEX IF NOT EXISTS clinicx_clinical_invoices_trial_time ON public.patient_invoices(organization_id,created_at);
 -- Existing patient_payments_org_idx already indexes (organization_id,paid_at).
 NOTIFY pgrst,'reload schema';

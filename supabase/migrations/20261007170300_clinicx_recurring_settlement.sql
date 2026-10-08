@@ -1,6 +1,6 @@
 -- Invoice-authoritative quote history; the original checkout quote is never mutated by a schedule.
-ALTER TABLE public.transactions ADD COLUMN canonical_period_start timestamptz,ADD COLUMN canonical_period_end timestamptz,ADD COLUMN canonical_provider_plan_id text;
-ALTER TABLE public.invoices ADD COLUMN canonical_period_start timestamptz,ADD COLUMN canonical_period_end timestamptz,ADD COLUMN canonical_provider_plan_id text,ADD COLUMN canonical_plan_id text,ADD COLUMN canonical_billing_cycle text;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS canonical_period_start timestamptz,ADD COLUMN IF NOT EXISTS canonical_period_end timestamptz,ADD COLUMN IF NOT EXISTS canonical_provider_plan_id text;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS canonical_period_start timestamptz,ADD COLUMN IF NOT EXISTS canonical_period_end timestamptz,ADD COLUMN IF NOT EXISTS canonical_provider_plan_id text,ADD COLUMN IF NOT EXISTS canonical_plan_id text,ADD COLUMN IF NOT EXISTS canonical_billing_cycle text;
 CREATE FUNCTION public.clinicx_charge_quote(p_subscription text,p_start bigint,p_amount bigint) RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
 DECLARE a public.clinicx_checkout_attempts;c public.clinicx_recurring_commands;previous public.clinicx_recurring_commands;q jsonb;
