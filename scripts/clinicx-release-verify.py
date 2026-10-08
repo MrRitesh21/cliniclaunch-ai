@@ -7,7 +7,7 @@ import signal, subprocess, sys, tempfile, time
 
 SCRATCH = pathlib.Path('/Users/ritesh/.hermes/profiles/sara/cache/scratch')
 PG = pathlib.Path('/opt/homebrew/opt/postgresql@17/bin')
-REVIEWED = {'test-clinicx-payments.cjs': '6dbb4b9d6764b32fbfc1888bd094ff65c025990bf3e046d2cb538d6b7004d8d4', 'test-clinicx-subscription.cjs': '8e935032d6c25905b1a662cdc0a7ba605daf03693e1656c92f838dd8e9588893', 'test-clinicx-frontend.cjs': 'a33c151abce9939b59c040c1e10b6cfc5d288c5a7c0864bde628c7298ce1478f', 'test-clinicx-typecheck-regressions.mjs': '740689c9d3979b29ed405494897d66096515c8aa61cc02d7d3416a83151c1d2d', 'clinicx-security-handlers.cjs': '5460f71393982253a01284668155e272d1c92b435d66d0a1e96440acbbb06d01', 'clinicx-security-db.py': '2cc5a429a6703d8006dff8ae2b4e8460d63bfd22ee1773f7542fc06f57e58605', 'test-clinicx-subscription-db.py': '55f12795bbd0906c19b04f9c0ce1212d5c3e2533e6f478613926c9e68ccec433', 'test-clinicx-payments-db.py': '0b2273d055559ea9e06b5196c1a6d084c9a21c78316826bd2dc3994f0f8b2c47', 'test-clinicx-appointment-enum-db.py': 'd4ef3c5a971f31d6f964249868eb369e0f9fad4293def13ceb799cde05261da8', 'verify-clinicx-payment-adapter.mjs': 'a917b4402a1e11aa05b9e221c60fa9195c64010b9d65737219e864e455561f93', 'test-clinicx-frontend-browser.mjs': '9caf781943762063ff01bff194e3ac3198144170f7d15101bdc5e11e9344a71d', 'test-clinicx-payments-integration.cjs': 'bb2327398866d8ea90d84003bfbfb9cc8d8d1d552f68e047a40f6419e13b5568', 'check-auth-guards.mjs': '2f40c4993263e80e20e9e199e364f320a2ad25ffbd55ee1d7094b0652b145f9b', 'test-clinicx-admin.cjs': 'f5b20e8a9012920e4fc521f2280f82695825e042ac25a759ac3fb544df641762', 'test-clinicx-admin-db.py': 'f796ca2a3152b4c3fb2c1d8a1fa8130f0f94d1d68cb43ff5202f6792ea607405', 'test-clinicx-admin-readbacks.cjs': '9bbc5320daba6cbce9c9ae7526e29ece970fe9ada10b2e1417931f4e9c180bc1', 'test-clinicx-engagement.cjs': 'e0d7b7812ce53b5fe50775bca7df787a023adb714544f3e691fb99b63fa5470b', 'test-clinicx-engagement-db.py': '7a2635c4e7cd9293a59f65d1d0f7b063d3fd9ec31f9c3ff0dee8952ac34a7b92', 'test-clinicx-recurring.cjs': '052d8691d09901dae7ba9403cfdb5bfeee7d88c2ea5a43a9b13d83adbef0308e', 'test-clinicx-recurring-db.py': 'a43b4dfc4d986e010328aea2b326d1c15f4494e9387fa6f63e1794897cda0bdd', 'test-clinicx-recurring-handlers.cjs': '2208360043b4f936b1354d0023adb73dbf5175341a270228f6583ceacb05b8e5', 'test-clinicx-recurring-integration.cjs': '139b7ea7e32acf257dc5eb6b9cce5e555dfb76fb28afc2e3150ed4eb42f5bc90'}
+REVIEWED = {'test-clinicx-admin-authority-integration.cjs': 'c04a1a87e77f3e9a249958ef492af0fe0a01f50ffc2a616b0047102911d0ef56', 'test-clinicx-admin-authority-server.cjs': '9c06d8900fa4d79fa96fc2906ce53e55366aea8709450204918f1b418d940b55', 'test-clinicx-admin-readbacks.cjs': '9bbc5320daba6cbce9c9ae7526e29ece970fe9ada10b2e1417931f4e9c180bc1', 'test-clinicx-admin.cjs': 'f5b20e8a9012920e4fc521f2280f82695825e042ac25a759ac3fb544df641762', 'test-clinicx-billing-recovery-http.cjs': '6fd3023260db8a14d5f2c21a1d838fe37a7e8c4a34d07943879914b1dddf2f71', 'test-clinicx-billing-recovery-integration.cjs': 'f33cd1e42880955cbfaa6db0633fc535b04ce3bca2a6b78c654a646e9dff5ca9', 'test-clinicx-engagement-safety.cjs': 'b9ebb5061943cc70ba5a36344174260536c8f8b25c0a89a4145a506a208516f5', 'test-clinicx-engagement.cjs': 'e0d7b7812ce53b5fe50775bca7df787a023adb714544f3e691fb99b63fa5470b', 'test-clinicx-frontend-integration.cjs': '5c55a31885a4b2558152001f826d7e3087c86d517cae7e3abda5afdf80588e4e', 'test-clinicx-frontend.cjs': 'a33c151abce9939b59c040c1e10b6cfc5d288c5a7c0864bde628c7298ce1478f', 'test-clinicx-payments-integration.cjs': 'bb2327398866d8ea90d84003bfbfb9cc8d8d1d552f68e047a40f6419e13b5568', 'test-clinicx-payments.cjs': '6dbb4b9d6764b32fbfc1888bd094ff65c025990bf3e046d2cb538d6b7004d8d4', 'test-clinicx-recurring-handlers.cjs': '2208360043b4f936b1354d0023adb73dbf5175341a270228f6583ceacb05b8e5', 'test-clinicx-recurring-integration.cjs': '139b7ea7e32acf257dc5eb6b9cce5e555dfb76fb28afc2e3150ed4eb42f5bc90', 'test-clinicx-recurring.cjs': '8d4b924c41faa47eab46083c4befe4aa698c7fa1741400c9f5b8f4141dfe0297', 'test-clinicx-subscription.cjs': '8e935032d6c25905b1a662cdc0a7ba605daf03693e1656c92f838dd8e9588893', 'test-clinicx-admin-authority-db.py': '0d24d1a3a5775ce88233b1ef6ff9d5ef68e10bf43093143bc33447736b737027', 'test-clinicx-admin-db.py': '328859bb2123537b59996416e0524d09ec178cc0921c62e56cce4d024d1d0220', 'test-clinicx-appointment-enum-db.py': 'd4ef3c5a971f31d6f964249868eb369e0f9fad4293def13ceb799cde05261da8', 'test-clinicx-billing-recovery-db.py': 'e250c0c2f488f71235148959adf82e3ee137012c1ca40740df1ccea435cc6345', 'test-clinicx-engagement-db.py': 'cca4a0bd245740646a24b53bae2659cdf0533b5bc2d9a497dac3f477b4597318', 'test-clinicx-engagement-safety-db.py': '473a0bb228b1229ba48439f9bebed841eb8b4786af15519214eb393fa841f5ff', 'test-clinicx-payments-db.py': '659605acf6a3c927a0934357fa9fe58c261ee37fd7f7d98e3a2f23b5bb175596', 'test-clinicx-recurring-db.py': 'a43b4dfc4d986e010328aea2b326d1c15f4494e9387fa6f63e1794897cda0bdd', 'test-clinicx-subscription-db.py': '984d95ad72a53a048b0cfd5822dabb050efcb5ec8425a4407353971901dfd374', 'test-clinicx-typecheck-regressions.mjs': '740689c9d3979b29ed405494897d66096515c8aa61cc02d7d3416a83151c1d2d', 'clinicx-security-handlers.cjs': '5460f71393982253a01284668155e272d1c92b435d66d0a1e96440acbbb06d01', 'clinicx-security-db.py': '2cc5a429a6703d8006dff8ae2b4e8460d63bfd22ee1773f7542fc06f57e58605', 'verify-clinicx-payment-adapter.mjs': 'a917b4402a1e11aa05b9e221c60fa9195c64010b9d65737219e864e455561f93', 'test-clinicx-frontend-browser.mjs': '9caf781943762063ff01bff194e3ac3198144170f7d15101bdc5e11e9344a71d', 'check-auth-guards.mjs': '2f40c4993263e80e20e9e199e364f320a2ad25ffbd55ee1d7094b0652b145f9b'}
 REVIEWED_TESTS = {'tests/clinicx-shared-compiler.mjs': '9745a5842cc0abdcddf958408d02ef4dd880d506d17e7749124f6abd55249a16', 'tests/clinicx-release-runner.py': 'b6ef93baba4d7b9c12ac156caf52120612971116346b0b72d4890eb18d510806'}
 
 def digest(p):
@@ -88,6 +88,8 @@ def main():
          'TMPDIR':str(pgwork),'CLINICX_TEST_TMPDIR':str(pgwork),'PG_BIN':str(PG),
          'CLINICX_FRONTEND_SCRATCH':str(out/'browser'),'PYTHONDONTWRITEBYTECODE':'1',
          'LC_ALL':'C','LANG':'C','CI':'1','NO_COLOR':'1'}
+    if 'DOCKER_HOST' in os.environ:
+        env['DOCKER_HOST'] = os.environ['DOCKER_HOST']
     node=shutil.which('node',path=env['PATH'])
     report={'label':args.label,'started_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'repository':str(repo),'source':str(source),'snapshot':str(snap),'output':str(out),'pg_work_root':str(pgwork),'suites':[],
@@ -144,6 +146,7 @@ def main():
     run('git-dirty',['git','status','--short'],cwd=repo)
     mismatches=[n for n,h in REVIEWED.items() if hashes.get('scripts/'+n)!=h]
     mismatches += [n for n,h in REVIEWED_TESTS.items() if hashes.get(n)!=h]
+    print("Mismatches:", mismatches)
     report['runner_review_mismatches']=mismatches
     save()
     if unstable or mismatches:
@@ -152,7 +155,7 @@ def main():
     if not node: report['fatal']='Node missing'; save(); return 1
     run('python-psycopg2',[args.python,'-c','import sys,psycopg2; print(sys.executable); print(psycopg2.__version__)'])
     run('auth-guards',[node,'scripts/check-auth-guards.mjs'],'auth')
-    for n in ['payments','subscription','frontend','admin','recurring','recurring-handlers']:
+    for n in ['payments','subscription','frontend','admin','recurring','recurring-handlers','admin-authority-server','billing-recovery-http','engagement-safety']:
         run(n+'-offline',[node,'--test','--test-reporter=tap','scripts/test-clinicx-'+n+'.cjs'],'node')
     run('shared-compiler-contracts',[node,'--test','--test-reporter=tap','tests/clinicx-shared-compiler.mjs'],'node')
     run('aggregate-contracts',[args.python,'tests/clinicx-release-runner.py'],'unittest')
@@ -176,6 +179,9 @@ def main():
     run('payments-db',[args.python,'scripts/test-clinicx-payments-db.py'],'unittest')
     run('recurring-db',[args.python,'scripts/test-clinicx-recurring-db.py'],'unittest')
     run('engagement-db',[args.python,'scripts/test-clinicx-engagement-db.py'],'unittest')
+    run('admin-authority-db',[args.python,'scripts/test-clinicx-admin-authority-db.py'],'unittest')
+    run('billing-recovery-db',[args.python,'scripts/test-clinicx-billing-recovery-db.py'],'unittest')
+    run('engagement-safety-db',[args.python,'scripts/test-clinicx-engagement-safety-db.py'],'unittest')
     admin_rc,_=run('admin-db',[args.python,'scripts/test-clinicx-admin-db.py'],'unittest',extra={'CLINICX_ADMIN_CAPTURE':str(out/'admin-capture.json')})
     if admin_rc==0 and (out/'admin-capture.json').exists():
         run('admin-native-readbacks',[node,'--test','--test-reporter=tap','scripts/test-clinicx-admin-readbacks.cjs'],'node',extra={'CLINICX_ADMIN_CAPTURE':str(out/'admin-capture.json')})

@@ -103,10 +103,13 @@ test('uncertain commands reconcile read-only without a second monetary request',
   f.remote.plan_id='plan_Target';f.remote.has_scheduled_changes=false;
   f.command.state='uncertain';
   // Need recovery context to return an attempt (not command) that context() can parse
+  f.provider.getSubscriptionInvoices = async () => [{payment_id: 'pay_Valid'}];
+  f.provider.getPayment = async () => ({id: 'pay_Valid', status: 'captured', amount: 8599000, currency: 'INR', invoice_id: 'inv_Valid'});
+  f.provider.getInvoice = async () => ({id: 'inv_Valid', payment_id: 'pay_Valid', subscription_id: f.remote.id, amount: 8599000, currency: 'INR', status: 'paid', billing_start: 1900000000, billing_end: 1902592000});
+
   const originalAdminRpc = f.admin.rpc;
   f.admin.rpc = async (name, args) => {
     if (name === 'clinicx_provider_context') {
-      // Return an attempt-like object that context() expects
       return { data: {
         id: f.command.id,
         organization_id: f.org,
@@ -125,6 +128,15 @@ test('uncertain commands reconcile read-only without a second monetary request',
     if (name === 'clinicx_recovery_context') {
       return { data: { command: null }, error: null };
     }
+    if (name === 'clinicx_capture_quote') {
+      return { data: { provider_plan_id: 'plan_Target', amount_paise: 8599000, billing_cycle: 'yearly' }, error: null };
+    }
+    if (name === 'clinicx_settle_payment') {
+      return { data: { success: true, organization_id: f.org }, error: null };
+    }
+    if (name === 'clinicx_recurring_recovery_command') {
+      return { data: { ...f.command, state: 'scheduled' }, error: null };
+    }
     return originalAdminRpc(name, args);
   };
   assert.equal((await f.service.reconcileCommand(f.org,f.command.id)).state,'scheduled');
@@ -133,7 +145,7 @@ test('uncertain commands reconcile read-only without a second monetary request',
 test('every capture resolves a frozen invoice-period quote even when latest mandate returned to original plan',async()=>{
   const f=fixture();const attempt={...f.command,state:'settled',provider_plan_id:'plan_Old',billing_cycle:'monthly',amount_paise:299900};
   const calls=[];const actor={rpc:async()=>({data:attempt,error:null})};
-  const admin={rpc:async(name,args)=>{calls.push([name,args]);return {data:name==='clinicx_charge_quote'?{provider_plan_id:'plan_Target',amount_paise:299900,billing_cycle:'monthly'}:name==='clinicx_known_provider_plan'?true:name==='clinicx_recovery_context'?{command:{...f.command,state:'scheduled',effective_at:new Date(1900000000*1000).toISOString()}}:name==='clinicx_settle_payment'?{success:true,organization_id:f.org}:{completed:false},error:null};}};
+  const admin={rpc:async(name,args)=>{calls.push([name,args]);return {data:name==='clinicx_capture_quote'?{provider_plan_id:'plan_Target',amount_paise:299900,billing_cycle:'monthly'}:name==='clinicx_known_provider_plan'?true:name==='clinicx_recovery_context'?{command:{...f.command,state:'scheduled',effective_at:new Date(1900000000*1000).toISOString()}}:name==='clinicx_settle_payment'?{success:true,organization_id:f.org}:{completed:false},error:null};}};
   const provider={...f.provider,verifySubscriptionCheckoutSignature:()=>true,getPayment:async()=>({id:'pay_Period',status:'captured',amount:299900,currency:'INR',invoice_id:'inv_Period'}),getPlan:async id=>({id,period:'monthly',interval:1,item:{amount:299900,currency:'INR'}}),getInvoice:async()=>({id:'inv_Period',payment_id:'pay_Period',subscription_id:'sub_Safe',amount:299900,currency:'INR',status:'paid',billing_start:1900000000,billing_end:1902592000})};
   await createBillingService(actor,admin,provider).activate({subscription_id:'sub_Safe',payment_id:'pay_Period',signature:'valid'});
   const settleCall = calls.find(c=>c[0]==='clinicx_recover_and_settle' || c[0]==='clinicx_settle_payment');

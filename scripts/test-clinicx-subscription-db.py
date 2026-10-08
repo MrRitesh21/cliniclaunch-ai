@@ -34,6 +34,7 @@ class SubscriptionDB(unittest.TestCase):
           GRANT USAGE ON SCHEMA public,auth TO anon,authenticated,service_role;
           CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULLIF(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
           CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('sub',auth.uid(),'email',current_setting('request.jwt.claim.email',true)) $$;
+          CREATE TABLE public.user_roles(user_id uuid, role text); GRANT SELECT ON user_roles TO authenticated;
           CREATE FUNCTION public.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at=now(); RETURN NEW; END $$;""")
         def apply(prefix, start=0, end=None):
             p = next((ROOT/'supabase/migrations').glob(prefix+'*.sql'))
@@ -97,7 +98,7 @@ class SubscriptionDB(unittest.TestCase):
     def travel(self, org, age_days):
         self.c.execute('RESET ROLE')
         self.c.execute('ALTER TABLE subscriptions DISABLE TRIGGER clinicx_immutable_trial')
-        self.c.execute("UPDATE subscriptions SET trial_started_at=now()-(%s*interval '1 day'),trial_ends_at=now()+((30-%s)*interval '1 day'),grace_ends_at=now()+((37-%s)*interval '1 day') WHERE organization_id=%s", (age_days,age_days,age_days,org))
+        self.c.execute("UPDATE subscriptions SET trial_started_at=now()-(%s*interval '1 day'),trial_ends_at=now()+((30-%s)*interval '1 day'),grace_ends_at=now()+((37-%s)*interval '1 day'),current_period_start=now()-(%s*interval '1 day'),current_period_end=now()+((30-%s)*interval '1 day') WHERE organization_id=%s", (age_days,age_days,age_days,age_days,age_days,org))
         self.c.execute('ALTER TABLE subscriptions ENABLE TRIGGER clinicx_immutable_trial')
         self.c.execute('SET ROLE authenticated')
 
@@ -212,7 +213,7 @@ class SubscriptionDB(unittest.TestCase):
         self.c.execute('RESET ROLE')
         invited=str(uuid.uuid4())
         self.c.execute("INSERT INTO auth.users(id,email,email_confirmed_at) VALUES(%s,'staff@example.invalid',now())",(invited,))
-        self.c.execute("UPDATE subscriptions SET status='active',plan_id='starter',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL; UPDATE subscriptions SET status='active',plan_id='starter',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s; ALTER TABLE subscriptions ENABLE TRIGGER ALL",(org,))
         self.c.execute('SET ROLE authenticated')
         self.c.execute("INSERT INTO organization_invites(organization_id,email,role,invited_by) VALUES(%s,'staff@example.invalid','staff',%s) RETURNING token",(org,self.user))
         token=self.c.fetchone()[0]
@@ -289,7 +290,7 @@ class SubscriptionDB(unittest.TestCase):
         for plan,patients,staff,doctors,billing in [('starter',100,1,1,False),('growth',1000,5,1,True),('professional',None,20,None,True),('enterprise',None,None,None,True)]:
             with self.subTest(plan=plan):
                 self.c.execute('RESET ROLE')
-                self.c.execute("UPDATE subscriptions SET plan_id=%s,status='active',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s",(plan,org))
+                self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL; UPDATE subscriptions SET plan_id=%s,status='active',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s; ALTER TABLE subscriptions ENABLE TRIGGER ALL",(plan,org))
                 self.c.execute('SET ROLE authenticated')
                 self.c.execute('SELECT public.clinicx_subscription_snapshot(%s)',(org,))
                 snap=self.c.fetchone()[0]
@@ -319,7 +320,7 @@ class SubscriptionDB(unittest.TestCase):
     def test_documented_module_override_is_preserved_without_becoming_paid_provenance(self):
         org=self.provision()['organization_id']
         self.c.execute('RESET ROLE')
-        self.c.execute("UPDATE subscriptions SET status='active',plan_id='starter',current_period_end=now()+interval '1 year' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL; UPDATE subscriptions SET status='active',plan_id='starter',current_period_end=now()+interval '1 year' WHERE organization_id=%s; ALTER TABLE subscriptions ENABLE TRIGGER ALL",(org,))
         self.c.execute("INSERT INTO organization_module_overrides(organization_id,module_id,enabled,reason,updated_by) VALUES(%s,'finance',true,'Synthetic documented support grant',%s)",(org,self.user))
         self.c.execute('SET ROLE authenticated')
         self.c.execute('SELECT public.clinicx_subscription_snapshot(%s)',(org,))
@@ -357,7 +358,7 @@ class SubscriptionDB(unittest.TestCase):
         self.c.execute('RESET ROLE')
         invited=str(uuid.uuid4())
         self.c.execute("INSERT INTO auth.users(id,email,email_confirmed_at) VALUES(%s,'doctor@example.invalid',now())",(invited,))
-        self.c.execute("UPDATE subscriptions SET status='active',plan_id='starter',current_period_end=now()+interval '1 year' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL; UPDATE subscriptions SET status='active',plan_id='starter',current_period_end=now()+interval '1 year' WHERE organization_id=%s; ALTER TABLE subscriptions ENABLE TRIGGER ALL",(org,))
         self.c.execute("INSERT INTO organization_invites(organization_id,email,role,invited_by) VALUES(%s,'doctor@example.invalid','doctor',%s) RETURNING id,token",(org,self.user))
         invite,token=self.c.fetchone()
         self.c.execute("SELECT set_config('request.jwt.claim.sub',%s,false)",(invited,))
@@ -369,7 +370,7 @@ class SubscriptionDB(unittest.TestCase):
         self.assertIsNone(self.c.fetchone()[0])
         self.c.execute('SELECT count(*) FROM organization_members WHERE organization_id=%s AND user_id=%s',(org,invited))
         self.assertEqual(self.c.fetchone()[0],0)
-        self.c.execute("UPDATE subscriptions SET plan_id='professional' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL; UPDATE subscriptions SET plan_id='professional' WHERE organization_id=%s; ALTER TABLE subscriptions ENABLE TRIGGER ALL",(org,))
         self.c.execute('SET ROLE authenticated')
         self.c.execute('SELECT public.accept_invite(%s)',(token,))
         self.assertEqual(str(self.c.fetchone()[0]),org)
@@ -381,7 +382,7 @@ class SubscriptionDB(unittest.TestCase):
         org=self.provision()['organization_id']
         self.c.execute("INSERT INTO patients(organization_id,name) SELECT %s,'Synthetic '||g FROM generate_series(1,99) g",(org,))
         self.c.execute('RESET ROLE')
-        self.c.execute("UPDATE subscriptions SET status='active',plan_id='starter',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL; UPDATE subscriptions SET status='active',plan_id='starter',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s; ALTER TABLE subscriptions ENABLE TRIGGER ALL",(org,))
         barrier=threading.Barrier(2)
         def admit():
             conn=psycopg2.connect(host=str(self.socket),port=55447,dbname='postgres',user=os.environ['USER'])

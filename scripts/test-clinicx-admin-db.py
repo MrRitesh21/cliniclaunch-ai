@@ -16,7 +16,8 @@ class AdminDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         fixture.PaymentsDB.setUpClass.__func__(cls)
-        cls.c.execute("DROP FUNCTION public.is_admin(uuid) CASCADE")
+        cls.c.execute("DROP FUNCTION IF EXISTS public.is_admin(uuid) CASCADE")
+        cls.c.execute("DROP TABLE IF EXISTS public.user_roles CASCADE")
         p = next((ROOT/'supabase/migrations').glob('20260628060119_*.sql'))
         cls.c.execute(p.read_text())
         for p in sorted((ROOT/'supabase/migrations').glob('2026100715*.sql')):

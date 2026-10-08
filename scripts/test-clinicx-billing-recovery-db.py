@@ -62,7 +62,7 @@ class RecoveryDB(Base):
                     if role=='fixture':
                         if name=='fixture_travel':cur.execute("UPDATE clinicx_recurring_commands SET paid_through=to_timestamp(%s),created_at=now()-interval '2 minutes',recovery_after=now() WHERE id=%s AND organization_id=%s",(args['boundary'],args['command'],org))
                         elif name=='fixture_due':
-                            cur.execute('UPDATE clinicx_billing_jobs SET next_attempt_at=now(),lease_until=NULL WHERE event_id=%s',('callback:pay_Recovery'+sid[4:],))
+                            cur.execute('UPDATE clinicx_billing_jobs SET available_at=now(),leased_until=NULL WHERE event_id=%s',('callback:pay_Recovery'+sid[4:],))
                             cur.execute('UPDATE clinicx_recurring_commands SET recovery_after=now() WHERE provider_subscription_id=%s',(sid,))
                         else:raise ValueError('Fixture op denied')
                         data=True

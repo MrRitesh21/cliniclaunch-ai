@@ -11,7 +11,6 @@ class AuthorityDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         A.setUpClass.__func__(cls)
-        cls.c.execute((ROOT/'supabase/migrations/20260813071033_916a67a7-dbcf-48eb-a6ab-c654e0450749.sql').read_text())
         for prefix in ['2026100716','2026100717','2026100718']:
             for p in sorted((ROOT/'supabase/migrations').glob(prefix+'*.sql')):
                 cls.c.execute('BEGIN');cls.c.execute(p.read_text());cls.c.execute('COMMIT')

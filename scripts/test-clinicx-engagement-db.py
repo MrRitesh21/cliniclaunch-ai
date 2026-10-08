@@ -16,7 +16,7 @@ class EngagementDB(unittest.TestCase):
     def setUpClass(cls):
         foundation.SubscriptionDB.setUpClass.__func__(cls)
         cls.c.execute((ROOT/'supabase/migrations/20260813071033_916a67a7-dbcf-48eb-a6ab-c654e0450749.sql').read_text())
-        for p in sorted((ROOT/'supabase/migrations').glob('2026100716*.sql')):
+        for p in sorted((ROOT/'supabase/migrations').glob('2026100716*.sql')) + sorted((ROOT/'supabase/migrations').glob('20261007190000*.sql')):
             cls.c.execute(p.read_text())
     stop_cluster = classmethod(foundation.SubscriptionDB.stop_cluster.__func__)
     setUp = foundation.SubscriptionDB.setUp
@@ -109,13 +109,13 @@ class EngagementDB(unittest.TestCase):
         self.c.execute('SELECT clinicx_set_engagement_email(%s,true)',(org,))
         self.c.execute('RESET ROLE')
         owner=self
-        allowed={'expire_lapsed_subscriptions':[], 'clinicx_prepare_notification_delivery':['p_limit'], 'clinicx_claim_notification_delivery':['p_limit'], 'clinicx_finish_notification_delivery':['p_id','p_token','p_success']}
+        allowed={'expire_lapsed_subscriptions':[], 'clinicx_prepare_notification_delivery':['p_limit'], 'clinicx_claim_notification_delivery':['p_limit'], 'clinicx_preflight_notification_delivery':['p_id','p_token'], 'clinicx_finish_notification_delivery':['p_id','p_token','p_success']}
         class Bridge(http.server.BaseHTTPRequestHandler):
             def log_message(self,*args): pass
             def do_POST(self):
                 payload=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 name=payload['name']
-                if name not in allowed: self.send_error(403); return
+                if name not in allowed: print("403 ERROR IN BRIDGE:", name); self.send_error(403); return
                 args=[payload['args'][key] for key in allowed[name]]
                 conn=psycopg2.connect(host=str(owner.socket),port=55447,dbname='postgres',user=os.environ['USER'])
                 try:
@@ -125,6 +125,9 @@ class EngagementDB(unittest.TestCase):
                     cur.execute('SELECT '+name+'('+','.join(['%s']*len(args))+')',args)
                     result=cur.fetchone()[0]
                     self.send_response(200);self.end_headers();self.wfile.write(json.dumps(result).encode())
+                except Exception as e:
+                    print("500 ERROR IN BRIDGE:", name, e)
+                    self.send_error(500)
                 finally: conn.close()
         bridge=http.server.HTTPServer(('127.0.0.1',0),Bridge)
         thread=threading.Thread(target=bridge.serve_forever,daemon=True);thread.start()
@@ -217,7 +220,9 @@ class EngagementDB(unittest.TestCase):
         self.c.execute('RESET ROLE')
         self.c.execute('SELECT clinicx_claim_notification_delivery(50)')
         self.assertEqual(self.c.fetchone()[0],[])
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL")
         self.c.execute("UPDATE subscriptions SET status='active',access_source='verified_payment',current_period_end=now()+interval '1 year' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions ENABLE TRIGGER ALL")
         self.c.execute('SELECT clinicx_run_trial_jobs(now()+interval \'28 days\')')
         self.c.execute('SELECT clinicx_prepare_notification_delivery(100)')
         self.c.execute('SELECT count(*) FROM notifications WHERE organization_id=%s',(org,))

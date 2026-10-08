@@ -23,10 +23,12 @@ class PaymentsDB(unittest.TestCase):
           ALTER TABLE transactions ADD COLUMN gateway text,ADD COLUMN gateway_payment_id text,ADD COLUMN gateway_order_id text;""")
         from pathlib import Path
         cls.c.execute(next((Path(__file__).resolve().parents[1]/'supabase/migrations').glob('20260705100450_*.sql')).read_text())
+        cls.c.execute(next((Path(__file__).resolve().parents[1]/'supabase/migrations').glob('20260813071033_*.sql')).read_text())
         migrations=sorted((Path(__file__).resolve().parents[1]/'supabase/migrations').glob('2026100714*.sql'))
         # Specialized workstream suites own their later migration loops; avoid replaying non-idempotent DDL twice.
         if cls is PaymentsDB:
-            migrations+=sorted((Path(__file__).resolve().parents[1]/'supabase/migrations').glob('2026100717*.sql'))
+            for prefix in ['15', '16', '17', '18', '19', '20']:
+                migrations+=sorted((Path(__file__).resolve().parents[1]/'supabase/migrations').glob(f'20261007{prefix}*.sql'))
         for p in migrations:
             cls.c.execute('BEGIN'); cls.c.execute(p.read_text()); cls.c.execute('COMMIT')
     def setUp(self):
@@ -145,7 +147,7 @@ class PaymentsDB(unittest.TestCase):
         import http.server, threading, subprocess, os
         from psycopg2 import sql
         org=self.configure()
-        allowed={'clinicx_begin_checkout','clinicx_bind_checkout','clinicx_checkout_context','clinicx_provider_context','clinicx_enqueue_billing_event','clinicx_settle_payment','clinicx_billing_current','clinicx_billing_history','clinicx_billing_lifecycle','clinicx_checkout_uncertain','clinicx_downgrade_check','clinicx_charge_quote','clinicx_known_provider_plan','clinicx_reserve_recurring','clinicx_finish_recurring','clinicx_recurring_command_state'}
+        allowed={'clinicx_begin_checkout','clinicx_bind_checkout','clinicx_checkout_context','clinicx_provider_context','clinicx_enqueue_billing_event','clinicx_settle_payment','clinicx_billing_current','clinicx_billing_history','clinicx_billing_history_page','clinicx_invoice_detail','clinicx_billing_lifecycle','clinicx_checkout_uncertain','clinicx_downgrade_check','clinicx_charge_quote','clinicx_capture_quote','clinicx_known_provider_plan','clinicx_reserve_recurring','clinicx_finish_recurring','clinicx_recurring_command_state','clinicx_recurring_recovery_command','clinicx_recurring_command_context','clinicx_renewal_context','clinicx_recovery_context','clinicx_recover_and_settle','clinicx_recover_terminal_command','clinicx_claim_recurring_recovery','clinicx_stage_recurring_review'}
         owner=self
         class RPC(http.server.BaseHTTPRequestHandler):
             def log_message(self,*args):pass
@@ -153,7 +155,11 @@ class PaymentsDB(unittest.TestCase):
                 body=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 name=body['name'];args=body['args'];role=body['role']
                 if name not in allowed or role not in ('authenticated','service_role'):
-                    self.send_error(403);return
+                    self.send_response(403)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': {'message': f'Not allowed: {name} or role: {role}'}}).encode())
+                    return
                 con=psycopg2.connect(host=str(owner.socket),port=55447,dbname='postgres',user=os.environ['USER'])
                 try:
                     cur=con.cursor();cur.execute("SELECT set_config('request.jwt.claim.sub',%s,false)",(owner.user if role=='authenticated' else '',));cur.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(role)))
@@ -226,7 +232,12 @@ class PaymentsDB(unittest.TestCase):
         self.c.execute("SELECT clinicx_billing_lifecycle('evt_replace_old',%s,'cancelled',NULL,%s)",(sid,self.user))
         # Isolated fixture time travel only; canonical terminal evidence alone never releases paid-through access.
         self.c.execute('RESET ROLE')
-        self.c.execute("UPDATE subscriptions SET current_period_end=now()-interval '1 second' WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE webhook_events DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE webhook_events SET payload = jsonb_set(payload, '{period_end}', to_jsonb(floor(extract(epoch from now()-interval '1 second')))) WHERE payload->>'subscription_id' = %s", (sid,))
+        self.c.execute("ALTER TABLE webhook_events ENABLE TRIGGER ALL")
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE subscriptions SET current_period_end=to_timestamp(floor(extract(epoch from now()-interval '1 second'))) WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions ENABLE TRIGGER ALL")
         self.c.execute('SET ROLE service_role')
         replacement=self.bind(self.reserve_as_actor(org));second=self.evidence(replacement);second['period_start']=first['period_start']+1;second['period_end']=first['period_end']+1;self.settle(second)
         late=self.evidence(sid);late['period_end']=second['period_end']+100;self.settle(late)
@@ -253,14 +264,32 @@ class PaymentsDB(unittest.TestCase):
 
     def test_canonical_terminal_plus_elapsed_allows_replacement_but_neither_alone_does(self):
         org=self.configure(); sid=self.bind(self.reserve(org)); evidence=self.evidence(sid); self.settle(evidence)
-        self.c.execute('RESET ROLE'); self.c.execute("UPDATE subscriptions SET current_period_end=now()-interval '1 second' WHERE organization_id=%s",(org,))
+        self.c.execute('RESET ROLE')
+        self.c.execute("ALTER TABLE webhook_events DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE webhook_events SET payload = jsonb_set(payload, '{period_end}', to_jsonb(floor(extract(epoch from now()-interval '1 second')))) WHERE payload->>'subscription_id' = %s", (sid,))
+        self.c.execute("ALTER TABLE webhook_events ENABLE TRIGGER ALL")
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE subscriptions SET current_period_end=to_timestamp(floor(extract(epoch from now()-interval '1 second'))) WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions ENABLE TRIGGER ALL")
         self.c.execute('SET ROLE authenticated')
         with self.assertRaises(psycopg2.Error): self.reserve(org)
-        self.c.execute('RESET ROLE'); self.c.execute('UPDATE subscriptions SET current_period_end=to_timestamp(%s) WHERE organization_id=%s',(evidence['period_end'],org))
+        self.c.execute('RESET ROLE')
+        self.c.execute("ALTER TABLE webhook_events DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE webhook_events SET payload = jsonb_set(payload, '{period_end}', to_jsonb(%s)) WHERE payload->>'subscription_id' = %s", (evidence['period_end'], sid))
+        self.c.execute("ALTER TABLE webhook_events ENABLE TRIGGER ALL")
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL")
+        self.c.execute('UPDATE subscriptions SET current_period_end=to_timestamp(%s) WHERE organization_id=%s',(evidence['period_end'],org))
+        self.c.execute("ALTER TABLE subscriptions ENABLE TRIGGER ALL")
         self.c.execute('SET ROLE service_role'); self.c.execute("SELECT clinicx_billing_lifecycle(%s,%s,'cancelled',NULL,%s)",('evt_terminal_'+uuid.uuid4().hex,sid,self.user))
         self.c.execute('SET ROLE authenticated')
         with self.assertRaises(psycopg2.Error): self.reserve(org)
-        self.c.execute('RESET ROLE'); self.c.execute("UPDATE subscriptions SET current_period_end=now()-interval '1 second' WHERE organization_id=%s",(org,))
+        self.c.execute('RESET ROLE')
+        self.c.execute("ALTER TABLE webhook_events DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE webhook_events SET payload = jsonb_set(payload, '{period_end}', to_jsonb(floor(extract(epoch from now()-interval '1 second')))) WHERE payload->>'subscription_id' = %s", (sid,))
+        self.c.execute("ALTER TABLE webhook_events ENABLE TRIGGER ALL")
+        self.c.execute("ALTER TABLE subscriptions DISABLE TRIGGER ALL")
+        self.c.execute("UPDATE subscriptions SET current_period_end=to_timestamp(floor(extract(epoch from now()-interval '1 second'))) WHERE organization_id=%s",(org,))
+        self.c.execute("ALTER TABLE subscriptions ENABLE TRIGGER ALL")
         self.c.execute('SET ROLE authenticated'); self.assertEqual(self.reserve(org)['state'],'creating')
 
     def test_checkout_does_not_replace_trial_then_captured_settlement_is_atomic(self):
