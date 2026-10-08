@@ -315,6 +315,15 @@ function LoginPage() {
                         <button
                           type="button"
                           onClick={() => {
+                            setEmail("ritesh@digiwil.com");
+                          }}
+                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors font-medium text-primary"
+                        >
+                          Ritesh Clinic (ritesh@digiwil.com)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
                             setEmail("qa-owner-a@clinicx.test");
                             setPassword("QAtest!2345");
                           }}
