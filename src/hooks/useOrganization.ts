@@ -35,25 +35,43 @@ function publish(s: Snapshot) {
   listeners.forEach(l => l(s));
 }
 
+let staticAliases: Array<{ alias: string; feature: string }> | null = null;
+let staticDisabledModules: Array<{ id: string }> | null = null;
+
 async function fetchSnapshot(userId: string): Promise<Snapshot> {
   const membership = await supabase.from("organization_members").select("organization_id, role").eq("user_id", userId).order("joined_at", { ascending: true }).limit(1);
   if (membership.error) throw membership.error;
   if (!membership.data?.length) return EMPTY;
   const orgId = membership.data[0].organization_id;
+
+  const aliasPromise = staticAliases
+    ? Promise.resolve({ data: staticAliases, error: null })
+    : (supabase.from("clinicx_feature_aliases" as any).select("alias, feature") as PromiseLike<any>).then((res: any) => {
+        if (!res.error && res.data) staticAliases = res.data;
+        return res;
+      });
+
+  const globalPromise = staticDisabledModules
+    ? Promise.resolve({ data: staticDisabledModules, error: null })
+    : (supabase.from("modules").select("id").eq("is_available", false) as PromiseLike<any>).then((res: any) => {
+        if (!res.error && res.data) staticDisabledModules = res.data;
+        return res;
+      });
+
   const [orgResult, modResult, subResult, globalResult, overrideResult, aliasResult, authority] = await Promise.all([
     supabase.from("organizations").select("*").eq("id", orgId).maybeSingle(),
     supabase.from("organization_modules").select("module_id").eq("organization_id", orgId),
     supabase.from("subscriptions").select("*").eq("organization_id", orgId).maybeSingle(),
-    supabase.from("modules").select("id").eq("is_available", false),
+    globalPromise,
     supabase.from("organization_module_overrides" as any).select("module_id, enabled").eq("organization_id", orgId),
     // Local explicit read contract until generated Supabase types include this migration.
-    supabase.from("clinicx_feature_aliases" as any).select("alias, feature"),
+    aliasPromise,
     getClinicSubscription({ data: { organizationId: orgId } }),
   ]);
   for (const result of [orgResult, modResult, subResult, globalResult, overrideResult, aliasResult]) if (result.error) throw result.error;
   const aliases = (aliasResult.data ?? []) as unknown as Array<{ alias: string; feature: string }>;
   const allowed = new Set([...authority.features, ...aliases.filter(a => authority.features.includes(a.feature)).map(a => a.alias)]);
-  const disabled = new Set((globalResult.data ?? []).map(m => m.id));
+  const disabled = new Set<string>(((globalResult.data ?? []) as Array<{ id: string }>).map((m: { id: string }) => m.id));
   const enabled = new Set<string>();
   for (const o of (overrideResult.data ?? []) as unknown as Array<{ module_id: string; enabled: boolean }>) {
     if (o.enabled) enabled.add(o.module_id);

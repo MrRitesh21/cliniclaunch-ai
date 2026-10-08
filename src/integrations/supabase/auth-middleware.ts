@@ -4,6 +4,32 @@ import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
+const verifiedClaimsCache = new Map<string, { claims: Record<string, unknown>; expiresAt: number }>();
+
+function getCachedClaims(token: string) {
+  const cached = verifiedClaimsCache.get(token);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.claims;
+  }
+  if (cached) {
+    verifiedClaimsCache.delete(token);
+  }
+  return null;
+}
+
+function setCachedClaims(token: string, claims: Record<string, unknown>) {
+  const expSeconds = typeof claims.exp === "number" ? claims.exp : undefined;
+  const tokenExpiresAt = expSeconds ? expSeconds * 1000 : Date.now() + 60_000;
+  const expiresAt = Math.min(Date.now() + 60_000, tokenExpiresAt);
+  verifiedClaimsCache.set(token, { claims, expiresAt });
+  if (verifiedClaimsCache.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of verifiedClaimsCache) {
+      if (v.expiresAt <= now) verifiedClaimsCache.delete(k);
+    }
+  }
+}
+
 export const requireSupabaseAuth = createMiddleware({ type: "function" }).server(
   async ({ next }) => {
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -57,20 +83,25 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
       },
     });
 
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
-      throw new Error("Unauthorized: Invalid token");
+    let claims = getCachedClaims(token);
+    if (!claims) {
+      const { data, error } = await supabase.auth.getClaims(token);
+      if (error || !data?.claims) {
+        throw new Error("Unauthorized: Invalid token");
+      }
+      claims = data.claims as Record<string, unknown>;
+      setCachedClaims(token, claims);
     }
 
-    if (!data.claims.sub) {
+    if (!claims.sub) {
       throw new Error("Unauthorized: No user ID found in token");
     }
 
     return next({
       context: {
         supabase,
-        userId: data.claims.sub,
-        claims: data.claims,
+        userId: claims.sub as string,
+        claims,
       },
     });
   },
