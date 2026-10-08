@@ -965,7 +965,22 @@ function DashboardLayout() {
               </div>
             )}
             {entitlement && !entitlement.can_write && entitlement.can_read && entitlement.effective_state !== "past_due" && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
-            {authorityError && !recoveryRoute(pathname) ? <div role="alert" className="rounded-lg border p-6">{authorityError}<Button variant="outline" onClick={() => void refresh()} className="mt-3">Retry access check</Button></div> : org === undefined && !recoveryRoute(pathname) ? <div role="status">Checking clinic access…</div> : isSubscriptionExpired && !recoveryRoute(pathname) ? (
+            {authorityError && !recoveryRoute(pathname) ? (
+              <div role="alert" className="rounded-lg border p-6">
+                <p>{authorityError}</p>
+                <Button variant="outline" onClick={() => void refresh()} className="mt-3">
+                  Retry access check
+                </Button>
+              </div>
+            ) : org === undefined && !recoveryRoute(pathname) ? (
+              <div role="status" className="flex flex-col items-center justify-center p-12 text-center space-y-3">
+                <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">Checking clinic access…</p>
+                <Button variant="ghost" size="sm" onClick={() => void refresh()} className="mt-2 text-xs">
+                  Taking longer than expected? Tap to retry
+                </Button>
+              </div>
+            ) : isSubscriptionExpired && !recoveryRoute(pathname) ? (
               <SubscriptionExpiredView />
             ) : (
               <PullToRefresh>

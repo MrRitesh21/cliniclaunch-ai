@@ -4,6 +4,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { getClinicSubscription } from "@/lib/subscription.functions";
 import type { SubscriptionSnapshot } from "@/lib/subscription.server";
 import type { Database } from "@/integrations/supabase/types";
+import { readCache, writeCache } from "@/lib/persist-cache";
 
 export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
 export type OrgRole = Database["public"]["Enums"]["org_role"];
@@ -32,6 +33,9 @@ const listeners = new Set<(s: Snapshot) => void>();
 function publish(s: Snapshot) {
   cache = s;
   cacheAt = Date.now();
+  if (cacheUserId && s.org) {
+    writeCache(`org_snapshot:${cacheUserId}`, s);
+  }
   listeners.forEach(l => l(s));
 }
 
@@ -96,14 +100,26 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
 }
 function loadShared(userId: string, force = false): Promise<Snapshot> {
   if (cacheUserId !== userId) {
-    cacheUserId = userId; cache = undefined; cacheAt = 0; inFlight = null; generation++;
-    listeners.forEach(l => l({ ...EMPTY, org: undefined }));
+    cacheUserId = userId;
+    const persisted = readCache<Snapshot>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    cache = persisted ?? undefined;
+    cacheAt = persisted ? Date.now() : 0;
+    inFlight = null;
+    generation++;
+    listeners.forEach(l => l(cache ?? { ...EMPTY, org: undefined }));
   }
   if (!force && cache && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
   if (inFlight) return inFlight;
   const token = generation;
-  inFlight = fetchSnapshot(userId).catch((err: unknown): Snapshot => {
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("Clinic access verification timed out. Check network connection.")), 10000)
+  );
+  inFlight = Promise.race([fetchSnapshot(userId), timeoutPromise]).catch((err: unknown): Snapshot => {
     console.error("[useOrganization] fetchSnapshot failed:", err);
+    const persisted = readCache<Snapshot>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted?.org) {
+      return persisted;
+    }
     return {
       ...EMPTY, org: cache?.org ?? null,
       authorityError: "Subscription access could not be verified. Retry before continuing clinic operations.",
@@ -117,7 +133,18 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
 }
 export function useOrganization(): OrgContext {
   const { isReady, user } = useAuthReady();
-  const [snapshot, setSnapshot] = useState<Snapshot>(() => user && cacheUserId === user.id && cache ? cache : { ...EMPTY, org: undefined });
+  const [snapshot, setSnapshot] = useState<Snapshot>(() => {
+    if (!user) return { ...EMPTY, org: undefined };
+    if (cacheUserId === user.id && cache) return cache;
+    const persisted = readCache<Snapshot>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted) {
+      cacheUserId = user.id;
+      cache = persisted;
+      cacheAt = Date.now();
+      return persisted;
+    }
+    return { ...EMPTY, org: undefined };
+  });
   useEffect(() => {
     listeners.add(setSnapshot);
     return () => { listeners.delete(setSnapshot); };
@@ -134,6 +161,10 @@ export function useOrganization(): OrgContext {
   }, [isReady, user?.id]);
   const refresh = useCallback(async () => { if (user) await loadShared(user.id, true); }, [user?.id]);
   // Auth can change before effects run; never expose the previous caller's grants for one render.
-  if (!isReady || !user || cacheUserId !== user.id) return { ...EMPTY, org: user ? undefined : null, refresh };
+  if (!isReady || !user) return { ...EMPTY, org: user ? undefined : null, refresh };
+  if (cacheUserId !== user.id) {
+    if (snapshot.org) return { ...snapshot, refresh };
+    return { ...EMPTY, org: undefined, refresh };
+  }
   return { ...snapshot, refresh };
 }

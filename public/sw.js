@@ -1,4 +1,4 @@
-const CACHE_NAME = "clinicx-pwa-v6";
+const CACHE_NAME = "clinicx-pwa-v7";
 const STATIC_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -49,10 +49,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Skip non-GET requests, web sockets, Supabase, and API calls from caching
+  // Skip non-GET requests, web sockets, Supabase, server functions, and API calls from caching
   if (
     request.method !== "GET" ||
     url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/_server") ||
+    url.pathname.startsWith("/__server") ||
+    url.pathname.includes("_serverFn") ||
     url.hostname.includes("supabase.co") ||
     url.hostname.includes("supabase") ||
     url.pathname.includes("/realtime/")
