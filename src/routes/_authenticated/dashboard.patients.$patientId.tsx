@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { AppGuard } from "@/components/app/AppGuard";
+import { readCache, writeCache } from "@/lib/persist-cache";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -42,16 +43,39 @@ export const Route = createFileRoute("/_authenticated/dashboard/patients/$patien
   ),
 });
 
+const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+function getCachedPatient(id: string, clinicId?: string): any {
+  if (typeof window === "undefined" || !id) return null;
+  const snap = readCache<any>(`patient_snap_${id}`, ONE_WEEK);
+  if (snap) return snap;
+  const dir = (clinicId && readCache<any[]>(`clinicx_patients_${clinicId}`, ONE_WEEK)) ||
+              readCache<any[]>(`clinicx_patients_all`, ONE_WEEK);
+  return dir?.find((p: any) => p.id === id || p.phone === id) || null;
+}
+
+function getCachedAppts(id: string): any[] {
+  if (typeof window === "undefined" || !id) return [];
+  return readCache<any[]>(`patient_appts_${id}`, ONE_WEEK) || [];
+}
+
+function getCachedVisits(id: string): any[] {
+  if (typeof window === "undefined" || !id) return [];
+  return readCache<any[]>(`patient_visits_${id}`, ONE_WEEK) || [];
+}
+
 function PatientProfilePage() {
   const { patientId } = Route.useParams();
   const clinic = useClinic();
   const { org } = useOrganization();
   const orgId = org?.id;
 
-  const [patient, setPatient] = useState<any>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [emrVisits, setEmrVisits] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedPatient = getCachedPatient(patientId, clinic?.id);
+  const [patient, setPatient] = useState<any>(cachedPatient);
+  const [appointments, setAppointments] = useState<any[]>(() => getCachedAppts(patientId));
+  const [emrVisits, setEmrVisits] = useState<any[]>(() => getCachedVisits(patientId));
+  const [loading, setLoading] = useState(!cachedPatient);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Direct Voice & Quick EMR state
   const [showQuickRx, setShowQuickRx] = useState(false);
@@ -73,95 +97,85 @@ function PatientProfilePage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!clinic?.id || !orgId || !patientId) return;
-      setLoading(true);
+      if (!patientId) return;
+      if (!patient) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       try {
-        let patientData = null;
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId);
 
-        if (isUuid) {
-          const { data } = await supabase
-            .from("patients")
-            .select("*")
-            .eq("id", patientId)
-            .single();
-          patientData = data;
+        // Run all queries simultaneously in parallel for instant roundtrip
+        const [patientRes, apptRes, visitRes] = await Promise.all([
+          isUuid
+            ? supabase.from("patients").select("*").eq("id", patientId).maybeSingle()
+            : supabase.from("patients").select("*").eq("phone", patientId).limit(1).maybeSingle(),
+          clinic?.id
+            ? supabase
+                .from("appointments")
+                .select("id, scheduled_at, status, problem, appointment_type, patient_name, patient_phone, patient_email, patient_age, patient_gender")
+                .eq("clinic_id", clinic.id)
+                .or(`patient_phone.eq.${patientId},id.eq.${isUuid ? patientId : "00000000-0000-0000-0000-000000000000"}`)
+                .order("scheduled_at", { ascending: false })
+            : Promise.resolve({ data: [] }),
+          clinic?.id
+            ? supabase
+                .from("consultations" as any)
+                .select("*")
+                .eq("clinic_id", clinic.id)
+                .or(isUuid ? `patient_id.eq.${patientId}` : `patient_name.eq.${cachedPatient?.name || patientId}`)
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        let resolvedPatient: any = patientRes.data;
+        if (!resolvedPatient && apptRes.data && (apptRes.data as any[]).length > 0) {
+          const first = (apptRes.data as any[])[0];
+          resolvedPatient = {
+            id: patientId,
+            name: first.patient_name,
+            phone: first.patient_phone,
+            email: first.patient_email,
+            age: first.patient_age,
+            gender: first.patient_gender,
+          };
+        }
+        if (!resolvedPatient && cachedPatient) {
+          resolvedPatient = cachedPatient;
         }
 
-        if (!patientData) {
-          const { data } = await supabase
-            .from("patients")
-            .select("*")
-            .eq("phone", patientId)
-            .limit(1)
-            .maybeSingle();
-          patientData = data;
+        if (resolvedPatient) {
+          setPatient(resolvedPatient);
+          writeCache(`patient_snap_${patientId}`, resolvedPatient);
+          if (resolvedPatient.phone) writeCache(`patient_snap_${resolvedPatient.phone}`, resolvedPatient);
         }
 
-        if (patientData) {
-          setPatient(patientData);
+        if (apptRes.data) {
+          setAppointments(apptRes.data as any[]);
+          writeCache(`patient_appts_${patientId}`, apptRes.data);
+        }
 
-          const { data: apptData } = await supabase
-            .from("appointments")
-            .select("id, scheduled_at, status, problem, appointment_type")
-            .eq("clinic_id", clinic.id)
-            .eq("patient_phone", patientData.phone || "")
-            .order("scheduled_at", { ascending: false });
-
-          setAppointments(apptData ?? []);
-
-          let { data: visitData } = await supabase
-            .from("consultations")
+        let visits = (visitRes.data as any[]) ?? [];
+        if (visits.length === 0 && resolvedPatient?.name && clinic?.id) {
+          const { data: nameVisits } = await supabase
+            .from("consultations" as any)
             .select("*")
             .eq("clinic_id", clinic.id)
-            .eq("patient_id", patientData.id)
+            .eq("patient_name", resolvedPatient.name)
             .order("created_at", { ascending: false });
-
-          if (!visitData || visitData.length === 0) {
-            const { data: nameVisits } = await supabase
-              .from("consultations")
-              .select("*")
-              .eq("clinic_id", clinic.id)
-              .eq("patient_name", patientData.name)
-              .order("created_at", { ascending: false });
-            visitData = nameVisits;
-          }
-
-          setEmrVisits(visitData ?? []);
-        } else {
-          const { data: apptData } = await supabase
-            .from("appointments")
-            .select("*")
-            .eq("clinic_id", clinic.id)
-            .eq("patient_phone", patientId)
-            .order("scheduled_at", { ascending: false });
-
-          if (apptData && apptData.length > 0) {
-            const first = apptData[0];
-            setPatient({
-              id: patientId,
-              name: first.patient_name,
-              phone: first.patient_phone,
-              email: first.patient_email,
-              age: first.patient_age,
-              gender: first.patient_gender,
-            });
-            setAppointments(apptData);
-
-            const { data: visitData } = await supabase
-              .from("consultations")
-              .select("*")
-              .eq("clinic_id", clinic.id)
-              .eq("patient_name", first.patient_name)
-              .order("created_at", { ascending: false });
-
-            setEmrVisits(visitData ?? []);
+          if (nameVisits && nameVisits.length > 0) {
+            visits = nameVisits;
           }
         }
+
+        setEmrVisits(visits);
+        writeCache(`patient_visits_${patientId}`, visits);
       } catch (err) {
         console.error("Failed to load patient profile:", err);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     }
     loadData();
@@ -324,9 +338,17 @@ function PatientProfilePage() {
         >
           <ArrowLeft className="size-3.5 mr-1" /> Directory
         </Link>
-        <span className="text-xs text-muted-foreground font-mono">
-          ID: {patient.id?.slice(0, 8)}
-        </span>
+        <div className="flex items-center gap-2">
+          {refreshing && (
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md font-medium">
+              <span className="size-1.5 rounded-full bg-primary animate-ping" />
+              Syncing…
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground font-mono">
+            ID: {patient.id?.slice(0, 8)}
+          </span>
+        </div>
       </div>
 
       {/* 360 Header Profile Card */}

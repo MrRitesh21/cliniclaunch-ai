@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
 import { useOrganization } from "@/hooks/useOrganization";
+import { readCache, writeCache } from "@/lib/persist-cache";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -177,7 +178,15 @@ function PatientsPage() {
     searchParams.tab === "records" ? "records" : "directory",
   );
 
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    if (typeof window !== "undefined") {
+      const cached = (clinic?.id && readCache<Patient[]>(`clinicx_patients_${clinic.id}`, ONE_WEEK)) ||
+                     readCache<Patient[]>(`clinicx_patients_all`, ONE_WEEK);
+      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
+    }
+    return [];
+  });
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "visits" | "last_seen">("last_seen");
@@ -223,7 +232,7 @@ function PatientsPage() {
   const [patientFilter, setPatientFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [editingVisit, setEditingVisit] = useState<EMRVisit | "new" | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(patients.length === 0);
   const [vitalsDialogPatient, setVitalsDialogPatient] = useState<Patient | null>(null);
 
   async function loadData() {
@@ -286,7 +295,35 @@ function PatientsPage() {
         }
       });
 
-      setPatients(Array.from(byPhone.values()));
+      const patientList = Array.from(byPhone.values());
+      setPatients(patientList);
+      if (clinic?.id) {
+        writeCache(`clinicx_patients_${clinic.id}`, patientList);
+      }
+      writeCache(`clinicx_patients_all`, patientList);
+
+      // Pre-warm patient profile snapshots and records in cache for instant (0ms) profile loading
+      const allVisits = (visitsRes.data as any[]) ?? [];
+      const allAppts = (apptsRes.data as any[]) ?? [];
+      patientList.forEach((p) => {
+        if (p.id) writeCache(`patient_snap_${p.id}`, p);
+        if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
+
+        const pVisits = allVisits.filter(
+          (v) => (p.id && v.patient_id === p.id) || (p.name && v.patient_name === p.name)
+        );
+        if (pVisits.length > 0) {
+          if (p.id) writeCache(`patient_visits_${p.id}`, pVisits);
+          if (p.phone) writeCache(`patient_visits_${p.phone}`, pVisits);
+        }
+
+        const pAppts = allAppts.filter((a) => a.patient_phone === p.phone);
+        if (pAppts.length > 0) {
+          if (p.id) writeCache(`patient_appts_${p.id}`, pAppts);
+          if (p.phone) writeCache(`patient_appts_${p.phone}`, pAppts);
+        }
+      });
+
       setEmrVisits(
         ((visitsRes.data as any[]) ?? []).map((v) => ({
           ...v,
@@ -527,6 +564,15 @@ function PatientsPage() {
                   key={p.id}
                   to="/dashboard/patients/$patientId"
                   params={{ patientId: p.id }}
+                  preload="intent"
+                  onPointerDown={() => {
+                    writeCache(`patient_snap_${p.id}`, p);
+                    if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
+                  }}
+                  onTouchStart={() => {
+                    writeCache(`patient_snap_${p.id}`, p);
+                    if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
+                  }}
                   className="block focus:outline-none group"
                 >
                   <Card className="p-3.5 sm:p-4 rounded-2xl hover:border-primary/50 transition-all active:scale-[0.99] border-border/70 bg-card shadow-xs hover:shadow-sm space-y-3">
