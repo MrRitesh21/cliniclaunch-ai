@@ -127,6 +127,28 @@ const MODULE_BENEFITS: Record<
     roiNote: "Converts website visitors into confirmed booked appointments 24/7.",
     highlights: ["Online Booking Portal", "Doctor Profile Showcase", "Mobile Touch Native", "Fast CDN Hosting"],
   },
+  multi_branch: {
+    tagline: "Centralized multi-clinic chain operations, centralized staff, slots & cross-branch reports.",
+    benefits: [
+      "Manage unlimited clinic branches and OPD centers from a single unified portal.",
+      "Transfer patients, doctors, and appointment slots seamlessly between branches.",
+      "Consolidated financial reporting, revenue audit, and inventory transfer tracking.",
+      "Scoped staff permissions: clinic-wide super admin or branch-restricted receptionists.",
+    ],
+    roiNote: "Cuts overhead costs for multi-location clinic chains by up to 40%.",
+    highlights: ["Unlimited Locations", "Cross-Branch Slots", "Central Reporting", "Scoped Staff RBAC"],
+  },
+  insurance_claims: {
+    tagline: "Cashless TPA and health insurance claims with document uploads & settlement tracker.",
+    benefits: [
+      "Direct cashless claim submission for Star Health, Care, HDFC ERGO & top Indian TPAs.",
+      "Pre-authorization document upload studio with instant claim status notifications.",
+      "Track pending claim approvals, query resolution & final bank settlement deposits.",
+      "Automated co-pay calculation and GST invoice breakdown for insured patients.",
+    ],
+    roiNote: "Speeds up insurance claim turnaround time from weeks to 48 hours.",
+    highlights: ["Cashless TPA Desk", "Instant Pre-Auth", "Settlement Ledger", "Query Manager"],
+  },
 };
 
 const DEFAULT_BENEFIT = {
@@ -142,7 +164,7 @@ const DEFAULT_BENEFIT = {
 };
 
 function ModulesPage() {
-  const { org, installedModuleIds, refresh } = useOrganization();
+  const { org, installedModuleIds, planModuleIds, refresh } = useOrganization();
   const [modules, setModules] = useState<Module[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -198,13 +220,21 @@ function ModulesPage() {
   const activePlanId =
     (statusActive && !periodElapsed) || statusCancelledNotElapsed ? sub!.plan_id : null;
   const currentPlan = activePlanId ? plans.find((p) => p.id === activePlanId) : undefined;
-  const allowedModuleIds = new Set(currentPlan?.module_ids ?? []);
+  const isEnterprise = activePlanId === "enterprise" || sub?.plan_id === "enterprise";
+  const allowedModuleIds = useMemo(() => {
+    const set = new Set(currentPlan?.module_ids ?? []);
+    if (isEnterprise) {
+      modules.forEach((m) => set.add(m.id));
+    }
+    (planModuleIds ?? []).forEach((id) => set.add(id));
+    return set;
+  }, [currentPlan?.module_ids, isEnterprise, modules, planModuleIds]);
   const noActivePlan = !currentPlan;
 
   async function toggle(m: Module) {
     if (!org) return;
     const installed = installedModuleIds.includes(m.id);
-    const allowed = allowedModuleIds.has(m.id);
+    const allowed = allowedModuleIds.has(m.id) || isEnterprise;
 
     if (!installed && !allowed) {
       toast.error(`Upgrade to ${m.min_plan} or higher to install this module`);
