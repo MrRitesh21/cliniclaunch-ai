@@ -95,7 +95,7 @@ function LoginPage() {
       if (code === "email_not_confirmed" || /email.*not.*confirmed/i.test(error.message)) {
         message = "Your email isn't confirmed yet. Check your inbox for the confirmation link, then try again.";
       } else if (code === "invalid_credentials" || /invalid login credentials/i.test(error.message)) {
-        message = "Incorrect email or password. Please try again.";
+        message = "Incorrect email or password. If you haven't registered on this local instance yet, switch to the Sign up tab.";
       } else if (code === "over_request_rate_limit" || /too many requests/i.test(error.message)) {
         message = "Too many sign-in attempts. Please wait a minute and try again.";
       } else if (code === "user_not_found") {
@@ -252,7 +252,7 @@ function LoginPage() {
                   Sign in
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="text-sm">
-                  Create account
+                  Sign up
                 </TabsTrigger>
               </TabsList>
 
@@ -304,6 +304,47 @@ function LoginPage() {
                   <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
                     {loading ? "Signing in…" : "Sign in"}
                   </Button>
+
+                  {import.meta.env.DEV && (
+                    <div className="rounded-lg border border-dashed border-border/80 bg-muted/40 p-3 text-xs space-y-1.5 mt-2">
+                      <div className="flex items-center justify-between text-muted-foreground font-medium">
+                        <span>Quick-fill test account</span>
+                        <span className="text-[10px] uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">Dev</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail("qa-owner-a@clinicx.test");
+                            setPassword("QAtest!2345");
+                          }}
+                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors"
+                        >
+                          Owner (qa-owner-a)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail("doctor_a@example.com");
+                            setPassword("TestPassword123!");
+                          }}
+                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors"
+                        >
+                          Doctor A (demo)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail("staff_a@example.com");
+                            setPassword("TestPassword123!");
+                          }}
+                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors"
+                        >
+                          Staff Member (demo)
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </TabsContent>
 
@@ -356,7 +397,7 @@ function LoginPage() {
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
-                    {loading ? "Creating…" : "Create free account"}
+                    {loading ? "Creating…" : "Create account"}
                   </Button>
                 </form>
               </TabsContent>
