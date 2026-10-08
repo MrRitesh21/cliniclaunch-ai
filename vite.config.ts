@@ -13,7 +13,8 @@ export default defineConfig({
   },
   nitro: {
     preset: "vercel",
-  },
+    inlineDynamicImports: true,
+  } as any,
   vite: {
     plugins: [
       mcpPlugin(),
