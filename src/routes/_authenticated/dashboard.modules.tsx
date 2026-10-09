@@ -173,11 +173,50 @@ const DEFAULT_BENEFIT = {
 function ModulesPage() {
   const { org, role, entitlement, authorityUserId, authorityGeneration, authorityError, unavailableModuleIds, installedModuleIds, planModuleIds, refresh } = useOrganization();
   const { user } = useAuthReady();
+
+  const [modules, setModules] = useState<Module[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [sub, setSub] = useState<Subscription | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [loading, setLoading] = useState(true);
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+
+  // Subscription plan check
+  const targetEnd = sub?.current_period_end ?? sub?.trial_ends_at;
+  const periodEndMs = targetEnd ? new Date(targetEnd).getTime() : null;
+  const periodElapsed = periodEndMs !== null && periodEndMs < Date.now();
+  const statusActive =
+    sub && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due");
+  const statusCancelledNotElapsed =
+    sub &&
+    ((sub.status as string) === "cancelled" || (sub.status as string) === "canceled") &&
+    periodEndMs !== null &&
+    !periodElapsed;
+  const activePlanId =
+    (statusActive && !periodElapsed) || statusCancelledNotElapsed ? sub!.plan_id : null;
+  const currentPlan = activePlanId ? plans.find((p) => p.id === activePlanId) : undefined;
+  const isEnterprise = activePlanId === "enterprise" || sub?.plan_id === "enterprise";
+  const isPlanAbove2000 = isEnterprise || (currentPlan?.monthly_price ?? 0) > 2000;
+  const allowedModuleIds = useMemo(() => {
+    const set = new Set(currentPlan?.module_ids ?? []);
+    if (isEnterprise) {
+      modules.forEach((m) => set.add(m.id));
+    }
+    if (isPlanAbove2000) {
+      set.add("attendance");
+    }
+    (planModuleIds ?? []).forEach((id) => set.add(id));
+    return set;
+  }, [currentPlan?.module_ids, isEnterprise, isPlanAbove2000, modules, planModuleIds]);
+  const noActivePlan = !currentPlan;
+
   const attendanceVerified = !!user && authorityUserId === user.id && !!entitlement && !authorityError;
   const attendanceAllowed =
     attendanceVerified &&
     !!entitlement?.can_write &&
-    (isEnterprise ||
+    (isPlanAbove2000 ||
       allowedModuleIds.has("attendance") ||
       planModuleIds.includes("attendance")) &&
     !unavailableModuleIds.includes("attendance");
@@ -191,14 +230,6 @@ function ModulesPage() {
     attendanceLock.current = null;
   }
   const attendanceAdmin = role === 'owner' || role === 'admin';
-  const [modules, setModules] = useState<Module[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [sub, setSub] = useState<Subscription | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [loading, setLoading] = useState(true);
-  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
 
   useEffect(() => {
     setBusy(null);
@@ -260,34 +291,6 @@ function ModulesPage() {
       setLoading(false);
     })();
   }, [org]);
-
-  // Subscription plan check
-  const targetEnd = sub?.current_period_end ?? sub?.trial_ends_at;
-  const periodEndMs = targetEnd ? new Date(targetEnd).getTime() : null;
-  const periodElapsed = periodEndMs !== null && periodEndMs < Date.now();
-  const statusActive =
-    sub && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due");
-  const statusCancelledNotElapsed =
-    sub &&
-    ((sub.status as string) === "cancelled" || (sub.status as string) === "canceled") &&
-    periodEndMs !== null &&
-    !periodElapsed;
-  const activePlanId =
-    (statusActive && !periodElapsed) || statusCancelledNotElapsed ? sub!.plan_id : null;
-  const currentPlan = activePlanId ? plans.find((p) => p.id === activePlanId) : undefined;
-  const isEnterprise = activePlanId === "enterprise" || sub?.plan_id === "enterprise";
-  const allowedModuleIds = useMemo(() => {
-    const set = new Set(currentPlan?.module_ids ?? []);
-    if (isEnterprise) {
-      modules.forEach((m) => set.add(m.id));
-    }
-    if (isPlanAbove2000) {
-      set.add("attendance");
-    }
-    (planModuleIds ?? []).forEach((id) => set.add(id));
-    return set;
-  }, [currentPlan?.module_ids, isEnterprise, isPlanAbove2000, modules, planModuleIds]);
-  const noActivePlan = !currentPlan;
 
   async function toggle(m: Module) {
     if (!org) return;
