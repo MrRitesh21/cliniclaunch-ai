@@ -15,11 +15,9 @@ FROM public.plans
 WHERE id = 'enterprise' OR monthly_price > 2000
 ON CONFLICT (plan_id, feature) DO NOTHING;
 
--- 2. Ensure aliases exist in both directions
+-- 2. Ensure attendance is mapped to staff_management entitlement
 INSERT INTO public.clinicx_feature_aliases (alias, feature)
-VALUES 
-  ('attendance', 'staff_management'),
-  ('attendance', 'attendance')
+VALUES ('attendance', 'staff_management')
 ON CONFLICT (alias) DO UPDATE SET feature = excluded.feature;
 
 -- 3. Ensure module_ids array on plans contains 'attendance'
