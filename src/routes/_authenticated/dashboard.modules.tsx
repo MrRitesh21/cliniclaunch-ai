@@ -238,10 +238,15 @@ function ModulesPage() {
           icon: "Clock",
           is_core: false,
           is_available: true,
-          min_plan: "starter",
+          min_plan: "professional",
           sort_order: 18,
           created_at: new Date().toISOString(),
         } as any);
+      } else {
+        const attMod = modulesList.find((mod) => mod.id === "attendance");
+        if (attMod) {
+          attMod.min_plan = "professional";
+        }
       }
       setModules(modulesList);
       setPlans((p ?? []) as Plan[]);
@@ -644,7 +649,8 @@ function ModulesPage() {
                     className="flex-1 h-9 text-xs font-bold bg-primary text-primary-foreground shadow-sm"
                   >
                     {!installedModuleIds.includes(selectedModule.id) &&
-                    !allowedModuleIds.has(selectedModule.id) ? (
+                    (!allowedModuleIds.has(selectedModule.id) ||
+                      (selectedModule.id === "attendance" && !attendanceAllowed)) ? (
                       <>
                         <Lock className="size-3.5 mr-1" /> Requires {selectedModule.min_plan} Plan
                       </>
