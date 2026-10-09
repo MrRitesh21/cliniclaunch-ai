@@ -22,7 +22,7 @@ ON CONFLICT (alias) DO UPDATE SET feature = excluded.feature;
 
 -- 3. Ensure module_ids array on plans contains 'attendance'
 UPDATE public.plans
-SET module_ids = array_append(module_ids, 'attendance')
+SET module_ids = array_append(module_ids, 'attendance'::text)
 WHERE (id = 'enterprise' OR monthly_price > 2000)
   AND NOT ('attendance' = ANY(module_ids));
 

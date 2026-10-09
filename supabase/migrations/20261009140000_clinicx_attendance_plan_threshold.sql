@@ -9,13 +9,13 @@ WHERE id = 'attendance';
 
 -- 2. Add 'attendance' to module_ids for all plans with monthly_price > 2000
 UPDATE public.plans
-SET module_ids = array_append(module_ids, 'attendance')
+SET module_ids = array_append(module_ids, 'attendance'::text)
 WHERE monthly_price > 2000
   AND NOT ('attendance' = ANY(module_ids));
 
 -- 3. Remove 'attendance' from module_ids for any plan with monthly_price <= 2000
 UPDATE public.plans
-SET module_ids = array_remove(module_ids, 'attendance')
+SET module_ids = array_remove(module_ids, 'attendance'::text)
 WHERE monthly_price <= 2000
   AND ('attendance' = ANY(module_ids));
 
