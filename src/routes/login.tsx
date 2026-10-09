@@ -10,6 +10,8 @@ import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft } from
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { guardAuthAttempt } from "@/lib/limits.functions";
+import { SplashScreen } from "@/components/app/PWASplashScreen";
+import { hasCachedSession } from "@/lib/auth-cache";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (
@@ -31,6 +33,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { redirect, email: searchEmail, tab: searchTab } = Route.useSearch();
+  const [checkingAuth, setCheckingAuth] = useState(() => hasCachedSession());
   const [loading, setLoading] = useState(false);
 
   const { data: mStatus } = useQuery({
@@ -60,10 +63,17 @@ function LoginPage() {
     const isRecovery = hash.includes("type=recovery") || hash.includes("recovery");
     if (isRecovery) {
       setView("reset");
+      setCheckingAuth(false);
       return;
     }
 
+    let active = true;
+    if (hasCachedSession()) {
+      navigate({ to: redirect ? (redirect as any) : "/dashboard", replace: true });
+    }
+
     supabase.auth.getSession().then(({ data: sessionData }) => {
+      if (!active) return;
       const data = { user: sessionData.session?.user ?? null };
       if (data.user) {
         if (searchEmail && data.user.email?.toLowerCase() !== searchEmail.toLowerCase()) {
@@ -71,11 +81,19 @@ function LoginPage() {
             window.location.reload();
           });
         } else {
-          navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+          navigate({ to: redirect ? (redirect as any) : "/dashboard", replace: true });
         }
+      } else {
+        setCheckingAuth(false);
       }
+    }).catch(() => {
+      if (active) setCheckingAuth(false);
     });
-  }, [navigate, searchEmail]);
+
+    return () => {
+      active = false;
+    };
+  }, [navigate, searchEmail, redirect]);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();

@@ -39,6 +39,11 @@ import { resolveVariants, getVariantComponent } from "@/components/site/registry
 import { DEFAULT_SECTION_ORDER, type SectionKey, type SiteClinic } from "@/components/site/types";
 import { LeadCapture } from "@/components/clinic/lead-capture";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { SplashScreen } from "@/components/app/PWASplashScreen";
+import { hasCachedSession } from "@/lib/auth-cache";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -403,7 +408,37 @@ function DeepDiveVisual({ kind }: { kind: string }) {
 
 function Landing() {
   const { clinic, plans } = Route.useLoaderData();
+  const navigate = useNavigate();
+  const isStandalone = typeof window !== "undefined" && (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+  const [checkingAuth, setCheckingAuth] = useState(() => hasCachedSession() && isStandalone);
+
+  useEffect(() => {
+    if (!isStandalone) return;
+    let active = true;
+    if (hasCachedSession()) {
+      navigate({ to: "/dashboard", replace: true });
+    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
+      if (session) {
+        navigate({ to: "/dashboard", replace: true });
+      } else {
+        setCheckingAuth(false);
+      }
+    }).catch(() => {
+      if (active) setCheckingAuth(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [navigate, isStandalone]);
+
   if (clinic) return <ClinicDomainView clinic={clinic} />;
+  if (checkingAuth) return <SplashScreen />;
+
   return (
     <MarketingShell>
       <LandingContent initialPlans={plans ?? []} />
