@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
-import cors from "cors";
+import { createCorsBoundary } from "./security/cors";
 import helmet from "helmet";
 import { config } from "./config";
 import { metricsMiddleware } from "./monitoring/middlewares/metricsMiddleware";
@@ -13,8 +13,14 @@ export const app = express();
 
 // Security and CORS middleware
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
+app.set("trust proxy", false);
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  next();
+});
+app.use(createCorsBoundary(config.corsAllowedOrigins));
+app.use(express.json({ limit: "100kb" }));
 
 // Monitoring & Logging Middlewares
 app.use(metricsMiddleware);
@@ -26,7 +32,8 @@ app.use("/", monitoringRouter);
 // Mount Device Intelligence & Security Endpoints
 app.use("/api", deviceRouter);
 
-// Sample Business Routes demonstrating Telemetry & Pino Logging integration
+// Sample telemetry routes are development-only, never production APIs.
+if (config.nodeEnv !== "production") {
 app.get("/api/v1/users", (req: Request, res: Response) => {
   const span = telemetryProvider.startSpan("fetch_users");
   try {
@@ -59,6 +66,8 @@ app.get("/api/v1/error-demo", (req: Request, res: Response) => {
   res.status(500).json({ error: "Internal Server Error", code: "SERVER_ERROR" });
 });
 
+}
+
 // 404 Route Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: "Resource Not Found", path: req.path });
@@ -71,8 +80,11 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     url: req.url,
     method: req.method,
   });
-  res.status(500).json({
-    error: "Internal Server Error",
+  const bodyError = err as Error & { type?: string };
+  const status = bodyError.type === "entity.too.large" ? 413
+    : bodyError.type === "entity.parse.failed" ? 400 : 500;
+  res.status(status).json({
+    error: status === 413 ? "Request body too large" : status === 400 ? "Invalid JSON body" : "Internal Server Error",
     request_id: req.id ? String(req.id) : undefined,
   });
 });

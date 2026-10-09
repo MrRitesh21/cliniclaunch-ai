@@ -1468,6 +1468,63 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_attendance: {
+        Row: {
+          id: string
+          organization_id: string
+          clinic_id: string | null
+          staff_id: string
+          staff_name: string
+          staff_role: string
+          attendance_date: string
+          status: string
+          check_in: string | null
+          check_out: string | null
+          shift: string | null
+          working_hours: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          clinic_id?: string | null
+          staff_id: string
+          staff_name: string
+          staff_role?: string
+          attendance_date?: string
+          status?: string
+          check_in?: string | null
+          check_out?: string | null
+          shift?: string | null
+          working_hours?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          clinic_id?: string | null
+          staff_id?: string
+          staff_name?: string
+          staff_role?: string
+          attendance_date?: string
+          status?: string
+          check_in?: string | null
+          check_out?: string | null
+          shift?: string | null
+          working_hours?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "staff_attendance_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] },
+          { foreignKeyName: "staff_attendance_clinic_id_fkey"; columns: ["clinic_id"]; isOneToOne: false; referencedRelation: "clinics"; referencedColumns: ["id"] },
+        ]
+      }
       doctors: {
         Row: {
           avatar_url: string | null
@@ -5287,6 +5344,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clinicx_attendance_day: {
+        Args: { p_org: string; p_date?: string | null; p_clinic?: string | null }
+        Returns: Json
+      }
+      clinicx_attendance_record: {
+        Args: { p_org: string; p_subject?: string | null; p_action?: string; p_date?: string | null; p_status?: string | null; p_shift?: string; p_notes?: string | null }
+        Returns: Json
+      }
+      clinicx_attendance_access: {
+        Args: { p_org: string; p_clinic: string | null; p_subject: string; p_write?: boolean }
+        Returns: boolean
+      }
+      clinicx_attendance_roster: {
+        Args: { p_org: string }
+        Returns: { staff_id: string; staff_name: string; staff_role: string; clinic_id: string | null; user_id: string | null }[]
+      }
       can_access_clinic: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean

@@ -6,9 +6,11 @@
  * `rate-limiter.ts`) keep state per worker isolate. Cloudflare spins up many
  * isolates and Render restarts containers, so an in-memory "40 req/min" budget
  * is really "40 per isolate" — effectively unlimited under real traffic. These
- * helpers put the counter in Redis so the budget is global, and fall back to a
+ * helpers use a shared counter when Redis is ready, and fall back to a
  * local counter only when Redis is unreachable (fail-soft, never fail-closed).
  */
+
+import { isIP } from "node:net";
 
 type Tier = {
   name: string;
@@ -52,16 +54,45 @@ const TIERS: Array<{ test: (path: string) => boolean; tier: Tier }> = [
 
 const DEFAULT_TIER: Tier = { name: "page", limit: 300, windowSeconds: 60 };
 
-/** Paths that must never be rate limited or shed. */
+const PUBLIC_FILES = new Set([
+  "/favicon.ico", "/favicon.svg", "/icon-192.png", "/icon-512.png",
+  "/logo.png", "/logo.jpg", "/logo-icon.png", "/logo-transparent.png",
+  "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml",
+]);
+
+function decodedPath(path: string): string | null {
+  try {
+    // Also catch double-encoded dotfiles before framework routing.
+    for (let i = 0; i < 2; i++) {
+      const next = decodeURIComponent(path);
+      if (next === path) break;
+      path = next;
+    }
+    return path;
+  } catch { return null; }
+}
+
+/** Defense in depth; static-host/build exclusions are required as well. */
+export function isBlockedFilePath(path: string): boolean {
+  const decoded = decodedPath(path);
+  if (decoded === null || /[\\\\\u0000]/.test(decoded)) return true;
+  const segments = decoded.split("/");
+  return segments.some((s) =>
+    (s.startsWith(".") && s !== ".well-known") ||
+    /^(?:\.env.*|\.git|\.wwebjs_auth|\.wwebjs_cache|sessions?|auth_info_baileys|node_modules)$/i.test(s)
+  ) || /\.(?:map|pem|key|sqlite|sqlite3|db|bak)$/i.test(decoded);
+}
+
+/** Build-output namespace plus enumerated public files, not arbitrary suffixes. */
+function isPublicStaticPath(path: string): boolean {
+  if (isBlockedFilePath(path) || decodedPath(path) !== path) return false;
+  return PUBLIC_FILES.has(path) ||
+    /^\/assets\/[A-Za-z0-9_./-]+\.(?:js|css|png|jpe?g|svg|webp|avif|ico|woff2?)$/.test(path);
+}
+
+/** Only explicitly public infrastructure bypasses request budgets. */
 export function isInfraPath(path: string): boolean {
-  return (
-    path === "/api/public/healthz" ||
-    path.startsWith("/assets/") ||
-    path.startsWith("/favicon") ||
-    path === "/robots.txt" ||
-    path === "/sitemap.xml" ||
-    /\.(png|jpg|jpeg|svg|webp|avif|ico|js|css|woff2?|map|json|txt|xml)$/i.test(path)
-  );
+  return path === "/api/public/healthz" || isPublicStaticPath(path);
 }
 
 function tierFor(path: string): Tier {
@@ -96,13 +127,17 @@ function localRateLimit(key: string, limit: number, windowSeconds: number) {
 }
 
 function clientKey(request: Request): string {
-  const h = request.headers;
-  return (
-    h.get("cf-connecting-ip") ||
-    h.get("x-real-ip") ||
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "anon"
-  );
+  // Vercel overwrites its provider header. All other deployments must opt in
+  // only after sealing the origin and configuring a proxy to overwrite it.
+  const configured = process.env.CLINICX_TRUSTED_PROXY_HEADER?.toLowerCase();
+  const allowedHeaders = ["cf-connecting-ip", "x-real-ip", "x-forwarded-for", "x-vercel-forwarded-for"];
+  const header = process.env.VERCEL === "1" ? "x-vercel-forwarded-for"
+    : configured && allowedHeaders.includes(configured) ? configured : null;
+  const value = header ? request.headers.get(header)?.trim() : null;
+  // Reject chains, zone identifiers and arbitrary attacker-controlled keys.
+  if (!value || value.length > 45 || value.includes("%") || !isIP(value)) return "anon";
+  // Canonicalize IPv6 spellings so equivalent addresses share a budget.
+  return value.includes(":") ? new URL(`http://[${value}]/`).hostname.slice(1, -1) : value;
 }
 
 export type LimitVerdict = {
@@ -271,54 +306,40 @@ const IMMUTABLE: CachePolicy = { cacheControl: "public, max-age=31536000, immuta
 export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null {
   const path = url.pathname;
 
-  // Only GET/HEAD responses are ever shareable.
-  if (request.method !== "GET" && request.method !== "HEAD") return null;
-
-  // Hashed build output and static media.
+  const privatePolicy: CachePolicy = { cacheControl: "private, no-store", cdnCacheControl: "no-store" };
+  // Unknown queries may carry tokens or editor state. Default to non-shareable.
   if (
-    path.startsWith("/assets/") ||
-    /\.(png|jpg|jpeg|svg|webp|avif|ico|woff2?|js|css)$/i.test(path)
-  ) {
-    return IMMUTABLE;
+    (request.method !== "GET" && request.method !== "HEAD") ||
+    request.headers.has("authorization") || request.headers.has("cookie") ||
+    url.search !== "" || isBlockedFilePath(path) || decodedPath(path) !== path ||
+    /^\/(?:dashboard|admin|auth|login|register|signup|consult|onboarding|invite|api|_serverFn|_server|__server|r|l|token|reset-password)(?:[/.]|$)/i.test(path) ||
+    /\/(?:book|walkin)(?:[/.]|$)/i.test(path)
+  ) return privatePolicy;
+
+  if (isPublicStaticPath(path)) {
+    return path.startsWith("/assets/") && /-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2?|png|jpe?g|svg|webp|avif|ico)$/.test(path)
+      ? IMMUTABLE : { cacheControl: "public, max-age=3600" };
   }
 
-  // Never cache anything personalised or authenticated.
-  if (
-    path.startsWith("/dashboard") ||
-    path.startsWith("/admin") ||
-    path.startsWith("/auth") ||
-    path.startsWith("/consult") ||
-    path.startsWith("/onboarding") ||
-    path.startsWith("/invite") ||
-    path.startsWith("/api/")
-  ) {
-    return { cacheControl: "private, no-store" };
-  }
-
-  // Preview / live-template renders are per-editor state, not public content.
-  if (
-    url.searchParams.has("preview") ||
-    url.searchParams.has("tpl") ||
-    url.searchParams.has("tc")
-  ) {
-    return { cacheControl: "private, no-store" };
-  }
-
-  // Public clinic websites: the single highest-volume read path.
-  if (path.startsWith("/c/")) {
-    // Booking/walk-in forms hold live slot availability — cache far shorter.
-    const isLive = path.endsWith("/book") || path.endsWith("/walkin");
-    return isLive
-      ? {
-          cacheControl: "public, max-age=0, s-maxage=15, stale-while-revalidate=30",
-          cdnCacheControl: "max-age=15",
-          vary: "Accept-Encoding",
-        }
-      : {
-          cacheControl: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
-          cdnCacheControl: "max-age=600",
-          vary: "Accept-Encoding",
-        };
+  // Public clinic websites: only exact clinic landing page /c/:slug or allowed subroutes (/about, /contact, /services, /book, /walkin)
+  const clinicMatch = path.match(/^\/c\/([A-Za-z0-9_-]+)(?:\/([A-Za-z0-9_.-]+))?$/);
+  if (clinicMatch) {
+    const subroute = clinicMatch[2];
+    if (!subroute || subroute === "about" || subroute === "contact" || subroute === "services") {
+      return {
+        cacheControl: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
+        cdnCacheControl: "max-age=600",
+        vary: "Accept-Encoding",
+      };
+    }
+    if (subroute === "book" || subroute === "walkin") {
+      return {
+        cacheControl: "public, max-age=0, s-maxage=15, stale-while-revalidate=30",
+        cdnCacheControl: "max-age=15",
+        vary: "Accept-Encoding",
+      };
+    }
+    return privatePolicy;
   }
 
   // Marketing / SEO pages — fast updates with short edge revalidation
@@ -331,9 +352,9 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
   }
 
   if (
-    path.startsWith("/compare/") ||
-    path.startsWith("/clinic-software/") ||
-    path.startsWith("/for/") ||
+    /^\/(?:compare|clinic-software|for)\/[A-Za-z0-9_-]+$/.test(path) ||
+    path === "/compare" ||
+    path === "/clinic-software" ||
     [
       "/about",
       "/features",
@@ -358,7 +379,7 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
     return { cacheControl: "public, max-age=3600, s-maxage=21600" };
   }
 
-  return null;
+  return privatePolicy;
 }
 
 /* ------------------------------------------------------------------ */

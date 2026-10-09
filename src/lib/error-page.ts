@@ -1,5 +1,15 @@
-export function renderErrorPage(error?: unknown): string {
-  const errorMessage = error instanceof Error ? error.stack || error.message : String(error || "Unknown error");
+import { escapeHtml } from "./output-encoding";
+
+/** Safe for server logs: do not serialize arbitrary errors, URLs, tokens or stack locals. */
+export function errorLogSummary(_error?: unknown): string {
+  return "ClinicX request failed; private error details withheld";
+}
+
+/** Default is production-safe. Debug output requires a deliberate trusted dev caller. */
+export function renderErrorPage(error?: unknown, options: { development?: boolean } = {}): string {
+  const errorMessage = options.development
+    ? escapeHtml(error instanceof Error ? error.stack || error.message : String(error || "Unknown error"))
+    : "";
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -25,8 +35,9 @@ export function renderErrorPage(error?: unknown): string {
       <div class="actions">
         <button class="primary" onclick="location.reload()">Try again</button>
         <a class="secondary" href="/">Go home</a>
+        <a class="secondary" href="/contact">Contact support</a>
       </div>
-      <pre><code>${errorMessage.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+      ${options.development ? `<pre><code>${errorMessage}</code></pre>` : ""}
     </div>
   </body>
 </html>`;

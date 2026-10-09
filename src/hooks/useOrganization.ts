@@ -17,12 +17,16 @@ export interface OrgContext {
   unavailableModuleIds: string[];
   subscription: Subscription | null;
   entitlement: SubscriptionSnapshot | null;
+  authorityUserId: string | null;
+  authorityGeneration: number;
   authorityError: string | null;
+  authorityPending: boolean;
+  authorityScope: string | null;
   isSubscriptionExpired: boolean;
   refresh: () => Promise<void>;
 }
 type Snapshot = Omit<OrgContext, "refresh">;
-const EMPTY: Snapshot = { org: null, role: null, installedModuleIds: [], planModuleIds: [], unavailableModuleIds: [], subscription: null, entitlement: null, authorityError: null, isSubscriptionExpired: false };
+const EMPTY: Snapshot = { org: null, role: null, installedModuleIds: [], planModuleIds: [], unavailableModuleIds: [], subscription: null, entitlement: null, authorityUserId: null, authorityGeneration: 0, authorityError: null, authorityPending: false, authorityScope: null, isSubscriptionExpired: false };
 const TTL_MS = 60_000;
 let cacheUserId: string | null = null;
 let cacheAt = 0;
@@ -30,13 +34,23 @@ let cache: Snapshot | undefined;
 let inFlight: Promise<Snapshot> | null = null;
 let generation = 0;
 const listeners = new Set<(s: Snapshot) => void>();
+let authorityGeneration = 0;
+function unverified(org: Organization | null | undefined, message = "Clinic access is not verified. Retry access check."): Snapshot {
+  return { ...EMPTY, org, authorityError: message, isSubscriptionExpired: true };
+}
+function pending(s: Snapshot | undefined): Snapshot {
+  // Retain only a UI mount identity, never previous role/entitlement grants.
+  return { ...EMPTY, org: s?.org, authorityPending: true, authorityScope: s?.authorityScope ?? null, authorityGeneration: s?.authorityGeneration ?? 0, isSubscriptionExpired: true };
+}
 function publish(s: Snapshot) {
-  cache = s;
-  cacheAt = Date.now();
-  if (cacheUserId && s.org) {
-    writeCache(`org_snapshot:${cacheUserId}`, s);
+  cache = { ...s, authorityGeneration: ++authorityGeneration };
+  cacheAt = s.authorityUserId ? Date.now() : 0;
+  if (cacheUserId && s.org && s.authorityUserId === cacheUserId) {
+    // Persistence is shell metadata only, never a source of write/manage authority.
+    writeCache(`org_snapshot:${cacheUserId}`, { org: s.org });
   }
-  listeners.forEach(l => l(s));
+  listeners.forEach(l => l(cache!));
+  return cache;
 }
 
 let staticAliases: Array<{ alias: string; feature: string }> | null = null;
@@ -89,60 +103,51 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
   const readOnly = authority.can_read && !authority.can_write;
   return {
     org: orgResult.data ?? null, role: authority.role,
-    subscription: subResult.data ?? null, entitlement: authority, authorityError: null,
+    subscription: subResult.data ?? null, entitlement: authority, authorityUserId: userId, authorityGeneration: 0, authorityError: null, authorityPending: false, authorityScope: null,
     isSubscriptionExpired: !authority.can_read,
     planModuleIds: apply(Array.from(allowed)),
     unavailableModuleIds: Array.from(disabled),
     installedModuleIds: readOnly
       ? Array.from(new Set([...installed, ...clinical])).filter(id => !disabled.has(id))
-      : apply([...installed, ...clinical, ...enabled, ...(authority.effective_state === "trialing" ? Array.from(allowed) : [])]),
+      : apply([...installed, ...clinical, ...enabled, ...(authority.effective_state === "trialing" ? Array.from(allowed) : [])]).filter(id => id !== "attendance" || installed.includes("attendance")),
   };
 }
 function loadShared(userId: string, force = false): Promise<Snapshot> {
   if (cacheUserId !== userId) {
     cacheUserId = userId;
-    const persisted = readCache<Snapshot>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
-    cache = persisted ?? undefined;
-    cacheAt = persisted ? Date.now() : 0;
+    const persisted = readCache<{ org: Organization }>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    cache = unverified(persisted?.org ?? undefined);
+    cacheAt = 0;
     inFlight = null;
     generation++;
     listeners.forEach(l => l(cache ?? { ...EMPTY, org: undefined }));
   }
-  if (!force && cache && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
+  if (!force && cache?.authorityUserId === userId && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
   if (inFlight) return inFlight;
   const token = generation;
+  publish(pending(cache));
+  let timeout: ReturnType<typeof setTimeout>;
   const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error("Clinic access verification timed out. Check network connection.")), 10000)
+    timeout = setTimeout(() => reject(new Error("Clinic access verification timed out. Check network connection.")), 10000)
   );
   inFlight = Promise.race([fetchSnapshot(userId), timeoutPromise]).catch((err: unknown): Snapshot => {
     console.error("[useOrganization] fetchSnapshot failed:", err);
-    const persisted = readCache<Snapshot>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
-    if (persisted?.org) {
-      return persisted;
-    }
-    return {
-      ...EMPTY, org: cache?.org ?? null,
-      authorityError: "Subscription access could not be verified. Retry before continuing clinic operations.",
-      isSubscriptionExpired: true,
-    };
+    const persisted = readCache<{ org: Organization }>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    return unverified(persisted?.org ?? (token === generation ? cache?.org : null) ?? null,
+      "Subscription access could not be verified. Retry before continuing clinic operations.");
   }).then(s => {
-    if (token === generation && userId === cacheUserId) publish(s);
+    if (token === generation && userId === cacheUserId) return publish({ ...s, authorityScope: s.entitlement && s.org ? `${token}:${userId}:${s.org.id}:${s.role}` : null });
     return s;
-  }).finally(() => { if (token === generation) inFlight = null; });
+  }).finally(() => { clearTimeout(timeout); if (token === generation) inFlight = null; });
   return inFlight;
 }
 export function useOrganization(): OrgContext {
   const { isReady, user } = useAuthReady();
-  const [snapshot, setSnapshot] = useState<Snapshot>(() => {
+  const [, setSnapshot] = useState<Snapshot>(() => {
     if (!user) return { ...EMPTY, org: undefined };
     if (cacheUserId === user.id && cache) return cache;
-    const persisted = readCache<Snapshot>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
-    if (persisted) {
-      cacheUserId = user.id;
-      cache = persisted;
-      cacheAt = Date.now();
-      return persisted;
-    }
+    const persisted = readCache<{ org: Organization }>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted) return unverified(persisted.org);
     return { ...EMPTY, org: undefined };
   });
   useEffect(() => {
@@ -162,9 +167,11 @@ export function useOrganization(): OrgContext {
   const refresh = useCallback(async () => { if (user) await loadShared(user.id, true); }, [user?.id]);
   // Auth can change before effects run; never expose the previous caller's grants for one render.
   if (!isReady || !user) return { ...EMPTY, org: user ? undefined : null, refresh };
-  if (cacheUserId !== user.id) {
-    if (snapshot.org) return { ...snapshot, refresh };
-    return { ...EMPTY, org: undefined, refresh };
+  if (cacheUserId !== user.id) return { ...EMPTY, org: undefined, refresh };
+  // Read the shared caller-bound value, not a subscriber state queued for an older caller.
+  const snapshot = cache ?? { ...EMPTY, org: undefined };
+  if (snapshot.entitlement && (snapshot.authorityUserId !== user.id || Date.now() - cacheAt >= TTL_MS)) {
+    return { ...pending(snapshot), refresh };
   }
   return { ...snapshot, refresh };
 }

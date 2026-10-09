@@ -7,17 +7,18 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "node scripts/check-local-env.mjs && vite dev",
+    "dev": "node scripts/test-clinicx-secret-config.mjs && node scripts/check-local-env.mjs && vite dev",
     "check:local-env": "node scripts/check-local-env.mjs",
     "cf:cache-rules": "node scripts/apply-cloudflare-cache-rules.mjs",
     "cf:cache-rules:dry": "node scripts/apply-cloudflare-cache-rules.mjs --dry-run",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "build": "node scripts/test-clinicx-secret-config.mjs && vite build",
+    "build:dev": "node scripts/test-clinicx-secret-config.mjs && vite build --mode development",
+    "preview": "node scripts/test-clinicx-secret-config.mjs && vite preview",
     "lint": "eslint .",
     "check:auth-guards": "node scripts/check-auth-guards.mjs",
     "format": "prettier --write .",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "check:secret-config": "node --test scripts/test-clinicx-secret-config.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -72,6 +73,7 @@
     "react-hook-form": "^7.71.2",
     "react-resizable-panels": "^4.6.5",
     "recharts": "^2.15.4",
+    "sanitize-html": "^2.18.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
@@ -87,6 +89,7 @@
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/sanitize-html": "^2.16.2",
     "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",

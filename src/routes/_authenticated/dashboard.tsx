@@ -10,6 +10,7 @@ import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useOrganization } from "@/hooks/useOrganization";
+import { AuthorityBoundary } from '@/components/app/AuthorityBoundary';
 import { recoveryRoute, trialMessage } from "@/components/billing/clinicx-ux";
 import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
@@ -965,7 +966,7 @@ function DashboardLayout() {
               </div>
             )}
             {entitlement && !entitlement.can_write && entitlement.can_read && entitlement.effective_state !== "past_due" && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
-            {authorityError && !recoveryRoute(pathname) ? (
+            <AuthorityBoundary allowed={recoveryRoute(pathname) || (!!entitlement && !authorityError && !isSubscriptionExpired)} fallback={authorityError && !recoveryRoute(pathname) ? (
               <div role="alert" className="rounded-lg border p-6">
                 <p>{authorityError}</p>
                 <Button variant="outline" onClick={() => void refresh()} className="mt-3">
@@ -982,11 +983,11 @@ function DashboardLayout() {
               </div>
             ) : isSubscriptionExpired && !recoveryRoute(pathname) ? (
               <SubscriptionExpiredView />
-            ) : (
+            ) : null}>
               <PullToRefresh>
                 <Outlet />
               </PullToRefresh>
-            )}
+            </AuthorityBoundary>
           </div>
         </main>
       </div>

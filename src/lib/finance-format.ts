@@ -1,3 +1,5 @@
+import { escapeHtml, sanitizeOutputHtml } from "./output-encoding";
+
 export const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -48,11 +50,13 @@ export function downloadCsv(filename: string, rows: Array<Record<string, unknown
   if (rows.length === 0) return;
   const headers = Object.keys(rows[0]);
   const escape = (v: unknown) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    let s = v === null || v === undefined ? "" : String(v);
+    // Spreadsheet formula triggers are strings only; retain real numeric values.
+    if (typeof v === "string" && /^[\s\u0000-\u001f]*[=+@-]/.test(s)) s = "'" + s;
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const csv = [
-    headers.join(","),
+    headers.map(escape).join(","),
     ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
   ].join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -68,7 +72,7 @@ export function downloadCsv(filename: string, rows: Array<Record<string, unknown
 export function printReport(title: string, bodyHtml: string) {
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return;
-  w.document.write(`<!doctype html><html><head><title>${title}</title><style>
+  w.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>
     body{font-family:ui-sans-serif,system-ui,sans-serif;padding:32px;color:#111}
     h1{font-size:20px;margin:0 0 4px} .sub{color:#666;font-size:12px;margin-bottom:20px}
     table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px}
@@ -76,9 +80,9 @@ export function printReport(title: string, bodyHtml: string) {
     th{background:#fafafa;text-transform:uppercase;font-size:10px;letter-spacing:.05em;color:#666}
     td.num,th.num{text-align:right}
     tfoot td{font-weight:700;border-top:2px solid #111}
-  </style></head><body><h1>${title}</h1>
+  </style></head><body><h1>${escapeHtml(title)}</h1>
   <div class="sub">Generated ${new Date().toLocaleString("en-IN")}</div>
-  ${bodyHtml}</body></html>`);
+  ${sanitizeOutputHtml(bodyHtml)}</body></html>`);
   w.document.close();
   w.focus();
   setTimeout(() => w.print(), 300);
@@ -86,12 +90,12 @@ export function printReport(title: string, bodyHtml: string) {
 
 export function tableHtml(headers: string[], rows: Array<Array<string | number>>, numericFrom = 1) {
   const th = headers
-    .map((h, i) => `<th class="${i >= numericFrom ? "num" : ""}">${h}</th>`)
+    .map((h, i) => `<th class="${i >= numericFrom ? "num" : ""}">${escapeHtml(h)}</th>`)
     .join("");
   const tr = rows
     .map(
       (r) =>
-        `<tr>${r.map((c, i) => `<td class="${i >= numericFrom ? "num" : ""}">${c}</td>`).join("")}</tr>`,
+        `<tr>${r.map((c, i) => `<td class="${i >= numericFrom ? "num" : ""}">${escapeHtml(c)}</td>`).join("")}</tr>`,
     )
     .join("");
   return `<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;

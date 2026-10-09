@@ -52,7 +52,12 @@ export function activationSteps(u: SubscriptionSnapshot["usage"], clinic: Activa
       to: "/dashboard/settings",
     },
     { key: "doctor", label: "Add doctor", done: u.doctors > 0, to: "/dashboard/doctors" },
-    { key: "staff", label: "Add staff (optional)", done: u.staff > 0, to: "/dashboard/staff" },
+    {
+      key: "staff",
+      label: "Add staff (optional)",
+      done: u.staff > 0 || (u.pending_staff_invites ?? 0) > 0 || u.doctors > 0,
+      to: "/dashboard/staff",
+    },
     { key: "hours", label: "Set clinic hours", done: hours, to: "/dashboard/settings" },
     { key: "patient", label: "Add first patient", done: u.patients > 0, to: "/dashboard/patients" },
     {

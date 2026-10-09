@@ -1,102 +1,92 @@
-const CACHE_NAME = "clinicx-pwa-v7";
+const CACHE_PREFIX = "clinicx-pwa-";
+const CACHE_NAME = `${CACHE_PREFIX}v8`;
 const STATIC_ASSETS = [
-  "/",
-  "/manifest.webmanifest",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/logo-icon.png",
-  "/logo.png",
+  "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/logo-icon.png", "/logo.png",
 ];
 
-// Install Event — pre-cache core static shell
+function publicStaticPath(path) {
+  return STATIC_ASSETS.includes(path) ||
+    /^\/assets\/[A-Za-z0-9_./-]+\.(?:js|css|png|jpe?g|svg|webp|avif|ico|woff2?)$/.test(path) &&
+    !path.split("/").some((part) => part.startsWith("."));
+}
+
+function cacheableResponse(response) {
+  if (!response || response.status !== 200 || response.redirected || response.type !== "basic") return false;
+  if (response.url && new URL(response.url).origin !== self.location.origin) return false;
+  if (response.headers.has("set-cookie")) return false;
+  const controls = ["cache-control", "cdn-cache-control", "cloudflare-cdn-cache-control", "vercel-cdn-cache-control"];
+  if (controls.some((name) => /(?:^|,)\s*(?:private|no-store|no-cache)(?:\s|,|=|$)/i.test(response.headers.get(name) || ""))) return false;
+  if ((response.headers.get("vary") || "").split(",").some((v) => /^(?:\*|cookie|authorization)$/i.test(v.trim()))) return false;
+  // A 200 HTML login fallback is not a public JS/image/font resource.
+  if (/text\/html/i.test(response.headers.get("content-type") || "")) return false;
+  return /(?:^|,)\s*public(?:\s|,|$)/i.test(response.headers.get("cache-control") || "");
+}
+
+// Never precache HTML: even '/' can depend on a session cookie.
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {});
-    }),
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(STATIC_ASSETS.map(async (path) => {
+      try {
+        const request = new Request(new URL(path, self.location.origin), { credentials: "omit" });
+        const response = await fetch(request);
+        if (cacheableResponse(response)) await cache.put(request, response);
+      } catch { /* Offline installation may retain no static assets. */ }
+    }));
+    await self.skipWaiting();
+  })());
 });
 
-// Activate Event — clean up old caches & claim clients
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        }),
-      );
-    }),
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
-// Fetch Event — Network First strategy with Cache Fallback
+function offlineResponse(html = false) {
+  return new Response(html
+    ? '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ClinicX offline</title><body><h1>ClinicX is offline</h1><p>Reconnect to sign in or access your clinic. Private records are not available offline.</p><a href="/">Retry</a></body></html>'
+    : "Offline or Network Error", {
+    status: 503,
+    headers: { "Content-Type": html ? "text/html; charset=utf-8" : "text/plain", "Cache-Control": "no-store" },
+  });
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   let url;
-  try {
-    url = new URL(request.url);
-  } catch {
+  try { url = new URL(request.url); } catch { return; }
+  if (!/^https?:$/.test(url.protocol) || url.origin !== self.location.origin ||
+    request.method !== "GET" || url.search ||
+    request.headers.has("authorization") || request.headers.has("cookie")) return;
+
+  // Public root shell is network-only; the fallback is fixed non-private HTML.
+  if (url.pathname === "/" && request.headers.get("accept")?.includes("text/html")) {
+    event.respondWith(fetch(request).catch(() => offlineResponse(true)));
     return;
   }
+  if (!publicStaticPath(url.pathname)) return;
 
-  // Skip non-HTTP/HTTPS requests (chrome-extension://, moz-extension://, etc.)
-  if (!url.protocol.startsWith("http")) {
-    return;
-  }
-
-  // Skip non-GET requests, web sockets, Supabase, server functions, and API calls from caching
-  if (
-    request.method !== "GET" ||
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/_server") ||
-    url.pathname.startsWith("/__server") ||
-    url.pathname.includes("_serverFn") ||
-    url.hostname.includes("supabase.co") ||
-    url.hostname.includes("supabase") ||
-    url.pathname.includes("/realtime/")
-  ) {
-    return;
-  }
-
-  event.respondWith(
-    fetch(request)
-      .then((networkResponse) => {
-        if (
-          networkResponse &&
-          networkResponse.status === 200 &&
-          (networkResponse.type === "basic" || networkResponse.type === "cors")
-        ) {
-          const responseClone = networkResponse.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(request, responseClone).catch(() => {});
-            })
-            .catch(() => {});
-        }
-        return networkResponse;
-      })
-      .catch(async () => {
-        const cachedResponse = await caches.match(request);
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        if (request.headers.get("accept")?.includes("text/html")) {
-          const rootCached = await caches.match("/");
-          if (rootCached) return rootCached;
-        }
-        return new Response("Offline or Network Error", {
-          status: 503,
-          statusText: "Service Unavailable",
-          headers: new Headers({ "Content-Type": "text/plain" }),
-        });
-      }),
-  );
+  event.respondWith((async () => {
+    const publicRequest = new Request(request, { credentials: "omit" });
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      const response = await fetch(publicRequest);
+      if (cacheableResponse(response)) {
+        event.waitUntil(cache.put(publicRequest, response.clone()).catch(() => {}));
+      } else {
+        // Don't resurrect a public entry after a privacy-policy change.
+        await cache.delete(publicRequest);
+      }
+      return response;
+    } catch {
+      const cached = await cache.match(publicRequest);
+      if (cached && cacheableResponse(cached)) return cached;
+      return offlineResponse();
+    }
+  })());
 });
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { adminClient } from "./clinic.functions";
+import { adminClient, requirePublishedClinic } from "./clinic.functions";
+import { publicPhoneSchema, publicNameSchema } from "./public-form-validation";
 
 export const leadSchema = z.object({
   clinic_id: z.string().uuid(),
-  name: z.string().trim().min(1, "Name is required").max(100),
-  phone: z.string().trim().min(5, "Phone is required").max(20),
+  name: publicNameSchema,
+  phone: publicPhoneSchema,
   email: z.string().trim().email().max(200).optional().or(z.literal("")),
   message: z.string().trim().max(500).optional().or(z.literal("")),
   source: z.enum(["callback", "offer", "whatsapp", "newsletter"]).default("callback"),
@@ -24,6 +25,7 @@ export const submitLeadServer = createServerFn({ method: "POST" })
     await enforcePolicy("lead_phone", `${data.clinic_id}:${data.phone}`);
 
     const sb = await adminClient();
+    await requirePublishedClinic(sb, data.clinic_id);
     const { error } = await sb.from("leads").insert({
       clinic_id: data.clinic_id,
       name: data.name,
@@ -66,8 +68,8 @@ export const submitLeadServer = createServerFn({ method: "POST" })
 // Demo/marketing lead (no clinic context) — must go through the server because
 // anonymous inserts into `leads` are restricted to real clinics by RLS.
 export const demoLeadSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  phone: z.string().trim().min(5).max(20),
+  name: publicNameSchema,
+  phone: publicPhoneSchema,
   email: z.string().trim().email().max(200),
   message: z.string().trim().max(1000).optional().or(z.literal("")),
 });

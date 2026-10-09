@@ -8,7 +8,7 @@ const source = p => fs.readFileSync(path.join(root, p), 'utf8');
 function load(p, doubles = {}, extra = '') {
   const m = { exports: {} };
   const code = ts.transpileModule(source(p), { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const transportRequire = name => Object.prototype.hasOwnProperty.call(doubles, name) ? doubles[name] : require(name);
+  const transportRequire = name => Object.prototype.hasOwnProperty.call(doubles, name) ? doubles[name] : name === './AuthorityBoundary' ? load('src/components/app/AuthorityBoundary.tsx', doubles) : name === '@/lib/persist-cache' ? load('src/lib/persist-cache.ts') : require(name);
   new Function('require', 'module', 'exports', code + '\n' + extra)(transportRequire, m, m.exports);
   return m.exports;
 }
@@ -81,7 +81,10 @@ test('shared entitlements fail closed without Enterprise fallbacks or persisted 
   const s = source('src/hooks/useOrganization.ts');
   assert.match(s, /getClinicSubscription/);
   assert.match(s, /authorityError/);
-  assert.doesNotMatch(s, /ALL_KNOWN_MODULES|readCache|writeCache|periodElapsed|activePlanId/);
+  assert.doesNotMatch(s, /ALL_KNOWN_MODULES|periodElapsed|activePlanId/);
+  // Shell metadata may persist; authority must be live and bound to the caller.
+  assert.match(s, /authorityUserId/);
+  assert.match(s, /writeCache\(`org_snapshot:\$\{cacheUserId\}`, \{ org: s.org \}\)/);
   const guard = source('src/components/app/AppGuard.tsx');
   assert.match(guard, /planModuleIds.includes/);
   assert.doesNotMatch(guard, /CORE_ACTIVE_APPS/);

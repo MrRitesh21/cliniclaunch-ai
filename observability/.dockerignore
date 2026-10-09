@@ -1,0 +1,12 @@
+**/.env*
+!**/.env.example
+**/.git
+**/node_modules
+**/.wwebjs_auth
+**/auth_info_baileys
+**/sessions
+**/creds.json
+*.pem
+*.key
+*.crt
+id_rsa*

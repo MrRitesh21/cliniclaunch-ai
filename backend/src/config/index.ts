@@ -14,6 +14,8 @@ export interface AppConfig {
   redisUrl: string;
   slowRequestThresholdMs: number;
   metricsPath: string;
+  /** Comma-separated exact HTTP(S) browser origins; empty denies cross-origin. */
+  corsAllowedOrigins?: string[];
 }
 
 export const config: AppConfig = {
@@ -27,4 +29,5 @@ export const config: AppConfig = {
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
   slowRequestThresholdMs: parseInt(process.env.SLOW_REQUEST_THRESHOLD_MS || "500", 10),
   metricsPath: process.env.PROMETHEUS_METRICS_PATH || "/metrics",
+  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || "").split(",").map((v) => v.trim()).filter(Boolean),
 };

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import crypto from "crypto";
 import { getRequest } from "@tanstack/react-start/server";
+import { redactSystemSettings, writableSystemSettings } from "./settings-secrets.server";
 
 // -------------------------------------------------------------
 // Admin verification
@@ -998,10 +999,11 @@ export async function deleteAdminUserImpl(input: any) {
 // -------------------------------------------------------------
 export async function getSystemSettingsImpl() {
   const admin = await getVerifiedAdmin();
-  if (!admin) throw new Error("Unauthorized");
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("system_settings" as any).select("*");
+  const { data, error } = await supabaseAdmin.from("system_settings" as any).select("*");
+  if (error) throw new Error("System settings unavailable");
 
   const map: Record<string, string> = {
     platform_name: "ClinicX",
@@ -1022,10 +1024,10 @@ export async function getSystemSettingsImpl() {
   };
 
   (data ?? []).forEach((row: any) => {
-    map[row.key] = row.value;
+    map[row.key] = row.value ?? "";
   });
 
-  return map;
+  return redactSystemSettings(map);
 }
 
 export async function saveSystemSettingsImpl(input: any) {
@@ -1034,7 +1036,7 @@ export async function saveSystemSettingsImpl(input: any) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const promises = Object.entries(input).map(([key, value]) =>
+  const promises = writableSystemSettings(input).map(([key, value]) =>
     supabaseAdmin.from("system_settings" as any).upsert(
       {
         key,
@@ -1174,13 +1176,36 @@ export async function testIntegrationImpl(input: {
   const admin = await getVerifiedAdmin();
   if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
 
-  const { provider, settings } = input;
+  const { provider } = input;
+  const settings = { ...input.settings };
 
   try {
+    const secretKey = provider === "wati" ? "wati_api_key" : provider === "razorpay" ? "razorpay_key_secret" : "openai_api_key";
+    // Browser reads intentionally contain blank private fields. Resolve saved
+    // credentials only on the server, under verified super-admin authority.
+    if (!settings[secretKey]?.trim()) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin.from("system_settings").select("key,value").in("key", [secretKey]);
+      if (error) throw new Error("Stored integration credentials unavailable");
+      settings[secretKey] = data?.find(row => row.key === secretKey)?.value || "";
+    }
     if (provider === "wati") {
       const base = (settings.wati_base_url || "").replace(/\/$/, "");
       const key = settings.wati_api_key || "";
       if (!base || !key) throw new Error("WATI base URL and access token are required");
+      let parsed: URL;
+      try {
+        parsed = new URL(base);
+      } catch {
+        throw new Error("Invalid WATI base URL format");
+      }
+      if (parsed.protocol !== "https:") {
+        throw new Error("WATI base URL must use HTTPS");
+      }
+      const host = parsed.hostname.toLowerCase();
+      if (!host.endsWith(".wati.io") && host !== "wati.io") {
+        throw new Error("WATI base URL must be a valid wati.io host");
+      }
       const res = await fetch(`${base}/api/v1/getContacts?pageSize=1&pageNumber=0`, {
         headers: { Authorization: key.startsWith("Bearer ") ? key : `Bearer ${key}` },
       });

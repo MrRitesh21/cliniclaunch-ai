@@ -20,7 +20,7 @@ function SystemSettingsPage() {
   const getSettingsFn = useServerFn(getSystemSettings);
   const saveSettingsFn = useServerFn(saveSystemSettings);
 
-  const { data: settings = {}, isLoading } = useQuery({
+  const { data: settings, isLoading, error } = useQuery({
     queryKey: ["admin-system-settings"],
     queryFn: () => getSettingsFn(),
   });
@@ -69,6 +69,10 @@ function SystemSettingsPage() {
         <span>Loading system settings...</span>
       </div>
     );
+  }
+
+  if (error) {
+    return <div role="alert" className="p-6 text-muted-foreground">System settings are unavailable. Verified super-admin access is required.</div>;
   }
 
   return (
@@ -175,6 +179,8 @@ function SystemSettingsPage() {
                 <Input
                   id="wati_api_key"
                   type="password"
+                  autoComplete="new-password"
+                  placeholder={settings?.__configured_wati_api_key === "true" ? "Configured — leave blank to keep" : "Enter a new access token"}
                   value={form.wati_api_key || ""}
                   onChange={(e) => handleChange("wati_api_key", e.target.value)}
                 />
@@ -219,7 +225,8 @@ function SystemSettingsPage() {
                 <Input
                   id="razorpay_key_secret"
                   type="password"
-                  placeholder="Leave blank to use RAZORPAY_KEY_SECRET env"
+                  autoComplete="new-password"
+                  placeholder="Leave blank to keep saved secret or server environment"
                   value={form.razorpay_key_secret || ""}
                   onChange={(e) => handleChange("razorpay_key_secret", e.target.value)}
                 />
@@ -229,6 +236,8 @@ function SystemSettingsPage() {
                 <Input
                   id="openai_api_key"
                   type="password"
+                  autoComplete="new-password"
+                  placeholder={settings?.__configured_openai_api_key === "true" ? "Configured — leave blank to keep" : "Enter a new API key"}
                   value={form.openai_api_key || ""}
                   onChange={(e) => handleChange("openai_api_key", e.target.value)}
                 />

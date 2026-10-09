@@ -10,109 +10,54 @@
  * runtime, during SSR and in the browser.
  */
 
+import postcss from "postcss";
+import { escapeHtml as esc, sanitizeOutputHtml, safeCssDeclaration, maskThemeToken, restoreThemeToken } from "./output-encoding";
+
 export const TEMPLATE_SCOPE_CLASS = "clinic-custom-template";
 
-const FORBIDDEN_TAGS = [
-  "script",
-  "iframe",
-  "object",
-  "embed",
-  "base",
-  "meta",
-  "link",
-  "noscript",
-  "template",
-  "frame",
-  "frameset",
-  "applet",
-];
-
-/** Strip everything that can execute code or exfiltrate data. */
+/** Forms are removed: uploaded templates link to the real validated app forms. */
 export function sanitizeTemplateHtml(input: string): string {
-  let html = String(input ?? "");
-
-  // Drop comments (can hide conditional-comment payloads).
-  html = html.replace(/<!--[\s\S]*?-->/g, "");
-
-  for (const tag of FORBIDDEN_TAGS) {
-    // paired
-    html = html.replace(new RegExp(`<${tag}\\b[\\s\\S]*?<\\/${tag}\\s*>`, "gi"), "");
-    // self-closing / unclosed
-    html = html.replace(new RegExp(`<\\/?${tag}\\b[^>]*>`, "gi"), "");
-  }
-
-  // Inline event handlers: onclick=..., ONLOAD = '...'
-  html = html.replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "");
-  html = html.replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "");
-  html = html.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
-
-  // Dangerous attributes
-  html = html.replace(
-    /\s(srcdoc|formaction|xlink:href|ping)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
-    "",
-  );
-
-  // javascript:/vbscript:/non-image data: URLs
-  html = html.replace(
-    /\s(href|src|action|poster|background)\s*=\s*("|')?\s*(javascript|vbscript|data)\s*:[^"'>]*("|')?/gi,
-    (match, _attr, _q, scheme) =>
-      String(scheme).toLowerCase() === "data" && /data\s*:\s*image\//i.test(match) ? match : "",
-  );
-
-  // CSS expression()/url(javascript:) inside style attributes
-  html = html.replace(/expression\s*\(/gi, "");
-
-  return html.trim();
+  return sanitizeOutputHtml(input);
 }
 
-/**
- * Scope every CSS rule to the template container so an uploaded stylesheet
- * cannot leak into the dashboard/app shell. Also drops @import so templates
- * can't pull remote CSS.
+/** Parse CSS structurally. Only descendant/child selectors and inert declarations
+ * survive; no sibling/root escape, nested selector expansion, URLs or global at-rules.
+ * The restricted selector grammar intentionally excludes escapes/attributes/functions.
  */
 export function scopeTemplateCss(css: string): string {
   const scope = `.${TEMPLATE_SCOPE_CLASS}`;
-  let out = String(css ?? "")
-    .replace(/<\/?style[^>]*>/gi, "")
-    .replace(/@import[^;]+;/gi, "")
-    .replace(/expression\s*\(/gi, "");
-
-  // Prefix selectors of top-level rules; leave at-rule bodies (media/supports)
-  // to be handled by recursing into their block.
-  const scopeBlock = (block: string): string =>
-    block.replace(/(^|\})\s*([^{}@]+)\{/g, (_m, brace: string, selector: string) => {
-      const scoped = selector
-        .split(",")
-        .map((s) => {
-          const sel = s.trim();
-          if (!sel) return sel;
-          if (/^(html|body|:root)\b/i.test(sel))
-            return `${scope}${sel.replace(/^(html|body|:root)/i, "")}`.trim() || scope;
-          return `${scope} ${sel}`;
-        })
-        .filter(Boolean)
-        .join(", ");
-      return `${brace} ${scoped}{`;
+  try {
+    const root = postcss.parse(maskThemeToken(String(css ?? "").slice(0, 100_000)));
+    root.walkComments((comment) => { comment.remove(); });
+    root.walkAtRules((rule) => {
+      if (!["media", "supports", "container"].includes(rule.name.toLowerCase()) ||
+          !rule.nodes || !/^[a-zA-Z0-9\s():.%#,_/<>+=-]+$/.test(rule.params) ||
+          /url|import|expression/i.test(rule.params)) rule.remove();
     });
-
-  // Handle @media / @supports blocks separately so their inner selectors get scoped.
-  out = out.replace(
-    /@(media|supports|container)([^{]+)\{([\s\S]*?)\}\s*\}/gi,
-    (_m, at, cond, body) => {
-      return `@${at}${cond}{${scopeBlock(body + "}")}}`;
-    },
-  );
-
-  return scopeBlock(out);
-}
-
-function esc(v: unknown): string {
-  return String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    root.walkRules((rule) => {
+      // Native CSS nesting is not an unscoped back door.
+      if (rule.parent?.type === "rule") { rule.remove(); return; }
+      const selectors = rule.selector.split(",").map((s) => s.trim());
+      const scoped = selectors.map((selector) => {
+        // Normalize an already-scoped save before scoping again at render.
+        if (selector.startsWith(scope) && /^(?:$|[\s>.#:])/.test(selector.slice(scope.length))) {
+          selector = ":root" + selector.slice(scope.length);
+        }
+        if (!/^(?:(?:[a-zA-Z][\w-]*|\*|\.[\w-]+|#[\w-]+|:(?:root|hover|focus|focus-visible|first-child|last-child))(?:[.#][\w-]+|:(?:hover|focus|focus-visible|first-child|last-child))*)(?:\s*(?:>\s*|\s+)(?:[a-zA-Z][\w-]*|\*|\.[\w-]+|#[\w-]+)(?:[.#][\w-]+|:(?:hover|focus|focus-visible|first-child|last-child))*)*$/.test(selector)) return "";
+        return /^(?:html|body|:root)(?=$|[\s>.#:])/.test(selector)
+          ? selector.replace(/^(?:html|body|:root)/, scope)
+          : `${scope} ${selector}`;
+      });
+      if (scoped.some((s) => !s)) { rule.remove(); return; }
+      rule.selector = scoped.join(", ");
+      rule.walkDecls((declaration) => {
+        if (!safeCssDeclaration(declaration.prop, declaration.value)) declaration.remove();
+      });
+      if (!rule.nodes?.length) rule.remove();
+    });
+    // Raw-text <style> output must never contain a closing HTML tag.
+    return restoreThemeToken(root.toString().replace(/</g, "\\3c ").trim());
+  } catch { return ""; } // Malformed CSS fails closed without discarding HTML layout.
 }
 
 export type TemplateTokenSource = {
@@ -219,12 +164,12 @@ export function buildTemplateTokens(c: TemplateTokenSource): Record<string, stri
     address: esc(c.public_address || c.address || ""),
     avatar_url: esc(c.avatar_url ?? ""),
     logo_url: esc(c.logo_url ?? ""),
-    theme_color: esc(c.theme_color || "#2563eb"),
+    theme_color: /^#[0-9a-f]{3,8}$/i.test(c.theme_color ?? "") ? c.theme_color! : "#2563eb",
     registration_no: esc(c.medical_registration_no ?? ""),
-    book_url: `/c/${esc(c.slug)}/book`,
-    walkin_url: `/c/${esc(c.slug)}/walkin`,
-    contact_url: `/c/${esc(c.slug)}/contact`,
-    services_url: `/c/${esc(c.slug)}/services`,
+    book_url: `/c/${esc(encodeURIComponent(c.slug))}/book`,
+    walkin_url: `/c/${esc(encodeURIComponent(c.slug))}/walkin`,
+    contact_url: `/c/${esc(encodeURIComponent(c.slug))}/contact`,
+    services_url: `/c/${esc(encodeURIComponent(c.slug))}/services`,
     services_html,
     gallery_html,
     reviews_html,
@@ -247,6 +192,7 @@ export function compileCustomTemplate(
 ): { html: string; css: string } {
   const tokens = buildTemplateTokens(clinic);
   const html = sanitizeTemplateHtml(renderTemplateHtml(template.html_body ?? "", tokens));
-  const css = scopeTemplateCss(renderTemplateHtml(template.css_body ?? "", tokens));
+  // Text/HTML tokens never enter CSS syntax. Only a validated colour is supported.
+  const css = scopeTemplateCss((template.css_body ?? "").replace(/\{\{\s*theme_color\s*\}\}/gi, tokens.theme_color));
   return { html, css };
 }

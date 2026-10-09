@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { redisCache } from "./redis";
+import { publicPhoneSchema, publicNameSchema, publicTimestampSchema } from "./public-form-validation";
 
 function serverClient() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -59,6 +60,27 @@ export async function adminClient() {
     return supabaseAdmin;
   }
   return serverClient();
+}
+
+/** Public writes use a service-role client: mirror public authority before any
+ * patient reads/writes. Never infer publication from a caller-supplied clinic ID.
+ */
+export async function requirePublishedClinic(sb: Awaited<ReturnType<typeof adminClient>>, clinicId: string) {
+  const { data: clinic, error } = await sb.from("clinics")
+    .select("id, organization_id")
+    .eq("id", clinicId).eq("is_published", true).is("suspended_at", null).maybeSingle();
+  if (error || !clinic) throw new Error("This clinic is not available for public requests.");
+  return clinic;
+}
+
+async function requirePublicDoctor(sb: Awaited<ReturnType<typeof adminClient>>, clinicId: string, orgId: string | null, doctorId?: string | null) {
+  if (!doctorId) return; // Legacy clinic-wide booking is supported.
+  let query = sb.from("doctors").select("id").eq("id", doctorId).eq("is_active", true);
+  // Existing public catalog is organization-wide (including branch doctors).
+  // Legacy unlinked clinics must match the doctor's clinic exactly.
+  query = orgId ? query.eq("organization_id", orgId) : query.eq("clinic_id", clinicId);
+  const { data: doctor, error } = await query.maybeSingle();
+  if (error || !doctor) throw new Error("This doctor is not available at this clinic.");
 }
 
 export const getClinicBySlug = createServerFn({ method: "GET" })
@@ -474,13 +496,13 @@ export const getBookedSlots = createServerFn({ method: "GET" })
 
 const bookingSchema = z.object({
   clinic_id: z.string().uuid(),
-  patient_name: z.string().trim().min(1).max(100),
-  patient_phone: z.string().trim().min(5).max(20),
+  patient_name: publicNameSchema,
+  patient_phone: publicPhoneSchema,
   patient_email: z.string().trim().email().max(200).or(z.literal("")),
   patient_age: z.number().int().min(0).max(130).nullable(),
   patient_gender: z.enum(["male", "female", "other"]).nullable(),
   problem: z.string().trim().max(1000),
-  scheduled_at: z.string(),
+  scheduled_at: publicTimestampSchema,
   appointment_type: z.enum(["online", "offline"]).default("offline"),
   source: z.enum(["walkin", "booking"]).optional().default("booking"),
   doctor_id: z.string().uuid().nullable().optional(),
@@ -498,7 +520,9 @@ export const createBooking = createServerFn({ method: "POST" })
 
 
     const sb = await adminClient();
-
+    const clinicRow = await requirePublishedClinic(sb, data.clinic_id);
+    const orgId = clinicRow.organization_id ?? null;
+    await requirePublicDoctor(sb, data.clinic_id, orgId, data.doctor_id);
 
     // Reject duplicate active booking for the same patient on the same day
     const bookingDay = new Date(data.scheduled_at);
@@ -577,21 +601,6 @@ export const createBooking = createServerFn({ method: "POST" })
       if (exErr) throw new Error(exErr.message);
       if (existing) throw new Error("This time slot was just taken. Please pick another.");
     }
-
-    // Mirror the anonymous-insert RLS policy (`suspended_at IS NULL`): the
-    // service-role client bypasses RLS, so a suspended clinic would otherwise
-    // keep accepting bookings through this endpoint.
-    const { data: clinicRow } = await sb
-      .from("clinics")
-      .select("organization_id, suspended_at")
-      .eq("id", data.clinic_id)
-      .maybeSingle();
-    if (!clinicRow) throw new Error("This clinic is not available for booking.");
-    if ((clinicRow as { suspended_at?: string | null }).suspended_at) {
-      throw new Error("This clinic is not accepting bookings right now. Please contact the clinic directly.");
-    }
-    const orgId = clinicRow.organization_id ?? null;
-
 
     const { data: appt, error } = await sb
       .from("appointments")

@@ -22,7 +22,7 @@ const featureAliases: Record<string, string> = {
   patients: 'patients', records: 'patients', emr: 'patients', crm: 'patients', doctors: 'doctors',
   queue: 'queue', visits: 'visits', billing: 'billing', finance: 'billing', prescriptions: 'prescriptions',
   whatsapp: 'whatsapp', reviews: 'reviews', analytics: 'analytics', video: 'video',
-  consult: 'video', consultation: 'video', staff: 'staff_management', staff_management: 'staff_management',
+  consult: 'video', consultation: 'video', attendance: 'staff_management', staff: 'staff_management', staff_management: 'staff_management',
   inventory: 'inventory', pharmacy: 'inventory', lab: 'lab', marketing: 'marketing', seo: 'marketing',
   ai_assistant: 'ai_assistant', white_label: 'white_label', priority_support: 'priority_support',
   sla: 'sla', custom_integrations: 'custom_integrations',
@@ -33,6 +33,8 @@ export function canAccess(view: EntitlementView, feature: string, mode: 'read' |
   // Existing clinical data remains readable during grace regardless of downgrade.
   if (mode === 'read') return view.can_read;
   if (!view.can_write || !view.features.includes(canonical)) return false;
+  // Attendance is self-service for staff/doctors; its RPC restricts subjects and admin corrections.
+  if (feature === 'attendance') return true;
   if (view.role === 'staff' && ['prescriptions', 'visits', 'lab', 'doctors', 'staff_management'].includes(canonical)) return false;
   if (['doctors', 'staff_management'].includes(canonical) && !['owner', 'admin'].includes(view.role)) return false;
   return true;

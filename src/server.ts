@@ -1,6 +1,3 @@
-import "./lib/error-capture";
-
-import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
 if (typeof process !== "undefined" && process.env.NODE_ENV !== "test" && Boolean(process.env.REDIS_URL)) {
@@ -34,27 +31,40 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
     return response;
   }
 
-  const err = consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`);
+  // No process-global captured exception: it may belong to another request.
+  const err = new Error("SSR request failed");
   console.error(err);
   return new Response(renderErrorPage(err), {
     status: 500,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" },
   });
 }
 
 let envChecked = false;
 
-function applySecurityHeaders(res: Response, durationMs = 0, pathname = ""): Response {
+function mergeSecurityCsp(existing: string): string {
+  const directives = existing.split(";").map((v) => v.trim()).filter(Boolean);
+  for (const directive of ["frame-ancestors 'self'", "base-uri 'self'", "object-src 'none'"]) {
+    const name = directive.split(" ")[0];
+    if (!directives.some((v) => v.split(/\s+/)[0].toLowerCase() === name)) directives.push(directive);
+  }
+  return directives.join("; ") + ";";
+}
+
+function applySecurityHeaders(res: Response, durationMs = 0): Response {
   const headers = new Headers(res.headers);
   headers.set("X-Content-Type-Options", "nosniff");
-  // Allow same-origin and platform iframe previews
+  // Same-origin website-builder previews; no wildcard third-party tenants.
   headers.set("X-Frame-Options", "SAMEORIGIN");
   headers.set(
     "Content-Security-Policy",
-    "frame-ancestors 'self' https://*.digiwil.com https://*.vercel.app;",
+    res.headers.get("Content-Security-Policy")
+      ? mergeSecurityCsp(res.headers.get("Content-Security-Policy")!)
+      : "frame-ancestors 'self'; base-uri 'self'; object-src 'none';",
   );
   headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  headers.set("X-XSS-Protection", "1; mode=block");
+  headers.set("X-XSS-Protection", "0");
+  headers.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self)");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   if (durationMs > 0) {
     headers.set("Server-Timing", `ssr;dur=${durationMs.toFixed(2)}`);
@@ -75,9 +85,16 @@ export default {
 
     try {
       const url = new URL(request.url);
+      const scale = await import("./lib/scale.server");
+      if (scale.isBlockedFilePath(url.pathname)) {
+        return applySecurityHeaders(new Response("Not Found", {
+          status: 404, headers: { "cache-control": "private, no-store" },
+        }));
+      }
 
       // 1. Return favicon immediately to prevent browser 500 error logs
       if (url.pathname === "/favicon.ico") {
+        const isPersonalized = request.headers.has("cookie") || request.headers.has("authorization") || Boolean(url.search);
         return applySecurityHeaders(
           new Response(
             `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>`,
@@ -85,7 +102,7 @@ export default {
               status: 200,
               headers: {
                 "content-type": "image/svg+xml",
-                "cache-control": "public, max-age=86400",
+                "cache-control": isPersonalized ? "private, no-store" : "public, max-age=86400",
               },
             },
           ),
@@ -93,11 +110,10 @@ export default {
         );
       }
 
-      const scale = await import("./lib/scale.server");
-      const infra = scale.isInfraPath(url.pathname);
+      const infra = scale.isInfraPath(url.pathname) &&
+        !request.headers.has("authorization") && !request.headers.has("cookie") && !url.search;
 
-      // 2. Distributed (Redis-backed) tiered rate limiting.
-      //    Shared across every isolate/container, unlike the old per-process map.
+      // 2. Redis-backed budgets when available; per-instance fail-soft fallback.
       if (!infra) {
         const verdict = await scale.checkRequestLimit(request, url.pathname);
         if (!verdict.allowed) {
@@ -157,32 +173,30 @@ export default {
 
       const normalized = await normalizeCatastrophicSsrResponse(rawResponse);
 
-      // 5. Edge cache policy — lets Cloudflare absorb public traffic so
-      //    Supabase only ever sees cache misses.
-      const policy =
-        normalized.status < 400 || normalized.status === 404
-          ? scale.edgeCachePolicy(request, url)
-          : null;
-
-      if (policy) {
-        const headers = new Headers(normalized.headers);
-        headers.set("cache-control", policy.cacheControl);
-        if (policy.cdnCacheControl) {
-          headers.set("cdn-cache-control", policy.cdnCacheControl);
-          headers.set("cloudflare-cdn-cache-control", policy.cdnCacheControl);
+      // Request policy is necessary, not sufficient: never promote a private
+      // handler response (including Set-Cookie or identity-sensitive Vary).
+      const headers = new Headers(normalized.headers);
+      const controls = ["cache-control", "cdn-cache-control", "cloudflare-cdn-cache-control", "vercel-cdn-cache-control"];
+      const responsePrivate = headers.has("set-cookie") ||
+        controls.some((name) => /(?:^|,)\s*(?:private|no-store|no-cache)(?:\s|,|=|$)/i.test(headers.get(name) ?? "")) ||
+        (headers.get("vary") ?? "").split(",").some((v) => /^(?:\*|cookie|authorization)$/i.test(v.trim()));
+      const policy = scale.edgeCachePolicy(request, url);
+      if (responsePrivate || normalized.status >= 400 || !policy || policy.cacheControl.includes("private")) {
+        headers.set("cache-control", "private, no-store");
+        for (const name of controls.slice(1)) headers.set(name, "no-store");
+      } else {
+        // Respect an explicit upstream lifetime; use defaults only if absent.
+        if (!headers.has("cache-control")) headers.set("cache-control", policy.cacheControl);
+        if (!normalized.headers.has("cache-control") && policy.cdnCacheControl) {
+          for (const name of controls.slice(1)) if (!headers.has(name)) headers.set(name, policy.cdnCacheControl);
         }
-        if (policy.vary) headers.set("vary", policy.vary);
-        return applySecurityHeaders(
-          new Response(normalized.body, {
-            status: normalized.status,
-            statusText: normalized.statusText,
-            headers,
-          }),
-          durationMs,
-        );
+        if (policy.vary) {
+          for (const value of policy.vary.split(",")) headers.append("vary", value.trim());
+        }
       }
-
-      return applySecurityHeaders(normalized, durationMs);
+      return applySecurityHeaders(new Response(normalized.body, {
+        status: normalized.status, statusText: normalized.statusText, headers,
+      }), durationMs);
     } catch (error) {
       console.error(error);
       return applySecurityHeaders(

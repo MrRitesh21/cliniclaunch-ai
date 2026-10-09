@@ -9,6 +9,7 @@ import {
   type SectionVariants,
 } from "@/components/site/types";
 import { normalizeLeadPopup } from "@/components/clinic/lead-capture";
+import { useOrganization } from "@/hooks/useOrganization";
 import type { EditorState, WebsiteTab, DeviceMode, DesignTokens, PageItem, MarketplaceTemplate } from "../types";
 
 const defaultDesignTokens: DesignTokens = {
@@ -246,11 +247,14 @@ export function WebsiteBuilderProvider({
     }
   }, [canRedo]);
 
+  const { authorityPending, entitlement } = useOrganization();
+
   // Autosave silently after 700ms idle edit
   useEffect(() => {
-    if (!clinic || !dirty) return;
+    if (!clinic || !dirty || authorityPending || !entitlement?.can_write) return;
     const activeState = state;
     const t = setTimeout(async () => {
+      if (authorityPending || !entitlement?.can_write) return;
       setSaving(true);
       const { error } = await supabase
         .from("clinics")
@@ -284,11 +288,11 @@ export function WebsiteBuilderProvider({
     }, 700);
 
     return () => clearTimeout(t);
-  }, [state, dirty, clinic]);
+  }, [state, dirty, clinic, authorityPending, entitlement]);
 
   // Save manually
   const save = useCallback(async () => {
-    if (!clinic || !state) return;
+    if (!clinic || !state || authorityPending || !entitlement?.can_write) return;
     setSaving(true);
     const { error } = await supabase
       .from("clinics")
@@ -433,6 +437,7 @@ export function WebsiteBuilderProvider({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
+        if (authorityPending || !entitlement?.can_write) return;
         void save();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
@@ -446,7 +451,7 @@ export function WebsiteBuilderProvider({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [save, undo, redo]);
+  }, [save, undo, redo, authorityPending, entitlement]);
 
   return (
     <WebsiteBuilderContext.Provider

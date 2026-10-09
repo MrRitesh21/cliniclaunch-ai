@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,12 @@ const MODULE_BENEFITS: Record<
     highlights: string[];
   }
 > = {
+  attendance: {
+    tagline: "A daily attendance register for your clinic team.",
+    benefits: ["One-click check-in and check-out using server time.", "Owner/admin corrections for present, late, half-day, absent and leave.", "Daily history and CSV reports within permitted clinic scope."],
+    roiNote: "Keeps shift records and administrative corrections together.",
+    highlights: ["Daily roster", "Shift history", "CSV reports", "Self-service"],
+  },
   seo: {
     tagline: "Dominate Google search & AI recommendation engines for high-value patient discovery.",
     benefits: [
@@ -164,7 +171,20 @@ const DEFAULT_BENEFIT = {
 };
 
 function ModulesPage() {
-  const { org, installedModuleIds, planModuleIds, refresh } = useOrganization();
+  const { org, role, entitlement, authorityUserId, authorityGeneration, authorityError, unavailableModuleIds, installedModuleIds, planModuleIds, refresh } = useOrganization();
+  const { user } = useAuthReady();
+  const attendanceVerified = !!user && authorityUserId === user.id && !!entitlement && !authorityError;
+  const attendanceAllowed = attendanceVerified && !!entitlement?.can_write && planModuleIds.includes('attendance') && !unavailableModuleIds.includes('attendance');
+  const attendanceKey = JSON.stringify([user?.id, org?.id, role, authorityUserId, authorityGeneration, attendanceAllowed]);
+  const attendanceScope = useRef({ key: attendanceKey, generation: 0 });
+  const attendanceLock = useRef<object | null>(null);
+  const attendanceMounted = useRef(true);
+  useEffect(() => { attendanceMounted.current = true; return () => { attendanceMounted.current = false; }; }, []);
+  if (attendanceScope.current.key !== attendanceKey) {
+    attendanceScope.current = { key: attendanceKey, generation: attendanceScope.current.generation + 1 };
+    attendanceLock.current = null;
+  }
+  const attendanceAdmin = role === 'owner' || role === 'admin';
   const [modules, setModules] = useState<Module[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -173,6 +193,15 @@ function ModulesPage() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [loading, setLoading] = useState(true);
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+
+  useEffect(() => {
+    setBusy(null);
+    setSelectedModule(null);
+  }, [org?.id]);
+  useEffect(() => {
+    setBusy(previous => previous === 'attendance' ? null : previous);
+    setSelectedModule(previous => previous?.id === 'attendance' ? null : previous);
+  }, [attendanceKey]);
 
   useEffect(() => {
     if (!org) return;
@@ -233,6 +262,34 @@ function ModulesPage() {
 
   async function toggle(m: Module) {
     if (!org) return;
+    if (m.id === 'attendance') {
+      if (!attendanceAdmin || !attendanceAllowed || attendanceLock.current) return;
+      const token = attendanceScope.current.generation;
+      const lock = {}; attendanceLock.current = lock;
+      const current = () => attendanceMounted.current && attendanceScope.current.generation === token;
+      const installed = installedModuleIds.includes(m.id);
+      setBusy(m.id);
+      try {
+        const result = installed
+          ? await supabase.from('organization_modules').delete().eq('organization_id', org.id).eq('module_id', m.id)
+          : await supabase.from('organization_modules').upsert({ organization_id: org.id, module_id: m.id }, { onConflict: 'organization_id,module_id', ignoreDuplicates: true });
+        if (result.error) throw result.error;
+        if (!current()) return;
+        const verified = await supabase.from('organization_modules').select('module_id').eq('organization_id', org.id).eq('module_id', m.id);
+        if (!current()) return;
+        if (verified.error) throw verified.error;
+        if (Boolean(verified.data?.length) === installed) throw new Error('Attendance installation was not confirmed. Refresh and retry.');
+        // The exact installation is confirmed under current authority. Notify before
+        // our own refresh invalidates that authority generation.
+        toast.success(installed ? 'Staff Attendance uninstalled' : 'Staff Attendance installed. Use Open App to begin.');
+        await refresh();
+      } catch (cause) {
+        if (current()) toast.error(cause instanceof Error ? cause.message : 'Attendance installation failed. Check your connection and plan, then retry.');
+      } finally {
+        if (current() && attendanceLock.current === lock) { attendanceLock.current = null; setBusy(null); }
+      }
+      return;
+    }
     const installed = installedModuleIds.includes(m.id);
     const allowed = allowedModuleIds.has(m.id) || isEnterprise;
 
@@ -376,7 +433,7 @@ function ModulesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {items.map((m) => {
                   const installed = installedModuleIds.includes(m.id);
-                  const allowed = allowedModuleIds.has(m.id);
+                  const allowed = m.id === 'attendance' ? attendanceAllowed && m.is_available : allowedModuleIds.has(m.id);
                   const locked = !installed && !allowed;
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const Icon =
@@ -450,7 +507,9 @@ function ModulesPage() {
                           Details <ArrowRight className="size-3" />
                         </button>
 
-                        <Button
+                        {m.id === 'attendance' && installed ? (
+                          <Button size="sm" asChild><Link to="/dashboard/attendance">Open App</Link></Button>
+                        ) : <Button
                           size="sm"
                           variant={installed ? "outline" : locked ? "outline" : "default"}
                           className={`text-xs h-8 px-3.5 rounded-xl font-semibold ${
@@ -460,7 +519,7 @@ function ModulesPage() {
                                 ? "text-muted-foreground"
                                 : "bg-primary text-primary-foreground shadow-xs"
                           }`}
-                          disabled={busy === m.id || locked}
+                          disabled={busy === m.id || locked || (m.id === 'attendance' && !attendanceAdmin)}
                           onClick={() => toggle(m)}
                         >
                           {busy === m.id ? (
@@ -474,7 +533,7 @@ function ModulesPage() {
                           ) : (
                             "Install App"
                           )}
-                        </Button>
+                        </Button>}
                       </div>
                     </Card>
                   );
@@ -548,11 +607,12 @@ function ModulesPage() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-2 border-t">
+                {selectedModule.id === 'attendance' && installedModuleIds.includes('attendance') && <Button asChild><Link to="/dashboard/attendance">Open App</Link></Button>}
                 {installedModuleIds.includes(selectedModule.id) ? (
                   <Button
                     variant="outline"
                     onClick={() => toggle(selectedModule)}
-                    disabled={busy === selectedModule.id}
+                    disabled={busy === selectedModule.id || (selectedModule.id === 'attendance' && (!attendanceAdmin || !attendanceAllowed))}
                     className="flex-1 h-9 text-xs font-semibold text-destructive hover:bg-destructive/10"
                   >
                     Uninstall Module
@@ -562,6 +622,7 @@ function ModulesPage() {
                     onClick={() => toggle(selectedModule)}
                     disabled={
                       busy === selectedModule.id ||
+                      (selectedModule.id === 'attendance' && (!attendanceAdmin || !attendanceAllowed)) ||
                       (!installedModuleIds.includes(selectedModule.id) &&
                         !allowedModuleIds.has(selectedModule.id))
                     }
