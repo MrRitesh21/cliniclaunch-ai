@@ -304,8 +304,8 @@ function ModulesPage() {
       try {
         const result = installed
           ? await supabase.from('organization_modules').delete().eq('organization_id', org.id).eq('module_id', m.id)
-          : await supabase.from('organization_modules').upsert({ organization_id: org.id, module_id: m.id }, { onConflict: 'organization_id,module_id', ignoreDuplicates: true });
-        if (result.error) throw result.error;
+          : await supabase.from('organization_modules').insert({ organization_id: org.id, module_id: m.id });
+        if (result.error && result.error.code !== '23505') throw result.error;
         if (!current()) return;
         const verified = await supabase.from('organization_modules').select('module_id').eq('organization_id', org.id).eq('module_id', m.id);
         if (!current()) return;
@@ -315,8 +315,8 @@ function ModulesPage() {
         // our own refresh invalidates that authority generation.
         toast.success(installed ? 'Staff Attendance uninstalled' : 'Staff Attendance installed. Use Open App to begin.');
         await refresh();
-      } catch (cause) {
-        if (current()) toast.error(cause instanceof Error ? cause.message : 'Attendance installation failed. Check your connection and plan, then retry.');
+      } catch (cause: any) {
+        if (current()) toast.error(cause?.message || (cause instanceof Error ? cause.message : 'Attendance installation failed. Check your connection and plan, then retry.'));
       } finally {
         if (current() && attendanceLock.current === lock) { attendanceLock.current = null; setBusy(null); }
       }
