@@ -559,65 +559,79 @@ function PatientsPage() {
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
-              {filteredPatients.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/dashboard/patients/$patientId"
-                  params={{ patientId: p.id }}
-                  preload="intent"
-                  onPointerDown={() => {
-                    writeCache(`patient_snap_${p.id}`, p);
-                    if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
-                  }}
-                  onTouchStart={() => {
-                    writeCache(`patient_snap_${p.id}`, p);
-                    if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
-                  }}
-                  className="block focus:outline-none group"
-                >
-                  <Card className="p-3.5 sm:p-4 rounded-2xl hover:border-primary/50 transition-all active:scale-[0.99] border-border/70 bg-card shadow-xs hover:shadow-sm space-y-3">
-                    <div className="flex items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <AvatarInitials name={p.name} />
-                        <div className="min-w-0">
-                          <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">
-                            {p.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 font-mono">
-                            {p.phone}
-                          </p>
+              {filteredPatients.map((p) => {
+                const handlePatientClick = (e: React.MouseEvent) => {
+                  if ((e.target as HTMLElement).closest("a, button")) return;
+                  writeCache(`patient_snap_${p.id}`, p);
+                  if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
+                  navigate({
+                    to: "/dashboard/patients/$patientId",
+                    params: { patientId: p.id },
+                  });
+                };
+
+                return (
+                  <div
+                    key={p.id}
+                    onClick={handlePatientClick}
+                    onPointerDown={() => {
+                      writeCache(`patient_snap_${p.id}`, p);
+                      if (p.phone) writeCache(`patient_snap_${p.phone}`, p);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handlePatientClick(e as any);
+                      }
+                    }}
+                    className="block cursor-pointer focus:outline-none group active:scale-[0.99] transition-transform duration-100"
+                  >
+                    <Card className="p-3.5 sm:p-4 rounded-2xl hover:border-primary/50 transition-all border-border/70 bg-card shadow-xs hover:shadow-md space-y-3">
+                      <div className="flex items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <AvatarInitials name={p.name} />
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                              {p.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 font-mono">
+                              {p.phone}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0 text-[10px] font-bold rounded-lg px-2 py-0.5">
+                          {p.visitCount} {p.visitCount === 1 ? "visit" : "visits"}
+                        </Badge>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-between">
+                        <span className="text-[11px]">
+                          {p.lastVisit ? `Last visit: ${new Date(p.lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No visits yet"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {p.phone && (
+                            <a
+                              href={`https://wa.me/${p.phone.replace(/[^\d]/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 grid place-items-center transition"
+                              title="Chat on WhatsApp"
+                            >
+                              <Phone className="size-3.5" />
+                            </a>
+                          )}
+                          <span className="text-primary font-semibold text-xs flex items-center">
+                            Profile <ChevronRight className="size-3.5 ml-0.5" />
+                          </span>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="shrink-0 text-[10px] font-bold rounded-lg px-2 py-0.5">
-                        {p.visitCount} {p.visitCount === 1 ? "visit" : "visits"}
-                      </Badge>
-                    </div>
-
-                    <div className="pt-2.5 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-between">
-                      <span className="text-[11px]">
-                        {p.lastVisit ? `Last visit: ${new Date(p.lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "No visits yet"}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {p.phone && (
-                          <a
-                            href={`https://wa.me/${p.phone.replace(/[^\d]/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 grid place-items-center transition"
-                            title="Chat on WhatsApp"
-                          >
-                            <Phone className="size-3.5" />
-                          </a>
-                        )}
-                        <span className="text-primary font-semibold text-xs flex items-center">
-                          Profile <ChevronRight className="size-3.5 ml-0.5" />
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
