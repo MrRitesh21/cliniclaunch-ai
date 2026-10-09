@@ -30,6 +30,7 @@ import {
   Stethoscope,
   LayoutDashboard,
   Calendar,
+  Clock,
   Users,
   Settings,
   LogOut,

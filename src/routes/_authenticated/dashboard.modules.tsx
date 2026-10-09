@@ -228,6 +228,21 @@ function ModulesPage() {
           created_at: new Date().toISOString(),
         } as any);
       }
+      if (!modulesList.some((mod) => mod.id === "attendance")) {
+        modulesList.push({
+          id: "attendance",
+          name: "Staff Attendance & Timesheets",
+          description:
+            "Daily staff punch register, shift history, attendance corrections, and CSV timesheet exports.",
+          category: "Operations",
+          icon: "Clock",
+          is_core: false,
+          is_available: true,
+          min_plan: "starter",
+          sort_order: 18,
+          created_at: new Date().toISOString(),
+        } as any);
+      }
       setModules(modulesList);
       setPlans((p ?? []) as Plan[]);
       setSub((s ?? null) as Subscription | null);
