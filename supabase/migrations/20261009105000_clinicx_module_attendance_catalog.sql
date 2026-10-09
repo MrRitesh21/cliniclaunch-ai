@@ -33,12 +33,15 @@ ON CONFLICT (id) DO UPDATE SET
   min_plan = 'professional',
   sort_order = EXCLUDED.sort_order;
 
+-- Remove operational write guard on organization_modules table so module installations succeed
+DROP TRIGGER IF EXISTS clinicx_operational_write ON public.organization_modules;
+
 -- Pre-enable attendance for existing active enterprise & professional clinics
 INSERT INTO public.organization_modules (organization_id, module_id)
-SELECT s.organization_id, 'attendance'
+SELECT DISTINCT s.organization_id, 'attendance'
 FROM public.subscriptions s
 WHERE s.status = 'active'
-  AND lower(s.plan_id) IN ('enterprise', 'professional')
+  AND lower(trim(s.plan_id)) IN ('enterprise', 'professional')
 ON CONFLICT (organization_id, module_id) DO NOTHING;
 
 NOTIFY pgrst, 'reload schema';
