@@ -7,16 +7,16 @@ SET min_plan = 'professional',
     is_available = true
 WHERE id = 'attendance';
 
--- 2. Add 'attendance' to module_ids for all plans with monthly_price > 2000
+-- 2. Add 'attendance' to module_ids for Professional & Enterprise plans (and growth if above starter)
 UPDATE public.plans
 SET module_ids = array_append(module_ids, 'attendance'::text)
-WHERE monthly_price > 2000
+WHERE id IN ('enterprise', 'professional', 'growth')
   AND NOT ('attendance' = ANY(module_ids));
 
--- 3. Remove 'attendance' from module_ids for any plan with monthly_price <= 2000
+-- 3. Remove 'attendance' from starter plan
 UPDATE public.plans
 SET module_ids = array_remove(module_ids, 'attendance'::text)
-WHERE monthly_price <= 2000
+WHERE id = 'starter'
   AND ('attendance' = ANY(module_ids));
 
 -- 4. Grant staff_management feature in plan_features for all plans > 2000 INR
