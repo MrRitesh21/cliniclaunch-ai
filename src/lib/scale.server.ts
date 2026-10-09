@@ -56,6 +56,7 @@ const DEFAULT_TIER: Tier = { name: "page", limit: 300, windowSeconds: 60 };
 
 const PUBLIC_FILES = new Set([
   "/favicon.ico", "/favicon.svg", "/icon-192.png", "/icon-512.png",
+  "/pwa-192.png", "/pwa-512.png",
   "/logo.png", "/logo.jpg", "/logo-icon.png", "/logo-transparent.png",
   "/manifest.json", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml",
 ]);

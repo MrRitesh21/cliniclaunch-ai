@@ -12,16 +12,22 @@ export function SplashScreen({ fading = false }: { fading?: boolean }) {
     >
       <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in-95 duration-300">
         <div className="relative flex items-center justify-center">
-          <div className="absolute -inset-4 bg-primary/10 rounded-full blur-xl animate-pulse" />
-          <img
-            src="/pwa-192.png"
-            alt="ClinicX Logo"
-            className="w-20 h-20 rounded-2xl shadow-xl relative z-10 border border-primary/20 object-contain p-1 bg-white"
-            onError={(e) => {
-              // Fallback to text logo if icon is missing
-              e.currentTarget.style.display = "none";
-            }}
-          />
+          <div className="absolute -inset-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
+          <div className="size-20 rounded-2xl bg-white dark:bg-slate-900 p-2.5 shadow-2xl relative z-10 border border-border/20 grid place-items-center overflow-hidden">
+            <img
+              src="/logo-icon.png"
+              alt="ClinicX Logo"
+              className="size-full object-contain"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (!target.src.includes("/icon-192.png")) {
+                  target.src = "/icon-192.png";
+                } else if (!target.src.includes("/logo.png")) {
+                  target.src = "/logo.png";
+                }
+              }}
+            />
+          </div>
         </div>
         <div className="flex flex-col items-center gap-1.5 text-center">
           <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-1.5">

@@ -1,7 +1,7 @@
 const CACHE_PREFIX = "clinicx-pwa-";
 const CACHE_NAME = `${CACHE_PREFIX}v8`;
 const STATIC_ASSETS = [
-  "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/logo-icon.png", "/logo.png",
+  "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/pwa-192.png", "/pwa-512.png", "/logo-icon.png", "/logo.png",
 ];
 
 function publicStaticPath(path) {
