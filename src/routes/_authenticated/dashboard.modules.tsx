@@ -40,6 +40,35 @@ export const Route = createFileRoute("/_authenticated/dashboard/modules")({
   component: ModulesPage,
 });
 
+const MODULE_ROUTE_MAP: Record<string, string> = {
+  attendance: '/dashboard/attendance',
+  appointments: '/dashboard/appointments',
+  crm: '/dashboard/patients',
+  billing: '/dashboard/finance',
+  prescriptions: '/dashboard/prescriptions',
+  consultation: '/dashboard/consult',
+  whatsapp: '/dashboard/whatsapp',
+  reviews: '/dashboard/reviews',
+  staff: '/dashboard/staff',
+  inventory: '/dashboard/inventory',
+  pharmacy: '/dashboard/pharmacy',
+  lab: '/dashboard/lab',
+  analytics: '/dashboard/analytics',
+  marketing: '/dashboard/marketing',
+  seo: '/dashboard/seo',
+  loyalty: '/dashboard/loyalty',
+  ai_assistant: '/dashboard/assistant',
+  website_builder: '/dashboard/website',
+  qr_appointment: '/dashboard/qr',
+  queue: '/dashboard/queue',
+  doctors: '/dashboard/doctors',
+  records: '/dashboard/records',
+  emr: '/dashboard/records',
+  walkins: '/dashboard/walkins',
+  leads: '/dashboard/leads',
+  team: '/dashboard/team',
+};
+
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Marketing: Icons.Megaphone,
   Operations: Icons.Settings2,
@@ -539,8 +568,8 @@ function ModulesPage() {
                           Details <ArrowRight className="size-3" />
                         </button>
 
-                        {m.id === 'attendance' && installed ? (
-                          <Button size="sm" asChild><Link to="/dashboard/attendance">Open App</Link></Button>
+                        {installed && MODULE_ROUTE_MAP[m.id] ? (
+                          <Button size="sm" asChild><Link to={MODULE_ROUTE_MAP[m.id] as any}>Open App</Link></Button>
                         ) : <Button
                           size="sm"
                           variant={installed ? "outline" : locked ? "outline" : "default"}
@@ -639,7 +668,7 @@ function ModulesPage() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-2 border-t">
-                {selectedModule.id === 'attendance' && installedModuleIds.includes('attendance') && <Button asChild><Link to="/dashboard/attendance">Open App</Link></Button>}
+                {installedModuleIds.includes(selectedModule.id) && MODULE_ROUTE_MAP[selectedModule.id] && <Button asChild><Link to={MODULE_ROUTE_MAP[selectedModule.id] as any}>Open App</Link></Button>}
                 {installedModuleIds.includes(selectedModule.id) ? (
                   <Button
                     variant="outline"
