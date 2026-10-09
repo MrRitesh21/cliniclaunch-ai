@@ -174,7 +174,13 @@ function ModulesPage() {
   const { org, role, entitlement, authorityUserId, authorityGeneration, authorityError, unavailableModuleIds, installedModuleIds, planModuleIds, refresh } = useOrganization();
   const { user } = useAuthReady();
   const attendanceVerified = !!user && authorityUserId === user.id && !!entitlement && !authorityError;
-  const attendanceAllowed = attendanceVerified && !!entitlement?.can_write && planModuleIds.includes('attendance') && !unavailableModuleIds.includes('attendance');
+  const attendanceAllowed =
+    attendanceVerified &&
+    !!entitlement?.can_write &&
+    (isEnterprise ||
+      allowedModuleIds.has("attendance") ||
+      planModuleIds.includes("attendance")) &&
+    !unavailableModuleIds.includes("attendance");
   const attendanceKey = JSON.stringify([user?.id, org?.id, role, authorityUserId, authorityGeneration, attendanceAllowed]);
   const attendanceScope = useRef({ key: attendanceKey, generation: 0 });
   const attendanceLock = useRef<object | null>(null);
@@ -275,9 +281,12 @@ function ModulesPage() {
     if (isEnterprise) {
       modules.forEach((m) => set.add(m.id));
     }
+    if (isPlanAbove2000) {
+      set.add("attendance");
+    }
     (planModuleIds ?? []).forEach((id) => set.add(id));
     return set;
-  }, [currentPlan?.module_ids, isEnterprise, modules, planModuleIds]);
+  }, [currentPlan?.module_ids, isEnterprise, isPlanAbove2000, modules, planModuleIds]);
   const noActivePlan = !currentPlan;
 
   async function toggle(m: Module) {
@@ -652,7 +661,7 @@ function ModulesPage() {
                     (!allowedModuleIds.has(selectedModule.id) ||
                       (selectedModule.id === "attendance" && !attendanceAllowed)) ? (
                       <>
-                        <Lock className="size-3.5 mr-1" /> Requires {selectedModule.min_plan} Plan
+                        <Lock className="size-3.5 mr-1" /> Requires {selectedModule.min_plan ? (selectedModule.min_plan.charAt(0).toUpperCase() + selectedModule.min_plan.slice(1)) : "Professional"} Plan
                       </>
                     ) : (
                       "Install & Enable App"
