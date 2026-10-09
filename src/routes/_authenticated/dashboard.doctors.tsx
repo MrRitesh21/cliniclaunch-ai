@@ -485,6 +485,9 @@ function DoctorsPage() {
       if (error) return toast.error(error.message);
       toast.success("Doctor added");
     }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("clinicx_staff_changed"));
+    }
     setOpen(false);
     load();
   }
@@ -499,6 +502,9 @@ function DoctorsPage() {
     const { error } = await supabase.from("doctors").delete().eq("id", d.id);
     if (error) return toast.error(error.message);
     toast.success("Doctor removed");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("clinicx_staff_changed"));
+    }
     load();
   }
 

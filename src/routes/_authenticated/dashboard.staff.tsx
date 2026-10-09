@@ -44,10 +44,17 @@ export const Route = createFileRoute("/_authenticated/dashboard/staff")({
 type Role = "owner" | "admin" | "doctor" | "staff";
 type Member = {
   id: string;
-  user_id: string;
+  user_id?: string;
+  doctor_id?: string;
   role: Role;
   joined_at: string;
+  specialization?: string | null;
+  qualification?: string | null;
+  experience_years?: number | null;
+  consultation_fee?: number | null;
+  phone?: string | null;
   profile?: { full_name: string | null; email?: string | null } | null;
+  is_doctor_record?: boolean;
 };
 type Invite = {
   id: string;
@@ -173,7 +180,7 @@ function StaffPage() {
   async function load() {
     if (!orgId) return;
     setLoading(true);
-    const [m, inv, acceptedInv] = await Promise.all([
+    const [m, inv, acceptedInv, docsRes, clinicRes] = await Promise.all([
       supabase
         .from("organization_members")
         .select("id, user_id, role, joined_at")
@@ -190,33 +197,102 @@ function StaffPage() {
         .select("email, role, accepted_at")
         .eq("organization_id", orgId)
         .not("accepted_at", "is", null),
+      supabase
+        .from("doctors")
+        .select("*")
+        .eq("organization_id", orgId),
+      supabase
+        .from("clinics")
+        .select("id, doctor_name, specialization, qualification, experience_years, consultation_fee, phone, email")
+        .eq("organization_id", orgId),
     ]);
     const memData = (m.data as any[]) ?? [];
-    const userIds = memData.map((x) => x.user_id);
-    let profiles: Record<string, { full_name: string | null }> = {};
+    const docList = (docsRes.data as any[]) ?? [];
+    const clinicInfo = (clinicRes.data as any[])?.[0];
+    const userIds = memData.map((x) => x.user_id).filter(Boolean);
+    let profiles: Record<string, { full_name: string | null; email?: string | null; phone?: string | null }> = {};
     if (userIds.length) {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, email, phone")
         .in("id", userIds);
       profiles = Object.fromEntries(((prof as any[]) ?? []).map((p) => [p.id, p]));
     }
 
-    const mappedMembers = memData.map((x) => {
-      let name = profiles[x.user_id]?.full_name;
-      if (!name) {
-        // Fallback to accepted invite email prefix
+    const matchedDocIds = new Set<string>();
+
+    const mappedMembers: Member[] = memData.map((x) => {
+      const profName = profiles[x.user_id]?.full_name;
+      const profEmail = profiles[x.user_id]?.email;
+      const profPhone = profiles[x.user_id]?.phone;
+
+      // Match with doctors directory
+      const docMatch = docList.find(
+        (d: any) =>
+          (d.user_id && d.user_id === x.user_id) ||
+          (d.email && profEmail && d.email.toLowerCase() === profEmail.toLowerCase()) ||
+          (d.name && profName && d.name.toLowerCase() === profName.toLowerCase()) ||
+          (x.role === "doctor" && (!profName || profName === "Staff Member" || profName === "User"))
+      );
+
+      if (docMatch?.id) matchedDocIds.add(docMatch.id);
+
+      let finalName =
+        docMatch?.name?.trim() ||
+        profName?.trim() ||
+        (x.role === "owner" && clinicInfo?.doctor_name ? clinicInfo.doctor_name : null) ||
+        (x.role === "doctor" && clinicInfo?.doctor_name ? clinicInfo.doctor_name : null);
+
+      if (!finalName || finalName === "Staff Member" || finalName === "User") {
         const match = (acceptedInv.data as any[])?.find((i) => i.role === x.role);
-        if (match) {
-          name = match.email.split("@")[0];
+        if (match?.email) {
+          finalName = match.email.split("@")[0].replace(/[._-]/g, " ");
+        } else {
+          finalName = x.role === "owner" ? (clinicInfo?.doctor_name || "Clinic Owner") : x.role === "doctor" ? "Doctor" : "Staff Member";
         }
       }
+
       return {
         ...x,
+        doctor_id: docMatch?.id,
+        specialization: docMatch?.specialization || (x.role === "doctor" || x.role === "owner" ? clinicInfo?.specialization : null),
+        qualification: docMatch?.qualification || (x.role === "doctor" || x.role === "owner" ? clinicInfo?.qualification : null),
+        experience_years: docMatch?.experience_years ?? (x.role === "doctor" || x.role === "owner" ? clinicInfo?.experience_years : null),
+        consultation_fee: docMatch?.consultation_fee ?? (x.role === "doctor" || x.role === "owner" ? clinicInfo?.consultation_fee : null),
+        phone: docMatch?.phone || profPhone || clinicInfo?.phone,
         profile: {
-          full_name: name || "Staff Member",
+          full_name: finalName,
+          email: profEmail || docMatch?.email || clinicInfo?.email,
         },
       };
+    });
+
+    // Merge standalone doctors added from Doctor page (like Durgesh) that are not yet in organization_members
+    docList.forEach((doc: any) => {
+      if (matchedDocIds.has(doc.id)) return;
+      const alreadyInList = mappedMembers.some(
+        (m) =>
+          m.doctor_id === doc.id ||
+          (doc.name && m.profile?.full_name && m.profile.full_name.toLowerCase().trim() === doc.name.toLowerCase().trim())
+      );
+      if (alreadyInList) return;
+
+      mappedMembers.push({
+        id: `doc_${doc.id}`,
+        doctor_id: doc.id,
+        role: "doctor",
+        joined_at: doc.created_at || new Date().toISOString(),
+        specialization: doc.specialization,
+        qualification: doc.qualification,
+        experience_years: doc.experience_years,
+        consultation_fee: doc.consultation_fee,
+        phone: doc.phone,
+        is_doctor_record: true,
+        profile: {
+          full_name: doc.name,
+          email: doc.email,
+        },
+      });
     });
 
     setMembers(mappedMembers);
@@ -224,7 +300,14 @@ function StaffPage() {
     setLoading(false);
   }
   useEffect(() => {
-    void load(); /* eslint-disable-next-line */
+    void load();
+    const handleStaffChange = () => {
+      void load();
+    };
+    window.addEventListener("clinicx_staff_changed", handleStaffChange);
+    return () => {
+      window.removeEventListener("clinicx_staff_changed", handleStaffChange);
+    };
   }, [orgId]);
 
   const stats = useMemo(
@@ -247,6 +330,13 @@ function StaffPage() {
   async function removeMember(m: Member) {
     if (m.role === "owner") return toast.error("Cannot remove owner");
     if (!confirm(`Remove ${m.profile?.full_name ?? "member"}?`)) return;
+    if (m.is_doctor_record && m.doctor_id) {
+      const { error } = await supabase.from("doctors").delete().eq("id", m.doctor_id);
+      if (error) return toast.error(error.message);
+      toast.success("Doctor removed");
+      load();
+      return;
+    }
     const { error } = await supabase.from("organization_members").delete().eq("id", m.id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
@@ -329,19 +419,52 @@ function StaffPage() {
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-sm truncate text-foreground">
-                              {name}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm truncate text-foreground">
+                                {name}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={`capitalize text-[11px] font-semibold border ${
+                                  m.role === "owner"
+                                    ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                                    : m.role === "admin"
+                                    ? "bg-purple-500/10 text-purple-600 border-purple-500/30"
+                                    : m.role === "doctor"
+                                    ? "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                }`}
+                              >
+                                {m.role}
+                              </Badge>
+                              {m.specialization && (
+                                <Badge variant="secondary" className="text-[11px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                                  {m.specialization}
+                                </Badge>
+                              )}
+                              {m.qualification && (
+                                <Badge variant="outline" className="text-[10px] font-bold text-muted-foreground uppercase border-border/80">
+                                  {m.qualification}
+                                </Badge>
+                              )}
                             </div>
-                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <span className="capitalize">{m.role}</span>
-                              <span>·</span>
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span>Joined {new Date(m.joined_at).toLocaleDateString()}</span>
+                              {m.experience_years ? (
+                                <span>· {m.experience_years} yrs exp</span>
+                              ) : null}
+                              {m.consultation_fee ? (
+                                <span className="text-primary font-mono font-medium">· ₹{m.consultation_fee} OPD</span>
+                              ) : null}
+                              {m.phone ? (
+                                <span className="font-mono">· {m.phone}</span>
+                              ) : null}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {canManage && m.role !== "owner" ? (
+                          {canManage && m.role !== "owner" && !m.is_doctor_record ? (
                             <Select value={m.role} onValueChange={(v) => changeRole(m, v as Role)}>
                               <SelectTrigger className="w-28 h-8 text-xs rounded-lg">
                                 <SelectValue />
