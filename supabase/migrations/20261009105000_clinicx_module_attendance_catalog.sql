@@ -34,10 +34,11 @@ ON CONFLICT (id) DO UPDATE SET
   sort_order = EXCLUDED.sort_order;
 
 -- Pre-enable attendance for existing active enterprise & professional clinics
-INSERT INTO public.organization_modules (organization_id, module_id, is_enabled)
-SELECT s.organization_id, 'attendance', true
+INSERT INTO public.organization_modules (organization_id, module_id)
+SELECT s.organization_id, 'attendance'
 FROM public.subscriptions s
-WHERE s.plan_id IN ('enterprise', 'professional')
-ON CONFLICT (organization_id, module_id) DO UPDATE SET is_enabled = true;
+WHERE s.status = 'active'
+  AND lower(s.plan_id) IN ('enterprise', 'professional')
+ON CONFLICT (organization_id, module_id) DO NOTHING;
 
 NOTIFY pgrst, 'reload schema';
