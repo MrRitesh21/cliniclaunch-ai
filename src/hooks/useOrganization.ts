@@ -70,12 +70,12 @@ let inFlight: Promise<Snapshot> | null = null;
 let generation = 0;
 const listeners = new Set<(s: Snapshot) => void>();
 let authorityGeneration = 0;
-function unverified(org: Organization | null | undefined, message = "Clinic access is not verified. Retry access check."): Snapshot {
-  return { ...EMPTY, org, authorityError: message, isSubscriptionExpired: true };
+function unverified(org: Organization | null | undefined, message: string | null = null, expired = false): Snapshot {
+  return { ...EMPTY, org, authorityError: message, isSubscriptionExpired: expired };
 }
 function pending(s: Snapshot | undefined): Snapshot {
   // Retain only a UI mount identity, never previous role/entitlement grants.
-  return { ...EMPTY, org: s?.org, authorityPending: true, authorityScope: s?.authorityScope ?? null, authorityGeneration: s?.authorityGeneration ?? 0, isSubscriptionExpired: true };
+  return { ...EMPTY, org: s?.org, authorityPending: true, authorityScope: s?.authorityScope ?? null, authorityGeneration: s?.authorityGeneration ?? 0, isSubscriptionExpired: s?.isSubscriptionExpired ?? false };
 }
 function publish(s: Snapshot) {
   cache = { ...s, authorityGeneration: ++authorityGeneration };
@@ -169,7 +169,7 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
     console.error("[useOrganization] fetchSnapshot failed:", err);
     const persisted = readCache<{ org: Organization }>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
     return unverified(persisted?.org ?? (token === generation ? cache?.org : null) ?? null,
-      "Subscription access could not be verified. Retry before continuing clinic operations.");
+      "Subscription access could not be verified. Retry before continuing clinic operations.", true);
   }).then(s => {
     if (token === generation && userId === cacheUserId) return publish({ ...s, authorityScope: s.entitlement && s.org ? `${token}:${userId}:${s.org.id}:${s.role}` : null });
     return s;

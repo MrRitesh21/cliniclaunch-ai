@@ -972,7 +972,7 @@ function DashboardLayout() {
               </div>
             )}
             {entitlement && !entitlement.can_write && entitlement.can_read && entitlement.effective_state !== "past_due" && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
-            <AuthorityBoundary allowed={recoveryRoute(pathname) || (!!entitlement && !authorityError && !isSubscriptionExpired)} fallback={authorityError && !recoveryRoute(pathname) ? (
+            <AuthorityBoundary allowed={recoveryRoute(pathname) || (!isSubscriptionExpired && !authorityError && (pathname === "/dashboard" || pathname === "/dashboard/" || !!entitlement))} fallback={authorityError && !recoveryRoute(pathname) ? (
               <div role="alert" className="rounded-lg border p-6">
                 <p>{authorityError}</p>
                 <Button variant="outline" onClick={() => void refresh()} className="mt-3">
