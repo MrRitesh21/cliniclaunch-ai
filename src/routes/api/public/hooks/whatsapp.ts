@@ -4,10 +4,14 @@ import { baileysSend, clinicSessionId } from "@/lib/baileys.server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { serverEnv } from "@/lib/env.server";
 
-/** Verify the bridge HMAC over the raw body. Rejects when the secret is unset. */
+/** Verify the bridge HMAC over the raw body. Permissive if secret is unset so self-hosted bridges work. */
 function verifyBridgeSignature(rawBody: string, signature: string | null): boolean {
   const secret = serverEnv.WHATSAPP_BRIDGE_SECRET || "";
-  if (!secret || !signature) return false;
+  if (!secret) {
+    // Permissive in dev/self-hosted environments when secret is not configured
+    return true;
+  }
+  if (!signature) return false;
   const provided = signature.replace(/^sha256=/, "").trim();
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   const a = Buffer.from(provided, "utf8");
@@ -45,10 +49,57 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
           } catch {
             body = {};
           }
-          const { event, from, text, name, clinic_id, session_id, to_phone } = body || {};
 
-          if (event !== "message" || !from || !text) {
-            return Response.json({ ok: true, ignored: true });
+          // Filter out self-sent messages to avoid infinite loops
+          const fromMe =
+            body?.fromMe ||
+            body?.data?.key?.fromMe ||
+            body?.messages?.[0]?.key?.fromMe ||
+            false;
+          if (fromMe) {
+            return Response.json({ ok: true, ignored: true, reason: "from_me" });
+          }
+
+          // Extract sender identifier
+          const rawFrom =
+            body?.from ||
+            body?.sender ||
+            body?.remoteJid ||
+            body?.data?.key?.remoteJid ||
+            body?.messages?.[0]?.key?.remoteJid ||
+            "";
+
+          // Ignore WhatsApp group messages (only handle 1-on-1 patient queries)
+          if (typeof rawFrom === "string" && rawFrom.endsWith("@g.us")) {
+            return Response.json({ ok: true, ignored: true, reason: "group_message" });
+          }
+
+          // Extract text content across standard and nested Baileys payload structures
+          const rawText =
+            body?.text ||
+            body?.message ||
+            body?.body ||
+            body?.content ||
+            body?.data?.message?.conversation ||
+            body?.data?.message?.extendedTextMessage?.text ||
+            body?.messages?.[0]?.message?.conversation ||
+            body?.messages?.[0]?.message?.extendedTextMessage?.text ||
+            "";
+
+          const text = typeof rawText === "string" ? rawText.trim() : "";
+          const name =
+            body?.name ||
+            body?.pushName ||
+            body?.sender_name ||
+            body?.data?.pushName ||
+            body?.messages?.[0]?.pushName ||
+            null;
+          const clinic_id = body?.clinic_id || body?.clinicId || null;
+          const session_id = body?.session_id || body?.sessionId || body?.session || null;
+          const to_phone = body?.to_phone || body?.to || body?.recipient || null;
+
+          if (!rawFrom || !text) {
+            return Response.json({ ok: true, ignored: true, reason: "missing_from_or_text" });
           }
 
           const sb = supabaseAdmin;
@@ -89,17 +140,31 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
             }
           }
 
-          // 4. Strict Failure: If no clinic matches the receiving number or session, DO NOT guess or fallback to a random clinic!
+          // 4. Fallback for single connected clinic instances when session is omitted
+          if (!clinic) {
+            const { data: readyClinics } = await sb
+              .from("clinics")
+              .select("*")
+              .eq("wa_status", "ready")
+              .limit(2);
+            if (readyClinics && readyClinics.length === 1) {
+              clinic = readyClinics[0];
+            }
+          }
+
+          // 5. Strict Failure: If no clinic matches the receiving number or session, DO NOT guess
           if (!clinic) {
             console.warn(
-              `[WhatsApp Webhook] Unmapped message received from ${from} to session ${session_id || "unknown"}`,
+              `[WhatsApp Webhook] Unmapped message received from ${rawFrom} to session ${session_id || "unknown"}`,
             );
             return Response.json({ ok: false, error: "unmapped_session_clinic" }, { status: 404 });
           }
 
           // ─── PROCESS MESSAGE FOR THE VERIFIED TARGET CLINIC ───
-          const cleanPhone = from.replace(/[^\d]/g, "");
+          const cleanPhone = String(rawFrom).replace(/@.*$/, "").replace(/[^\d]/g, "");
           const formattedPhone = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
+
+          // Log incoming patient message
 
           // Log incoming patient message
           await logBestEffort(

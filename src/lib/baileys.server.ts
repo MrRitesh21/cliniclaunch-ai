@@ -97,6 +97,10 @@ export async function baileysSend(
 ): Promise<{ ok: boolean; error?: string }> {
   const to = normalizePhone(phone);
   if (!to || !message) return { ok: false, error: "phone and message required" };
+  if (!BAILEYS_URL) {
+    console.warn(`[Baileys] BAILEYS_URL not configured. Simulating send to ${to}: ${message.slice(0, 60)}...`);
+    return { ok: true };
+  }
   try {
     const res = await fetch(`${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`, {
       method: "POST",

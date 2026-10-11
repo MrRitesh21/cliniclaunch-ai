@@ -49,7 +49,9 @@ import {
   Pencil,
   Sparkles,
   FileText,
+  Bot,
 } from "lucide-react";
+import { AiReceptionistTab } from "@/components/whatsapp/AiReceptionistTab";
 import {
   DEFAULT_TEMPLATES,
   ensureDefaultTemplates,
@@ -181,6 +183,7 @@ function StatCard({
 function WhatsAppPage() {
   const { org } = useOrganization();
   const clinic = useClinic();
+  const [activeTab, setActiveTab] = useState("receptionist");
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -430,13 +433,20 @@ function WhatsAppPage() {
         />
       </div>
 
-      <Tabs defaultValue="connect">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="connect">Connect</TabsTrigger>
+          <TabsTrigger value="receptionist" className="gap-1.5 font-medium">
+            <Bot className="size-3.5 text-emerald-600" /> 24/7 AI Receptionist
+          </TabsTrigger>
+          <TabsTrigger value="connect">Connect WhatsApp</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="logs">Log ({logs.length})</TabsTrigger>
           <TabsTrigger value="automations">Automations</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="receptionist" className="mt-4">
+          <AiReceptionistTab onSwitchToConnect={() => setActiveTab("connect")} />
+        </TabsContent>
 
         <TabsContent value="connect" className="mt-4">
           <ConnectTab />
