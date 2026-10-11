@@ -1017,6 +1017,7 @@ export async function getSystemSettingsImpl() {
     maintenance_message: "We're upgrading the platform. Back in 2 hours.",
     wati_api_key: "",
     wati_base_url: "",
+    whatsapp_bridge_url: "",
     razorpay_key_id: "",
     razorpay_webhook_secret: "",
     openai_api_key: "",
@@ -1050,6 +1051,11 @@ export async function saveSystemSettingsImpl(input: any) {
   const results = await Promise.all(promises);
   const failed = results.find((r: any) => r?.error);
   if (failed) throw new Error(`Failed to save settings: ${(failed as any).error.message}`);
+
+  if (input.whatsapp_bridge_url !== undefined) {
+    const { setBaileysUrlCache } = await import("./baileys.server");
+    setBaileysUrlCache(input.whatsapp_bridge_url);
+  }
 
   await createAuditLog(supabaseAdmin, admin.id, "system_settings_updated", "system", "settings", {
     keys: Object.keys(input),
@@ -1353,9 +1359,11 @@ export async function getPlatformSystemHealthImpl() {
       .gte("created_at", todayIso);
     waMessagesToday = msgCount || 0;
 
-    if (serverEnv.BAILEYS_URL) {
+    const { resolveBaileysUrl } = await import("./baileys.server");
+    const activeWaUrl = await resolveBaileysUrl();
+    if (activeWaUrl) {
       try {
-        const res = await fetch(`${serverEnv.BAILEYS_URL}/health`, { signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${activeWaUrl}/health`, { signal: AbortSignal.timeout(2000) });
         waGatewayOk = res.ok;
       } catch {
         waGatewayOk = waConnectedClinics > 0;

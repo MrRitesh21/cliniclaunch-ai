@@ -222,9 +222,11 @@ export const getAdminWhatsappDiagnostics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { getBaileysUrl } = await import("./baileys.server");
+    const { resolveBaileysUrl } = await import("./baileys.server");
     const { serverEnv } = await import("./env.server");
-    const serverUrl = getBaileysUrl();
+    const activeUrl = await resolveBaileysUrl();
+    const envUrl = (serverEnv.BAILEYS_URL || "").trim().replace(/\/+$/, "");
+    const isOverridden = Boolean(activeUrl && activeUrl !== envUrl);
 
     const { count: readyClinics } = await context.supabase
       .from("clinics")
@@ -243,8 +245,10 @@ export const getAdminWhatsappDiagnostics = createServerFn({ method: "GET" })
     const webhookSecret = serverEnv.WHATSAPP_BRIDGE_SECRET || "clinicx-secret-key";
 
     return {
-      serverUrl,
-      isConfigured: Boolean(serverUrl),
+      serverUrl: activeUrl,
+      envUrl,
+      isOverridden,
+      isConfigured: Boolean(activeUrl),
       appUrl,
       webhookUrl,
       altWebhookUrl,
@@ -256,10 +260,68 @@ export const getAdminWhatsappDiagnostics = createServerFn({ method: "GET" })
 
 export const pingAdminWhatsappGateway = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .validator((i: unknown) =>
+    z.object({
+      url: z.string().optional(),
+    }).optional().parse(i),
+  )
+  .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { baileysPing } = await import("./baileys.server");
-    return baileysPing();
+    return baileysPing(data?.url);
+  });
+
+export const updateWhatsappBridgeUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z.object({
+      url: z.string().trim(),
+    }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { setBaileysUrlCache } = await import("./baileys.server");
+    const { serverEnv } = await import("./env.server");
+
+    let cleanUrl = data.url.trim().replace(/\/+$/, "");
+    if (cleanUrl) {
+      if (!/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = `https://${cleanUrl}`;
+      }
+      try {
+        new URL(cleanUrl);
+      } catch {
+        throw new Error("Invalid URL format. Please provide a valid URL like https://clinicx-bridge.onrender.com");
+      }
+      await supabaseAdmin.from("system_settings" as any).upsert(
+        {
+          key: "whatsapp_bridge_url",
+          value: cleanUrl,
+          description: "Active WhatsApp Baileys Bridge / Gateway URL",
+          updated_at: new Date().toISOString(),
+          updated_by: context.userId,
+        },
+        { onConflict: "key" },
+      );
+    } else {
+      await supabaseAdmin.from("system_settings" as any).delete().eq("key", "whatsapp_bridge_url");
+    }
+
+    setBaileysUrlCache(cleanUrl || null);
+
+    const { createAuditLog } = await import("./admin.server");
+    await createAuditLog(
+      supabaseAdmin,
+      context.userId,
+      "whatsapp_bridge_url_updated",
+      "system",
+      "whatsapp",
+      { url: cleanUrl || "reset_to_default" },
+    ).catch(() => {});
+
+    const activeUrl = cleanUrl || (serverEnv.BAILEYS_URL || "").trim().replace(/\/+$/, "");
+    return { success: true, url: activeUrl, isOverridden: Boolean(cleanUrl) };
   });
 
 export const simulateAdminIncomingMessage = createServerFn({ method: "POST" })

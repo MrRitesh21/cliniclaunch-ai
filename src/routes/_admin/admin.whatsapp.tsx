@@ -16,6 +16,7 @@ import {
   sendAdminTestWhatsapp,
   getAdminWhatsappDiagnostics,
   pingAdminWhatsappGateway,
+  updateWhatsappBridgeUrl,
   simulateAdminIncomingMessage,
 } from "@/lib/baileys.functions";
 import { toast } from "sonner";
@@ -36,7 +37,18 @@ import {
   Clock,
   Sparkles,
   ExternalLink,
+  Pencil,
+  RotateCcw,
+  Check,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_admin/admin/whatsapp")({
   component: AdminWhatsApp,
@@ -49,6 +61,7 @@ function AdminWhatsApp() {
   const send = useServerFn(sendAdminTestWhatsapp);
   const getDiag = useServerFn(getAdminWhatsappDiagnostics);
   const pingGateway = useServerFn(pingAdminWhatsappGateway);
+  const updateBridgeUrl = useServerFn(updateWhatsappBridgeUrl);
   const simulateMsg = useServerFn(simulateAdminIncomingMessage);
 
   // Diagnostics state
@@ -57,6 +70,13 @@ function AdminWhatsApp() {
   const [pingResult, setPingResult] = useState<any>(null);
   const [pinging, setPinging] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  // URL Modal state
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [customUrlInput, setCustomUrlInput] = useState("");
+  const [modalPinging, setModalPinging] = useState(false);
+  const [modalPingResult, setModalPingResult] = useState<any>(null);
+  const [savingUrl, setSavingUrl] = useState(false);
 
   // Test Message state
   const [phone, setPhone] = useState("");
@@ -89,7 +109,7 @@ function AdminWhatsApp() {
   async function handlePing() {
     setPinging(true);
     try {
-      const res = await pingGateway();
+      const res = await pingGateway({ data: {} });
       setPingResult(res);
       if (res.ok) {
         toast.success(`Gateway responded in ${res.latencyMs}ms (Status: ${res.status})`);
@@ -103,6 +123,60 @@ function AdminWhatsApp() {
       setPinging(false);
     }
   }
+
+  const handleOpenUrlModal = () => {
+    setCustomUrlInput(diagData?.serverUrl || "");
+    setModalPingResult(null);
+    setIsUrlModalOpen(true);
+  };
+
+  const handleModalPing = async () => {
+    if (!customUrlInput.trim()) {
+      toast.error("Please enter a URL to test");
+      return;
+    }
+    setModalPinging(true);
+    try {
+      const res = await pingGateway({ data: { url: customUrlInput.trim() } });
+      setModalPingResult(res);
+      if (res.ok) {
+        toast.success(`Gateway responded in ${res.latencyMs}ms (HTTP ${res.status})`);
+      } else {
+        toast.error(`Ping failed: ${res.error || `HTTP ${res.status}`}`);
+      }
+    } catch (e: any) {
+      setModalPingResult({ ok: false, error: e.message });
+      toast.error(e.message || "Ping error");
+    } finally {
+      setModalPinging(false);
+    }
+  };
+
+  const handleSaveBridgeUrl = async (urlToSave: string) => {
+    setSavingUrl(true);
+    try {
+      const res = await updateBridgeUrl({ data: { url: urlToSave.trim() } });
+      toast.success(urlToSave.trim() ? "WhatsApp Bridge URL updated successfully!" : "Reset to environment default!");
+      setIsUrlModalOpen(false);
+      if (res?.url) {
+        setDiagData((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                serverUrl: res.url,
+                isOverridden: res.isOverridden,
+                isConfigured: Boolean(res.url),
+              }
+            : prev,
+        );
+      }
+      await fetchDiagnostics();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update URL");
+    } finally {
+      setSavingUrl(false);
+    }
+  };
 
   async function handleSend() {
     setBusy(true);
@@ -170,6 +244,14 @@ function AdminWhatsApp() {
             <RefreshCw className={`size-3.5 ${loadingDiag ? "animate-spin" : ""}`} /> Refresh State
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenUrlModal}
+            className="h-9 gap-1.5 text-xs border-primary/40 hover:border-primary text-primary hover:bg-primary/5"
+          >
+            <Pencil className="size-3.5" /> Update Server URL
+          </Button>
+          <Button
             variant="default"
             size="sm"
             onClick={handlePing}
@@ -189,36 +271,58 @@ function AdminWhatsApp() {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Server className="size-3.5 text-primary" /> Active WhatsApp Server (BAILEYS_URL)
+                <Server className="size-3.5 text-primary" /> ACTIVE WHATSAPP SERVER (BAILEYS_URL)
               </span>
-              {diagData?.isConfigured ? (
-                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]">
-                  Configured
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="text-[10px]">
-                  Missing
-                </Badge>
-              )}
+              <div className="flex items-center gap-1.5">
+                {diagData?.isOverridden ? (
+                  <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-[10px]">
+                    Database Override
+                  </Badge>
+                ) : diagData?.isConfigured ? (
+                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]">
+                    Configured
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-[10px]">
+                    Missing
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="pt-2">
               <code className="text-xs font-mono font-semibold break-all bg-muted/60 p-2 rounded block select-all">
-                {diagData?.serverUrl || "BAILEYS_URL is NOT set in environment"}
+                {diagData?.serverUrl || "No WhatsApp Bridge URL configured"}
               </code>
             </div>
           </div>
           <div className="pt-3 text-[11px] text-muted-foreground flex items-center justify-between border-t mt-3">
-            <span>Read from: <code className="font-mono">process.env.BAILEYS_URL</code></span>
-            {diagData?.serverUrl && (
-              <a
-                href={diagData.serverUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline flex items-center gap-1"
+            <span>
+              Read from:{" "}
+              <strong className="text-foreground">
+                {diagData?.isOverridden ? "Database Override" : "process.env.BAILEYS_URL"}
+              </strong>
+            </span>
+            <div className="flex items-center gap-2">
+              {diagData?.serverUrl && (
+                <a
+                  href={diagData.serverUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline flex items-center gap-1 text-[11px]"
+                >
+                  Open in tab <ExternalLink className="size-3" />
+                </a>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleOpenUrlModal}
+                className="h-6 px-2 text-[11px] gap-1 border-primary/30 hover:border-primary text-primary"
               >
-                Open in tab <ExternalLink className="size-3" />
-              </a>
-            )}
+                <Pencil className="size-3" />
+                Update URL
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -390,7 +494,10 @@ function AdminWhatsApp() {
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="size-4 text-emerald-500 mt-0.5 shrink-0" />
                   <span>
-                    <strong>2. Vercel Environment:</strong> On Vercel, verify <code className="font-mono bg-muted px-1 py-0.5 rounded">BAILEYS_URL</code> points to your live Baileys server without trailing slashes.
+                    <strong>2. Active WhatsApp Bridge URL:</strong> Currently using{" "}
+                    <code className="font-mono bg-muted px-1 py-0.5 rounded">{diagData?.serverUrl || "BAILEYS_URL"}</code>.
+                    {diagData?.isOverridden ? " (Live database override is active)." : " (Loaded from Vercel env)."}
+                    You can click <strong>"Update URL"</strong> above to point ClinicX to any new server immediately without redeploying Vercel!
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -641,6 +748,136 @@ function AdminWhatsApp() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Bridge URL Configuration Modal */}
+      <Dialog open={isUrlModalOpen} onOpenChange={setIsUrlModalOpen}>
+        <DialogContent className="sm:max-w-[540px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Server className="size-4 text-primary" /> Update WhatsApp Bridge URL
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Update the live Baileys WhatsApp server gateway used by ClinicX for all clinic sessions, QR codes, and AI receptionist messages. Takes effect immediately without redeploying Vercel.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="bridge-url" className="text-xs font-medium">
+                WhatsApp Gateway Server URL
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="bridge-url"
+                  value={customUrlInput}
+                  onChange={(e) => {
+                    setCustomUrlInput(e.target.value);
+                    setModalPingResult(null);
+                  }}
+                  placeholder="https://clinicx-wu9u.onrender.com"
+                  className="font-mono text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleModalPing}
+                  disabled={modalPinging || !customUrlInput.trim()}
+                  className="shrink-0 text-xs h-9 gap-1"
+                >
+                  {modalPinging ? <Loader2 className="size-3.5 animate-spin" /> : <Radio className="size-3.5" />}
+                  Test Ping
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Enter the full HTTPS URL without a trailing slash (e.g. <code className="bg-muted px-1 py-0.5 rounded font-mono">https://clinicx-wu9u.onrender.com</code>).
+              </p>
+            </div>
+
+            {/* Ping feedback */}
+            {modalPingResult && (
+              <div
+                className={`text-xs p-3 rounded-lg border flex flex-col gap-1 ${
+                  modalPingResult.ok
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                    : "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300"
+                }`}
+              >
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    {modalPingResult.ok ? (
+                      <CheckCircle2 className="size-4 text-emerald-500" />
+                    ) : (
+                      <XCircle className="size-4 text-red-500" />
+                    )}
+                    {modalPingResult.ok ? "Gateway Responded OK" : "Ping Failed"}
+                  </span>
+                  <span className="font-mono text-[11px]">
+                    {modalPingResult.latencyMs ? `${modalPingResult.latencyMs}ms` : ""} (HTTP {modalPingResult.status ?? "None"})
+                  </span>
+                </div>
+                {modalPingResult.error && (
+                  <p className="font-mono text-[11px] break-all pt-1 border-t border-red-500/20">
+                    {modalPingResult.error}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Current env status */}
+            <div className="bg-muted/40 p-3 rounded-lg border text-xs space-y-1">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Vercel Environment Default:</span>
+                <span className="font-mono font-medium text-foreground">{diagData?.envUrl || "Not set in env"}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Current Active URL:</span>
+                <span className="font-mono font-medium text-foreground">{diagData?.serverUrl || "None"}</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-between">
+            {diagData?.isOverridden ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSaveBridgeUrl("")}
+                disabled={savingUrl}
+                className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+              >
+                <RotateCcw className="size-3.5" />
+                Reset to Vercel Default
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsUrlModalOpen(false)}
+                disabled={savingUrl}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleSaveBridgeUrl(customUrlInput)}
+                disabled={savingUrl || !customUrlInput.trim()}
+                className="text-xs gap-1.5"
+              >
+                {savingUrl ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                Save & Apply Live
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

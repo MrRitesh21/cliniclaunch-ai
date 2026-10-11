@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -206,6 +206,30 @@ function SystemSettingsPage() {
                 )}
                 Test WATI connection
               </Button>
+
+              <div className="pt-3 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="whatsapp_bridge_url" className="text-xs font-semibold text-foreground">
+                    Baileys WhatsApp Server URL
+                  </Label>
+                  <Link
+                    to="/admin/whatsapp"
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    Open Live Diagnostics & Ping →
+                  </Link>
+                </div>
+                <Input
+                  id="whatsapp_bridge_url"
+                  placeholder="https://clinicx-bridge.onrender.com"
+                  className="font-mono text-xs"
+                  value={form.whatsapp_bridge_url || ""}
+                  onChange={(e) => handleChange("whatsapp_bridge_url", e.target.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Overrides <code className="bg-muted px-1 py-0.5 rounded font-mono text-[10px]">process.env.BAILEYS_URL</code> across all clinic sessions without Vercel redeploys.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-3">

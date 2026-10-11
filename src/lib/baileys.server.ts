@@ -15,8 +15,47 @@
 
 import { serverEnv } from "./env.server";
 
-/** Resolved from `BAILEYS_URL` env var. Empty string disables the integration. */
+let cachedBaileysUrl: string | null = null;
+let lastCacheTime = 0;
+const CACHE_TTL_MS = 15_000;
+
+export async function resolveBaileysUrl(): Promise<string> {
+  const now = Date.now();
+  if (cachedBaileysUrl !== null && (now - lastCacheTime) < CACHE_TTL_MS) {
+    return cachedBaileysUrl;
+  }
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("system_settings" as any)
+      .select("value")
+      .eq("key", "whatsapp_bridge_url")
+      .maybeSingle();
+
+    if (data?.value && typeof data.value === "string" && data.value.trim()) {
+      cachedBaileysUrl = data.value.trim().replace(/\/+$/, "");
+      lastCacheTime = now;
+      return cachedBaileysUrl;
+    }
+  } catch {}
+
+  cachedBaileysUrl = (serverEnv.BAILEYS_URL || "").trim().replace(/\/+$/, "");
+  lastCacheTime = now;
+  return cachedBaileysUrl;
+}
+
+export function setBaileysUrlCache(url?: string | null) {
+  if (!url || !url.trim()) {
+    cachedBaileysUrl = (serverEnv.BAILEYS_URL || "").trim().replace(/\/+$/, "");
+  } else {
+    cachedBaileysUrl = url.trim().replace(/\/+$/, "");
+  }
+  lastCacheTime = Date.now();
+}
+
+/** Resolved from system_settings override or BAILEYS_URL env var. */
 export function getBaileysUrl(): string {
+  if (cachedBaileysUrl !== null) return cachedBaileysUrl;
   return (serverEnv.BAILEYS_URL || "").trim().replace(/\/+$/, "");
 }
 
@@ -30,9 +69,9 @@ export type BaileysStatus = {
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = getBaileysUrl();
+  const base = await resolveBaileysUrl();
   if (!base) {
-    throw new Error("BAILEYS_URL is not configured in server environment");
+    throw new Error("WhatsApp Bridge URL is not configured. Update in Admin -> WhatsApp.");
   }
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const res = await fetch(`${base}${cleanPath}`, {
@@ -53,7 +92,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export async function baileysPing(): Promise<{
+export async function baileysPing(customUrl?: string): Promise<{
   ok: boolean;
   status: number | null;
   latencyMs: number;
@@ -61,14 +100,17 @@ export async function baileysPing(): Promise<{
   error?: string;
   bodySnippet?: string;
 }> {
-  const base = getBaileysUrl();
+  let base = (customUrl ? customUrl.trim().replace(/\/+$/, "") : await resolveBaileysUrl());
+  if (base && !/^https?:\/\//i.test(base)) {
+    base = `https://${base}`;
+  }
   if (!base) {
     return {
       ok: false,
       status: null,
       latencyMs: 0,
       url: "",
-      error: "BAILEYS_URL environment variable is missing",
+      error: "WhatsApp Bridge URL is missing",
     };
   }
   const start = Date.now();
@@ -165,9 +207,9 @@ export async function baileysSend(
 ): Promise<{ ok: boolean; error?: string }> {
   const to = normalizePhone(phone);
   if (!to || !message) return { ok: false, error: "phone and message required" };
-  const base = getBaileysUrl();
+  const base = await resolveBaileysUrl();
   if (!base) {
-    console.warn(`[Baileys] BAILEYS_URL not configured. Delegating delivery to webhook response or queue.`);
+    console.warn(`[Baileys] WhatsApp Bridge URL not configured. Delegating delivery to webhook response or queue.`);
     return { ok: false, error: "BAILEYS_URL_NOT_CONFIGURED" };
   }
   try {

@@ -6,8 +6,8 @@ export const Route = createFileRoute("/api/public/whatsapp/incoming")({
     handlers: {
       POST: async ({ request }) => handleWhatsAppIncomingRequest(request),
       GET: async () => {
-        const { getBaileysUrl } = await import("@/lib/baileys.server");
-        const bUrl = getBaileysUrl();
+        const { resolveBaileysUrl } = await import("@/lib/baileys.server");
+        const bUrl = await resolveBaileysUrl();
         let safeHost = "Not configured";
         if (bUrl) {
           try {
