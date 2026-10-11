@@ -39,6 +39,17 @@ interface ChatMessage {
   appointmentId?: string | null;
 }
 
+function formatHoursText(raw: any): string {
+  if (!raw) return "10:00 AM - 8:00 PM";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object") {
+    if (raw.start && raw.end) {
+      return `${raw.start} - ${raw.end}`;
+    }
+  }
+  return "10:00 AM - 8:00 PM";
+}
+
 export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: () => void }) {
   const getInfoFn = useServerFn(getAiReceptionistInfo);
   const simulateFn = useServerFn(testAiReceptionistSimulation);
@@ -240,7 +251,7 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
               <Clock className="size-3.5 text-purple-500" />
               <span>OPD Timings</span>
             </div>
-            <div className="text-xs font-semibold truncate pt-1">{data?.clinic.workingHours}</div>
+            <div className="text-xs font-semibold truncate pt-1">{formatHoursText(data?.clinic.workingHours)}</div>
           </div>
         </div>
       </Card>
@@ -325,7 +336,7 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
               </div>
               <div className="flex justify-between py-1 border-b border-border/30">
                 <span className="text-muted-foreground">Timings:</span>
-                <span className="font-semibold">{data?.clinic.workingHours}</span>
+                <span className="font-semibold">{formatHoursText(data?.clinic.workingHours)}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">Address:</span>

@@ -27,6 +27,41 @@ async function getMyManagedClinic(supabase: SB, userId: string) {
   return clinic;
 }
 
+function formatWorkingHours(wh: unknown): string {
+  if (!wh) return "10:00 AM - 8:00 PM";
+  if (typeof wh === "string") {
+    try {
+      const parsed = JSON.parse(wh);
+      if (typeof parsed === "object" && parsed !== null) {
+        return formatWorkingHours(parsed);
+      }
+    } catch {
+      return wh.trim() || "10:00 AM - 8:00 PM";
+    }
+    return wh.trim() || "10:00 AM - 8:00 PM";
+  }
+  if (typeof wh === "object" && wh !== null) {
+    const obj = wh as { start?: string; end?: string; days?: number[] };
+    if (obj.start && obj.end) {
+      const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      let daysStr = "";
+      if (Array.isArray(obj.days) && obj.days.length > 0) {
+        if (obj.days.length === 7) {
+          daysStr = "Every day";
+        } else if (obj.days.length === 6 && !obj.days.includes(0)) {
+          daysStr = "Mon - Sat";
+        } else if (obj.days.length === 5 && !obj.days.includes(0) && !obj.days.includes(6)) {
+          daysStr = "Mon - Fri";
+        } else {
+          daysStr = obj.days.map((d) => DAY_NAMES[d] || String(d)).join(", ");
+        }
+      }
+      return `${obj.start} - ${obj.end}${daysStr ? ` (${daysStr})` : ""}`;
+    }
+  }
+  return "10:00 AM - 8:00 PM";
+}
+
 /**
  * Get AI Receptionist live status, stats & recent conversational logs.
  */
@@ -62,20 +97,20 @@ export const getAiReceptionistInfo = createServerFn({ method: "GET" })
 
     return {
       clinic: {
-        id: clinic.id,
-        name: clinic.clinic_name || "My Clinic",
-        doctor: clinic.doctor_name || "Doctor",
-        specialization: clinic.specialization || "General Medicine",
-        address: clinic.address || "Clinic Address",
-        workingHours: clinic.working_hours || "10:00 AM - 8:00 PM",
-        consultationFee: clinic.consultation_fee ?? 500,
-        waStatus: clinic.wa_status || "disconnected",
-        waPhone: clinic.wa_phone || null,
+        id: String(clinic.id),
+        name: String(clinic.clinic_name || "My Clinic"),
+        doctor: String(clinic.doctor_name || "Doctor"),
+        specialization: String(clinic.specialization || "General Medicine"),
+        address: String(clinic.address || "Clinic Address"),
+        workingHours: formatWorkingHours(clinic.working_hours),
+        consultationFee: Number(clinic.consultation_fee ?? 500),
+        waStatus: String(clinic.wa_status || "disconnected"),
+        waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
         isOnline: clinic.wa_status === "ready",
       },
       stats: {
-        todayBookings: todayBookings ?? 0,
-        totalBookings: totalBookings ?? 0,
+        todayBookings: Number(todayBookings ?? 0),
+        totalBookings: Number(totalBookings ?? 0),
       },
       recentLogs: recentLogs || [],
     };
