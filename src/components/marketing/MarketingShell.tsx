@@ -19,6 +19,7 @@ import { CommandPalette } from "./CommandPalette";
 const MARKETING_NAV = [
   { label: "Features", to: "/features" as const },
   { label: "How it works", to: "/how-it-works" as const },
+  { label: "Pricing", to: "/pricing" as const },
   { label: "Docs / Guide", to: "/docs" as const },
   { label: "FAQ", to: "/faq" as const },
 ];
@@ -124,9 +125,6 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 {n.label}
               </Link>
             ))}
-            <a href="/#pricing" className="hover:text-foreground transition-colors">
-              Pricing
-            </a>
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
@@ -193,13 +191,6 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 {n.label}
               </Link>
             ))}
-            <a
-              href="/#pricing"
-              onClick={() => setOpen(false)}
-              className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted text-foreground"
-            >
-              Pricing
-            </a>
           </nav>
           <div className="pt-2 border-t flex flex-col gap-2">
             <Link to="/login" onClick={() => setOpen(false)}>
@@ -252,9 +243,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   </Link>
                 </li>
                 <li>
-                  <a href="/#pricing" className="hover:text-foreground">
+                  <Link to="/pricing" className="hover:text-foreground">
                     Pricing
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <Link to="/contact" className="hover:text-foreground text-primary font-bold">

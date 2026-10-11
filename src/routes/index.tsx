@@ -1,11 +1,6 @@
-import type { ErrorComponentProps } from "@tanstack/react-router";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getPublicPlans } from "@/lib/plans.functions";
 import {
   ArrowRight,
   MessageSquare,
@@ -52,7 +47,7 @@ import { resolveVariants, getVariantComponent } from "@/components/site/registry
 import { DEFAULT_SECTION_ORDER, type SectionKey, type SiteClinic } from "@/components/site/types";
 import { LeadCapture } from "@/components/clinic/lead-capture";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
-import { useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate, type ErrorComponentProps } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
@@ -73,9 +68,7 @@ export const Route = createFileRoute("/")({
         });
       }
     }
-    // Fetch pricing during SSR so the pricing grid is never blank on first paint.
-    const plans = await getPublicPlans().catch(() => [] as any[]);
-    return { clinic: null, clinicSlug: null, plans };
+    return { clinic: null, clinicSlug: null };
   },
   staleTime: 5 * 60 * 1000,
 
@@ -338,7 +331,7 @@ const FAQS = [
 ];
 
 function Landing() {
-  const { clinic, plans } = Route.useLoaderData();
+  const { clinic } = Route.useLoaderData();
   const navigate = useNavigate();
   const isStandalone = typeof window !== "undefined" && (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -372,21 +365,13 @@ function Landing() {
 
   return (
     <MarketingShell>
-      <LandingContent initialPlans={plans ?? []} />
+      <LandingContent />
     </MarketingShell>
   );
 }
 
-function LandingContent({ initialPlans }: { initialPlans: any[] }) {
-  const [yearly, setYearly] = useState(false);
+function LandingContent() {
   const [activeTab, setActiveTab] = useState<"queue" | "whatsapp" | "rx" | "finance">("queue");
-  const fetchPlans = useServerFn(getPublicPlans);
-  const { data: plans = [] } = useQuery({
-    queryKey: ["public-plans"],
-    queryFn: () => fetchPlans({}),
-    initialData: initialPlans.length ? initialPlans : undefined,
-    staleTime: 5 * 60 * 1000,
-  });
 
   return (
     <div className="relative">
@@ -418,7 +403,7 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
           <p className="mt-5 mx-auto max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed text-muted-foreground font-normal">
             No more lost paper registers, missed patient calls, or evening accounting headaches.
             Custom clinic website, 24/7 WhatsApp appointments, live OPD token queue, digital Rx,
-            and GST billing — from <strong className="text-foreground font-semibold">₹999/month</strong>.
+            and GST billing — built specifically for busy Indian clinics.
           </p>
 
           {/* Primary CTA Buttons */}
@@ -932,119 +917,30 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="border-t border-border/60 bg-muted/20 py-20 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-              Simple & Honest Pricing
-            </p>
-            <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-              Less Than the Fee of 2 Consultations
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Every plan includes a 14-day full-access free trial, free domain mapping, zero commission on patient fees, and free staff training.
-            </p>
-            <div className="pt-2 inline-flex items-center gap-2 rounded-full border border-border bg-surface p-1 text-xs">
-              <button
-                onClick={() => setYearly(false)}
-                className={`rounded-full px-4 py-1.5 font-medium transition ${
-                  !yearly ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setYearly(true)}
-                className={`rounded-full px-4 py-1.5 font-medium transition flex items-center gap-1.5 ${
-                  yearly ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground"
-                }`}
-              >
-                Annual <span className="text-[10px] text-emerald-500 font-bold">Save 20%</span>
-              </button>
-            </div>
+      {/* Plans & Pricing Preview Banner (Points to dedicated /pricing page) */}
+      <section className="border-t border-border/60 bg-muted/20 py-16 sm:py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
+            <Sparkles className="size-3.5 text-amber-500" /> Transparent & Fair Doctor Pricing
           </div>
-
-          <div className="mt-12 grid gap-5 lg:grid-cols-4 sm:grid-cols-2">
-            {plans.length === 0 &&
-              Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i} className="flex flex-col rounded-2xl border border-border bg-surface p-6 shadow-none">
-                  <div className="h-4 w-24 rounded bg-muted animate-pulse" />
-                  <div className="mt-3 h-3 w-32 rounded bg-muted animate-pulse" />
-                  <div className="mt-6 h-8 w-28 rounded bg-muted animate-pulse" />
-                  <div className="mt-6 space-y-2 flex-1">
-                    {Array.from({ length: 5 }).map((__, j) => (
-                      <div key={j} className="h-3 w-full rounded bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                  <div className="mt-6 h-9 w-full rounded-xl bg-muted animate-pulse" />
-                </Card>
-              ))}
-            {plans.map((p: any) => {
-              const listPrice = Number(yearly ? p.yearly_price : p.monthly_price);
-              const discounted = yearly ? p.discounted_yearly_price : p.discounted_monthly_price;
-              const price = discounted ?? listPrice;
-              const hasOffer = discounted != null && Number(discounted) < listPrice;
-              const offPct = hasOffer
-                ? Math.round(((listPrice - Number(discounted)) / listPrice) * 100)
-                : 0;
-              const features = Array.isArray(p.features) ? (p.features as string[]) : [];
-              return (
-                <Card
-                  key={p.id}
-                  className={`flex flex-col rounded-2xl border bg-surface p-5 sm:p-6 shadow-none ${
-                    p.is_popular ? "border-primary ring-2 ring-primary/20 shadow-md" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-display text-base font-bold text-foreground">{p.name}</h3>
-                    {p.is_popular && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">{p.tagline}</p>
-                  <div className="mt-5">
-                    {hasOffer && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted-foreground line-through tabular-nums">
-                          ₹{listPrice.toLocaleString("en-IN")}
-                        </span>
-                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-bold text-emerald-600 text-[10px]">
-                          {offPct}% off
-                        </span>
-                      </div>
-                    )}
-                    <p className="mt-1 font-display text-3xl font-bold tabular-nums text-foreground">
-                      ₹{Number(price).toLocaleString("en-IN")}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        /{yearly ? "year" : "month"}
-                      </span>
-                    </p>
-                  </div>
-                  <ul className="mt-5 space-y-2 flex-1">
-                    {features.slice(0, 6).map((f) => (
-                      <li key={f} className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
-                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 mt-0.5" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to="/signup" className="mt-6">
-                    <Button
-                      variant={p.is_popular ? "default" : "outline"}
-                      className="w-full rounded-xl font-bold text-xs"
-                    >
-                      Start 14-Day Free Trial
-                    </Button>
-                  </Link>
-                </Card>
-              );
-            })}
-          </div>
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            All prices in INR. GST invoices generated automatically. Cancel or change plan anytime from your dashboard.
+          <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
+            Simple, Transparent Plans with Zero Hidden Commissions
+          </h2>
+          <p className="text-xs sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            Every plan includes a 14-day full-access free trial, free domain mapping, zero commission on patient fees, and free staff onboarding.
           </p>
+          <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/pricing">
+              <Button size="lg" className="rounded-xl font-bold text-xs sm:text-sm px-7 h-12 gap-2 shadow-md">
+                Explore Plans & Pricing <ArrowRight className="size-4" />
+              </Button>
+            </Link>
+            <Link to="/contact">
+              <Button size="lg" variant="outline" className="rounded-xl font-semibold text-xs sm:text-sm px-6 h-12 bg-surface">
+                Schedule a 10-Min Live Demo
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
