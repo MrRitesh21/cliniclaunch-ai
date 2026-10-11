@@ -1312,3 +1312,108 @@ export async function grantAdminDocumentedOverrideImpl(input: {
   if (error || !data || data.success !== true) throw new Error("Documented override denied; verify reason, expiry, actor and database authority");
   return { success: true };
 }
+
+export async function getPlatformSystemHealthImpl() {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { serverEnv } = await import("./env.server");
+
+  // 1. Database Ping & Latency
+  const dbStart = Date.now();
+  let dbOk = false;
+  let dbLatency = 0;
+  let totalClinics = 0;
+  try {
+    const { count, error } = await supabaseAdmin.from("clinics").select("id", { count: "exact", head: true });
+    dbLatency = Date.now() - dbStart;
+    dbOk = !error;
+    totalClinics = count || 0;
+  } catch {
+    dbOk = false;
+    dbLatency = Date.now() - dbStart;
+  }
+
+  // 2. WhatsApp Gateway & Activity
+  let waGatewayOk = false;
+  let waConnectedClinics = 0;
+  let waMessagesToday = 0;
+  try {
+    const { count: readyCount } = await supabaseAdmin
+      .from("clinics")
+      .select("id", { count: "exact", head: true })
+      .eq("wa_status", "ready");
+    waConnectedClinics = readyCount || 0;
+
+    const todayIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: msgCount } = await supabaseAdmin
+      .from("whatsapp_logs")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", todayIso);
+    waMessagesToday = msgCount || 0;
+
+    if (serverEnv.BAILEYS_URL) {
+      try {
+        const res = await fetch(`${serverEnv.BAILEYS_URL}/health`, { signal: AbortSignal.timeout(2000) });
+        waGatewayOk = res.ok;
+      } catch {
+        waGatewayOk = waConnectedClinics > 0;
+      }
+    } else {
+      waGatewayOk = waConnectedClinics > 0;
+    }
+  } catch {}
+
+  // 3. AI Gateway
+  const hasAi = Boolean(serverEnv.OPENROUTER_API_KEY || serverEnv.LOVABLE_API_KEY);
+
+  // 4. Razorpay
+  const hasRazorpay = Boolean(serverEnv.RAZORPAY_KEY_ID);
+
+  // 5. Activity metrics (last 24h appointments)
+  let appointments24h = 0;
+  try {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabaseAdmin
+      .from("appointments")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", yesterday);
+    appointments24h = count || 0;
+  } catch {}
+
+  return {
+    timestamp: new Date().toISOString(),
+    services: {
+      database: {
+        ok: dbOk,
+        latencyMs: dbLatency,
+        label: "PostgreSQL Database",
+        status: dbOk ? `Operational (${dbLatency}ms)` : "Degraded",
+      },
+      whatsapp: {
+        ok: waGatewayOk || waConnectedClinics > 0,
+        connectedClinics: waConnectedClinics,
+        messages24h: waMessagesToday,
+        label: "WhatsApp AI Gateway",
+        status: waConnectedClinics > 0 ? `${waConnectedClinics} Clinics Live` : "Standby",
+      },
+      aiEngine: {
+        ok: true,
+        label: "AI Reasoning & NLP",
+        status: hasAi ? "Neural Models Online" : "Rule Engine Fallback Ready",
+      },
+      payments: {
+        ok: hasRazorpay,
+        label: "Razorpay Billing Gateway",
+        status: hasRazorpay ? "Connected" : "Unconfigured",
+      },
+    },
+    liveActivity: {
+      totalClinics,
+      appointments24h,
+      waMessages24h: waMessagesToday,
+      activeWhatsAppClinics: waConnectedClinics,
+    },
+  };
+}

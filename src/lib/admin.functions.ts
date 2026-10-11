@@ -526,3 +526,10 @@ export const setOrgModuleOverride = createServerFn({ method: "POST" })
     const { setOrgModuleOverrideImpl } = await import("./admin.server");
     return setOrgModuleOverrideImpl(data);
   });
+
+export const getPlatformSystemHealth = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .handler(async () => {
+    const { getPlatformSystemHealthImpl } = await import("./admin.server");
+    return getPlatformSystemHealthImpl();
+  });
