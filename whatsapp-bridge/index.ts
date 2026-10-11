@@ -87,6 +87,121 @@ function extractClinicId(sessionId: string): string {
   return sessionId.replace(/^user-/, "");
 }
 
+// ─── Cloud Auth State Persistence (Survives Render Container Redeploys) ─────
+const backupDebounceTimers = new Map<string, NodeJS.Timeout>();
+
+async function backupSessionToCloud(sessionId: string): Promise<boolean> {
+  const cleanSid = sanitizeSessionId(sessionId);
+  const sessionDir = path.join(AUTH_BASE_DIR, cleanSid);
+  const credsPath = path.join(sessionDir, "creds.json");
+
+  if (!fs.existsSync(credsPath)) {
+    return false;
+  }
+
+  try {
+    const files: Record<string, string> = {};
+    const entries = fs.readdirSync(sessionDir);
+    for (const file of entries) {
+      if (file.endsWith(".json")) {
+        try {
+          const content = fs.readFileSync(path.join(sessionDir, file), "utf8");
+          files[file] = content;
+        } catch {}
+      }
+    }
+
+    if (!files["creds.json"]) return false;
+
+    logger.info({ sessionId: cleanSid, fileCount: Object.keys(files).length }, "Backing up WhatsApp session auth to Supabase cloud");
+    const res = await postWebhook({
+      event: "auth_backup",
+      session_id: cleanSid,
+      clinic_id: extractClinicId(cleanSid),
+      files,
+    });
+
+    return Boolean(res?.ok);
+  } catch (err: any) {
+    logger.warn({ sessionId: cleanSid, err: err.message }, "Failed to backup session auth to cloud");
+    return false;
+  }
+}
+
+function scheduleCloudBackup(sessionId: string) {
+  const cleanSid = sanitizeSessionId(sessionId);
+  const existing = backupDebounceTimers.get(cleanSid);
+  if (existing) clearTimeout(existing);
+
+  const t = setTimeout(() => {
+    backupDebounceTimers.delete(cleanSid);
+    void backupSessionToCloud(cleanSid);
+  }, 2500);
+
+  backupDebounceTimers.set(cleanSid, t);
+}
+
+async function restoreSessionFromCloud(sessionId: string): Promise<boolean> {
+  const cleanSid = sanitizeSessionId(sessionId);
+  const sessionDir = path.join(AUTH_BASE_DIR, cleanSid);
+  const credsPath = path.join(sessionDir, "creds.json");
+
+  if (fs.existsSync(credsPath)) {
+    return true; // Already on disk
+  }
+
+  try {
+    logger.info({ sessionId: cleanSid }, "Querying ClinicX Supabase cloud for session backup");
+    const res = await postWebhook({
+      event: "auth_restore",
+      session_id: cleanSid,
+    });
+
+    if (res?.ok && Array.isArray(res.sessions) && res.sessions.length > 0) {
+      const match = res.sessions.find((s: any) => s.sessionId === cleanSid) || res.sessions[0];
+      if (match?.files && match.files["creds.json"]) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+        for (const [filename, content] of Object.entries(match.files)) {
+          const safeName = path.basename(filename);
+          fs.writeFileSync(path.join(sessionDir, safeName), String(content), "utf8");
+        }
+        logger.info({ sessionId: cleanSid }, "✓ Restored session credentials from Supabase cloud");
+        return true;
+      }
+    }
+  } catch (err: any) {
+    logger.warn({ sessionId: cleanSid, err: err.message }, "Cloud session restore request failed");
+  }
+  return false;
+}
+
+async function restoreAllSessionsFromCloud(): Promise<number> {
+  try {
+    logger.info("Syncing persisted WhatsApp sessions from ClinicX Supabase cloud...");
+    const res = await postWebhook({ event: "auth_restore" });
+    if (res?.ok && Array.isArray(res.sessions) && res.sessions.length > 0) {
+      let count = 0;
+      for (const item of res.sessions) {
+        const { sessionId, files } = item;
+        if (!sessionId || !files || !files["creds.json"]) continue;
+        const cleanSid = sanitizeSessionId(sessionId);
+        const sDir = path.join(AUTH_BASE_DIR, cleanSid);
+        fs.mkdirSync(sDir, { recursive: true });
+        for (const [filename, content] of Object.entries(files)) {
+          const safeName = path.basename(filename);
+          fs.writeFileSync(path.join(sDir, safeName), String(content), "utf8");
+        }
+        count++;
+        logger.info({ sessionId: cleanSid }, "✓ Restored session files from cloud backup");
+      }
+      return count;
+    }
+  } catch (err: any) {
+    logger.warn({ err: err.message }, "Could not fetch cloud session backups on startup");
+  }
+  return 0;
+}
+
 // ─── On-Demand Isolated Session Factory ───────────────────────────────────────
 
 async function getOrCreateSession(sessionId: string, autoConnect = true): Promise<SessionState> {
@@ -101,6 +216,11 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
   const clinicId = extractClinicId(cleanSid);
   const sessionDir = path.join(AUTH_BASE_DIR, cleanSid);
   fs.mkdirSync(sessionDir, { recursive: true });
+
+  // If credentials are not present locally on disk, attempt cloud restore from Supabase
+  if (!fs.existsSync(path.join(sessionDir, "creds.json"))) {
+    await restoreSessionFromCloud(cleanSid);
+  }
 
   const stateObj: SessionState = existing || {
     id: cleanSid,
@@ -150,8 +270,11 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
 
   stateObj.sock = sock;
 
-  // Persist auth credentials securely in the clinic's isolated directory
-  sock.ev.on("creds.update", saveCreds);
+  // Persist auth credentials securely in the clinic's isolated directory + cloud backup
+  sock.ev.on("creds.update", () => {
+    saveCreds();
+    scheduleCloudBackup(cleanSid);
+  });
 
   sock.ev.on("connection.update", (update: any) => {
     const { connection, lastDisconnect, qr } = update;
@@ -187,6 +310,9 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
         "✓ Clinic WhatsApp Session Connected",
       );
 
+      // Trigger cloud backup of authenticated session
+      scheduleCloudBackup(cleanSid);
+
       // Post status event to ClinicX
       void postWebhook({
         event: "status",
@@ -204,6 +330,10 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
       const isLoggedOut = code === DisconnectReason.loggedOut;
 
       logger.warn({ sessionId: cleanSid, code, isLoggedOut }, "Session connection closed");
+
+      if (isLoggedOut) {
+        void postWebhook({ event: "auth_clear", session_id: cleanSid });
+      }
 
       void postWebhook({
         event: "status",
@@ -297,15 +427,18 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
   return stateObj;
 }
 
-// ─── Boot Restoration: Restore ONLY Authenticated Clinic Sessions ─────────────
+// ─── Boot Restoration: Restore From Cloud & Local Disk ──────────────────────
 // Never start dummy/unrequested sessions on startup!
 try {
+  // 1. Restore all authenticated clinic sessions saved in Supabase cloud (survives Render redeploys)
+  await restoreAllSessionsFromCloud();
+
   const entries = fs.readdirSync(AUTH_BASE_DIR);
   let restoredCount = 0;
   for (const entry of entries) {
     const credsPath = path.join(AUTH_BASE_DIR, entry, "creds.json");
     if (fs.existsSync(credsPath)) {
-      logger.info({ sessionId: entry }, "Restoring authenticated clinic session from disk");
+      logger.info({ sessionId: entry }, "Restoring authenticated clinic session from credentials");
       void getOrCreateSession(entry, true);
       restoredCount++;
     }
@@ -454,6 +587,8 @@ fastify.delete("/api/sessions/:sessionId", async (req) => {
     fs.rmSync(sessionDir, { recursive: true, force: true });
     logger.info({ sessionId: cleanSid }, "Deleted clinic auth directory from disk");
   } catch {}
+
+  void postWebhook({ event: "auth_clear", session_id: cleanSid });
 
   return { success: true, deleted: cleanSid };
 });

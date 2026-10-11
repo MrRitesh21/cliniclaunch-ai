@@ -30,7 +30,7 @@ type Status = {
 type Props = {
   title?: string;
   description?: string;
-  getStatus: () => Promise<{ status: Status }>;
+  getStatus: () => Promise<{ status: Status; isReconnecting?: boolean; gatewayBooting?: boolean; dbStatus?: string | null }>;
   start: () => Promise<{ status: Status }>;
   disconnect: () => Promise<{ ok: boolean }>;
 };
@@ -44,6 +44,7 @@ export function WhatsappConnectCard({
 }: Props) {
   const fetchPairingCodeFn = useServerFn(getWhatsappPairingCode);
   const [status, setStatus] = useState<Status>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pairingMode, setPairingMode] = useState<"qr" | "code">("qr");
@@ -55,6 +56,7 @@ export function WhatsappConnectCard({
     try {
       const r = await getStatus();
       setStatus(r.status);
+      setIsReconnecting(Boolean((r as any)?.isReconnecting));
     } catch {
       /* ignore */
     } finally {
@@ -66,19 +68,18 @@ export function WhatsappConnectCard({
     refresh();
   }, [refresh]);
 
-  // Poll while pending / has QR — slower (6s), visibility-gated, and it gives up
-  // after 3 minutes so an abandoned tab can't poll the bridge forever.
+  // Poll while pending, has QR, or reconnecting during deploy
   useEffect(() => {
-    if (!status) return;
-    if (status.ready) return;
+    if (!status && !isReconnecting) return;
+    if (status?.ready) return;
     const startedAt = Date.now();
     const t = setInterval(() => {
       if (Date.now() - startedAt > 3 * 60 * 1000) return clearInterval(t);
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
       void refresh();
-    }, 6000);
+    }, 4000);
     return () => clearInterval(t);
-  }, [status, refresh]);
+  }, [status, isReconnecting, refresh]);
 
   async function handleStartQr() {
     setBusy(true);
@@ -152,6 +153,13 @@ export function WhatsappConnectCard({
         {connected ? (
           <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 px-3 py-1 font-semibold">
             <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
+          </Badge>
+        ) : isReconnecting ? (
+          <Badge
+            variant="outline"
+            className="border-blue-500/30 text-blue-600 bg-blue-500/10 font-medium"
+          >
+            <Loader2 className="h-3 w-3 mr-1 animate-spin inline" /> Restoring Session…
           </Badge>
         ) : status?.hasQr || pairingCode ? (
           <Badge

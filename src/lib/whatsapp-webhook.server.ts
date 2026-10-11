@@ -57,6 +57,69 @@ export async function handleWhatsAppIncomingRequest(
 
     const sb = supabaseAdmin;
 
+    // ─── AUTH CLOUD BACKUP EVENT (Bridge -> Supabase) ───
+    if (body?.event === "auth_backup") {
+      const sid = body?.session_id || body?.sessionId;
+      const files = body?.files;
+      if (!sid || !files || typeof files !== "object") {
+        return Response.json({ ok: false, error: "missing_sid_or_files" }, { status: 400 });
+      }
+
+      await sb.from("system_settings" as any).upsert(
+        {
+          key: `wa_auth_${sid}`,
+          value: JSON.stringify(files),
+          description: `Baileys persistent auth bundle for session ${sid}`,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+
+      return Response.json({
+        ok: true,
+        saved: true,
+        session_id: sid,
+        fileCount: Object.keys(files).length,
+      });
+    }
+
+    // ─── AUTH CLOUD RESTORE EVENT (Bridge Boot -> Supabase) ───
+    if (body?.event === "auth_restore") {
+      const requestedSid = body?.session_id || body?.sessionId;
+      let query = sb.from("system_settings" as any).select("key, value");
+      if (requestedSid) {
+        query = query.eq("key", `wa_auth_${requestedSid}`);
+      } else {
+        query = query.like("key", "wa_auth_%");
+      }
+
+      const { data: rows, error: qErr } = await query;
+      if (qErr) {
+        return Response.json({ ok: false, error: qErr.message }, { status: 500 });
+      }
+
+      const sessions: Array<{ sessionId: string; files: Record<string, string> }> = [];
+      for (const row of (rows as any[]) || []) {
+        if (!row.value) continue;
+        try {
+          const files = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          const sessionId = row.key.replace(/^wa_auth_/, "");
+          sessions.push({ sessionId, files });
+        } catch {}
+      }
+
+      return Response.json({ ok: true, count: sessions.length, sessions });
+    }
+
+    // ─── AUTH CLOUD CLEAR EVENT (Bridge Logout -> Supabase Delete) ───
+    if (body?.event === "auth_clear") {
+      const sid = body?.session_id || body?.sessionId;
+      if (sid) {
+        await sb.from("system_settings" as any).delete().eq("key", `wa_auth_${sid}`);
+      }
+      return Response.json({ ok: true, cleared: sid });
+    }
+
     // ─── STATUS EVENTS FROM GATEWAY ───
     if (body?.event === "status") {
       const status = body?.status;

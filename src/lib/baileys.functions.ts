@@ -120,11 +120,24 @@ export const getMyWhatsappStatus = createServerFn({ method: "GET" })
           })
           .eq("id", clinic.id);
       }
-    } else if (!status && clinic.wa_status !== "disconnected") {
-      await context.supabase
-        .from("clinics")
-        .update({ wa_status: "disconnected", wa_phone: null, wa_session_id: null, wa_linked_by: null, wa_connected_at: null })
-        .eq("id", clinic.id);
+    } else if (!status) {
+      // Gateway is offline or rebooting (e.g. Render deploy / container wake-up).
+      // NEVER destructively erase credentials on temporary network or boot delays!
+      const isReconnecting = clinic.wa_status === "ready" || clinic.wa_status === "pending";
+      return {
+        sessionId: sid,
+        status: null,
+        dbStatus: clinic.wa_status,
+        isReconnecting,
+        gatewayBooting: true,
+      };
+    } else if (status.hasQr) {
+      if (clinic.wa_status !== "pending") {
+        await context.supabase
+          .from("clinics")
+          .update({ wa_status: "pending", wa_session_id: sid })
+          .eq("id", clinic.id);
+      }
     }
     return { sessionId: sid, status, dbStatus: clinic.wa_status };
   });
@@ -148,6 +161,11 @@ export const disconnectMyWhatsapp = createServerFn({ method: "POST" })
         wa_connected_at: null,
       })
       .eq("id", clinic.id);
+    // 3. Clear cloud backup from system_settings
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("system_settings" as any).delete().eq("key", `wa_auth_${sid}`);
+    } catch {}
     return { ok: true };
   });
 
