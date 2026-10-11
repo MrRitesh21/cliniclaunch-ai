@@ -1,10 +1,11 @@
-// ClinicX Ultra-Optimized WhatsApp Gateway Bridge — Baileys (Render Free Plan Optimized)
+// ClinicX SaaS Multi-Tenant WhatsApp Gateway Bridge — Baileys Engine
+// Isolated per-clinic sessions with on-demand lifecycle & Render Free Tier optimization
+
 import Fastify from "fastify";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import pino from "pino";
-import qrcode from "qrcode-terminal";
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
@@ -14,14 +15,13 @@ import makeWASocket, {
 } from "@whiskeysockets/baileys";
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
-const CLINIC_ID = process.env.CLINIC_ID || "default";
 const WEBHOOK_URL =
   process.env.CLINICX_WEBHOOK_URL ||
   process.env.clinicx_WEBHOOK_URL ||
   process.env.WEBHOOK_URL ||
   "https://clinicx.digiwil.com/api/public/whatsapp/incoming";
 
-// Safe auth directory: prefer process.env.AUTH_DIR, fallback to local ./auth or /tmp/auth
+// Safe persistent auth directory
 let AUTH_BASE_DIR = process.env.AUTH_DIR || path.resolve(process.cwd(), "auth");
 try {
   fs.mkdirSync(AUTH_BASE_DIR, { recursive: true });
@@ -34,15 +34,20 @@ const PORT = parseInt(process.env.PORT || "8080", 10);
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 const startedAt = Date.now();
 
-// ─── Multi-Session Store ───────────────────────────────────────────────────────
+// ─── Multi-Tenant Isolated Session Model ──────────────────────────────────────
 type SessionState = {
-  id: string;
+  id: string; // e.g. "user-<clinicId>" or "platform-admin"
+  clinicId: string; // clean clinic UUID
   sock: any;
   status: "disconnected" | "qr" | "connected";
   phone: string | null;
   qr: string | null;
+  pairingCode?: string | null;
+  createdAt: number;
+  qrTimeout?: NodeJS.Timeout | null;
 };
 
+// Isolated in-memory state store indexed strictly by Session ID
 const sessions = new Map<string, SessionState>();
 
 function sign(body: string) {
@@ -58,13 +63,13 @@ async function postWebhook(payload: Record<string, any>): Promise<any> {
       body,
     });
     if (!res.ok) {
-      logger.warn({ status: res.status, event: payload.event }, "webhook returned non-2xx");
+      logger.warn({ status: res.status, event: payload.event, session: payload.session_id }, "Webhook non-2xx");
       return null;
     }
     const data = await res.json().catch(() => null);
     return data;
-  } catch (err) {
-    logger.error({ err: String(err) }, "webhook dispatch failed");
+  } catch (err: any) {
+    logger.error({ err: err.message, session: payload.session_id }, "Webhook dispatch failed");
     return null;
   }
 }
@@ -74,50 +79,63 @@ function normalizeJid(jid: string | null | undefined): string {
   return num ? "+" + num : "";
 }
 
-// ─── Session Factory (Low-Memory Config for Render 512MB RAM) ───────────────────
+function sanitizeSessionId(sessionId: string): string {
+  return sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
 
-async function getOrCreateSession(sessionId: string): Promise<SessionState> {
-  const existing = sessions.get(sessionId);
+function extractClinicId(sessionId: string): string {
+  return sessionId.replace(/^user-/, "");
+}
+
+// ─── On-Demand Isolated Session Factory ───────────────────────────────────────
+
+async function getOrCreateSession(sessionId: string, autoConnect = true): Promise<SessionState> {
+  const cleanSid = sanitizeSessionId(sessionId);
+  const existing = sessions.get(cleanSid);
+
+  // If already connected or active in QR wait, reuse
   if (existing && (existing.status === "connected" || existing.status === "qr")) {
     return existing;
   }
 
-  const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));
+  const clinicId = extractClinicId(cleanSid);
+  const sessionDir = path.join(AUTH_BASE_DIR, cleanSid);
   fs.mkdirSync(sessionDir, { recursive: true });
 
   const stateObj: SessionState = existing || {
-    id: sessionId,
+    id: cleanSid,
+    clinicId,
     sock: null,
     status: "disconnected",
     phone: null,
     qr: null,
+    createdAt: Date.now(),
   };
 
-  if (existing && existing.sock) {
+  // Teardown stale socket if present
+  if (existing?.sock) {
     try {
       existing.sock.ev?.removeAllListeners();
       existing.sock.ws?.close();
-    } catch (err) {
-      logger.debug({ sessionId, err: String(err) }, "Cleaned up old socket");
-    }
+    } catch {}
   }
 
-  sessions.set(sessionId, stateObj);
+  sessions.set(cleanSid, stateObj);
+
+  if (!autoConnect) {
+    return stateObj;
+  }
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
   const { version } = await fetchLatestBaileysVersion();
 
-  // ⚡ CRITICAL RENDER 512MB RAM OPTIMIZATIONS:
-  // 1. syncFullHistory: false (NEVER pull years of historical chats into memory)
-  // 2. markOnlineOnConnect: false (reduces constant socket heartbeat overhead)
-  // 3. shouldIgnoreJid: ignore group & broadcast chats
-  // 4. getMessage: no heavy in-memory message buffering
+  // ⚡ Low-Memory, Isolated SaaS WASocket
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: false,
-    logger: pino({ level: "error" }), // Suppress high-frequency socket debug logs
-    syncFullHistory: false,
+    printQRInTerminal: false, // Clean logs for SaaS
+    logger: pino({ level: "error" }),
+    syncFullHistory: false, // Critical: never load gigabytes of past chats into RAM
     markOnlineOnConnect: false,
     generateHighQualityLinkPreview: false,
     keepAliveIntervalMs: 25_000,
@@ -132,69 +150,111 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
 
   stateObj.sock = sock;
 
+  // Persist auth credentials securely in the clinic's isolated directory
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", (update: any) => {
     const { connection, lastDisconnect, qr } = update;
+
     if (qr) {
       stateObj.status = "qr";
       stateObj.qr = qr;
-      logger.info({ sessionId }, "📱 New QR generated for session");
-      qrcode.generate(qr, { small: true });
+      logger.info({ sessionId: cleanSid }, "📱 QR code generated for isolated clinic session");
+
+      // Set 3-minute QR inactivity cleanup timer to protect memory
+      if (stateObj.qrTimeout) clearTimeout(stateObj.qrTimeout);
+      stateObj.qrTimeout = setTimeout(() => {
+        if (stateObj.status === "qr") {
+          logger.info({ sessionId: cleanSid }, "QR scan timed out (3m), disposing unauthenticated socket");
+          try {
+            stateObj.sock?.ev?.removeAllListeners();
+            stateObj.sock?.ws?.close();
+          } catch {}
+          stateObj.status = "disconnected";
+          stateObj.qr = null;
+        }
+      }, 3 * 60 * 1000);
     }
+
     if (connection === "open") {
+      if (stateObj.qrTimeout) clearTimeout(stateObj.qrTimeout);
       stateObj.status = "connected";
       stateObj.qr = null;
       stateObj.phone = normalizeJid(sock.user?.id);
-      logger.info({ sessionId, phone: stateObj.phone }, "✓ WhatsApp Connected Successfully");
-      postWebhook({
+
+      logger.info(
+        { sessionId: cleanSid, clinicId, phone: stateObj.phone },
+        "✓ Clinic WhatsApp Session Connected",
+      );
+
+      // Post status event to ClinicX
+      void postWebhook({
         event: "status",
         status: "connected",
-        session_id: sessionId,
+        session_id: cleanSid,
+        clinic_id: clinicId,
         phone: stateObj.phone,
       });
     }
+
     if (connection === "close") {
       stateObj.status = "disconnected";
       stateObj.qr = null;
       const code = (lastDisconnect?.error as any)?.output?.statusCode;
-      const shouldReconnect = code !== DisconnectReason.loggedOut;
-      logger.warn({ sessionId, code }, "WhatsApp Connection Closed");
-      postWebhook({ event: "status", status: "disconnected", session_id: sessionId });
+      const isLoggedOut = code === DisconnectReason.loggedOut;
 
-      if (shouldReconnect) {
-        // Auto-reconnect with 3.5s delay
-        setTimeout(() => getOrCreateSession(sessionId), 3500);
+      logger.warn({ sessionId: cleanSid, code, isLoggedOut }, "Session connection closed");
+
+      void postWebhook({
+        event: "status",
+        status: "disconnected",
+        session_id: cleanSid,
+        clinic_id: clinicId,
+      });
+
+      if (!isLoggedOut) {
+        // Reconnect after brief pause
+        setTimeout(() => {
+          const s = sessions.get(cleanSid);
+          if (s && s.status === "disconnected") {
+            void getOrCreateSession(cleanSid, true);
+          }
+        }, 4000);
       }
     }
   });
 
+  // ─── Isolated Inbound Message Dispatch ─────────────────────────────────────
   sock.ev.on("messages.upsert", async (upsert: any) => {
     const { messages, type } = upsert;
     if (type !== "notify") return;
+
     for (const m of messages) {
       if (m.key.fromMe || !m.message) continue;
+
+      const remoteJid = m.key.remoteJid;
+      if (!remoteJid || remoteJid.endsWith("@g.us") || remoteJid.endsWith("@broadcast")) {
+        continue;
+      }
+
       const text =
         m.message.conversation ||
         m.message.extendedTextMessage?.text ||
         m.message.imageMessage?.caption ||
         m.message.videoMessage?.caption ||
         "";
+
       if (!text) continue;
 
-      const remoteJid = m.key.remoteJid;
-      if (remoteJid && (remoteJid.endsWith("@g.us") || remoteJid.endsWith("@broadcast"))) {
-        continue; // Skip group and broadcast messages
-      }
-
       try {
-        if (remoteJid) await sock.sendPresenceUpdate("composing", remoteJid);
+        await sock.sendPresenceUpdate("composing", remoteJid);
       } catch {}
 
+      // Dispatch to ClinicX incoming webhook with full tenant isolation parameters
       const webhookRes = await postWebhook({
         event: "message",
-        session_id: sessionId,
-        clinic_id: CLINIC_ID,
+        session_id: cleanSid,
+        clinic_id: clinicId,
         to_phone: stateObj.phone,
         from: normalizeJid(remoteJid),
         name: m.pushName || null,
@@ -203,19 +263,19 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
         timestamp: Number(m.messageTimestamp) || Math.floor(Date.now() / 1000),
       });
 
-      // If webhook returned immediate AI reply, send it directly over Baileys socket
+      // Immediate reply dispatch if returned directly in webhook response
       if (webhookRes && webhookRes.reply && (webhookRes.needs_bridge_send || !webhookRes.sent)) {
         try {
           const preview = String(webhookRes.reply).slice(0, 40).replace(/\n/g, " ");
-          logger.info({ remoteJid, preview }, "Dispatching AI Receptionist reply via Baileys socket");
+          logger.info({ session: cleanSid, remoteJid, preview }, "Dispatching AI reply via isolated socket");
           await sock.sendMessage(remoteJid, { text: String(webhookRes.reply) });
         } catch (sendErr: any) {
-          logger.error({ err: sendErr.message, remoteJid }, "Error sending AI reply via Baileys");
+          logger.error({ session: cleanSid, err: sendErr.message }, "Error sending AI reply");
         }
       }
 
       try {
-        if (remoteJid) await sock.sendPresenceUpdate("paused", remoteJid);
+        await sock.sendPresenceUpdate("paused", remoteJid);
       } catch {}
     }
   });
@@ -223,47 +283,54 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
   return stateObj;
 }
 
-// ─── Auto-restore existing auth folders on start ─────────────────────────────
+// ─── Boot Restoration: Restore ONLY Authenticated Clinic Sessions ─────────────
+// Never start dummy/unrequested sessions on startup!
 try {
-  const folders = fs.readdirSync(AUTH_BASE_DIR);
-  for (const folder of folders) {
-    if (folder.startsWith("user-") || folder === "platform-admin" || folder === "default") {
-      logger.info({ folder }, "Restoring Baileys Session from disk");
-      void getOrCreateSession(folder);
+  const entries = fs.readdirSync(AUTH_BASE_DIR);
+  let restoredCount = 0;
+  for (const entry of entries) {
+    const credsPath = path.join(AUTH_BASE_DIR, entry, "creds.json");
+    if (fs.existsSync(credsPath)) {
+      logger.info({ sessionId: entry }, "Restoring authenticated clinic session from disk");
+      void getOrCreateSession(entry, true);
+      restoredCount++;
     }
   }
-} catch (err) {
-  logger.warn({ err: String(err) }, "No existing sessions found to restore");
+  logger.info({ restoredCount }, "Session boot restoration complete");
+} catch (err: any) {
+  logger.warn({ err: err.message }, "No existing session folders found on startup");
 }
 
-const defaultSessionId = process.env.DEFAULT_SESSION_ID || `user-${CLINIC_ID}`;
-void getOrCreateSession(defaultSessionId);
-
-// ─── FASTIFY HTTP SERVER ─────────────────────────────────────────────────────
+// ─── FASTIFY HTTP API (Multi-Tenant SaaS Endpoints) ──────────────────────────
 const fastify = Fastify({
   logger: false,
-  bodyLimit: 2 * 1024 * 1024, // 2MB
+  bodyLimit: 2 * 1024 * 1024,
 });
 
-// Root friendly probe
-fastify.get("/", async (_req, _reply) => {
+// Root Gateway Info
+fastify.get("/", async () => {
+  const connected = Array.from(sessions.values()).filter((s) => s.status === "connected").length;
   return {
     ok: true,
-    service: "ClinicX WhatsApp Baileys Bridge",
+    service: "ClinicX Multi-Tenant WhatsApp Gateway",
+    architecture: "isolated-sessions",
     uptime_s: Math.floor((Date.now() - startedAt) / 1000),
-    active_sessions: sessions.size,
-    memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    sessions_total: sessions.size,
+    sessions_connected: connected,
+    memory_rss_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
   };
 });
 
-// Health check endpoint for Render and Uptime monitors
-fastify.get("/health", async (_req, _reply) => {
+// Health check endpoint for Render / Uptime monitors
+fastify.get("/health", async () => {
   const mem = process.memoryUsage();
+  const connected = Array.from(sessions.values()).filter((s) => s.status === "connected").length;
   return {
     ok: true,
     status: "healthy",
-    engine: "baileys-fastify",
+    engine: "baileys-multi-tenant",
     sessions_active: sessions.size,
+    sessions_connected: connected,
     uptime_s: Math.floor((Date.now() - startedAt) / 1000),
     memory: {
       rss_mb: Math.round(mem.rss / 1024 / 1024),
@@ -272,30 +339,58 @@ fastify.get("/health", async (_req, _reply) => {
   };
 });
 
-// Start/Create a session
-fastify.post("/api/sessions", async (req, _reply) => {
-  const body = (req.body || {}) as any;
-  const sid = body.sessionId || defaultSessionId;
-  const sess = await getOrCreateSession(sid);
-  return { success: true, sessionId: sid, ready: sess.status === "connected" };
+// List all active sessions (Super Admin / Diagnostics)
+fastify.get("/api/sessions", async () => {
+  const list = Array.from(sessions.values()).map((s) => ({
+    id: s.id,
+    clinicId: s.clinicId,
+    status: s.status,
+    phone: s.phone,
+    hasQr: Boolean(s.qr),
+  }));
+  return { success: true, count: list.length, sessions: list };
 });
 
-// Request 8-digit phone pairing code (Alternative to QR scan)
+// On-demand session initialization (called when doctor clicks "Connect WhatsApp")
+fastify.post("/api/sessions", async (req, reply) => {
+  const body = (req.body || {}) as any;
+  const sid = body.sessionId;
+  if (!sid || typeof sid !== "string") {
+    reply.status(400);
+    return { success: false, error: "sessionId is required (e.g. user-<clinicId>)" };
+  }
+
+  const sess = await getOrCreateSession(sid, true);
+  return {
+    success: true,
+    sessionId: sess.id,
+    clinicId: sess.clinicId,
+    status: sess.status,
+    ready: sess.status === "connected",
+    hasQr: Boolean(sess.qr),
+  };
+});
+
+// Request 8-digit phone pairing code for a specific clinic session
 fastify.post("/api/sessions/:sessionId/pairing-code", async (req, reply) => {
   const { sessionId } = req.params as { sessionId: string };
   const { phone } = (req.body || {}) as { phone?: string };
+
   if (!phone) {
     reply.status(400);
     return { success: false, error: "Phone number is required for pairing code" };
   }
-  const sess = await getOrCreateSession(sessionId);
+
+  const sess = await getOrCreateSession(sessionId, true);
   if (sess.status === "connected") {
     return { success: true, alreadyConnected: true, phone: sess.phone };
   }
+
   try {
     const cleanPhone = phone.replace(/\D/g, "");
     const code = await sess.sock.requestPairingCode(cleanPhone);
-    logger.info({ sessionId, cleanPhone, code }, "Generated WhatsApp Pairing Code");
+    sess.pairingCode = code;
+    logger.info({ sessionId: sess.id, cleanPhone, code }, "Generated WhatsApp Pairing Code for clinic");
     return { success: true, code, pairingCode: code };
   } catch (err: any) {
     reply.status(500);
@@ -303,60 +398,64 @@ fastify.post("/api/sessions/:sessionId/pairing-code", async (req, reply) => {
   }
 });
 
-// Check status of a specific session
-fastify.get("/api/sessions/:sessionId/status", async (req, _reply) => {
+// Check status & retrieve live QR code for a specific clinic session
+fastify.get("/api/sessions/:sessionId/status", async (req) => {
   const { sessionId } = req.params as { sessionId: string };
-  let sess = sessions.get(sessionId);
-  if (!sess || (sess.status !== "connected" && !sess.qr)) {
-    const connectedSessions = Array.from(sessions.values()).filter((s) => s.status === "connected");
-    if (connectedSessions.length === 1) {
-      sess = connectedSessions[0];
-    }
-  }
+  const cleanSid = sanitizeSessionId(sessionId);
+  const sess = sessions.get(cleanSid);
+
   if (!sess) {
-    return { id: sessionId, ready: false, hasQr: false, qr: null, clientInfo: null };
+    return { id: cleanSid, ready: false, hasQr: false, qr: null, clientInfo: null };
   }
+
   return {
     id: sess.id,
     ready: sess.status === "connected",
+    status: sess.status,
     hasQr: Boolean(sess.qr),
     qr: sess.qr,
     clientInfo: sess.phone ? { phone: sess.phone, id: sess.id } : null,
   };
 });
 
-// Delete/logout a specific session
-fastify.delete("/api/sessions/:sessionId", async (req, _reply) => {
+// Delete / Disconnect ONLY this clinic's session
+fastify.delete("/api/sessions/:sessionId", async (req) => {
   const { sessionId } = req.params as { sessionId: string };
-  const sess = sessions.get(sessionId);
+  const cleanSid = sanitizeSessionId(sessionId);
+  const sess = sessions.get(cleanSid);
+
   if (sess?.sock) {
     try {
+      sess.sock.ev?.removeAllListeners();
       await sess.sock.logout();
-    } catch (err) {
-      logger.error({ sessionId, err: String(err) }, "Error logging out session");
+    } catch (err: any) {
+      logger.warn({ sessionId: cleanSid, err: err.message }, "Error during session logout");
     }
   }
-  sessions.delete(sessionId);
-  const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));
+
+  sessions.delete(cleanSid);
+
+  const sessionDir = path.join(AUTH_BASE_DIR, cleanSid);
   try {
     fs.rmSync(sessionDir, { recursive: true, force: true });
+    logger.info({ sessionId: cleanSid }, "Deleted clinic auth directory from disk");
   } catch {}
-  return { success: true };
+
+  return { success: true, deleted: cleanSid };
 });
 
-// Send message via a specific session
+// Send message via a SPECIFIC clinic session (Strict Tenant Isolation)
 fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
   const { sessionId } = req.params as { sessionId: string };
-  let sess = sessions.get(sessionId);
-  if (!sess || sess.status !== "connected") {
-    const connectedSessions = Array.from(sessions.values()).filter((s) => s.status === "connected");
-    if (connectedSessions.length === 1) {
-      sess = connectedSessions[0];
-    }
-  }
+  const cleanSid = sanitizeSessionId(sessionId);
+  const sess = sessions.get(cleanSid);
+
   if (!sess || sess.status !== "connected") {
     reply.status(503);
-    return { success: false, error: `Session ${sessionId} is not connected` };
+    return {
+      success: false,
+      error: `Clinic WhatsApp session [${cleanSid}] is not connected. Pair via doctor dashboard.`,
+    };
   }
 
   const { phone: toPhone, message } = (req.body || {}) as any;
@@ -370,35 +469,13 @@ fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
     const sent = await sess.sock.sendMessage(jid, { text: String(message) });
     return { success: true, id: sent?.key?.id || null };
   } catch (err: any) {
-    logger.error({ sid: sessionId, err: String(err) }, "send via session failed");
+    logger.error({ sessionId: cleanSid, err: err.message }, "Send failed on isolated socket");
     reply.status(500);
-    return { success: false, error: String(err) };
+    return { success: false, error: String(err.message || err) };
   }
 });
 
-// Legacy /send endpoint
-fastify.post("/send", async (req, reply) => {
-  const body = (req.body || {}) as any;
-  const { to, text, sessionId } = body;
-  const sid = sessionId || defaultSessionId;
-  const sess = sessions.get(sid);
-  if (!sess || sess.status !== "connected") {
-    reply.status(503);
-    return { error: `Session ${sid} not connected` };
-  }
-  try {
-    const jid = String(to).replace(/^\+/, "").replace(/\D/g, "") + "@s.whatsapp.net";
-    const sent = await sess.sock.sendMessage(jid, { text: String(text) });
-    return { id: sent?.key?.id || null };
-  } catch (err: any) {
-    reply.status(500);
-    return { error: String(err) };
-  }
-});
-
-// ─── RENDER 15-MINUTE SPIN-DOWN AUTO KEEP-ALIVE ──────────────────────────────
-// Render Free tier sleeps after 15 minutes of inactivity.
-// We auto-detect RENDER_EXTERNAL_URL (populated by Render) and self-ping every 10 min.
+// ─── Render Free Plan Keep-Alive ─────────────────────────────────────────────
 const RENDER_EXTERNAL_URL =
   process.env.RENDER_EXTERNAL_URL ||
   process.env.SELF_URL ||
@@ -406,7 +483,7 @@ const RENDER_EXTERNAL_URL =
 
 if (RENDER_EXTERNAL_URL) {
   const cleanUrl = RENDER_EXTERNAL_URL.replace(/\/+$/, "");
-  const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+  const PING_INTERVAL_MS = 10 * 60 * 1000;
   logger.info({ pingUrl: `${cleanUrl}/health` }, "✓ Render Keep-Alive self-ping enabled (every 10m)");
   setInterval(async () => {
     try {
@@ -420,10 +497,10 @@ if (RENDER_EXTERNAL_URL) {
   }, PING_INTERVAL_MS);
 }
 
-// ─── START SERVER ────────────────────────────────────────────────────────────
+// ─── Start Fastify Server ────────────────────────────────────────────────────
 try {
   await fastify.listen({ port: PORT, host: "0.0.0.0" });
-  logger.info(`ClinicX Ultra-Optimized Baileys Bridge listening on port ${PORT}`);
+  logger.info(`ClinicX Multi-Tenant SaaS WhatsApp Gateway listening on port ${PORT}`);
 } catch (err) {
   logger.error(err);
   process.exit(1);
