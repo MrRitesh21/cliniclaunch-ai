@@ -221,16 +221,22 @@ fastify.post("/api/sessions", async (req, _reply) => {
 // Check status of a specific session
 fastify.get("/api/sessions/:sessionId/status", async (req, _reply) => {
   const { sessionId } = req.params as { sessionId: string };
-  const sess = sessions.get(sessionId);
+  let sess = sessions.get(sessionId);
+  if (!sess || (sess.status !== "connected" && !sess.qr)) {
+    const connectedSessions = Array.from(sessions.values()).filter((s) => s.status === "connected");
+    if (connectedSessions.length === 1) {
+      sess = connectedSessions[0];
+    }
+  }
   if (!sess) {
     return { id: sessionId, ready: false, hasQr: false, qr: null, clientInfo: null };
   }
   return {
-    id: sessionId,
+    id: sess.id,
     ready: sess.status === "connected",
     hasQr: Boolean(sess.qr),
     qr: sess.qr,
-    clientInfo: sess.phone ? { phone: sess.phone, id: sessionId } : null,
+    clientInfo: sess.phone ? { phone: sess.phone, id: sess.id } : null,
   };
 });
 
@@ -254,7 +260,15 @@ fastify.delete("/api/sessions/:sessionId", async (req, _reply) => {
 // Send message via a SPECIFIC session
 fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
   const { sessionId } = req.params as { sessionId: string };
-  const sess = sessions.get(sessionId);
+  let sess = sessions.get(sessionId);
+  if (!sess || sess.status !== "connected") {
+    // If specific session not found/connected, check if there's any active connected session
+    const connectedSessions = Array.from(sessions.values()).filter((s) => s.status === "connected");
+    if (connectedSessions.length === 1) {
+      sess = connectedSessions[0];
+      logger.info({ requested: sessionId, fallback: sess.id }, "Using single connected session fallback");
+    }
+  }
   if (!sess || sess.status !== "connected") {
     reply.status(503);
     return { success: false, error: `Session ${sessionId} is not connected` };
