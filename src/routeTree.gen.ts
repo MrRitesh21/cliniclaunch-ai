@@ -115,6 +115,8 @@ import { Route as AuthenticatedDashboardPatientsPatientIdRouteImport } from './r
 import { Route as ApiPublicHooksRazorpayRouteImport } from './routes/api/public/hooks/razorpay'
 import { Route as ApiPublicHooksSeoAutopilotRouteImport } from './routes/api/public/hooks/seo-autopilot'
 import { Route as ApiPublicHooksWhatsappRouteImport } from './routes/api/public/hooks/whatsapp'
+import { Route as ApiPublicWhatsappIncomingRouteImport } from './routes/api.public.whatsapp.incoming'
+import { Route as ApiPublicWhatsappIncomingClinicIdRouteImport } from './routes/api.public.whatsapp.incoming.$clinicId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -683,6 +685,18 @@ const ApiPublicHooksWhatsappRoute = ApiPublicHooksWhatsappRouteImport.update({
   path: '/api/public/hooks/whatsapp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWhatsappIncomingRoute =
+  ApiPublicWhatsappIncomingRouteImport.update({
+    id: '/api/public/whatsapp/incoming',
+    path: '/api/public/whatsapp/incoming',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappIncomingClinicIdRoute =
+  ApiPublicWhatsappIncomingClinicIdRouteImport.update({
+    id: '/$clinicId',
+    path: '/$clinicId',
+    getParentRoute: () => ApiPublicWhatsappIncomingRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -787,8 +801,10 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
+  '/api/public/whatsapp/incoming': typeof ApiPublicWhatsappIncomingRouteWithChildren
   '/admin/doctors/': typeof AdminAdminDoctorsIndexRoute
   '/dashboard/patients/': typeof AuthenticatedDashboardPatientsIndexRoute
+  '/api/public/whatsapp/incoming/$clinicId': typeof ApiPublicWhatsappIncomingClinicIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -889,8 +905,10 @@ export interface FileRoutesByTo {
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
+  '/api/public/whatsapp/incoming': typeof ApiPublicWhatsappIncomingRouteWithChildren
   '/admin/doctors': typeof AdminAdminDoctorsIndexRoute
   '/dashboard/patients': typeof AuthenticatedDashboardPatientsIndexRoute
+  '/api/public/whatsapp/incoming/$clinicId': typeof ApiPublicWhatsappIncomingClinicIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -998,8 +1016,10 @@ export interface FileRoutesById {
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
+  '/api/public/whatsapp/incoming': typeof ApiPublicWhatsappIncomingRouteWithChildren
   '/_admin/admin/doctors/': typeof AdminAdminDoctorsIndexRoute
   '/_authenticated/dashboard/patients/': typeof AuthenticatedDashboardPatientsIndexRoute
+  '/api/public/whatsapp/incoming/$clinicId': typeof ApiPublicWhatsappIncomingClinicIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1106,8 +1126,10 @@ export interface FileRouteTypes {
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
+    | '/api/public/whatsapp/incoming'
     | '/admin/doctors/'
     | '/dashboard/patients/'
+    | '/api/public/whatsapp/incoming/$clinicId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1208,8 +1230,10 @@ export interface FileRouteTypes {
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
+    | '/api/public/whatsapp/incoming'
     | '/admin/doctors'
     | '/dashboard/patients'
+    | '/api/public/whatsapp/incoming/$clinicId'
   id:
     | '__root__'
     | '/'
@@ -1316,8 +1340,10 @@ export interface FileRouteTypes {
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
+    | '/api/public/whatsapp/incoming'
     | '/_admin/admin/doctors/'
     | '/_authenticated/dashboard/patients/'
+    | '/api/public/whatsapp/incoming/$clinicId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1365,6 +1391,7 @@ export interface RootRouteChildren {
   ApiPublicHooksRazorpayRoute: typeof ApiPublicHooksRazorpayRoute
   ApiPublicHooksSeoAutopilotRoute: typeof ApiPublicHooksSeoAutopilotRoute
   ApiPublicHooksWhatsappRoute: typeof ApiPublicHooksWhatsappRoute
+  ApiPublicWhatsappIncomingRoute: typeof ApiPublicWhatsappIncomingRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -2111,6 +2138,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksWhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp/incoming': {
+      id: '/api/public/whatsapp/incoming'
+      path: '/api/public/whatsapp/incoming'
+      fullPath: '/api/public/whatsapp/incoming'
+      preLoaderRoute: typeof ApiPublicWhatsappIncomingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp/incoming/$clinicId': {
+      id: '/api/public/whatsapp/incoming/$clinicId'
+      path: '/$clinicId'
+      fullPath: '/api/public/whatsapp/incoming/$clinicId'
+      preLoaderRoute: typeof ApiPublicWhatsappIncomingClinicIdRouteImport
+      parentRoute: typeof ApiPublicWhatsappIncomingRoute
+    }
   }
 }
 
@@ -2305,6 +2346,21 @@ const CSlugRouteChildren: CSlugRouteChildren = {
 
 const CSlugRouteWithChildren = CSlugRoute._addFileChildren(CSlugRouteChildren)
 
+interface ApiPublicWhatsappIncomingRouteChildren {
+  ApiPublicWhatsappIncomingClinicIdRoute: typeof ApiPublicWhatsappIncomingClinicIdRoute
+}
+
+const ApiPublicWhatsappIncomingRouteChildren: ApiPublicWhatsappIncomingRouteChildren =
+  {
+    ApiPublicWhatsappIncomingClinicIdRoute:
+      ApiPublicWhatsappIncomingClinicIdRoute,
+  }
+
+const ApiPublicWhatsappIncomingRouteWithChildren =
+  ApiPublicWhatsappIncomingRoute._addFileChildren(
+    ApiPublicWhatsappIncomingRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
@@ -2351,6 +2407,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksRazorpayRoute: ApiPublicHooksRazorpayRoute,
   ApiPublicHooksSeoAutopilotRoute: ApiPublicHooksSeoAutopilotRoute,
   ApiPublicHooksWhatsappRoute: ApiPublicHooksWhatsappRoute,
+  ApiPublicWhatsappIncomingRoute: ApiPublicWhatsappIncomingRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

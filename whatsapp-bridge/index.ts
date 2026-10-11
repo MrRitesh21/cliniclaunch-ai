@@ -14,7 +14,10 @@ import makeWASocket, {
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
 const CLINIC_ID = process.env.CLINIC_ID || "default";
 const WEBHOOK_URL =
-  process.env.clinicx_WEBHOOK_URL || "https://clinicx.digiwil.com/api/public/hooks/whatsapp";
+  process.env.CLINICX_WEBHOOK_URL ||
+  process.env.clinicx_WEBHOOK_URL ||
+  process.env.WEBHOOK_URL ||
+  "https://clinicx.digiwil.com/api/public/hooks/whatsapp";
 const AUTH_BASE_DIR = process.env.AUTH_DIR || "/data/auth";
 const PORT = parseInt(process.env.PORT || "8080", 10);
 
@@ -37,7 +40,7 @@ function sign(body: string) {
   return "sha256=" + crypto.createHmac("sha256", BRIDGE_SECRET).update(body).digest("hex");
 }
 
-async function postWebhook(payload: Record<string, any>) {
+async function postWebhook(payload: Record<string, any>): Promise<any> {
   const body = JSON.stringify(payload);
   try {
     const res = await fetch(WEBHOOK_URL, {
@@ -45,9 +48,15 @@ async function postWebhook(payload: Record<string, any>) {
       headers: { "content-type": "application/json", "x-bridge-signature": sign(body) },
       body,
     });
-    if (!res.ok) logger.warn({ status: res.status, event: payload.event }, "webhook non-2xx");
+    if (!res.ok) {
+      logger.warn({ status: res.status, event: payload.event }, "webhook non-2xx");
+      return null;
+    }
+    const data = await res.json().catch(() => null);
+    return data;
   } catch (err) {
     logger.error({ err: String(err) }, "webhook failed");
+    return null;
   }
 }
 
@@ -155,7 +164,7 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
         logger.debug({ err: String(err) }, "Failed to send presence composing");
       }
 
-      await postWebhook({
+      const webhookRes = await postWebhook({
         event: "message",
         session_id: sessionId,
         clinic_id: CLINIC_ID,
@@ -166,6 +175,17 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
         wa_message_id: m.key.id,
         timestamp: Number(m.messageTimestamp) || Math.floor(Date.now() / 1000),
       });
+
+      // If webhook generated an AI reply that needs bridge delivery, send it immediately!
+      if (webhookRes && webhookRes.reply && (webhookRes.needs_bridge_send || !webhookRes.sent)) {
+        try {
+          const preview = String(webhookRes.reply).slice(0, 45).replace(/\n/g, " ");
+          logger.info({ remoteJid, preview }, "Dispatching AI Receptionist reply via live Baileys socket");
+          await sock.sendMessage(remoteJid, { text: String(webhookRes.reply) });
+        } catch (sendErr) {
+          logger.error({ err: String(sendErr), remoteJid }, "Error sending AI reply from Baileys socket");
+        }
+      }
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("paused", remoteJid);

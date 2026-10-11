@@ -98,8 +98,8 @@ export async function baileysSend(
   const to = normalizePhone(phone);
   if (!to || !message) return { ok: false, error: "phone and message required" };
   if (!BAILEYS_URL) {
-    console.warn(`[Baileys] BAILEYS_URL not configured. Simulating send to ${to}: ${message.slice(0, 60)}...`);
-    return { ok: true };
+    console.warn(`[Baileys] BAILEYS_URL not configured. Delegating delivery to webhook response or queue.`);
+    return { ok: false, error: "BAILEYS_URL_NOT_CONFIGURED" };
   }
   try {
     const res = await fetch(`${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`, {
