@@ -1,19 +1,31 @@
-# Optimized Dockerfile for WhatsApp Baileys Gateway Service on Render Free Plan
-FROM node:20-alpine
+# ClinicX WhatsApp Baileys Bridge - Render Free Plan Optimized Docker Container
+FROM node:20-alpine AS runner
+
+# Install ffmpeg for WhatsApp voice notes & media processing + wget for health check
+RUN apk add --no-cache ffmpeg wget ca-certificates
+
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg
+# Ensure auth directory exists with full write permissions
+RUN mkdir -p /app/auth && chmod 777 /app/auth
 
+# Cache dependency layer
 COPY package*.json ./
-RUN npm install
+RUN npm install --omit=optional
 
+# Copy application files
 COPY . .
 
-ENV PORT=8080
-ENV AUTH_DIR=/app/auth
-ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=384"
+# Environment defaults for Render Free Plan (512MB RAM)
+ENV PORT=8080 \
+    AUTH_DIR=/app/auth \
+    NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=384"
 
 EXPOSE 8080
+
+# Built-in health check for container health monitoring
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:8080/health || exit 1
 
 CMD ["npx", "tsx", "--max-old-space-size=384", "index.ts"]

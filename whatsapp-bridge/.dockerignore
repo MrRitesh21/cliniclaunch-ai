@@ -2,11 +2,13 @@
 !**/.env.example
 **/.git
 **/node_modules
-**/.wwebjs_auth
+**/auth
 **/auth_info_baileys
+**/.wwebjs_auth
 **/sessions
 **/creds.json
 *.pem
 *.key
 *.crt
 id_rsa*
+dist/

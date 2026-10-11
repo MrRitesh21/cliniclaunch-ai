@@ -1,0 +1,22 @@
+# Render Blueprint for ClinicX WhatsApp Bridge (Docker Runtime on Free Plan)
+services:
+  - type: web
+    name: clinicx-whatsapp-bridge
+    env: docker
+    plan: free
+    region: singapore
+    rootDir: whatsapp-bridge
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: CLINICX_WEBHOOK_URL
+        value: https://clinicx.digiwil.com/api/public/whatsapp/incoming
+      - key: BRIDGE_SECRET
+        value: clinicx-secret-key
+      - key: NODE_ENV
+        value: production
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=384
