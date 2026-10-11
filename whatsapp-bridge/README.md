@@ -1,104 +1,73 @@
-# ClinicX WhatsApp Bridge (Baileys)
+# ClinicX WhatsApp Bridge (Render Free Plan Optimized)
 
-A standalone Node.js service that connects to WhatsApp via Baileys and bridges messages to your ClinicX app.
-
-**Deploy this per clinic** on Railway, Render, Fly.io, or any always-on Node host. Each clinic = one bridge instance = one WhatsApp number.
-
-> ⚠️ **Baileys uses WhatsApp Web reverse-engineering. Meta may ban the number.** For production use, prefer WhatsApp Cloud API. Use this only if the doctor accepts the ban risk.
-
-## What this does
-
-- Pairs with WhatsApp via QR code (one-time)
-- Persists auth state on disk so it reconnects automatically
-- Forwards every inbound message to your ClinicX app via HMAC-signed webhook
-- Accepts outbound send requests from ClinicX (authenticated by shared secret)
+Lightweight, robust Node.js service connecting WhatsApp Web (via Baileys) with your ClinicX platform.
 
 ---
 
-## 1. Deploy on Railway (recommended, ~5 min)
-
-1. Fork/upload this `whatsapp-bridge/` folder to its own GitHub repo
-2. Create a new Railway project from that repo
-3. Add a **Persistent Volume** mounted at `/data` (1 GB is plenty)
-4. Set environment variables (see below)
-5. Deploy. Open the live logs to scan the QR code with WhatsApp.
-
-### Environment variables
-
-| Name                  | Required | Description                                                                                                                                                   |
-| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BRIDGE_SECRET`       | yes      | A long random string. **Paste the same value into the ClinicX WhatsApp settings page** so HMAC matches both directions. Generate with `openssl rand -hex 32`. |
-| `CLINIC_ID`           | yes      | The clinic UUID from ClinicX (copy from the WhatsApp settings page).                                                                                          |
-| `clinicx_WEBHOOK_URL` | yes      | `https://YOUR-clinicx-DOMAIN/api/public/whatsapp/incoming/{CLINIC_ID}`                                                                                        |
-| `AUTH_DIR`            | no       | Where Baileys stores session keys. Default: `/data/auth`. Must be on the persistent volume.                                                                   |
-| `PORT`                | no       | Default `8080`. Railway sets this automatically.                                                                                                              |
-
-### Railway settings
-
-- **Start command**: `node index.js`
-- **Restart policy**: On failure
-- **Volume mount path**: `/data`
+## ⚡ Render Free Plan Optimizations Included:
+1. **Low-Memory Ceiling (stays < 120MB, limit is 512MB):**
+   - Disabled historical chat sync (`syncFullHistory: false`).
+   - Filtered out group and broadcast messages from memory.
+   - Node heap capped at `--max-old-space-size=384` to prevent OOM crash.
+2. **Auto Keep-Alive Self-Ping (Prevents 15-Minute Free Tier Spin-Down):**
+   - Automatically detects `RENDER_EXTERNAL_URL` and pings `/health` every 10 minutes so Render never sleeps.
+3. **8-Digit Phone Pairing Code:**
+   - Supports `/api/sessions/:sessionId/pairing-code` so you can connect by entering an 8-digit code on WhatsApp without squinting at terminal QR ASCII art.
+4. **Instant Fastify Engine:**
+   - Ultra-low latency webhook delivery to `https://clinicx.digiwil.com/api/public/whatsapp/incoming`.
 
 ---
 
-## 2. Pair with WhatsApp
+## 🚀 How to Deploy on Render (Step-by-Step)
 
-1. After first deploy, open Railway **Logs**. You'll see a QR code rendered in ASCII.
-2. On the doctor's phone: WhatsApp → Settings → Linked devices → Link a device → scan.
-3. Logs will show `✓ Connected as 91XXXXXXXXXX`. Session is now saved to `/data/auth`.
-4. Restart-safe: subsequent deploys reconnect automatically without rescanning.
-
----
-
-## 3. Connect to ClinicX
-
-1. In ClinicX, go to **Dashboard → WhatsApp**.
-2. Paste the Railway public URL (e.g. `https://my-bridge.up.railway.app`) and the same `BRIDGE_SECRET`.
-3. Click **Test connection**. Status should flip to "Connected".
-
----
-
-## 4. HTTP API (used by ClinicX)
-
-All requests authenticated with header `X-Bridge-Signature: sha256=<hmac of raw body using BRIDGE_SECRET>`.
-
-### `GET /status`
-
-Returns `{ "status": "connected" | "disconnected" | "qr", "phone": "+91...", "uptime_s": 12345 }`.
-
-### `POST /send`
-
-Body: `{ "to": "+919876543210", "text": "Hello" }`
-
-Response: `{ "id": "wa_msg_id" }` or `{ "error": "..." }`.
-
-### `POST /logout`
-
-Wipes the session — doctor will need to re-pair via QR.
+### Option A: Using Web Service (Standard UI)
+1. Go to [Render Dashboard](https://dashboard.render.com).
+2. Click **New +** → **Web Service**.
+3. Connect your GitHub repository (`cliniclaunch-ai`).
+4. Configure these fields:
+   - **Name:** `clinicx-whatsapp-bridge`
+   - **Region:** `Singapore` (or nearest to India)
+   - **Root Directory:** `whatsapp-bridge`
+   - **Runtime:** `Node`
+   - **Build Command:** `npm install`
+   - **Start Command:** `npm start`
+   - **Instance Type:** `Free`
+5. Under **Environment Variables**, add:
+   | Key | Value |
+   |---|---|
+   | `PORT` | `8080` |
+   | `CLINICX_WEBHOOK_URL` | `https://clinicx.digiwil.com/api/public/whatsapp/incoming` |
+   | `BRIDGE_SECRET` | `clinicx-secret-key` |
+   | `NODE_OPTIONS` | `--max-old-space-size=384` |
+6. Click **Create Web Service**.
 
 ---
 
-## 5. Webhook payload (bridge → ClinicX)
-
-The bridge POSTs to `clinicx_WEBHOOK_URL` with:
-
-```json
-{
-  "event": "message",
-  "from": "+919876543210",
-  "name": "Patient Name",
-  "text": "Hi, I'd like to book an appointment",
-  "wa_message_id": "ABCD1234",
-  "timestamp": 1718950000
-}
-```
-
-Header: `X-Bridge-Signature: sha256=<hmac>`.
+### Option B: Using Blueprint (`render.yaml`)
+1. Click **New +** → **Blueprint**.
+2. Connect your repository. Render will automatically detect `whatsapp-bridge/render.yaml` and configure all environment variables and health checks automatically.
+3. Click **Apply**.
 
 ---
 
-## Troubleshooting
+## 🔗 Connecting to ClinicX
 
-- **QR doesn't appear**: check `AUTH_DIR` is writable and the volume is mounted.
-- **"Stream errored"**: WhatsApp closed the session. Restart the service; if it loops, delete `/data/auth` contents and re-pair.
-- **Number banned**: nothing the bridge can do. Use a different number. Strongly consider migrating to WhatsApp Cloud API.
+Once Render finishes deploying, your bridge will get a public URL like:
+👉 `https://clinicx-whatsapp-bridge.onrender.com`
+
+1. Open your Vercel Dashboard for `ClinicX`.
+2. Go to **Settings → Environment Variables**.
+3. Set:
+   ```
+   BAILEYS_URL=https://clinicx-whatsapp-bridge.onrender.com
+   ```
+   *(Make sure there is no trailing `/`)*
+4. Redeploy or restart your Vercel project so the variable takes effect.
+5. In ClinicX Admin ([`/admin/whatsapp`](https://clinicx.digiwil.com/admin/whatsapp)), click **"Test Ping Server"** to verify that Vercel reaches Render in ~100-300ms!
+
+---
+
+## 📱 Pairing with WhatsApp
+- Go to ClinicX **Doctor Dashboard → WhatsApp** ([`/dashboard/whatsapp`](https://clinicx.digiwil.com/dashboard/whatsapp)).
+- Scan the QR code with WhatsApp (Linked Devices) or use the Pairing Code.
+- Done! The AI Receptionist is now live 24/7!

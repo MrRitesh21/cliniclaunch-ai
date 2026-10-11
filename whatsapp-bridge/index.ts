@@ -1,4 +1,4 @@
-// ClinicX Multi-Tenant WhatsApp Gateway Bridge — Baileys → ClinicX Webhook (Fastify Engine)
+// ClinicX Ultra-Optimized WhatsApp Gateway Bridge — Baileys (Render Free Plan Optimized)
 import Fastify from "fastify";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -9,6 +9,8 @@ import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  isJidGroup,
+  isJidBroadcast,
 } from "@whiskeysockets/baileys";
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "clinicx-secret-key";
@@ -17,12 +19,19 @@ const WEBHOOK_URL =
   process.env.CLINICX_WEBHOOK_URL ||
   process.env.clinicx_WEBHOOK_URL ||
   process.env.WEBHOOK_URL ||
-  "https://clinicx.digiwil.com/api/public/hooks/whatsapp";
-const AUTH_BASE_DIR = process.env.AUTH_DIR || "/data/auth";
-const PORT = parseInt(process.env.PORT || "8080", 10);
+  "https://clinicx.digiwil.com/api/public/whatsapp/incoming";
 
-fs.mkdirSync(AUTH_BASE_DIR, { recursive: true });
-const logger = pino({ level: "info" });
+// Safe auth directory: prefer process.env.AUTH_DIR, fallback to local ./auth or /tmp/auth
+let AUTH_BASE_DIR = process.env.AUTH_DIR || path.resolve(process.cwd(), "auth");
+try {
+  fs.mkdirSync(AUTH_BASE_DIR, { recursive: true });
+} catch {
+  AUTH_BASE_DIR = path.resolve("/tmp", "clinicx-auth");
+  fs.mkdirSync(AUTH_BASE_DIR, { recursive: true });
+}
+
+const PORT = parseInt(process.env.PORT || "8080", 10);
+const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 const startedAt = Date.now();
 
 // ─── Multi-Session Store ───────────────────────────────────────────────────────
@@ -49,13 +58,13 @@ async function postWebhook(payload: Record<string, any>): Promise<any> {
       body,
     });
     if (!res.ok) {
-      logger.warn({ status: res.status, event: payload.event }, "webhook non-2xx");
+      logger.warn({ status: res.status, event: payload.event }, "webhook returned non-2xx");
       return null;
     }
     const data = await res.json().catch(() => null);
     return data;
   } catch (err) {
-    logger.error({ err: String(err) }, "webhook failed");
+    logger.error({ err: String(err) }, "webhook dispatch failed");
     return null;
   }
 }
@@ -65,7 +74,7 @@ function normalizeJid(jid: string | null | undefined): string {
   return num ? "+" + num : "";
 }
 
-// ─── Session Factory ─────────────────────────────────────────────────────────
+// ─── Session Factory (Low-Memory Config for Render 512MB RAM) ───────────────────
 
 async function getOrCreateSession(sessionId: string): Promise<SessionState> {
   const existing = sessions.get(sessionId);
@@ -83,26 +92,42 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
     phone: null,
     qr: null,
   };
-  
+
   if (existing && existing.sock) {
     try {
-      existing.sock.ev.removeAllListeners();
+      existing.sock.ev?.removeAllListeners();
       existing.sock.ws?.close();
     } catch (err) {
-      logger.error({ sessionId, err: String(err) }, "Error cleaning up old socket");
+      logger.debug({ sessionId, err: String(err) }, "Cleaned up old socket");
     }
   }
-  
+
   sessions.set(sessionId, stateObj);
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
   const { version } = await fetchLatestBaileysVersion();
 
+  // ⚡ CRITICAL RENDER 512MB RAM OPTIMIZATIONS:
+  // 1. syncFullHistory: false (NEVER pull years of historical chats into memory)
+  // 2. markOnlineOnConnect: false (reduces constant socket heartbeat overhead)
+  // 3. shouldIgnoreJid: ignore group & broadcast chats
+  // 4. getMessage: no heavy in-memory message buffering
   const sock = makeWASocket({
     version,
     auth: state,
     printQRInTerminal: false,
-    logger: pino({ level: "silent" }),
+    logger: pino({ level: "error" }), // Suppress high-frequency socket debug logs
+    syncFullHistory: false,
+    markOnlineOnConnect: false,
+    generateHighQualityLinkPreview: false,
+    keepAliveIntervalMs: 25_000,
+    defaultQueryTimeoutMs: 60_000,
+    shouldIgnoreJid: (jid) =>
+      isJidGroup(jid) ||
+      isJidBroadcast(jid) ||
+      jid.endsWith("@broadcast") ||
+      jid.endsWith("@newsletter"),
+    getMessage: async () => undefined,
   });
 
   stateObj.sock = sock;
@@ -114,14 +139,14 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
     if (qr) {
       stateObj.status = "qr";
       stateObj.qr = qr;
-      logger.info({ sessionId }, "📱 Scan QR for session");
+      logger.info({ sessionId }, "📱 New QR generated for session");
       qrcode.generate(qr, { small: true });
     }
     if (connection === "open") {
       stateObj.status = "connected";
       stateObj.qr = null;
       stateObj.phone = normalizeJid(sock.user?.id);
-      logger.info({ sessionId, phone: stateObj.phone }, "✓ WhatsApp Connected");
+      logger.info({ sessionId, phone: stateObj.phone }, "✓ WhatsApp Connected Successfully");
       postWebhook({
         event: "status",
         status: "connected",
@@ -138,7 +163,8 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
       postWebhook({ event: "status", status: "disconnected", session_id: sessionId });
 
       if (shouldReconnect) {
-        setTimeout(() => getOrCreateSession(sessionId), 3000);
+        // Auto-reconnect with 3.5s delay
+        setTimeout(() => getOrCreateSession(sessionId), 3500);
       }
     }
   });
@@ -157,12 +183,13 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
       if (!text) continue;
 
       const remoteJid = m.key.remoteJid;
+      if (remoteJid && (remoteJid.endsWith("@g.us") || remoteJid.endsWith("@broadcast"))) {
+        continue; // Skip group and broadcast messages
+      }
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("composing", remoteJid);
-      } catch (err) {
-        logger.debug({ err: String(err) }, "Failed to send presence composing");
-      }
+      } catch {}
 
       const webhookRes = await postWebhook({
         event: "message",
@@ -176,42 +203,39 @@ async function getOrCreateSession(sessionId: string): Promise<SessionState> {
         timestamp: Number(m.messageTimestamp) || Math.floor(Date.now() / 1000),
       });
 
-      // If webhook generated an AI reply that needs bridge delivery, send it immediately!
+      // If webhook returned immediate AI reply, send it directly over Baileys socket
       if (webhookRes && webhookRes.reply && (webhookRes.needs_bridge_send || !webhookRes.sent)) {
         try {
-          const preview = String(webhookRes.reply).slice(0, 45).replace(/\n/g, " ");
-          logger.info({ remoteJid, preview }, "Dispatching AI Receptionist reply via live Baileys socket");
+          const preview = String(webhookRes.reply).slice(0, 40).replace(/\n/g, " ");
+          logger.info({ remoteJid, preview }, "Dispatching AI Receptionist reply via Baileys socket");
           await sock.sendMessage(remoteJid, { text: String(webhookRes.reply) });
-        } catch (sendErr) {
-          logger.error({ err: String(sendErr), remoteJid }, "Error sending AI reply from Baileys socket");
+        } catch (sendErr: any) {
+          logger.error({ err: sendErr.message, remoteJid }, "Error sending AI reply via Baileys");
         }
       }
 
       try {
         if (remoteJid) await sock.sendPresenceUpdate("paused", remoteJid);
-      } catch (err) {
-        logger.debug({ err: String(err) }, "Failed to send presence paused");
-      }
+      } catch {}
     }
   });
 
   return stateObj;
 }
 
-// ─── Auto-restore existing auth folders ──────────────────────────────────────
+// ─── Auto-restore existing auth folders on start ─────────────────────────────
 try {
   const folders = fs.readdirSync(AUTH_BASE_DIR);
   for (const folder of folders) {
     if (folder.startsWith("user-") || folder === "platform-admin" || folder === "default") {
-      logger.info({ folder }, "Restoring Baileys Session");
+      logger.info({ folder }, "Restoring Baileys Session from disk");
       void getOrCreateSession(folder);
     }
   }
 } catch (err) {
-  logger.error({ err: String(err) }, "Failed to auto-restore sessions");
+  logger.warn({ err: String(err) }, "No existing sessions found to restore");
 }
 
-// Initialize default session if specified
 const defaultSessionId = process.env.DEFAULT_SESSION_ID || `user-${CLINIC_ID}`;
 void getOrCreateSession(defaultSessionId);
 
@@ -221,21 +245,62 @@ const fastify = Fastify({
   bodyLimit: 2 * 1024 * 1024, // 2MB
 });
 
-fastify.get("/health", async (_req, _reply) => {
+// Root friendly probe
+fastify.get("/", async (_req, _reply) => {
   return {
     ok: true,
-    engine: "fastify",
-    sessions_active: sessions.size,
+    service: "ClinicX WhatsApp Baileys Bridge",
     uptime_s: Math.floor((Date.now() - startedAt) / 1000),
+    active_sessions: sessions.size,
+    memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
   };
 });
 
-// Create/start a specific session
+// Health check endpoint for Render and Uptime monitors
+fastify.get("/health", async (_req, _reply) => {
+  const mem = process.memoryUsage();
+  return {
+    ok: true,
+    status: "healthy",
+    engine: "baileys-fastify",
+    sessions_active: sessions.size,
+    uptime_s: Math.floor((Date.now() - startedAt) / 1000),
+    memory: {
+      rss_mb: Math.round(mem.rss / 1024 / 1024),
+      heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
+    },
+  };
+});
+
+// Start/Create a session
 fastify.post("/api/sessions", async (req, _reply) => {
   const body = (req.body || {}) as any;
   const sid = body.sessionId || defaultSessionId;
   const sess = await getOrCreateSession(sid);
   return { success: true, sessionId: sid, ready: sess.status === "connected" };
+});
+
+// Request 8-digit phone pairing code (Alternative to QR scan)
+fastify.post("/api/sessions/:sessionId/pairing-code", async (req, reply) => {
+  const { sessionId } = req.params as { sessionId: string };
+  const { phone } = (req.body || {}) as { phone?: string };
+  if (!phone) {
+    reply.status(400);
+    return { success: false, error: "Phone number is required for pairing code" };
+  }
+  const sess = await getOrCreateSession(sessionId);
+  if (sess.status === "connected") {
+    return { success: true, alreadyConnected: true, phone: sess.phone };
+  }
+  try {
+    const cleanPhone = phone.replace(/\D/g, "");
+    const code = await sess.sock.requestPairingCode(cleanPhone);
+    logger.info({ sessionId, cleanPhone, code }, "Generated WhatsApp Pairing Code");
+    return { success: true, code, pairingCode: code };
+  } catch (err: any) {
+    reply.status(500);
+    return { success: false, error: err.message || "Failed to generate pairing code" };
+  }
 });
 
 // Check status of a specific session
@@ -273,20 +338,20 @@ fastify.delete("/api/sessions/:sessionId", async (req, _reply) => {
   }
   sessions.delete(sessionId);
   const sessionDir = path.join(AUTH_BASE_DIR, sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"));
-  fs.rmSync(sessionDir, { recursive: true, force: true });
+  try {
+    fs.rmSync(sessionDir, { recursive: true, force: true });
+  } catch {}
   return { success: true };
 });
 
-// Send message via a SPECIFIC session
+// Send message via a specific session
 fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
   const { sessionId } = req.params as { sessionId: string };
   let sess = sessions.get(sessionId);
   if (!sess || sess.status !== "connected") {
-    // If specific session not found/connected, check if there's any active connected session
     const connectedSessions = Array.from(sessions.values()).filter((s) => s.status === "connected");
     if (connectedSessions.length === 1) {
       sess = connectedSessions[0];
-      logger.info({ requested: sessionId, fallback: sess.id }, "Using single connected session fallback");
     }
   }
   if (!sess || sess.status !== "connected") {
@@ -311,17 +376,10 @@ fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
   }
 });
 
-// Legacy single-session /send endpoint
+// Legacy /send endpoint
 fastify.post("/send", async (req, reply) => {
-  let body: any = req.body;
-  if (Buffer.isBuffer(body)) {
-    try {
-      body = JSON.parse(body.toString("utf8"));
-    } catch {
-      body = {};
-    }
-  }
-  const { to, text, sessionId } = body || {};
+  const body = (req.body || {}) as any;
+  const { to, text, sessionId } = body;
   const sid = sessionId || defaultSessionId;
   const sess = sessions.get(sid);
   if (!sess || sess.status !== "connected") {
@@ -338,9 +396,34 @@ fastify.post("/send", async (req, reply) => {
   }
 });
 
+// ─── RENDER 15-MINUTE SPIN-DOWN AUTO KEEP-ALIVE ──────────────────────────────
+// Render Free tier sleeps after 15 minutes of inactivity.
+// We auto-detect RENDER_EXTERNAL_URL (populated by Render) and self-ping every 10 min.
+const RENDER_EXTERNAL_URL =
+  process.env.RENDER_EXTERNAL_URL ||
+  process.env.SELF_URL ||
+  process.env.APP_URL;
+
+if (RENDER_EXTERNAL_URL) {
+  const cleanUrl = RENDER_EXTERNAL_URL.replace(/\/+$/, "");
+  const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+  logger.info({ pingUrl: `${cleanUrl}/health` }, "✓ Render Keep-Alive self-ping enabled (every 10m)");
+  setInterval(async () => {
+    try {
+      const pingRes = await fetch(`${cleanUrl}/health`, { signal: AbortSignal.timeout(10000) });
+      if (pingRes.ok) {
+        logger.info("Render Free Keep-Alive ping OK");
+      }
+    } catch (e: any) {
+      logger.warn({ err: e.message }, "Render Keep-Alive ping failed");
+    }
+  }, PING_INTERVAL_MS);
+}
+
+// ─── START SERVER ────────────────────────────────────────────────────────────
 try {
   await fastify.listen({ port: PORT, host: "0.0.0.0" });
-  logger.info(`ClinicX Multi-Session Baileys Gateway (Fastify Engine) listening on :${PORT}`);
+  logger.info(`ClinicX Ultra-Optimized Baileys Bridge listening on port ${PORT}`);
 } catch (err) {
   logger.error(err);
   process.exit(1);
