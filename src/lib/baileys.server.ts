@@ -26,16 +26,16 @@ export async function resolveBaileysUrl(): Promise<string> {
   }
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
+    const { data } = (await supabaseAdmin
       .from("system_settings" as any)
       .select("value")
       .eq("key", "whatsapp_bridge_url")
-      .maybeSingle();
+      .maybeSingle()) as any;
 
     if (data?.value && typeof data.value === "string" && data.value.trim()) {
       cachedBaileysUrl = data.value.trim().replace(/\/+$/, "");
       lastCacheTime = now;
-      return cachedBaileysUrl;
+      return cachedBaileysUrl!;
     }
   } catch {}
 

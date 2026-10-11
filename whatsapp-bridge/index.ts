@@ -269,6 +269,8 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
         clinic_id: clinicId,
         to_phone: stateObj.phone,
         from: normalizeJid(remoteJid),
+        remote_jid: remoteJid,
+        remoteJid,
         name: m.pushName || null,
         text,
         wa_message_id: m.key.id,
@@ -276,7 +278,7 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
       });
 
       // Immediate reply dispatch if returned directly in webhook response
-      if (webhookRes && webhookRes.reply && (webhookRes.needs_bridge_send || !webhookRes.sent)) {
+      if (webhookRes && webhookRes.reply) {
         try {
           const preview = String(webhookRes.reply).slice(0, 40).replace(/\n/g, " ");
           logger.info({ session: cleanSid, remoteJid, preview }, "Dispatching AI reply via isolated socket");

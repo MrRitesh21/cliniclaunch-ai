@@ -314,18 +314,28 @@ export async function handleWhatsAppIncomingRequest(
       incomingText: text,
     });
 
-    // Send reply via Baileys if server BAILEYS_URL is configured
+    const isBridgeLiveEvent = body?.event === "message";
     const replySessionId = session_id || clinic.wa_session_id || clinicSessionId(clinic.id);
-    let sendResult = await baileysSend(replySessionId, formattedPhone, bookingResult.reply);
+    let sendResult: { ok: boolean; error?: string } = { ok: false };
 
-    // Fallback if primary session send failed
-    if (!sendResult.ok && clinic.wa_session_id && clinic.wa_session_id !== replySessionId) {
-      const retryRes = await baileysSend(clinic.wa_session_id, formattedPhone, bookingResult.reply);
-      if (retryRes.ok) sendResult = retryRes;
-    }
-    if (!sendResult.ok && replySessionId !== "default" && replySessionId !== "user-default") {
-      const defRetry = await baileysSend("user-default", formattedPhone, bookingResult.reply);
-      if (defRetry.ok) sendResult = defRetry;
+    if (isBridgeLiveEvent) {
+      // The bridge is holding the active socket open to the patient's remoteJid.
+      // Returning the reply directly in the webhook response avoids circular HTTP latency,
+      // LID format mismatches, and timeouts on Render/Vercel.
+      sendResult = { ok: true, error: undefined };
+    } else {
+      // Out-of-band trigger (e.g. admin simulator or direct test) -> send via configured BAILEYS_URL
+      sendResult = await baileysSend(replySessionId, formattedPhone, bookingResult.reply);
+
+      // Fallback if primary session send failed
+      if (!sendResult.ok && clinic.wa_session_id && clinic.wa_session_id !== replySessionId) {
+        const retryRes = await baileysSend(clinic.wa_session_id, formattedPhone, bookingResult.reply);
+        if (retryRes.ok) sendResult = retryRes;
+      }
+      if (!sendResult.ok && replySessionId !== "default" && replySessionId !== "user-default") {
+        const defRetry = await baileysSend("user-default", formattedPhone, bookingResult.reply);
+        if (defRetry.ok) sendResult = defRetry;
+      }
     }
 
     // Log outgoing reply
@@ -338,7 +348,7 @@ export async function handleWhatsAppIncomingRequest(
         template_key: bookingResult.action === "booked" ? "whatsapp_booking_confirmed" : "ai_auto_reply",
         automation_key: bookingResult.action === "booked" ? "whatsapp_booking_confirmed" : "ai_auto_reply",
         message: bookingResult.reply,
-        status: sendResult.ok ? "sent" : "delivered_to_bridge",
+        status: isBridgeLiveEvent ? "delivered_to_bridge" : (sendResult.ok ? "sent" : "failed"),
         error: sendResult.error || null,
         sent_at: sendResult.ok ? new Date().toISOString() : null,
       }),
@@ -352,8 +362,8 @@ export async function handleWhatsAppIncomingRequest(
       clinic_id: clinic.id,
       session_id: replySessionId,
       reply: bookingResult.reply,
-      sent: sendResult.ok,
-      needs_bridge_send: !sendResult.ok,
+      sent: !isBridgeLiveEvent && sendResult.ok,
+      needs_bridge_send: isBridgeLiveEvent || !sendResult.ok,
       error: sendResult.error,
     });
   } catch (e: any) {
