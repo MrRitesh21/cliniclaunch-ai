@@ -16,7 +16,17 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDown, ArrowUp, IndianRupee, TrendingUp, Users, Wallet } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  IndianRupee,
+  TrendingUp,
+  Users,
+  Wallet,
+  Receipt,
+  WalletCards,
+  Banknote,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -149,7 +159,15 @@ function Split({
   );
 }
 
-export function OverviewTab({ orgId, clinicId }: { orgId: string; clinicId: string | null }) {
+export function OverviewTab({
+  orgId,
+  clinicId,
+  onNavigateTab,
+}: {
+  orgId: string;
+  clinicId: string | null;
+  onNavigateTab?: (tab: string, action?: "new") => void;
+}) {
   const [range, setRange] = useState("30d");
   const fn = useServerFn(getFinanceOverview);
 
@@ -192,12 +210,77 @@ export function OverviewTab({ orgId, clinicId }: { orgId: string; clinicId: stri
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm text-muted-foreground">
-          Every rupee below was recorded automatically from appointments, payments and expenses.
-        </p>
+      {/* Quick Operations Bar for Clinic Staff */}
+      {onNavigateTab && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <button
+            type="button"
+            onClick={() => onNavigateTab("invoices", "new")}
+            className="flex items-center gap-3 p-3 rounded-xl border border-border/80 bg-card hover:bg-primary/5 hover:border-primary/40 transition-all text-left group shadow-xs cursor-pointer"
+          >
+            <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+              <Receipt className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-foreground truncate">Create Bill</div>
+              <div className="text-[11px] text-muted-foreground truncate">New patient invoice</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab("expenses", "new")}
+            className="flex items-center gap-3 p-3 rounded-xl border border-border/80 bg-card hover:bg-amber-500/5 hover:border-amber-500/40 transition-all text-left group shadow-xs cursor-pointer"
+          >
+            <div className="size-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors shrink-0">
+              <WalletCards className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-foreground truncate">Log Expense</div>
+              <div className="text-[11px] text-muted-foreground truncate">Bill or scan receipt</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab("cashbook")}
+            className="flex items-center gap-3 p-3 rounded-xl border border-border/80 bg-card hover:bg-emerald-500/5 hover:border-emerald-500/40 transition-all text-left group shadow-xs cursor-pointer"
+          >
+            <div className="size-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
+              <Banknote className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-foreground truncate">Cash Drawer</div>
+              <div className="text-[11px] text-muted-foreground truncate">Day-end reconciliation</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab("pnl")}
+            className="flex items-center gap-3 p-3 rounded-xl border border-border/80 bg-card hover:bg-indigo-500/5 hover:border-indigo-500/40 transition-all text-left group shadow-xs cursor-pointer"
+          >
+            <div className="size-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors shrink-0">
+              <TrendingUp className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-foreground truncate">P&amp;L Statement</div>
+              <div className="text-[11px] text-muted-foreground truncate">Income vs expenses</div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Date Filter Bar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Clinic Revenue &amp; Trends</h2>
+          <p className="text-xs text-muted-foreground">
+            Auto-recorded from consultations, pharmacy, payments &amp; ledger expenses.
+          </p>
+        </div>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger className="w-40 h-9">
+          <SelectTrigger className="w-36 h-8 text-xs rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

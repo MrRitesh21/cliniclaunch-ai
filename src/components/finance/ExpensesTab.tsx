@@ -82,10 +82,25 @@ function writeQueue(q: any[]) {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
 }
 
-export function ExpensesTab({ orgId, clinicId }: { orgId: string; clinicId: string | null }) {
-  const [editing, setEditing] = useState<Expense | "new" | null>(null);
+export function ExpensesTab({
+  orgId,
+  clinicId,
+  initialNew,
+}: {
+  orgId: string;
+  clinicId: string | null;
+  initialNew?: boolean;
+}) {
+  const [editing, setEditing] = useState<Expense | "new" | null>(initialNew ? "new" : null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  useEffect(() => {
+    if (initialNew) {
+      setEditing("new");
+    }
+  }, [initialNew]);
+
   const del = useServerFn(deleteExpense);
   const save = useServerFn(saveExpense);
   const getExpensesList = useServerFn(listExpenses);

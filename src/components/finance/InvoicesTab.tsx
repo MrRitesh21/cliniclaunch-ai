@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Receipt, Plus, Trash2, Pencil, IndianRupee, Printer, CreditCard } from "lucide-react";
+import { Receipt, Plus, Trash2, Pencil, IndianRupee, Printer, CreditCard, Search } from "lucide-react";
 import { EmptyState } from "@/components/app/EmptyState";
 import { StatsCard } from "@/components/app/StatsCard";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -31,8 +31,8 @@ import {
   SelectLabel,
 } from "@/components/ui/select";
 
-export function InvoicesTab() {
-  return <FinancePage />;
+export function InvoicesTab({ initialNew }: { initialNew?: boolean }) {
+  return <FinancePage initialNew={initialNew} />;
 }
 
 type Invoice = {
@@ -60,15 +60,23 @@ type Item = {
 };
 type Patient = { id: string; name: string; phone?: string | null };
 
-function FinancePage() {
+function FinancePage({ initialNew }: { initialNew?: boolean }) {
   const { org } = useOrganization();
   const orgId = org?.id;
   const [rows, setRows] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Invoice | "new" | null>(null);
+  const [editing, setEditing] = useState<Invoice | "new" | null>(initialNew ? "new" : null);
   const [paying, setPaying] = useState<Invoice | null>(null);
   const [printing, setPrinting] = useState<Invoice | null>(null);
   const [clinic, setClinic] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "paid" | "draft">("all");
+
+  useEffect(() => {
+    if (initialNew) {
+      setEditing("new");
+    }
+  }, [initialNew]);
 
   async function load() {
     if (!orgId) return;
@@ -108,6 +116,21 @@ function FinancePage() {
     };
   }, [rows]);
 
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        (r.patient_name ?? "").toLowerCase().includes(q) ||
+        (r.invoice_number ?? "").toLowerCase().includes(q);
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "unpaid" && r.status !== "paid" && r.status !== "void" && r.status !== "draft") ||
+        r.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [rows, search, statusFilter]);
+
   async function remove(id: string) {
     if (!confirm("Delete invoice?")) return;
     await supabase
@@ -127,92 +150,160 @@ function FinancePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between flex-wrap gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl">Billing & Invoicing</h1>
-          <p className="text-sm text-muted-foreground">
-            Create invoices and track patient payments.
+          <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">Patient Invoices</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Generate bills, collect digital or cash payments, and track pending dues.
           </p>
         </div>
-        <Button onClick={() => setEditing("new")}>
-          <Plus className="size-4 mr-1" /> New invoice
+        <Button onClick={() => setEditing("new")} className="rounded-xl gap-1.5 shadow-xs">
+          <Plus className="size-4" /> New Invoice
         </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatsCard title="Invoices" value={stats.total} icon={<Receipt className="size-4" />} />
+        <StatsCard title="Total Invoices" value={stats.total} icon={<Receipt className="size-4" />} />
         <StatsCard
-          title="Revenue collected"
+          title="Revenue Collected"
           value={`₹${stats.revenue.toLocaleString()}`}
           icon={<IndianRupee className="size-4" />}
         />
-        <StatsCard title="Outstanding" value={`₹${stats.outstanding.toLocaleString()}`} />
-        <StatsCard title="Paid" value={stats.paid} />
+        <StatsCard
+          title="Outstanding Dues"
+          value={`₹${stats.outstanding.toLocaleString()}`}
+          icon={<IndianRupee className="size-4" />}
+        />
+        <StatsCard title="Fully Paid" value={stats.paid} />
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search patient name, invoice #…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-xs rounded-xl"
+          />
+        </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          {[
+            { key: "all", label: `All (${rows.length})` },
+            {
+              key: "unpaid",
+              label: `Unpaid (${rows.filter((r) => r.status !== "paid" && r.status !== "void" && r.status !== "draft").length})`,
+            },
+            { key: "paid", label: `Paid (${stats.paid})` },
+            { key: "draft", label: `Drafts (${rows.filter((r) => r.status === "draft").length})` },
+          ].map((tab) => (
+            <Button
+              key={tab.key}
+              variant={statusFilter === tab.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(tab.key as any)}
+              className="h-8 text-xs rounded-xl whitespace-nowrap"
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full rounded-xl" />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<Receipt className="size-6" />}
           title="No invoices yet"
           action={{ label: "Create invoice", onClick: () => setEditing("new") }}
         />
+      ) : filteredRows.length === 0 ? (
+        <Card className="p-8 text-center rounded-xl space-y-3">
+          <p className="text-sm text-muted-foreground">No invoices match your filter or search query.</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("all");
+            }}
+            className="rounded-xl"
+          >
+            Clear filters
+          </Button>
+        </Card>
       ) : (
-        <Card className="divide-y">
-          {rows.map((r) => (
-            <div
-              key={r.id}
-              className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 flex-wrap"
-            >
-              <button className="text-left flex-1 min-w-0" onClick={() => setEditing(r)}>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium">{r.invoice_number}</span>
-                  <span className="text-sm text-muted-foreground">· {r.patient_name}</span>
-                  <Badge
-                    variant={
-                      r.status === "paid"
-                        ? "default"
-                        : r.status === "draft"
-                          ? "outline"
-                          : "secondary"
-                    }
-                    className="capitalize"
-                  >
-                    {r.status}
-                  </Badge>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(r.issue_date).toLocaleDateString()} · Total ₹
-                  {Number(r.total).toLocaleString()} · Paid ₹
-                  {Number(r.amount_paid).toLocaleString()}
-                </div>
-              </button>
-              <div className="flex gap-1">
-                {r.status === "draft" && (
-                  <Button size="sm" variant="outline" onClick={() => markSent(r)}>
-                    Mark sent
+        <Card className="divide-y rounded-xl border border-border/80 overflow-hidden shadow-xs">
+          {filteredRows.map((r) => {
+            const due = Number(r.total) - Number(r.amount_paid);
+            const isDue = due > 0 && r.status !== "paid" && r.status !== "void";
+            return (
+              <div
+                key={r.id}
+                className="p-4 flex items-center justify-between gap-3 hover:bg-muted/40 flex-wrap transition-colors"
+              >
+                <button
+                  type="button"
+                  className="text-left flex-1 min-w-0 cursor-pointer"
+                  onClick={() => setEditing(r)}
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm">{r.invoice_number}</span>
+                    <span className="text-sm text-muted-foreground">· {r.patient_name}</span>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize font-medium text-[11px] ${
+                        r.status === "paid"
+                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                          : r.status === "partial" || r.status === "sent"
+                            ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                            : r.status === "draft"
+                              ? "bg-slate-500/10 text-slate-600 border-slate-500/30"
+                              : "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                      }`}
+                    >
+                      {r.status}
+                    </Badge>
+                    {isDue && (
+                      <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                        Due ₹{due.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(r.issue_date).toLocaleDateString()} · Total ₹
+                    {Number(r.total).toLocaleString()} · Paid ₹
+                    {Number(r.amount_paid).toLocaleString()}
+                  </div>
+                </button>
+                <div className="flex items-center gap-1">
+                  {r.status === "draft" && (
+                    <Button size="sm" variant="outline" onClick={() => markSent(r)} className="h-8 text-xs rounded-lg">
+                      Mark sent
+                    </Button>
+                  )}
+                  {r.status !== "paid" && r.status !== "void" && r.status !== "draft" && (
+                    <Button size="sm" onClick={() => setPaying(r)} className="h-8 text-xs rounded-lg gap-1">
+                      <CreditCard className="size-3.5" />
+                      Collect Pay
+                    </Button>
+                  )}
+                  <Button size="icon" variant="ghost" onClick={() => setPrinting(r)} className="size-8 rounded-lg" title="Print Invoice">
+                    <Printer className="size-4" />
                   </Button>
-                )}
-                {r.status !== "paid" && r.status !== "void" && r.status !== "draft" && (
-                  <Button size="sm" onClick={() => setPaying(r)}>
-                    <CreditCard className="size-3 mr-1" />
-                    Pay
+                  <Button size="icon" variant="ghost" onClick={() => setEditing(r)} className="size-8 rounded-lg" title="Edit Invoice">
+                    <Pencil className="size-4" />
                   </Button>
-                )}
-                <Button size="icon" variant="ghost" onClick={() => setPrinting(r)}>
-                  <Printer className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
-                  <Pencil className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => remove(r.id)}>
-                  <Trash2 className="size-4" />
-                </Button>
+                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)} className="size-8 rounded-lg text-rose-500 hover:text-rose-600" title="Delete">
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </Card>
       )}
 
