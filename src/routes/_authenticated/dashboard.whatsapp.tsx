@@ -208,6 +208,18 @@ function WhatsAppPage() {
     setTestForm((prev) => ({ ...prev, sending: true }));
     try {
       const { sendTestWhatsAppFn } = await import("@/lib/whatsapp-test.functions");
+      const baseOrigin =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : "https://clinicx.digiwil.com";
+      const customDom = (clinic as any)?.custom_domain
+        ?.trim()
+        ?.replace(/^https?:\/\//, "")
+        ?.replace(/\/+$/, "");
+      const clinicBase = customDom
+        ? `https://${customDom}`
+        : `${baseOrigin}/c/${clinic?.slug || "demo"}`;
+
       const res = await sendTestWhatsAppFn({
         data: {
           phone: testForm.phone,
@@ -235,11 +247,11 @@ function WhatsAppPage() {
             time: "10:30 AM",
             appointment_type: "In-Clinic Consultation",
             problem: "Routine Dental Checkup",
-            consult_info: "Video Link: https://clinicx.app/join/test ",
-            consult_link: `https://clinicx.app/c/${clinic?.slug || "demo"}/join`,
-            clinic_link: `https://clinicx.app/c/${clinic?.slug || "demo"}`,
-            booking_link: `https://clinicx.app/c/${clinic?.slug || "demo"}/book`,
-            reschedule_link: `https://clinicx.app/c/${clinic?.slug || "demo"}/book?reschedule=true`,
+            consult_info: `Video Link: ${baseOrigin}/join/test `,
+            consult_link: `${clinicBase}/join`,
+            clinic_link: clinicBase,
+            booking_link: `${clinicBase}/book`,
+            reschedule_link: `${clinicBase}/book?reschedule=true`,
 
             // Clinical / Hospital / Diagnostic Events
             test_name: "Complete Blood Count (CBC)",
@@ -259,13 +271,13 @@ function WhatsAppPage() {
             last_date: "15 Sep 2026",
             amount: "1,500",
             bill_no: "INV-9921",
-            payment_link: `https://clinicx.app/c/${clinic?.slug || "demo"}/pay`,
+            payment_link: `${clinicBase}/pay`,
             event_date: "Sunday, Oct 12",
             event_time: "10:00 AM - 2:00 PM",
             services: "Free BP, Sugar & ECG Checkup",
 
             // Doctor Time Savers
-            rx_pdf_url: `https://clinicx.app/c/${clinic?.slug || "demo"}/rx/sample.pdf`,
+            rx_pdf_url: `${clinicBase}/rx/sample.pdf`,
             dosage_instructions: "Paracetamol 650mg (1 Tab SOS), Azithromycin 500mg (1 Tab OD x 3 days)",
             condition_name: "Hypertension / Blood Pressure",
             days_since_visit: "30",

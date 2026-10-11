@@ -17,7 +17,7 @@ async function getMyManagedClinic(supabase: SB, userId: string) {
   const { data: clinic, error } = await supabase
     .from("clinics")
     .select(
-      "id, organization_id, clinic_name, doctor_name, specialization, phone, address, working_hours, consultation_fee, slug, wa_status, wa_phone, wa_session_id",
+      "id, organization_id, clinic_name, doctor_name, specialization, phone, address, working_hours, consultation_fee, slug, wa_status, wa_phone, wa_session_id, custom_domain",
     )
     .in("organization_id", orgIds)
     .limit(1)

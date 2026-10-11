@@ -22,7 +22,15 @@ import { toast } from "sonner";
 export function SEOView() {
   const { state, patch, clinic, triggerGscSubmission, setIsFloatingAIOpen } = useWebsiteBuilder();
 
-  const publicUrl = `https://clinicx.app/c/${clinic?.slug}`;
+  const baseOrigin =
+    typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : "https://clinicx.digiwil.com";
+  const customDom = (clinic as any)?.custom_domain
+    ?.trim()
+    ?.replace(/^https?:\/\//, "")
+    ?.replace(/\/+$/, "");
+  const publicUrl = customDom ? `https://${customDom}` : `${baseOrigin}/c/${clinic?.slug}`;
   const title = state.seo_title || `${clinic?.clinic_name || "Clinic"} - Top Doctor Consultation`;
   const desc =
     state.seo_description ||

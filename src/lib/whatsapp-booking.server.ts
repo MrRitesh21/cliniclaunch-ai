@@ -280,8 +280,21 @@ export async function processWhatsAppMessage(params: {
 }): Promise<WhatsAppBookingResult> {
   const { clinic, patientPhone, senderName, incomingText } = params;
   const sb = supabaseAdmin;
-  const origin = serverEnv.APP_URL || "https://clinicx.app";
-  const bookingLink = `${origin}/c/${clinic.slug}/book`;
+  const rawCustomDomain = clinic?.custom_domain
+    ? String(clinic.custom_domain).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "")
+    : "";
+  const clinicCustomUrl = rawCustomDomain ? `https://${rawCustomDomain}` : null;
+  const baseAppUrl = (
+    serverEnv.APP_URL ||
+    process.env.APP_URL ||
+    process.env.VITE_APP_URL ||
+    "https://clinicx.digiwil.com"
+  ).replace(/\/+$/, "");
+
+  const origin = clinicCustomUrl || baseAppUrl;
+  const bookingLink = clinicCustomUrl
+    ? `${clinicCustomUrl}/book`
+    : `${baseAppUrl}/c/${clinic.slug}/book`;
 
   // 1. Fetch recent conversation history from whatsapp_logs for context
   const { data: rawLogs } = await sb
