@@ -95,6 +95,7 @@ const NAV: NavSection[] = [
       { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
       { to: "/admin/email", label: "Email Campaigns", icon: Mail },
       { to: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
+      { to: "/admin/ai", label: "AI Gateway", icon: Sparkles },
       { to: "/admin/db", label: "Database Tools", icon: DbIcon },
     ],
   },

@@ -1057,6 +1057,9 @@ export async function saveSystemSettingsImpl(input: any) {
     setBaileysUrlCache(input.whatsapp_bridge_url);
   }
 
+  const { clearAiGatewayCache } = await import("./ai.server");
+  clearAiGatewayCache();
+
   await createAuditLog(supabaseAdmin, admin.id, "system_settings_updated", "system", "settings", {
     keys: Object.keys(input),
   });
@@ -1246,6 +1249,78 @@ export async function testIntegrationImpl(input: {
   } catch (err: any) {
     return { ok: false, message: err?.message || "Connection failed" };
   }
+}
+
+export async function testAiGatewayProviderImpl(input: {
+  provider: "openrouter" | "openai" | "gemini" | "groq" | "anthropic" | "custom";
+  apiKey?: string;
+  model?: string;
+  customBaseUrl?: string;
+}) {
+  const admin = await getVerifiedAdmin();
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
+
+  let apiKey = (input.apiKey || "").trim();
+  if (!apiKey) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("system_settings" as any)
+      .select("key, value")
+      .in("key", ["ai_api_key", "openai_api_key"]);
+
+    if (input.provider === "openai") {
+      apiKey =
+        data?.find((r: any) => r.key === "openai_api_key")?.value ||
+        data?.find((r: any) => r.key === "ai_api_key")?.value ||
+        "";
+    } else {
+      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || "";
+    }
+  }
+
+  const { callAiWithProvider, getDefaultModelForProvider } = await import("./ai.server");
+  const model = input.model || getDefaultModelForProvider(input.provider);
+
+  try {
+    const t0 = Date.now();
+    const reply = await callAiWithProvider({
+      provider: input.provider,
+      model,
+      apiKey,
+      customBaseUrl: input.customBaseUrl,
+      system: "You are a test ping agent for ClinicX. Reply with 'OK - Health Check Passed' in under 10 words.",
+      user: "Ping health check",
+      temperature: 0.1,
+    });
+    const latencyMs = Date.now() - t0;
+    return {
+      ok: true,
+      message: `Verified! Latency: ${latencyMs}ms. Model (${model}) replied: "${reply.trim().slice(0, 60)}"`,
+      latencyMs,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      message: err?.message || "Failed to connect to provider",
+    };
+  }
+}
+
+export async function simulateAiChatImpl(input: { message: string }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { callAI } = await import("./ai.server");
+  const systemPrompt = `You are ClinicX WhatsApp AI Receptionist for Apollo Dental Clinic (Dr. Ritesh Verma).
+Speak in natural, polite Hinglish. Help the patient book, reschedule, or answer clinic queries.`;
+
+  const reply = await callAI({
+    system: systemPrompt,
+    user: input.message,
+    temperature: 0.2,
+  });
+
+  return { reply };
 }
 
 export async function deleteAuditLogImpl(input: { id: string }) {

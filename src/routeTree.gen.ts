@@ -48,6 +48,7 @@ import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin.index'
+import { Route as AdminAdminAiRouteImport } from './routes/_admin/admin.ai'
 import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin/admin.announcements'
 import { Route as AdminAdminAuditRouteImport } from './routes/_admin/admin.audit'
 import { Route as AdminAdminDashboardRouteImport } from './routes/_admin/admin.dashboard'
@@ -312,6 +313,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
 const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAdminAiRoute = AdminAdminAiRouteImport.update({
+  id: '/admin/ai',
+  path: '/admin/ai',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAdminAnnouncementsRoute = AdminAdminAnnouncementsRouteImport.update({
@@ -735,6 +741,7 @@ export interface FileRoutesByFullPath {
   '/l/$slug': typeof LSlugRoute
   '/r/$slug': typeof RSlugRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/ai': typeof AdminAdminAiRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
@@ -841,6 +848,7 @@ export interface FileRoutesByTo {
   '/l/$slug': typeof LSlugRoute
   '/r/$slug': typeof RSlugRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/ai': typeof AdminAdminAiRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
@@ -950,6 +958,7 @@ export interface FileRoutesById {
   '/l/$slug': typeof LSlugRoute
   '/r/$slug': typeof RSlugRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/_admin/admin/ai': typeof AdminAdminAiRoute
   '/_admin/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/_admin/admin/audit': typeof AdminAdminAuditRoute
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute
@@ -1060,6 +1069,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/r/$slug'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/ai'
     | '/admin/announcements'
     | '/admin/audit'
     | '/admin/dashboard'
@@ -1166,6 +1176,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/r/$slug'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/ai'
     | '/admin/announcements'
     | '/admin/audit'
     | '/admin/dashboard'
@@ -1274,6 +1285,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/r/$slug'
     | '/.mcp/invoke-tool/$tool'
+    | '/_admin/admin/ai'
     | '/_admin/admin/announcements'
     | '/_admin/admin/audit'
     | '/_admin/admin/dashboard'
@@ -1667,6 +1679,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_admin/admin/ai': {
+      id: '/_admin/admin/ai'
+      path: '/admin/ai'
+      fullPath: '/admin/ai'
+      preLoaderRoute: typeof AdminAdminAiRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/_admin/admin/announcements': {
@@ -2173,6 +2192,7 @@ const AdminAdminDoctorsRouteWithChildren =
   AdminAdminDoctorsRoute._addFileChildren(AdminAdminDoctorsRouteChildren)
 
 interface AdminRouteRouteChildren {
+  AdminAdminAiRoute: typeof AdminAdminAiRoute
   AdminAdminAnnouncementsRoute: typeof AdminAdminAnnouncementsRoute
   AdminAdminAuditRoute: typeof AdminAdminAuditRoute
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
@@ -2194,6 +2214,7 @@ interface AdminRouteRouteChildren {
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAdminAiRoute: AdminAdminAiRoute,
   AdminAdminAnnouncementsRoute: AdminAdminAnnouncementsRoute,
   AdminAdminAuditRoute: AdminAdminAuditRoute,
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
@@ -2412,13 +2433,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

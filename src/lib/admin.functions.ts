@@ -396,6 +396,29 @@ export const testIntegration = createServerFn({ method: "POST" })
     return testIntegrationImpl(input);
   });
 
+export const testAiGatewayProvider = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      provider: z.enum(["openrouter", "openai", "gemini", "groq", "anthropic", "custom"]),
+      apiKey: z.string().optional(),
+      model: z.string().optional(),
+      customBaseUrl: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const { testAiGatewayProviderImpl } = await import("./admin.server");
+    return testAiGatewayProviderImpl(input);
+  });
+
+export const simulateAiChat = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(z.object({ message: z.string() }))
+  .handler(async ({ data: input }) => {
+    const { simulateAiChatImpl } = await import("./admin.server");
+    return simulateAiChatImpl(input);
+  });
+
 // -------- Extended actions --------
 export const impersonateDoctor = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])

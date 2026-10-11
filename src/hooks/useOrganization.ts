@@ -81,8 +81,16 @@ function publish(s: Snapshot) {
   cache = { ...s, authorityGeneration: ++authorityGeneration };
   cacheAt = s.authorityUserId ? Date.now() : 0;
   if (cacheUserId && s.org && s.authorityUserId === cacheUserId) {
-    // Persistence is shell metadata only, never a source of write/manage authority.
-    writeCache(`org_snapshot:${cacheUserId}`, { org: s.org });
+    writeCache(`org_snapshot:${cacheUserId}`, {
+      org: s.org,
+      role: s.role,
+      installedModuleIds: s.installedModuleIds,
+      planModuleIds: s.planModuleIds,
+      unavailableModuleIds: s.unavailableModuleIds,
+      subscription: s.subscription,
+      entitlement: s.entitlement,
+      isSubscriptionExpired: s.isSubscriptionExpired,
+    });
   }
   listeners.forEach(l => l(cache!));
   return cache;
@@ -188,9 +196,14 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
 function loadShared(userId: string, force = false): Promise<Snapshot> {
   if (cacheUserId !== userId) {
     cacheUserId = userId;
-    const persisted = readCache<{ org: Organization }>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
-    cache = unverified(persisted?.org ?? undefined);
-    cacheAt = 0;
+    const persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    cache = persisted?.org ? ({
+      ...EMPTY,
+      ...persisted,
+      authorityUserId: userId,
+      authorityScope: persisted.entitlement && persisted.org ? `persisted:${userId}:${persisted.org.id}:${persisted.role}` : null,
+    } as Snapshot) : unverified(undefined);
+    cacheAt = persisted?.entitlement ? Date.now() : 0;
     inFlight = null;
     generation++;
     listeners.forEach(l => l(cache ?? { ...EMPTY, org: undefined }));
@@ -198,7 +211,9 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
   if (!force && cache?.authorityUserId === userId && Date.now() - cacheAt < TTL_MS) return Promise.resolve(cache);
   if (inFlight) return inFlight;
   const token = generation;
-  publish(pending(cache));
+  if (!cache?.entitlement || cache.authorityUserId !== userId) {
+    publish(pending(cache));
+  }
   let timeout: ReturnType<typeof setTimeout>;
   const timeoutPromise = new Promise<never>((_, reject) =>
     timeout = setTimeout(() => reject(new Error("Clinic access verification timed out. Check network connection.")), 30000)
@@ -208,12 +223,8 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
     if (cache?.org && cache?.entitlement) {
       return cache;
     }
-    const persisted = readCache<{ org: Organization }>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
-    return unverified(
-      persisted?.org ?? (token === generation ? cache?.org : null) ?? null,
-      null,
-      false
-    );
+    const persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    return persisted?.org ? ({ ...EMPTY, ...persisted, authorityUserId: userId } as Snapshot) : unverified(null, null, false);
   }).then(s => {
     if (token === generation && userId === cacheUserId) return publish({ ...s, authorityScope: s.entitlement && s.org ? `${token}:${userId}:${s.org.id}:${s.role}` : null });
     return s;
@@ -225,8 +236,15 @@ export function useOrganization(): OrgContext {
   const [, setSnapshot] = useState<Snapshot>(() => {
     if (!user) return { ...EMPTY, org: undefined };
     if (cacheUserId === user.id && cache) return cache;
-    const persisted = readCache<{ org: Organization }>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
-    if (persisted) return unverified(persisted.org);
+    const persisted = readCache<Partial<Snapshot>>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted?.org) {
+      return {
+        ...EMPTY,
+        ...persisted,
+        authorityUserId: user.id,
+        authorityScope: persisted.entitlement && persisted.org ? `persisted:${user.id}:${persisted.org.id}:${persisted.role}` : null,
+      } as Snapshot;
+    }
     return { ...EMPTY, org: undefined };
   });
   useEffect(() => {
@@ -253,8 +271,8 @@ export function useOrganization(): OrgContext {
   if (cacheUserId !== user.id) return { ...EMPTY, org: undefined, refresh };
   // Read the shared caller-bound value, not a subscriber state queued for an older caller.
   const snapshot = cache ?? { ...EMPTY, org: undefined };
-  if (snapshot.entitlement && (snapshot.authorityUserId !== user.id || Date.now() - cacheAt >= TTL_MS)) {
-    return { ...pending(snapshot), refresh };
+  if (snapshot.authorityUserId && snapshot.authorityUserId !== user.id) {
+    return { ...EMPTY, org: undefined, refresh };
   }
   return { ...snapshot, refresh };
 }
