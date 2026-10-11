@@ -47,10 +47,17 @@ function FinancePage() {
     if (!orgId) return;
     supabase
       .from("clinics")
-      .select("id, name")
+      .select("id, clinic_name, branch_name, doctor_name")
       .eq("organization_id", orgId)
-      .then(({ data }) => {
-        const list = (data as any[]) ?? [];
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn("[FinancePage] Failed to fetch clinics:", error);
+          return;
+        }
+        const list = ((data ?? []) as any[]).map((c) => ({
+          id: c.id,
+          name: c.branch_name ? `${c.clinic_name} (${c.branch_name})` : (c.clinic_name || c.doctor_name || "Clinic"),
+        }));
         setClinics(list);
         if (list.length > 0 && !selectedClinicId) {
           setSelectedClinicId(list[0].id);
