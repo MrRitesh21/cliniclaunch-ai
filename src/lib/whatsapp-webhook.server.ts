@@ -143,16 +143,29 @@ export async function handleWhatsAppIncomingRequest(
       return Response.json({ ok: true, ignored: true, reason: "group_message" });
     }
 
-    // Extract text content across standard and nested Baileys payload structures
+    // Extract text content across standard, nested, and ephemeral Baileys payload structures
+    const nestedMsg =
+      body?.data?.message?.ephemeralMessage?.message ||
+      body?.data?.message?.viewOnceMessage?.message ||
+      body?.data?.message?.viewOnceMessageV2?.message ||
+      body?.data?.message ||
+      body?.messages?.[0]?.message?.ephemeralMessage?.message ||
+      body?.messages?.[0]?.message?.viewOnceMessage?.message ||
+      body?.messages?.[0]?.message?.viewOnceMessageV2?.message ||
+      body?.messages?.[0]?.message;
+
     const rawText =
       body?.text ||
       body?.message ||
       body?.body ||
       body?.content ||
-      body?.data?.message?.conversation ||
-      body?.data?.message?.extendedTextMessage?.text ||
-      body?.messages?.[0]?.message?.conversation ||
-      body?.messages?.[0]?.message?.extendedTextMessage?.text ||
+      nestedMsg?.conversation ||
+      nestedMsg?.extendedTextMessage?.text ||
+      nestedMsg?.imageMessage?.caption ||
+      nestedMsg?.videoMessage?.caption ||
+      nestedMsg?.buttonsResponseMessage?.selectedDisplayText ||
+      nestedMsg?.templateButtonReplyMessage?.selectedDisplayText ||
+      nestedMsg?.listResponseMessage?.title ||
       "";
 
     const text = typeof rawText === "string" ? rawText.trim() : "";

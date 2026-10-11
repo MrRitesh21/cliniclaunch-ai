@@ -237,12 +237,24 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
         continue;
       }
 
-      const text =
-        m.message.conversation ||
-        m.message.extendedTextMessage?.text ||
-        m.message.imageMessage?.caption ||
-        m.message.videoMessage?.caption ||
-        "";
+      const rawMsg = m.message;
+      const unwrapped =
+        rawMsg?.ephemeralMessage?.message ||
+        rawMsg?.viewOnceMessage?.message ||
+        rawMsg?.viewOnceMessageV2?.message ||
+        rawMsg?.documentWithCaptionMessage?.message ||
+        rawMsg;
+
+      const text = (
+        unwrapped?.conversation ||
+        unwrapped?.extendedTextMessage?.text ||
+        unwrapped?.imageMessage?.caption ||
+        unwrapped?.videoMessage?.caption ||
+        unwrapped?.buttonsResponseMessage?.selectedDisplayText ||
+        unwrapped?.templateButtonReplyMessage?.selectedDisplayText ||
+        unwrapped?.listResponseMessage?.title ||
+        ""
+      ).trim();
 
       if (!text) continue;
 
