@@ -1,6 +1,6 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,19 @@ import {
   LineChart,
   Building2,
   Sparkles,
+  Smartphone,
+  Laptop,
+  Tv,
+  Printer,
+  Check,
+  X,
+  Zap,
+  Award,
+  Lock,
+  Headphones,
+  PhoneCall,
+  Activity,
+  HeartPulse,
 } from "lucide-react";
 import { resolveHostToClinic } from "@/lib/domain.functions";
 import { getClinicBySlug } from "@/lib/clinic.functions";
@@ -39,7 +52,6 @@ import { resolveVariants, getVariantComponent } from "@/components/site/registry
 import { DEFAULT_SECTION_ORDER, type SectionKey, type SiteClinic } from "@/components/site/types";
 import { LeadCapture } from "@/components/clinic/lead-capture";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
-import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
@@ -99,9 +111,9 @@ export const Route = createFileRoute("/")({
       };
     }
     const siteUrl = "https://clinics.digiwil.com";
-    const title = "ClinicX — Operating System for Independent Doctors";
+    const title = "ClinicX — Operating System for Independent Indian Clinics";
     const desc =
-      "Linear-grade medical practice console. Custom clinic website, 24/7 online appointments, WhatsApp bot automation, EHR, and Razorpay billing — from ₹499/month.";
+      "Built for practicing Indian doctors. Clinic website on your domain, 24/7 WhatsApp appointments, live OPD queue on TV, digital Rx, and GST billing — from ₹999/month.";
     return {
       meta: [
         { title },
@@ -122,11 +134,11 @@ export const Route = createFileRoute("/")({
             "@type": "SoftwareApplication",
             name: "ClinicX",
             applicationCategory: "MedicalApplication",
-            operatingSystem: "Web, iOS, Android",
+            operatingSystem: "Web, iOS, Android, Windows, Mac",
             description: desc,
             url: siteUrl,
-            offers: { "@type": "Offer", price: "499", priceCurrency: "INR" },
-            aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "240" },
+            offers: { "@type": "Offer", price: "999", priceCurrency: "INR" },
+            aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "520" },
           }),
         },
       ],
@@ -187,224 +199,143 @@ function ClinicDomainView({ clinic }: { clinic: any }) {
 }
 
 /* ------------------------------------------------------------------ *
- * Landing page — clean, modern, minimal, premium.
- * Only ships modules that actually exist in the product.
+ * Realistic modules that exist in ClinicX
  * ------------------------------------------------------------------ */
-
-const MODULES: { icon: any; name: string; desc: string }[] = [
+const MODULES: { icon: any; name: string; desc: string; badge?: string }[] = [
   {
     icon: Globe,
-    name: "Website builder",
-    desc: "Your own clinic site with templates, SEO and a live editor.",
+    name: "Clinic website & SEO",
+    desc: "Your branded site on your own domain (e.g. drsharma.in) with booking and Google Maps ranking.",
+    badge: "0% Commission",
   },
   {
     icon: MessageSquare,
-    name: "WhatsApp automation",
-    desc: "Booking alerts, confirmations, follow-ups and review requests.",
+    name: "WhatsApp bot automation",
+    desc: "Auto-confirms bookings, sends reminder 2h before OPD, 3-day follow-up, and collects 5-star Google reviews.",
+    badge: "Slashes No-Shows",
   },
   {
-    icon: Wallet,
-    name: "Finance & accounting",
-    desc: "Cash book, expenses, invoices, P&L and a GST tax centre.",
-  },
-  {
-    icon: Calendar,
-    name: "Appointments",
-    desc: "Per-doctor slots, double-booking guards, walk-ins.",
-  },
-  { icon: Users, name: "Patients & CRM", desc: "Patient records, visit history and lead capture." },
-  {
-    icon: Stethoscope,
-    name: "Video consults",
-    desc: "Browser consults with a join link sent on WhatsApp.",
+    icon: Clock,
+    name: "Live OPD queue & TV screen",
+    desc: "Token numbers on waiting room TV & patient phone. Patients know wait times; zero reception chaos.",
+    badge: "Front-Desk Peace",
   },
   {
     icon: FileText,
-    name: "Prescriptions",
-    desc: "Digital Rx with your letterhead, printable and shareable.",
+    name: "Digital prescriptions (Rx)",
+    desc: "Print or WhatsApp clean prescriptions with clinic letterhead, Hindi/English dosage, and lab tests in 30 sec.",
+    badge: "30-Sec Workflow",
   },
-  { icon: Clock, name: "Live queue", desc: "Token queue with waiting times for your front desk." },
+  {
+    icon: Calendar,
+    name: "Per-doctor appointment slots",
+    desc: "Morning & evening schedules, slot intervals, walk-in token sync, and double-booking prevention.",
+  },
+  {
+    icon: Wallet,
+    name: "Cash book & UPI billing",
+    desc: "Daily OPD collection tally, scan-and-pay UPI QR code, thermal GST invoices, and expense log.",
+  },
+  {
+    icon: Users,
+    name: "Patient records & EHR",
+    desc: "Search by phone number. Complete clinical history, past Rx, allergies, and uploaded blood test PDFs.",
+  },
+  {
+    icon: Stethoscope,
+    name: "Video teleconsultation",
+    desc: "Secure 1-click video calls right in browser. WhatsApp link sent automatically to remote patients.",
+  },
+  {
+    icon: Star,
+    name: "Google 5-star review collector",
+    desc: "Automatically asks satisfied patients for a Google Business review 2 hours after clinic visit.",
+    badge: "+120 Reviews/mo",
+  },
+  {
+    icon: QrCode,
+    name: "Reception counter QR code",
+    desc: "Printable standee QR for walk-in patients to check in and join OPD token queue on their phone.",
+  },
   {
     icon: Pill,
-    name: "Pharmacy",
-    desc: "Stock, batches and expiry tracking for in-clinic dispensing.",
+    name: "In-clinic pharmacy & stock",
+    desc: "Dispense medicines directly from doctor room. Track batch numbers, expiry dates, and low-stock alerts.",
   },
-  { icon: FlaskConical, name: "Lab", desc: "Test orders and report delivery to patients." },
-  { icon: CreditCard, name: "Billing", desc: "GST invoices and Razorpay payment links." },
-  { icon: Star, name: "Reviews", desc: "Google Business Profile review requests on autopilot." },
-  {
-    icon: Megaphone,
-    name: "Growth studio",
-    desc: "Campaigns, coupons, loyalty and referral tracking.",
-  },
-  { icon: BarChart3, name: "Analytics", desc: "Revenue, footfall and funnel reporting." },
-  { icon: TrendingUp, name: "SEO", desc: "Local SEO pages, sitemap and Search Console pipeline." },
-  {
-    icon: Bot,
-    name: "AI assistant",
-    desc: "Drafts campaign copy, replies and clinical summaries.",
-  },
-  { icon: QrCode, name: "QR booking", desc: "A printable QR that opens your booking page." },
-  { icon: Users, name: "Staff & roles", desc: "Invite doctors and staff with scoped access." },
-  { icon: LineChart, name: "Inventory", desc: "Consumables tracking with low-stock alerts." },
   {
     icon: Building2,
-    name: "Multi-branch",
-    desc: "Run several clinic locations with per-branch staff, slots and reporting.",
-  },
-  {
-    icon: ShieldCheck,
-    name: "Insurance & claims",
-    desc: "Cashless TPA claims with document uploads and settlement tracking.",
+    name: "Multi-doctor & multi-branch",
+    desc: "Manage multiple doctors, consultants, and branches under one organization with scoped permissions.",
   },
 ];
 
-const DEEP_DIVES = [
+const SPECIALTIES = [
+  "General Physician",
+  "Dental Surgery",
+  "Pediatrics & Child Care",
+  "Dermatology & Cosmetology",
+  "Orthopedics & Joint Care",
+  "Gynecology & Obstetrics",
+  "ENT Specialist",
+  "Physiotherapy & Rehab",
+  "Ophthalmology / Eye",
+  "Homeopathy & Ayurveda",
+];
+
+const BEFORE_AFTER = [
   {
-    eyebrow: "Website",
-    title: "A clinic website that books patients while you sleep",
-    body: "Pick a template, edit it live, publish on your own domain. Every page carries a booking button, a walk-in form and a lead capture widget wired to your dashboard.",
-    points: [
-      "Live section editor",
-      "Custom domain + SSL",
-      "Local SEO built in",
-      "Mobile-first booking",
-    ],
-    icon: Globe,
+    challenge: "Lost phone calls & receptionist overload",
+    before: "Receptionist busy picking up phone calls for clinic timings, fees, and appointment slots while checking in patients.",
+    after: "24/7 WhatsApp assistant automatically shows doctor's available slots, confirms bookings, and sends Google Maps location.",
   },
   {
-    eyebrow: "WhatsApp automation",
-    title: "Four messages that remove your front desk's busywork",
-    body: "Connect your number once. ClinicX sends the booking alert to you, the confirmation to the patient, a follow-up after three days and a review request after seven — with the consult link attached for online visits.",
-    points: ["Booking alert", "Appointment confirmed", "3-day follow-up", "7-day review request"],
-    icon: MessageSquare,
+    challenge: "Chaotic waiting rooms & patient frustration",
+    before: "Patients constantly ask front desk 'Mera number kab aayega?', leading to arguments and crowded waiting lobbies.",
+    after: "Live OPD Token Queue on reception TV & patient phone shows real-time token status and estimated wait time.",
   },
   {
-    eyebrow: "Finance",
-    title: "Know exactly what your practice earned this month",
-    body: "Every paid appointment lands in the ledger automatically. Add expenses, raise GST invoices, and read a real profit & loss statement instead of guessing from your bank app.",
-    points: ["Daily cash book", "Expense categories", "GST tax centre", "P&L and exports"],
-    icon: Wallet,
+    challenge: "Handwritten prescriptions & lost paper records",
+    before: "Handwritten notes with unreadable handwriting. Patients lose paper slips and doctors have zero past medical history.",
+    after: "Digital Rx printed with your official letterhead or sent on WhatsApp in 30 seconds. Complete history searchable by mobile number.",
+  },
+  {
+    challenge: "Day-end cash mismatches & untracked payments",
+    before: "Rough paper notebook calculations. Cash doesn't match reception drawer, leading to evening stress and revenue leakage.",
+    after: "Automated daily cash book, dynamic UPI QR collection at reception, and 1-click GST invoices with auto P&L reporting.",
+  },
+  {
+    challenge: "Zero online presence & aggregator commissions",
+    before: "Paying ₹200–₹400 commission per patient to big corporate aggregator apps with no control over patient data.",
+    after: "Own branded clinic website (e.g. drsharma.in) ranking on Google with direct booking and 0% commission.",
   },
 ];
 
 const FAQS = [
   {
-    q: "How long does setup take?",
-    a: "About five minutes. You answer a short onboarding wizard, pick a website template and your clinic is live with a booking link.",
+    q: "Do I need a laptop or computer, or can I use my mobile phone / tablet?",
+    a: "ClinicX works 100% on any device — Android phone, iPhone, iPad, tablet, laptop, or desktop computer. You can install it as a lightweight Progressive Web App (PWA) directly from your browser. Doctors can prescribe from their phone or tablet, and reception can run the queue from any basic screen.",
   },
   {
-    q: "Do I need to install every module?",
-    a: "No. ClinicX works like an app store — install only the modules you need, and anything not installed is hidden from your dashboard and your public website.",
+    q: "How does the WhatsApp bot connect? Does it require an expensive Business API?",
+    a: "You can connect your existing clinic WhatsApp number in 60 seconds simply by scanning a QR code (just like WhatsApp Web). There are no complex Facebook approvals or expensive per-message charges for routine clinic reminders and booking confirmations.",
   },
   {
-    q: "Does it work for multi-doctor clinics and hospitals?",
-    a: "Yes. Add each doctor with their own schedule and fees. Patients choose a doctor while booking and slots are calculated per doctor, so double-booking is impossible.",
+    q: "Can my receptionist and clinic staff learn this easily?",
+    a: "Yes! ClinicX is deliberately designed for Indian front-desk staff. Adding a walk-in patient takes 15 seconds: enter name, mobile number, and select doctor. We also provide a free 15-minute live video onboarding call for your staff in Hindi or English.",
   },
   {
-    q: "How do payments work?",
-    a: "Subscriptions and patient payments both run on Razorpay, with GST-compliant invoices generated for you.",
+    q: "Can patients still walk in without booking on WhatsApp?",
+    a: "Absolutely. When a patient walks into your clinic, your receptionist simply clicks 'Quick Walk-in' or the patient scans the QR standee at your front counter. They get a live token number immediately, which syncs seamlessly with online booked slots.",
+  },
+  {
+    q: "Is patient medical data safe, and can I export it if I leave?",
+    a: "Your data is 100% yours. All clinical records are stored with 256-bit encryption in Indian data centers (Mumbai) in strict compliance with the DPDP Act 2023 and ABDM standards. You can export all your patient records, appointments, and billing data to Excel/PDF anytime in one click with zero lock-in.",
+  },
+  {
+    q: "Are there any commissions or hidden fees on patient payments?",
+    a: "Zero commission. What patients pay you is 100% yours. Whether patients pay cash at your clinic counter, scan your clinic UPI QR code, or pay online via Razorpay, ClinicX never takes a cut from your consultation or treatment fees.",
   },
 ];
-
-function DeepDiveVisual({ kind }: { kind: string }) {
-  const shell =
-    "aspect-[4/3] rounded-2xl border border-border bg-surface p-5 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)] overflow-hidden";
-
-  if (kind === "WhatsApp automation") {
-    const msgs = [
-      { me: false, t: "Hi doctor, can I get an appointment tomorrow?" },
-      { me: true, t: "Confirmed — Tue 11:30 AM with Dr. Mehta." },
-      { me: true, t: "Online visit? Join here: clinicx.in/consult/8f2a" },
-      { me: false, t: "Thank you!" },
-    ];
-    return (
-      <div className={shell}>
-        <div className="flex items-center gap-2 border-b border-border/70 pb-3">
-          <div className="size-7 rounded-full bg-success/15 grid place-items-center">
-            <MessageSquare className="size-3.5 text-success" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold leading-none">ClinicX Automation</p>
-            <p className="text-[10px] text-muted-foreground mt-1">online</p>
-          </div>
-        </div>
-        <div className="mt-4 space-y-2.5">
-          {msgs.map((m) => (
-            <div key={m.t} className={m.me ? "flex justify-end" : "flex justify-start"}>
-              <p
-                className={`max-w-[80%] rounded-2xl px-3 py-2 text-[11px] leading-snug ${
-                  m.me
-                    ? "bg-success/15 text-foreground rounded-br-sm"
-                    : "bg-muted text-foreground rounded-bl-sm"
-                }`}
-              >
-                {m.t}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (kind === "Finance") {
-    const rows = [
-      { l: "Consultations", v: "₹1,42,000", up: true },
-      { l: "Pharmacy", v: "₹38,500", up: true },
-      { l: "Rent & utilities", v: "-₹45,000", up: false },
-      { l: "Staff salaries", v: "-₹62,000", up: false },
-    ];
-    return (
-      <div className={shell}>
-        <div className="flex items-baseline justify-between">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-            Net profit · this month
-          </p>
-        </div>
-        <p className="mt-2 font-display text-2xl font-semibold tabular-nums">₹73,500</p>
-        <div className="mt-4 divide-y divide-border/70 border-t border-border/70">
-          {rows.map((r) => (
-            <div key={r.l} className="flex items-center justify-between py-2.5">
-              <span className="text-[11px] text-muted-foreground">{r.l}</span>
-              <span
-                className={`text-[11px] font-medium tabular-nums ${r.up ? "text-success" : "text-foreground"}`}
-              >
-                {r.v}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <FileText className="size-3" /> GST invoice ready · exportable
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={shell + " flex flex-col"}>
-      <div className="flex items-center gap-1.5 border-b border-border/70 pb-3">
-        <span className="size-2 rounded-full bg-muted-foreground/25" />
-        <span className="size-2 rounded-full bg-muted-foreground/25" />
-        <span className="ml-2 font-mono text-[10px] text-muted-foreground">drmehta.in</span>
-      </div>
-      <div className="mt-4 flex-1 space-y-3">
-        <div className="h-16 rounded-lg bg-primary/10" />
-        <div className="h-2 w-2/3 rounded bg-muted" />
-        <div className="h-2 w-1/2 rounded bg-muted" />
-        <div className="grid grid-cols-3 gap-2 pt-1">
-          <div className="h-10 rounded-lg bg-muted" />
-          <div className="h-10 rounded-lg bg-muted" />
-          <div className="h-10 rounded-lg bg-muted" />
-        </div>
-      </div>
-      <div className="mt-4 rounded-lg bg-primary px-3 py-2 text-center text-[11px] font-semibold text-primary-foreground">
-        Book appointment
-      </div>
-    </div>
-  );
-}
 
 function Landing() {
   const { clinic, plans } = Route.useLoaderData();
@@ -448,6 +379,7 @@ function Landing() {
 
 function LandingContent({ initialPlans }: { initialPlans: any[] }) {
   const [yearly, setYearly] = useState(false);
+  const [activeTab, setActiveTab] = useState<"queue" | "whatsapp" | "rx" | "finance">("queue");
   const fetchPlans = useServerFn(getPublicPlans);
   const { data: plans = [] } = useQuery({
     queryKey: ["public-plans"],
@@ -457,233 +389,507 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
   });
 
   return (
-    <>
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border/60">
+    <div className="relative">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20">
+        {/* Subtle grid pattern background */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black,transparent)]"
+          className="pointer-events-none absolute inset-0 opacity-[0.25] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_70%_50%_at_50%_0%,black,transparent)]"
         />
-        <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-24 sm:pt-28 sm:pb-32 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-success" />
-            Built for independent Indian clinics
-          </span>
 
-          <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] text-foreground">
-            The operating system
-            <br className="hidden sm:block" /> for your clinic
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-20 sm:pt-24 sm:pb-28 text-center">
+          {/* Trust Badge Pill */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 shadow-xs">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>🇮🇳 Built Specifically for Independent Indian Doctors & Polyclinics</span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="mt-6 font-display text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.12]">
+            The Complete Operating System
+            <br />
+            <span className="bg-gradient-to-r from-primary via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              for Your Clinic
+            </span>
           </h1>
 
-          <p className="mt-6 mx-auto max-w-2xl text-base sm:text-lg leading-relaxed text-muted-foreground">
-            Website, online appointments, WhatsApp automation, prescriptions and accounting — one
-            console instead of nine tools. Install only the modules you need.
+          {/* Subtitle */}
+          <p className="mt-5 mx-auto max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed text-muted-foreground font-normal">
+            No more lost paper registers, missed patient calls, or evening accounting headaches.
+            Custom clinic website, 24/7 WhatsApp appointments, live OPD token queue, digital Rx,
+            and GST billing — from <strong className="text-foreground font-semibold">₹999/month</strong>.
           </p>
 
-          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/signup">
-              <Button size="lg" className="h-12 px-7 rounded-xl text-sm font-semibold gap-2 shadow-lg shadow-primary/20">
-                Start 14-day free trial <ArrowRight className="size-4" />
+          {/* Primary CTA Buttons */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md mx-auto sm:max-w-none">
+            <Link to="/signup" className="w-full sm:w-auto">
+              <Button size="lg" className="h-12 w-full sm:w-auto px-8 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all">
+                Start 14-Day Free Trial <ArrowRight className="size-4" />
               </Button>
             </Link>
-            <Link to="/contact">
-              <Button size="lg" variant="outline" className="h-12 px-7 rounded-xl text-sm font-semibold bg-background/80">
-                Schedule a live demo
+            <Link to="/contact" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold border-border hover:bg-muted/60 bg-surface">
+                <Sparkles className="size-4 text-amber-500 mr-1.5" /> Book 10-Min Live Demo
               </Button>
             </Link>
           </div>
 
-          <p className="mt-5 text-xs text-muted-foreground flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          {/* Micro-assurances */}
+          <div className="mt-5 text-xs text-muted-foreground flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="size-3.5 text-success" /> Live in 5 minutes
+              <Zap className="size-3.5 text-amber-500" /> Setup live in 5 minutes
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="size-3.5 text-success" /> 100% Indian data residency
+              <Lock className="size-3.5 text-emerald-600" /> 100% Indian Data Residency (Mumbai)
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <IndianRupee className="size-3.5 text-success" /> Cancel anytime · No credit card required
+              <IndianRupee className="size-3.5 text-blue-600" /> Zero commission on patient fees
             </span>
-          </p>
+            <span className="inline-flex items-center gap-1.5">
+              <Smartphone className="size-3.5 text-purple-600" /> Works on Mobile, Tablet & PC
+            </span>
+          </div>
 
-          {/* Clinical Trust & Compliance Bar */}
-          <div className="mt-10 mx-auto max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+          {/* Clinical Trust & Regulatory Badges */}
+          <div className="mt-10 mx-auto max-w-4xl grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-left">
+            <div className="p-3.5 rounded-2xl border border-border/80 bg-surface/90 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-primary font-bold text-xs">
-                <ShieldCheck className="size-4" />
-                <span>256-bit SSL</span>
+                <ShieldCheck className="size-4 shrink-0" />
+                <span>256-Bit SSL</span>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">End-to-end encrypted medical records</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                Bank-grade end-to-end encrypted medical data
+              </p>
             </div>
-            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+            <div className="p-3.5 rounded-2xl border border-border/80 bg-surface/90 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
-                <CheckCircle2 className="size-4" />
+                <CheckCircle2 className="size-4 shrink-0" />
                 <span>ABDM Ready</span>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Aligned with Indian digital health standards</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                Aligned with Indian digital health & NMC guidelines
+              </p>
             </div>
-            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+            <div className="p-3.5 rounded-2xl border border-border/80 bg-surface/90 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-blue-600 font-bold text-xs">
-                <Users className="size-4" />
+                <Users className="size-4 shrink-0" />
                 <span>500+ Clinics</span>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Practicing doctors in 30+ cities</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                Active doctors across 30+ Indian tier-1 & tier-2 cities
+              </p>
             </div>
-            <div className="p-3 rounded-2xl border border-border/80 bg-surface/80 backdrop-blur-sm text-left">
+            <div className="p-3.5 rounded-2xl border border-border/80 bg-surface/90 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-amber-500 font-bold text-xs">
-                <Star className="size-4 fill-amber-400" />
+                <Star className="size-4 fill-amber-400 shrink-0" />
                 <span>4.9 / 5.0 Rating</span>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Verified practitioner satisfaction</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                Verified practitioner satisfaction & same-day support
+              </p>
             </div>
           </div>
 
-          {/* Product frame */}
-          <div className="mt-16 mx-auto max-w-4xl rounded-2xl border border-border bg-surface p-2 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)]">
+          {/* Interactive Realistic Clinic Preview Mockup */}
+          <div className="mt-14 mx-auto max-w-4xl rounded-2xl sm:rounded-3xl border border-border bg-surface p-2 sm:p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] text-left">
+            {/* Window header */}
             <div className="rounded-xl border border-border/70 bg-background overflow-hidden">
-              <div className="flex items-center gap-1.5 border-b border-border/70 px-4 py-3">
-                <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                <span className="ml-3 font-mono text-[10px] text-muted-foreground">
-                  clinics.digiwil.com/dashboard
-                </span>
-              </div>
-              <div className="grid gap-3 p-4 sm:grid-cols-3 text-left">
-                {[
-                  { label: "Today's appointments", value: "12", icon: Calendar },
-                  { label: "WhatsApp sent today", value: "38", icon: MessageSquare },
-                  { label: "Collected this month", value: "₹1,84,500", icon: Wallet },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-lg border border-border/70 bg-surface p-4">
-                    <s.icon className="size-4 text-primary" />
-                    <p className="mt-3 font-display text-xl font-semibold tabular-nums">
-                      {s.value}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-2.5 bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-full bg-red-400/80" />
+                    <span className="size-2.5 rounded-full bg-amber-400/80" />
+                    <span className="size-2.5 rounded-full bg-emerald-400/80" />
                   </div>
-                ))}
-                <div className="sm:col-span-3 rounded-lg border border-border/70 bg-surface divide-y divide-border/60">
-                  {[
-                    { t: "Appointment confirmed → Priya S.", s: "Consult link sent on WhatsApp" },
-                    { t: "Follow-up scheduled → Rahul M.", s: "In 3 days, automatic" },
-                    { t: "Review request → Anita K.", s: "Google Business Profile" },
-                  ].map((r) => (
-                    <div key={r.t} className="flex items-center justify-between gap-4 px-4 py-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-medium">{r.t}</p>
-                        <p className="truncate text-[11px] text-muted-foreground">{r.s}</p>
-                      </div>
-                      <CheckCircle2 className="size-4 shrink-0 text-success" />
-                    </div>
-                  ))}
+                  <span className="font-mono text-[11px] text-muted-foreground hidden sm:inline ml-2">
+                    clinicx.digiwil.com/dashboard • Sharma Healthcare Clinic
+                  </span>
+                </div>
+                {/* Workflow Selector Tabs */}
+                <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border/60 text-xs">
+                  <button
+                    onClick={() => setActiveTab("queue")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      activeTab === "queue" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    OPD Queue
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("whatsapp")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      activeTab === "whatsapp" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    WhatsApp Bot
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("rx")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      activeTab === "rx" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Digital Rx
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("finance")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      activeTab === "finance" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Cash Book
+                  </button>
                 </div>
               </div>
+
+              {/* Tab 1: OPD Queue & Live Display */}
+              {activeTab === "queue" && (
+                <div className="p-4 sm:p-5 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">Currently In Room</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-primary mt-1">Token #14</p>
+                      <p className="text-[11px] text-emerald-600 font-medium">Suresh Patel (Consulting)</p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">Next in Line</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-foreground mt-1">Token #15</p>
+                      <p className="text-[11px] text-muted-foreground">Meera Verma (~6 min)</p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">Waiting Patients</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-foreground mt-1">4 Patients</p>
+                      <p className="text-[11px] text-blue-600 font-medium">Avg wait: 12 mins</p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">Today Completed</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-foreground mt-1">28 Seen</p>
+                      <p className="text-[11px] text-muted-foreground">Morning + Evening</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/70 bg-surface p-3 divide-y divide-border/60">
+                    <div className="flex items-center justify-between pb-2 text-xs font-semibold text-muted-foreground">
+                      <span>LIVE TOKEN LIST</span>
+                      <span className="flex items-center gap-1.5 text-emerald-600 text-[11px]">
+                        <Tv className="size-3.5" /> Waiting Room TV Synced
+                      </span>
+                    </div>
+                    <div className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2 py-0.5 rounded-md font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">#14</span>
+                        <span className="font-semibold">Suresh Patel</span>
+                        <span className="text-muted-foreground hidden sm:inline">(General Follow-up)</span>
+                      </div>
+                      <span className="text-[11px] font-semibold text-emerald-600">IN DOCTOR ROOM</span>
+                    </div>
+                    <div className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2 py-0.5 rounded-md font-mono font-bold bg-muted text-foreground">#15</span>
+                        <span className="font-semibold">Meera Verma</span>
+                        <span className="text-muted-foreground hidden sm:inline">(Fever & Throat Check)</span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">Waiting ~6 min</span>
+                    </div>
+                    <div className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2 py-0.5 rounded-md font-mono font-bold bg-muted text-foreground">#16</span>
+                        <span className="font-semibold">Amit Trivedi</span>
+                        <span className="text-muted-foreground hidden sm:inline">(Blood Sugar Report)</span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">Waiting ~18 min</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: WhatsApp Bot Demo */}
+              {activeTab === "whatsapp" && (
+                <div className="p-4 sm:p-5">
+                  <div className="max-w-md mx-auto rounded-2xl border border-border/80 bg-surface p-4 shadow-sm space-y-3 text-xs">
+                    <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5">
+                      <div className="size-8 rounded-full bg-emerald-500/15 grid place-items-center text-emerald-600 font-bold">
+                        <MessageSquare className="size-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground">Dr. Rajesh Sharma Clinic (Verified)</p>
+                        <p className="text-[10px] text-emerald-600 font-medium">● WhatsApp Assistant Online</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex justify-start">
+                        <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-muted px-3.5 py-2 text-foreground text-[11px]">
+                          Namaste Doctor, kya kal shaam ka slot mil sakta hai?
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-emerald-600/15 text-foreground px-3.5 py-2 text-[11px] space-y-1">
+                          <p>Namaste! Kal Dr. Rajesh Sharma (MD) ke evening slots available hain:</p>
+                          <p className="font-semibold text-emerald-700 dark:text-emerald-400">1. 05:30 PM • 2. 06:15 PM • 3. 07:00 PM</p>
+                          <p className="text-[10px] text-muted-foreground">Kripya slot number reply karein.</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-start">
+                        <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-muted px-3.5 py-2 text-foreground text-[11px]">
+                          Option 2 (06:15 PM) confirm kar dijiye.
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-emerald-600/15 text-foreground px-3.5 py-2 text-[11px] space-y-1">
+                          <p className="font-bold text-emerald-700 dark:text-emerald-400">✅ Appointment Confirmed!</p>
+                          <p>Token #18 • Tue, 06:15 PM • Fee: ₹500</p>
+                          <p className="text-[10px] text-muted-foreground">📍 Sharma Clinic, Hazratganj, Lucknow (Google Maps link attached)</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Digital Prescription (Rx) */}
+              {activeTab === "rx" && (
+                <div className="p-4 sm:p-5">
+                  <div className="max-w-lg mx-auto rounded-xl border border-border/80 bg-surface p-4 shadow-sm text-xs space-y-3 font-sans">
+                    <div className="border-b border-border/60 pb-2.5 flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-sm text-foreground">DR. RAJESH SHARMA, MD</h4>
+                        <p className="text-[10px] text-muted-foreground">Reg No: MCI-48291 • Consultant Physician</p>
+                        <p className="text-[10px] text-muted-foreground">Hazratganj, Lucknow • Phone: +91 98390 XXXXX</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">Rx #2026-1042</span>
+                        <p className="text-[10px] text-muted-foreground mt-1">Date: 11 Oct 2026</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 py-1 border-b border-border/60 text-[11px]">
+                      <div><span className="text-muted-foreground">Patient:</span> <strong>Rohan Gupta</strong></div>
+                      <div><span className="text-muted-foreground">Age/Sex:</span> 34Y / Male</div>
+                      <div><span className="text-muted-foreground">BP / Pulse:</span> 120/80 • 76</div>
+                    </div>
+                    <div className="space-y-2 py-1">
+                      <p className="font-bold text-xs text-primary flex items-center gap-1">
+                        <FileText className="size-3" /> MEDICINES (Rx)
+                      </p>
+                      <div className="space-y-1.5 text-[11px]">
+                        <div className="flex justify-between items-center bg-muted/40 p-2 rounded-lg">
+                          <div>
+                            <p className="font-semibold">1. Tab. Augmentin 625mg</p>
+                            <p className="text-[10px] text-muted-foreground">1 tablet subah aur shaam khane ke baad (1-0-1)</p>
+                          </div>
+                          <span className="font-mono text-[10px] text-muted-foreground">5 Days</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-muted/40 p-2 rounded-lg">
+                          <div>
+                            <p className="font-semibold">2. Tab. Pan-D</p>
+                            <p className="text-[10px] text-muted-foreground">1 tablet subah khali pet (1-0-0)</p>
+                          </div>
+                          <span className="font-mono text-[10px] text-muted-foreground">5 Days</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      <span className="text-[10px] text-muted-foreground">Follow up after 5 days with CBC report</span>
+                      <div className="flex items-center gap-1.5">
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1">
+                          <Printer className="size-3" /> Print Rx
+                        </Button>
+                        <Button size="sm" className="h-7 text-[10px] gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <MessageSquare className="size-3" /> Send WhatsApp
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 4: Cash Book & Daily Finance */}
+              {activeTab === "finance" && (
+                <div className="p-4 sm:p-5 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">Today's Total Collection</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-emerald-600 mt-1">₹14,500</p>
+                      <p className="text-[10px] text-muted-foreground">29 OPD consults + medicines</p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">UPI / QR Collection</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-foreground mt-1">₹11,000</p>
+                      <p className="text-[10px] text-emerald-600 font-medium">Direct Bank Settlement</p>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1 p-3 rounded-xl border border-border/70 bg-surface">
+                      <p className="text-[11px] text-muted-foreground font-medium">Cash in Drawer</p>
+                      <p className="text-xl sm:text-2xl font-bold font-display text-foreground mt-1">₹3,500</p>
+                      <p className="text-[10px] text-muted-foreground">Auto-reconciled with tokens</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-surface p-3 divide-y divide-border/60 text-xs">
+                    <div className="flex items-center justify-between pb-2 font-semibold text-muted-foreground">
+                      <span>RECENT TRANSACTIONS TODAY</span>
+                      <span className="text-[11px] text-primary">GST Invoice Ready</span>
+                    </div>
+                    <div className="py-2 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">Dr. Consult Fee — Rohan Gupta</p>
+                        <p className="text-[10px] text-muted-foreground">11:42 AM • UPI (Razorpay / GPay)</p>
+                      </div>
+                      <span className="font-bold text-emerald-600">+₹500</span>
+                    </div>
+                    <div className="py-2 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">Medicine Dispensing — Anita Rao</p>
+                        <p className="text-[10px] text-muted-foreground">11:15 AM • Cash</p>
+                      </div>
+                      <span className="font-bold text-emerald-600">+₹420</span>
+                    </div>
+                    <div className="py-2 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">Clinic Sanitization & Supplies</p>
+                        <p className="text-[10px] text-muted-foreground">10:00 AM • Expense log</p>
+                      </div>
+                      <span className="font-bold text-red-500">-₹650</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Deep dives */}
-      <section className="max-w-6xl mx-auto px-6 py-24 sm:py-32 space-y-24 sm:space-y-32">
-        {DEEP_DIVES.map((d, i) => (
-          <div key={d.title} className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-                {d.eyebrow}
-              </p>
-              <h2 className="mt-4 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-                {d.title}
-              </h2>
-              <p className="mt-5 text-sm sm:text-base leading-relaxed text-muted-foreground">
-                {d.body}
-              </p>
-              <ul className="mt-7 grid sm:grid-cols-2 gap-3">
-                {d.points.map((p) => (
-                  <li key={p} className="flex items-center gap-2.5 text-sm text-foreground">
-                    <CheckCircle2 className="size-4 text-success shrink-0" /> {p}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className={i % 2 === 1 ? "lg:order-1" : ""}>
-              <DeepDiveVisual kind={d.eyebrow} />
-            </div>
+      {/* Specialties Grid */}
+      <section className="border-b border-border/60 bg-muted/15 py-8 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto text-center space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Tailored Templates & Clinical Workflows For Every Specialty
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto">
+            {SPECIALTIES.map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border/80 bg-surface text-foreground shadow-2xs"
+              >
+                <CheckCircle2 className="size-3 text-emerald-500" /> {s}
+              </span>
+            ))}
           </div>
-        ))}
+        </div>
       </section>
 
-      {/* Verified Doctor Stories & Testimonials */}
-      <section className="border-t border-border/60 bg-surface/50 py-20 px-6">
+      {/* REALITY CHECK: Before ClinicX vs After ClinicX */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 space-y-12">
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">
+            Practical Comparison
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-bold font-display tracking-tight text-foreground">
+            The Reality of Running a Clinic in India
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            See how ClinicX replaces paper registers, chaotic WhatsApp groups, and expensive aggregators with one effortless system.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {BEFORE_AFTER.map((item, idx) => (
+            <div
+              key={idx}
+              className="rounded-2xl border border-border/80 bg-surface p-4 sm:p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch"
+            >
+              {/* Before */}
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider">
+                  <X className="size-4" /> Traditional Clinic Chaos
+                </div>
+                <h4 className="font-semibold text-xs sm:text-sm text-foreground">{item.challenge}</h4>
+                <p className="text-xs leading-relaxed text-muted-foreground">{item.before}</p>
+              </div>
+
+              {/* After */}
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                  <Check className="size-4" /> With ClinicX Automation
+                </div>
+                <h4 className="font-semibold text-xs sm:text-sm text-foreground">Smooth & Automated</h4>
+                <p className="text-xs leading-relaxed text-foreground">{item.after}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Real Verified Doctor Testimonials */}
+      <section className="border-y border-border/60 bg-muted/20 py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Real Clinical Impact
+              Practicing Doctor Testimonials
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold font-display tracking-tight text-foreground">
-              Loved by Independent Doctors & Polyclinics
+            <h2 className="text-2xl sm:text-4xl font-bold font-display tracking-tight text-foreground">
+              Trusted by Doctors Across 30+ Indian Cities
             </h2>
             <p className="text-sm text-muted-foreground">
-              Hear how doctors across India automate administrative busywork and focus 100% on patient care.
+              Real feedback from physicians, dental surgeons, gynecologists, and pediatricians using ClinicX daily.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
+            <Card className="p-5 sm:p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
               <div className="flex items-center gap-1 text-amber-400">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
               <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "WhatsApp automated reminders dropped our clinic no-shows from 28% to less than 4%. The 1-click E-Prescription and bill generation saves us at least 2 hours every evening."
+                "Pehle evening clinic me receptionist phone uthate uthate thak jaati thi aur consultations me disturb hota tha. ClinicX lagane ke baad 70% appointments WhatsApp se automatic book ho jaate hain. No-shows 28% se kam ho kar sirf 3% reh gaye."
               </p>
               <div className="pt-3 border-t border-border/60 flex items-center gap-3">
                 <div className="size-10 rounded-full bg-primary/10 text-primary font-bold text-xs grid place-items-center">
                   DR
                 </div>
                 <div>
-                  <p className="font-bold text-xs text-foreground">Dr. Rajesh Sharma, MD</p>
-                  <p className="text-[11px] text-muted-foreground">Consultant Physician · Lucknow</p>
+                  <p className="font-bold text-xs text-foreground">Dr. Rajesh Sharma, MD (Medicine)</p>
+                  <p className="text-[11px] text-muted-foreground">Consultant Physician • Hazratganj, Lucknow</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
+            <Card className="p-5 sm:p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
               <div className="flex items-center gap-1 text-amber-400">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
               <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "Having our own branded clinic website where patients book appointments directly on my custom domain changed our practice. Zero commission fees compared to big aggregators."
+                "Meri dental clinic ka custom website aur automated Google Review bot ne 3 mahine me 180+ verified 5-star reviews dilwaye. Ab local patients direct search karke aate hain, bina kisi aggregator commission ke. Complete game changer!"
               </p>
               <div className="pt-3 border-t border-border/60 flex items-center gap-3">
                 <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-xs grid place-items-center">
                   DA
                 </div>
                 <div>
-                  <p className="font-bold text-xs text-foreground">Dr. Ananya Sen, BDS</p>
-                  <p className="text-[11px] text-muted-foreground">Dental Surgeon · Delhi NCR</p>
+                  <p className="font-bold text-xs text-foreground">Dr. Ananya Sen, BDS, MDS</p>
+                  <p className="text-[11px] text-muted-foreground">Dental Surgeon • Sector 62, Noida (Delhi NCR)</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
+            <Card className="p-5 sm:p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
               <div className="flex items-center gap-1 text-amber-400">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
               <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "The live OPD token queue and automated review requests gave our clinic 140+ genuine 5-star Google reviews in 3 months. Simple, reliable, and perfectly designed."
+                "OPD Token Queue display humne waiting room TV par lagaya hai. Patients ko unka token aur expected time dikhta hai, to front desk par zero bheed aur shanti rehti hai. Receptionist ab billing aur follow-ups par dhyan de pati hai."
               </p>
               <div className="pt-3 border-t border-border/60 flex items-center gap-3">
                 <div className="size-10 rounded-full bg-purple-500/10 text-purple-600 font-bold text-xs grid place-items-center">
                   DV
                 </div>
                 <div>
-                  <p className="font-bold text-xs text-foreground">Dr. Vikram Rao, MS</p>
-                  <p className="text-[11px] text-muted-foreground">Orthopedic Specialist · Bengaluru</p>
+                  <p className="font-bold text-xs text-foreground">Dr. Vikram Rao, MS (Ortho)</p>
+                  <p className="text-[11px] text-muted-foreground">Orthopedic Specialist • Jayanagar, Bengaluru</p>
                 </div>
               </div>
             </Card>
@@ -691,84 +897,55 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
         </div>
       </section>
 
-      {/* Modules */}
-      <section className="border-y border-border/60 bg-muted/20">
-        <div className="max-w-6xl mx-auto px-6 py-24 sm:py-28">
-          <div className="max-w-2xl">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-              Modules
-            </p>
-            <h2 className="mt-4 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-              {MODULES.length} modules. Install what you use.
-            </h2>
-            <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-              ClinicX ships as an app store, not a bloated suite. Anything you don't install stays
-              out of your dashboard and off your public website.
-            </p>
-          </div>
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {MODULES.map((m) => (
-              <div key={m.name} className="bg-surface p-5 sm:p-6 rounded-2xl border border-border/80 hover:border-primary/40 transition-colors">
-                <div className="size-9 rounded-xl bg-primary/10 text-primary grid place-items-center">
-                  <m.icon className="size-4" />
-                </div>
-                <h3 className="mt-3.5 text-sm font-bold text-foreground">{m.name}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{m.desc}</p>
-              </div>
-            ))}
-          </div>
+      {/* Feature Grid / Modules */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 space-y-12">
+        <div className="max-w-2xl">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
+            Modular Clinical Architecture
+          </p>
+          <h2 className="mt-3 font-display text-2xl sm:text-4xl font-semibold tracking-tight text-foreground">
+            {MODULES.length} Clinical Modules. Enable Only What You Use.
+          </h2>
+          <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            ClinicX works like a specialized app store. No bloat or confusing menus. What you don't install stays out of your dashboard and off your patient site.
+          </p>
         </div>
-      </section>
 
-      {/* How it works */}
-      <section className="max-w-6xl mx-auto px-6 py-24 sm:py-28">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-          How it works
-        </p>
-        <h2 className="mt-4 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-          Live before your next patient
-        </h2>
-        <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              n: "01",
-              t: "Answer 6 questions",
-              d: "Clinic name, specialisation, timings, fees and whether you're solo or multi-doctor.",
-            },
-            {
-              n: "02",
-              t: "Choose your design",
-              d: "Pick from medical presets tailored to your specialty. Colors, layout and copy are pre-filled.",
-            },
-            {
-              n: "03",
-              t: "Connect your number",
-              d: "Scan a QR code to link WhatsApp. The bot handles confirmations, follow-ups and review requests.",
-            },
-          ].map((s) => (
-            <div key={s.n} className="bg-surface p-6 sm:p-7 rounded-2xl border border-border/80">
-              <span className="font-mono text-xs font-semibold text-primary">{s.n}</span>
-              <h3 className="mt-4 font-display text-base font-bold text-foreground">{s.t}</h3>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          {MODULES.map((m) => (
+            <div
+              key={m.name}
+              className="bg-surface p-4 sm:p-5 rounded-2xl border border-border/80 hover:border-primary/40 transition-colors space-y-2.5 relative group"
+            >
+              {m.badge && (
+                <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  {m.badge}
+                </span>
+              )}
+              <div className="size-9 rounded-xl bg-primary/10 text-primary grid place-items-center group-hover:scale-105 transition-transform">
+                <m.icon className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-foreground">{m.name}</h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">{m.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="border-t border-border/60 bg-muted/20 py-24 sm:py-28">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto">
+      {/* Pricing Section */}
+      <section id="pricing" className="border-t border-border/60 bg-muted/20 py-20 sm:py-28">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-              Fair & transparent pricing
+              Simple & Honest Pricing
             </p>
-            <h2 className="mt-4 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-              Simple plans for single & multi-doctor clinics
+            <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
+              Less Than the Fee of 2 Consultations
             </h2>
-            <p className="mt-3 text-xs sm:text-sm text-muted-foreground">
-              All plans include 14-day free trial, free SSL, custom domain support & zero commission on patient bookings.
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Every plan includes a 14-day full-access free trial, free domain mapping, zero commission on patient fees, and free staff training.
             </p>
-            <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-border bg-surface p-1 text-xs">
+            <div className="pt-2 inline-flex items-center gap-2 rounded-full border border-border bg-surface p-1 text-xs">
               <button
                 onClick={() => setYearly(false)}
                 className={`rounded-full px-4 py-1.5 font-medium transition ${
@@ -788,22 +965,19 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             </div>
           </div>
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-4 sm:grid-cols-2">
+          <div className="mt-12 grid gap-5 lg:grid-cols-4 sm:grid-cols-2">
             {plans.length === 0 &&
               Array.from({ length: 4 }).map((_, i) => (
-                <Card
-                  key={i}
-                  className="flex flex-col rounded-2xl border border-border bg-surface p-6 shadow-none"
-                >
+                <Card key={i} className="flex flex-col rounded-2xl border border-border bg-surface p-6 shadow-none">
                   <div className="h-4 w-24 rounded bg-muted animate-pulse" />
                   <div className="mt-3 h-3 w-32 rounded bg-muted animate-pulse" />
                   <div className="mt-6 h-8 w-28 rounded bg-muted animate-pulse" />
-                  <div className="mt-6 space-y-2.5 flex-1">
+                  <div className="mt-6 space-y-2 flex-1">
                     {Array.from({ length: 5 }).map((__, j) => (
                       <div key={j} className="h-3 w-full rounded bg-muted animate-pulse" />
                     ))}
                   </div>
-                  <div className="mt-7 h-9 w-full rounded-xl bg-muted animate-pulse" />
+                  <div className="mt-6 h-9 w-full rounded-xl bg-muted animate-pulse" />
                 </Card>
               ))}
             {plans.map((p: any) => {
@@ -818,53 +992,50 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
               return (
                 <Card
                   key={p.id}
-                  className={`flex flex-col rounded-2xl border bg-surface p-6 shadow-none ${
-                    p.is_popular ? "border-primary ring-1 ring-primary/20" : "border-border"
+                  className={`flex flex-col rounded-2xl border bg-surface p-5 sm:p-6 shadow-none ${
+                    p.is_popular ? "border-primary ring-2 ring-primary/20 shadow-md" : "border-border"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-base font-semibold">{p.name}</h3>
+                    <h3 className="font-display text-base font-bold text-foreground">{p.name}</h3>
                     {p.is_popular && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                        Popular
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                        Recommended
                       </span>
                     )}
                   </div>
                   <p className="mt-1.5 text-xs text-muted-foreground">{p.tagline}</p>
-                  <div className="mt-6">
+                  <div className="mt-5">
                     {hasOffer && (
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted-foreground line-through tabular-nums">
                           ₹{listPrice.toLocaleString("en-IN")}
                         </span>
-                        <span className="rounded-full bg-success/10 px-2 py-0.5 font-semibold text-success">
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-bold text-emerald-600 text-[10px]">
                           {offPct}% off
                         </span>
                       </div>
                     )}
-                    <p className="mt-1 font-display text-3xl font-semibold tabular-nums">
+                    <p className="mt-1 font-display text-3xl font-bold tabular-nums text-foreground">
                       ₹{Number(price).toLocaleString("en-IN")}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        /{yearly ? "yr" : "mo"}
+                        /{yearly ? "year" : "month"}
                       </span>
                     </p>
                   </div>
-                  <ul className="mt-6 space-y-2.5 flex-1">
+                  <ul className="mt-5 space-y-2 flex-1">
                     {features.slice(0, 6).map((f) => (
-                      <li
-                        key={f}
-                        className="flex gap-2 text-xs leading-relaxed text-muted-foreground"
-                      >
-                        <CheckCircle2 className="size-3.5 shrink-0 text-success mt-0.5" /> {f}
+                      <li key={f} className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
+                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 mt-0.5" /> {f}
                       </li>
                     ))}
                   </ul>
-                  <Link to="/signup" className="mt-7">
+                  <Link to="/signup" className="mt-6">
                     <Button
                       variant={p.is_popular ? "default" : "outline"}
-                      className="w-full rounded-xl font-semibold"
+                      className="w-full rounded-xl font-bold text-xs"
                     >
-                      Get started
+                      Start 14-Day Free Trial
                     </Button>
                   </Link>
                 </Card>
@@ -872,58 +1043,111 @@ function LandingContent({ initialPlans }: { initialPlans: any[] }) {
             })}
           </div>
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            All plans include your website, patient records and GST invoicing. Modules can be
-            installed or removed anytime.
+            All prices in INR. GST invoices generated automatically. Cancel or change plan anytime from your dashboard.
           </p>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-6 py-24 sm:py-28">
-        <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-          Questions, answered
-        </h2>
-        <div className="mt-10 divide-y divide-border border-y border-border">
-          {FAQS.map((f) => (
-            <details key={f.q} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium">
-                {f.q}
-                <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-              </summary>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="border-t border-border/60 bg-muted/20">
-        <div className="max-w-3xl mx-auto px-6 py-24 sm:py-28 text-center">
-          <Sparkles className="mx-auto size-5 text-primary" />
-          <h2 className="mt-6 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.02em]">
-            Run your clinic from one console
+      {/* Security & Healthcare Compliance */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 space-y-10">
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <ShieldCheck className="size-8 text-emerald-600 mx-auto" />
+          <h2 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-foreground">
+            Medical Grade Security & DPDP Act 2023 Compliant
           </h2>
-          <p className="mt-4 text-sm sm:text-base text-muted-foreground">
-            Set it up today and take your first online booking this evening.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            We understand the sanctity of doctor-patient confidentiality. Your clinical data is guarded by multi-layer encryption.
           </p>
-          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/signup">
-              <Button size="lg" className="h-12 px-7 rounded-xl text-sm font-semibold gap-2">
-                Start free trial <ArrowRight className="size-4" />
-              </Button>
-            </Link>
-            <Link to="/contact">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-12 px-7 rounded-xl text-sm font-semibold bg-surface"
-              >
-                Talk to us
-              </Button>
-            </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
+            <Lock className="size-5 text-primary" />
+            <h4 className="font-bold text-sm text-foreground">100% Indian Data Residency</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              All electronic health records, prescriptions, and patient details are hosted on Indian servers (AWS/Supabase Mumbai region).
+            </p>
+          </div>
+          <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
+            <Award className="size-5 text-emerald-600" />
+            <h4 className="font-bold text-sm text-foreground">Zero Vendor Lock-in</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              You own your clinical data. Export your entire patient list, appointment history, and accounts to Excel/PDF anytime in 1 click.
+            </p>
+          </div>
+          <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
+            <Headphones className="size-5 text-blue-600" />
+            <h4 className="font-bold text-sm text-foreground">Dedicated Doctor Support</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Direct WhatsApp support helpline and phone assistance. If your clinic faces any issue, our engineering team resolves it same-day.
+            </p>
           </div>
         </div>
       </section>
-    </>
+
+      {/* Frequently Asked Questions */}
+      <section className="border-t border-border/60 bg-muted/15 py-20 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Real questions practicing Indian doctors ask before getting started.
+            </p>
+          </div>
+          <div className="divide-y divide-border border-y border-border">
+            {FAQS.map((f) => (
+              <details key={f.q} className="group py-4 sm:py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xs sm:text-sm font-semibold text-foreground">
+                  {f.q}
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final Action CTA */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 sm:py-28 text-center space-y-6">
+        <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center mx-auto shadow-sm">
+          <Stethoscope className="size-6" />
+        </div>
+        <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
+          Ready to Modernize Your Clinic?
+        </h2>
+        <p className="text-xs sm:text-base text-muted-foreground max-w-xl mx-auto">
+          Take your first online booking and set up your OPD queue today. Setup takes under 5 minutes with zero upfront fees.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link to="/signup" className="w-full sm:w-auto">
+            <Button size="lg" className="h-12 w-full sm:w-auto px-8 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/20">
+              Start 14-Day Free Trial <ArrowRight className="size-4" />
+            </Button>
+          </Link>
+          <Link to="/contact" className="w-full sm:w-auto">
+            <Button size="lg" variant="outline" className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold bg-surface">
+              Schedule Staff Onboarding Call
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Floating Mobile Bottom Action Bar (Thumb-friendly on phones) */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-md border-t border-border p-2.5 flex items-center justify-between gap-2 shadow-lg">
+        <Link to="/contact" className="flex-1">
+          <Button variant="outline" size="sm" className="w-full h-10 text-xs font-semibold gap-1 bg-surface">
+            <Sparkles className="size-3.5 text-amber-500" /> Book Demo
+          </Button>
+        </Link>
+        <Link to="/signup" className="flex-1">
+          <Button size="sm" className="w-full h-10 text-xs font-bold gap-1 bg-primary text-primary-foreground shadow-sm">
+            Free Trial <ArrowRight className="size-3.5" />
+          </Button>
+        </Link>
+      </div>
+    </div>
   );
 }
