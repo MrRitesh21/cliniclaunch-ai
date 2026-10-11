@@ -16,6 +16,8 @@ function verifyBridgeSignature(rawBody: string, signature: string | null): boole
   return timingSafeEqual(a, b);
 }
 
+import { processWhatsAppMessage } from "@/lib/whatsapp-booking.server";
+
 // Supabase query builders are thenable but have no `.catch`, so calling it throws
 // synchronously and aborted the whole webhook before any reply was sent.
 async function logBestEffort(query: PromiseLike<unknown>) {
@@ -24,96 +26,6 @@ async function logBestEffort(query: PromiseLike<unknown>) {
   } catch (e) {
     console.error("[WhatsApp Webhook] log write failed:", e);
   }
-}
-
-async function generateAIReply(opts: {
-  clinicName: string;
-  doctorName: string;
-  services: string;
-  address: string;
-  bookingLink: string;
-  userMessage: string;
-}): Promise<string> {
-  const systemPrompt = `You are ClinicX AI Smart Receptionist for ${opts.clinicName} (Dr. ${opts.doctorName}).
-Clinic Services: ${opts.services || "General Consultation, Checkups"}
-Clinic Address: ${opts.address || "Main Clinic Branch"}
-Booking Link: ${opts.bookingLink}
-
-Guidelines:
-1. Assist patients warmly, politely, and professionally on WhatsApp.
-2. If the user greets (e.g. "Hi", "Hey", "Hello", "Hhi"), reply warmly and ask how you can assist them with appointments or consultations.
-3. If they ask about booking or consultation, provide the direct booking link: ${opts.bookingLink}
-4. Keep replies under 3 sentences. Match the user's language (English, Hindi, or Hinglish).
-5. Never make up medical prescriptions or fake promises.`;
-
-  const openrouterKey = serverEnv.OPENROUTER_API_KEY;
-  const lovableKey = serverEnv.LOVABLE_API_KEY;
-
-  if (openrouterKey) {
-    try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openrouterKey}`,
-          "HTTP-Referer": "https://clinicx.app",
-          "X-Title": "ClinicX WhatsApp AI",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-oss-120b:free",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: opts.userMessage },
-          ],
-        }),
-      });
-      if (res.ok) {
-        const j = await res.json();
-        const content = j?.choices?.[0]?.message?.content?.trim();
-        if (content) return content;
-      }
-    } catch {
-      /* fallback to default response */
-    }
-  }
-
-  if (lovableKey) {
-    try {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Lovable-API-Key": lovableKey,
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: opts.userMessage },
-          ],
-        }),
-      });
-      if (res.ok) {
-        const j = await res.json();
-        const content = j?.choices?.[0]?.message?.content?.trim();
-        if (content) return content;
-      }
-    } catch {
-      /* fallback */
-    }
-  }
-
-  // Smart fallback response if AI gateway is unreachable
-  const msgLower = opts.userMessage.toLowerCase();
-  if (
-    msgLower.includes("book") ||
-    msgLower.includes("appointment") ||
-    msgLower.includes("timing") ||
-    msgLower.includes("slot")
-  ) {
-    return `Hello! 👋 You can easily book an appointment with ${opts.doctorName} at ${opts.clinicName} here: ${opts.bookingLink}`;
-  }
-  return `Hello! 👋 Welcome to ${opts.clinicName} (Dr. ${opts.doctorName}). How can we help you today? You can book an appointment directly at: ${opts.bookingLink}`;
 }
 
 export const Route = createFileRoute("/api/public/hooks/whatsapp")({
@@ -203,35 +115,28 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
             }),
           );
 
-          // Generate AI reply using the verified target clinic's details
-          const origin = serverEnv.APP_URL || "https://clinicx.app";
-          const bookingLink = `${origin}/c/${clinic.slug}/book`;
-          const servicesList = Array.isArray(clinic.services)
-            ? clinic.services.map((s: any) => s.title || s.name || s).join(", ")
-            : "";
-
-          const aiReply = await generateAIReply({
-            clinicName: clinic.clinic_name || "ClinicX",
-            doctorName: clinic.doctor_name || "Doctor",
-            services: servicesList,
-            address: clinic.public_address || "",
-            bookingLink,
-            userMessage: text,
+          // ─── PROCESS AUTOMATED BOOKING & CONVERSATION ───
+          const bookingResult = await processWhatsAppMessage({
+            clinic,
+            patientPhone: formattedPhone,
+            senderName: name || null,
+            incomingText: text,
           });
 
           // Send reply strictly back using the target clinic's specific Baileys session ID
           const sessionId = clinic.wa_session_id || clinicSessionId(clinic.id);
-          const sendResult = await baileysSend(sessionId, formattedPhone, aiReply);
+          const sendResult = await baileysSend(sessionId, formattedPhone, bookingResult.reply);
 
-          // Log outgoing AI reply
+          // Log outgoing reply
           await logBestEffort(
             sb.from("whatsapp_logs").insert({
               organization_id: clinic.organization_id,
+              appointment_id: bookingResult.appointmentId || null,
               patient_name: name || null,
               patient_phone: formattedPhone,
-              template_key: "ai_auto_reply",
-              automation_key: "ai_auto_reply",
-              message: aiReply,
+              template_key: bookingResult.action === "booked" ? "whatsapp_booking_confirmed" : "ai_auto_reply",
+              automation_key: bookingResult.action === "booked" ? "whatsapp_booking_confirmed" : "ai_auto_reply",
+              message: bookingResult.reply,
               status: sendResult.ok ? "sent" : "failed",
               error: sendResult.error || null,
               sent_at: sendResult.ok ? new Date().toISOString() : null,
@@ -240,9 +145,12 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
 
           return Response.json({
             ok: true,
+            action: bookingResult.action,
+            appointment_id: bookingResult.appointmentId,
+            token_number: bookingResult.tokenNumber,
             clinic_id: clinic.id,
             session_id: sessionId,
-            reply: aiReply,
+            reply: bookingResult.reply,
             sent: sendResult.ok,
             error: sendResult.error,
           });
