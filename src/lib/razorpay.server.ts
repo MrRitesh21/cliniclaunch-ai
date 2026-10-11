@@ -1,11 +1,12 @@
 // Server-only Razorpay REST client. Read env inside functions, not at module scope.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { ProviderPlan, ProviderPayment } from "./payment-verification.ts";
+import { serverEnv } from "@/lib/env.server";
 const BASE = "https://api.razorpay.com/v1";
 
 function auth() {
-  const id = process.env.RAZORPAY_KEY_ID;
-  const secret = process.env.RAZORPAY_KEY_SECRET;
+  const id = serverEnv.RAZORPAY_KEY_ID;
+  const secret = serverEnv.RAZORPAY_KEY_SECRET;
   if (!id?.trim() || !secret?.trim()) throw new Error("Razorpay keys not configured");
   return "Basic " + Buffer.from(`${id}:${secret}`).toString("base64");
 }
@@ -281,9 +282,9 @@ function validId(value: unknown, prefix: string): value is string {
 // subscriptionId MUST come from the server-owned checkout attempt, not the callback.
 export function verifySubscriptionCheckoutSignature(paymentId: string, subscriptionId: string, signature: string) {
   if (!validId(paymentId, "pay") || !validId(subscriptionId, "sub")) return false;
-  return verifyHmac(`${paymentId}|${subscriptionId}`, signature, process.env.RAZORPAY_KEY_SECRET);
+  return verifyHmac(`${paymentId}|${subscriptionId}`, signature, serverEnv.RAZORPAY_KEY_SECRET);
 }
 
 export function verifyWebhookSignature(rawBody: string | Uint8Array, signature: string) {
-  return verifyHmac(rawBody, signature, process.env.RAZORPAY_WEBHOOK_SECRET);
+  return verifyHmac(rawBody, signature, serverEnv.RAZORPAY_WEBHOOK_SECRET);
 }

@@ -1,3 +1,24 @@
+/**
+ * @module tenant.middleware
+ * @description Tenant context resolution middleware for ClinicX server functions.
+ *
+ * `withTenantContext` is the single entry point for establishing a verified
+ * workspace selection in server functions. It:
+ *
+ * 1. Validates the shape of the caller-supplied `organizationId` and `clinicId`.
+ * 2. Verifies that the JWT-bound user (`auth.userId`) is an active member of the
+ *    requested organization by querying `organization_members`.
+ * 3. If a `clinicId` is supplied, verifies clinic ownership within the org.
+ * 4. Cross-checks optional `x-organization-id` / `x-clinic-id` request headers
+ *    to detect routing mismatches early (fail-safe).
+ *
+ * **Never** bypass this function by constructing `TenantContext` objects manually
+ * in a server function — use `assertTenantScope` only for shape validation.
+ *
+ * @see {@link assertTenantScope} for UUID-shape-only validation
+ * @see {@link requireSupabaseAuth} for the JWT auth middleware
+ */
+
 import { assertTenantScope, TenantContext, TenantScopeError } from "@/lib/tenant";
 import type { SupabaseClient } from "@supabase/supabase-js";
 

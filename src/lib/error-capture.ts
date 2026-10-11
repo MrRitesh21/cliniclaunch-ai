@@ -1,3 +1,20 @@
+/**
+ * @module error-capture
+ * @description Out-of-band error capture for server-side error recovery.
+ *
+ * When h3 (the underlying HTTP server used by TanStack Start) catches an unhandled
+ * exception, it converts it into a generic 500 Response and discards the original
+ * `Error` object — losing the stack trace. This module listens for global `error`
+ * and `unhandledrejection` events and stores the last thrown value in a short-lived
+ * buffer so `server.ts` can recover the original stack.
+ *
+ * **TTL:** Captured errors are evicted after 5 seconds. Callers must consume the
+ * error promptly via `consumeLastCapturedError()`.
+ *
+ * **Security:** Never forward raw captured errors to clients — they may contain
+ * SQL, secrets, or internal paths. Sanitize before logging or surfacing.
+ */
+
 // Captures the original Error out-of-band so server.ts can recover the stack
 // when h3 has already swallowed the throw into a generic 500 Response.
 

@@ -2,12 +2,13 @@
 import { Worker, WorkerOptions, Job } from "bullmq";
 import { baileysSend } from "../baileys.server";
 import { WhatsAppJobData, EmailJobData, CronJobData } from "./queues";
+import { serverEnv } from "@/lib/env.server";
 
 function getWorkerRedisConnection() {
-  const host = process.env.REDIS_HOST || "127.0.0.1";
-  const port = parseInt(process.env.REDIS_PORT || "6379", 10);
-  const password = process.env.REDIS_PASSWORD;
-  const redisUrl = process.env.REDIS_URL;
+  const host = serverEnv.REDIS_HOST || "127.0.0.1";
+  const port = parseInt(serverEnv.REDIS_PORT || "6379", 10);
+  const password = serverEnv.REDIS_PASSWORD;
+  const redisUrl = serverEnv.REDIS_URL;
 
   if (redisUrl) {
     try {

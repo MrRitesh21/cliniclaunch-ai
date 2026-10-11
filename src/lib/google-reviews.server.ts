@@ -1,11 +1,26 @@
-// Server-only Google Places API integration for clinic reviews sync.
+/**
+ * @module google-reviews.server
+ * @description Server-only Google Places API integration for clinic review sync.
+ *
+ * Fetches Google Place reviews and syncs them into the `clinics` table.
+ * Requires both `LOVABLE_API_KEY` (connector gateway auth) and
+ * `GOOGLE_MAPS_API_KEY` (Google Places API key).
+ *
+ * Triggered by: admin panel "Sync Reviews" button, cron job.
+ */
+
+import { serverEnv } from "./env.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 
+/**
+ * Returns HTTP headers required to call the Google Maps connector gateway.
+ * @throws {Error} if `LOVABLE_API_KEY` or `GOOGLE_MAPS_API_KEY` is not configured.
+ */
 function headers() {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const gmKey = process.env.GOOGLE_MAPS_API_KEY;
+  const lovableKey = serverEnv.LOVABLE_API_KEY;
+  const gmKey = serverEnv.GOOGLE_MAPS_API_KEY;
   if (!lovableKey || !gmKey) throw new Error("Google Maps connector not configured");
   return {
     Authorization: `Bearer ${lovableKey}`,

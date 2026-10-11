@@ -1,23 +1,41 @@
+/**
+ * @module clinic.functions
+ * @description Public-facing server functions for clinic operations.
+ *
+ * These functions handle unauthenticated or lightly-authenticated operations:
+ * - Booking appointments on published clinic pages
+ * - Walk-in check-in flows
+ * - Public clinic data reads
+ *
+ * Server-only implementation details live in `clinic.server.ts` (if extracted)
+ * or inline here for simpler operations.
+ *
+ * ## Security
+ * Public booking paths always verify `is_published = true` and `suspended_at IS NULL`
+ * via `requirePublishedClinic` before any data write.
+ */
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { serverEnv } from "./env.server";
 
 import { redisCache } from "./redis";
 import { publicPhoneSchema, publicNameSchema, publicTimestampSchema } from "./public-form-validation";
 
+/** Creates an anonymous (publishable-key) Supabase client for public booking operations. */
 function serverClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Supabase env vars missing");
-  return createClient<Database>(url, key, {
+  const env = serverEnv;
+  return createClient<Database>(env.SUPABASE_URL, env.SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
   });
 }
 
+/** Returns the canonical application origin for constructing public-facing URLs. */
 function appOrigin() {
-  return process.env.APP_URL || process.env.VITE_APP_URL || "";
+  return serverEnv.APP_URL || "";
 }
 
 async function scheduleWhatsAppAutomation(opts: {
@@ -811,7 +829,7 @@ export const getConsultAppointment = createServerFn({ method: "GET" })
     const sb = await adminClient();
     const { data: appt, error } = await sb
       .from("appointments")
-      .select("id, patient_name, scheduled_at, clinics(doctor_name, clinic_name)")
+      .select("id, patient_name, scheduled_at, clinics!appointments_clinic_id_fkey(doctor_name, clinic_name)")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -841,7 +859,7 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       .from("appointments")
       .update({ status: dbStatus })
       .eq("id", data.id)
-      .select("*, clinics(id, organization_id, doctor_name, slug)")
+      .select("*, clinics!appointments_clinic_id_fkey(id, organization_id, doctor_name, slug)")
       .single();
     if (error) {
       // Un-cancelling into a slot that was rebooked in the meantime trips

@@ -1,8 +1,22 @@
-// Server-only Baileys WhatsApp gateway client.
-// Talks to the agency-provided Baileys HTTP service.
-// Never import this from client/route code — call via createServerFn handlers.
+/**
+ * @module baileys.server
+ * @description Server-only client for the Baileys WhatsApp HTTP gateway.
+ *
+ * Talks to a self-hosted Baileys HTTP service (`BAILEYS_URL`) that manages
+ * WhatsApp Web sessions. Each clinic has its own session identified by
+ * `clinicSessionId(clinicId)`. A platform-wide admin session is available
+ * as `PLATFORM_ADMIN_SESSION`.
+ *
+ * **Never** import this module from client code or `*.functions.ts` files —
+ * call it only from `*.server.ts` modules or from inside `.handler()` callbacks.
+ *
+ * @see `whatsapp.ts` for the higher-level automation orchestration
+ */
 
-const BAILEYS_URL = (typeof process !== "undefined" && process.env.BAILEYS_URL) || "";
+import { serverEnv } from "./env.server";
+
+/** Resolved from `BAILEYS_URL` env var. Empty string disables the integration. */
+const BAILEYS_URL = serverEnv.BAILEYS_URL || "";
 
 export type BaileysStatus = {
   id: string;

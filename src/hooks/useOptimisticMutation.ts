@@ -1,3 +1,28 @@
+/**
+ * @module useOptimisticMutation
+ * @description Generic optimistic mutation hook for ClinicX.
+ *
+ * Applies a UI-side state update immediately on user action, fires the actual
+ * async mutation, and rolls back automatically on failure with a toast notification.
+ *
+ * This hook owns its own data state — it is most useful for self-contained UI
+ * pieces (e.g., a toggle, a row edit) where you don't want to manage rollback
+ * manually or integrate with React Query.
+ *
+ * For mutations driven by React Query (e.g., list-level invalidation), prefer
+ * `useMutation` from `@tanstack/react-query` with its built-in `onMutate` context.
+ *
+ * @example
+ * ```tsx
+ * const { data, mutate, isPending } = useOptimisticMutation(initialItems, {
+ *   onMutate: (newItem, current) => [...current, newItem],
+ *   mutationFn: (newItem) => addItemServerFn({ data: newItem }),
+ *   successMessage: "Item added",
+ *   errorMessage: "Failed to add item",
+ * });
+ * ```
+ */
+
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 

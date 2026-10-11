@@ -15,10 +15,24 @@ class ScalableCache {
 
   private getUpstashConfig() {
     if (typeof process === "undefined" || !process.env) return null;
-    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.VITE_UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.VITE_UPSTASH_REDIS_REST_TOKEN;
-    if (!url || !token) return null;
-    return { url: url.replace(/\/$/, ""), token };
+    // Use serverEnv on the server side for validated access
+    try {
+      const { serverEnv } = require("@/lib/env.server");
+      const url = serverEnv.UPSTASH_REDIS_REST_URL;
+      const token = serverEnv.UPSTASH_REDIS_REST_TOKEN;
+      if (!url || !token) return null;
+      return { url: url.replace(/\/$/, ""), token };
+    } catch {
+      // Client-side or edge runtime without env access
+      const url = (typeof process !== "undefined" && process.env)
+        ? (process.env.UPSTASH_REDIS_REST_URL || process.env.VITE_UPSTASH_REDIS_REST_URL)
+        : undefined;
+      const token = (typeof process !== "undefined" && process.env)
+        ? (process.env.UPSTASH_REDIS_REST_TOKEN || process.env.VITE_UPSTASH_REDIS_REST_TOKEN)
+        : undefined;
+      if (!url || !token) return null;
+      return { url: url.replace(/\/$/, ""), token };
+    }
   }
 
   /**

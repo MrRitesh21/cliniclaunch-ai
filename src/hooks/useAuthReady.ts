@@ -1,3 +1,30 @@
+/**
+ * @module useAuthReady
+ * @description Shared singleton auth state hook for ClinicX.
+ *
+ * ## Problem solved
+ * Previously every component that called `useAuthReady()` started its own
+ * `getSession()` promise and its own `onAuthStateChange` listener. On each module
+ * switch, a handful of components mounted simultaneously — nothing downstream
+ * (org lookup, module queries) could start until several async session resolutions
+ * settled, producing an empty skeleton flash on every navigation.
+ *
+ * ## Solution
+ * The session is resolved once, cached synchronously in module-level state, and
+ * every subsequent mount reads it without waiting a tick. All subscribers share
+ * a single `onAuthStateChange` listener.
+ *
+ * ## Usage
+ * ```tsx
+ * const { isReady, user } = useAuthReady();
+ * if (!isReady) return <Skeleton />;
+ * if (!user) return <Redirect to="/login" />;
+ * ```
+ *
+ * @returns `{ isReady, user }` — `isReady` is `false` until the initial session
+ *          check completes; `user` is `null` when unauthenticated.
+ */
+
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";

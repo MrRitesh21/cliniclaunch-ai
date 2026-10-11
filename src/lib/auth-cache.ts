@@ -1,4 +1,16 @@
 /**
+ * @module auth-cache
+ * @description Synchronous detection of a cached Supabase auth session from `localStorage`.
+ *
+ * Used at app launch (before the async `getSession()` call resolves) to prevent
+ * flashing the login page or landing page when the user already has a valid session.
+ *
+ * This module is client-side only — it always returns `false` in SSR environments.
+ *
+ * @see {@link https://supabase.com/docs/guides/auth/sessions} Supabase session storage
+ */
+
+/**
  * Fast synchronous detection of cached Supabase auth session.
  * Used at app launch to prevent flashing the login screen or landing page
  * when a user is already authenticated.

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAI, safeJson } from "@/lib/ai.server";
+import { serverEnv } from "@/lib/env.server";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -307,7 +308,7 @@ export const runPageSpeedAudit = createServerFn({ method: "POST" })
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const url = clinic.custom_domain
       ? `https://${clinic.custom_domain}`
-      : `${process.env.APP_URL || "https://project--" + (process.env.LOVABLE_PROJECT_ID || "") + ".lovable.app"}/c/${clinic.slug}`;
+      : `${serverEnv.APP_URL || "https://project--" + (serverEnv.LOVABLE_PROJECT_ID || "") + ".lovable.app"}/c/${clinic.slug}`;
 
     const api = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${data.strategy}&category=performance&category=seo&category=accessibility&category=best-practices`;
     let performance = 0, seo = 0, accessibility = 0, bestPractices = 0;
@@ -360,7 +361,7 @@ export const verifyLiveSeoInstall = createServerFn({ method: "POST" })
     const clinic = await loadClinic(data.clinic_id, context.userId);
     const url = clinic.custom_domain
       ? `https://${clinic.custom_domain}`
-      : `${process.env.APP_URL || "https://project--" + (process.env.LOVABLE_PROJECT_ID || "") + ".lovable.app"}/c/${clinic.slug}`;
+      : `${serverEnv.APP_URL || "https://project--" + (serverEnv.LOVABLE_PROJECT_ID || "") + ".lovable.app"}/c/${clinic.slug}`;
 
     let html = "";
     let status = 0;

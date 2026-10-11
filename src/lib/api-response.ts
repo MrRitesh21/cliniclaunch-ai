@@ -1,4 +1,19 @@
 /**
+ * @module api-response
+ * @description Standardized API response envelope for ClinicX server functions.
+ *
+ * Every server function and API route should return responses shaped by this module
+ * to ensure consistent JSON envelopes, correlation IDs, and HTTP error codes.
+ *
+ * Client code should type-narrow on `response.success` before accessing `.data` or `.error`:
+ * ```ts
+ * const result = await someServerFn({ data: input });
+ * if (!result.success) throw new Error(result.error.message);
+ * doSomethingWith(result.data);
+ * ```
+ */
+
+/**
  * Standardized Enterprise API Response Formatter for ClinicX
  * Provides consistent JSON envelope, correlation ID, timing headers, and error masking.
  */

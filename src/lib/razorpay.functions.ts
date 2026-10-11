@@ -1,3 +1,21 @@
+/**
+ * @module razorpay.functions
+ * @description Server functions for Razorpay payment and subscription management.
+ *
+ * All handlers require `requireSupabaseAuth` — billing operations are performed
+ * against the caller's organization only.
+ *
+ * ## Flow
+ * 1. `startRazorpaySubscription` — creates a Razorpay subscription and returns
+ *    the `key_id` + subscription ID for the client-side Razorpay checkout widget.
+ * 2. User completes payment in the browser.
+ * 3. `razorpayCallback` — verifies the HMAC signature and activates the subscription.
+ * 4. Razorpay sends webhook events to `/api/billing-webhook` for async status updates.
+ *
+ * @see `razorpay.server.ts` for the implementation details
+ * @see `billing.server.ts` for the billing service abstraction
+ */
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";

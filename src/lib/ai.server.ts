@@ -1,12 +1,22 @@
-/** Shared AI gateway helper.
+/**
+ * @module ai.server
+ * @description Shared AI gateway helper for ClinicX.
  *
- *  Extracted verbatim from seo-ai.functions.ts so the AI Assistant module can
- *  reuse it without importing that file's SEO server functions. Behaviour is
- *  unchanged — OpenRouter when OPENROUTER_API_KEY is set, otherwise the
- *  Lovable gateway.
+ * Routes AI completions to OpenRouter (when `OPENROUTER_API_KEY` is set) or
+ * falls back to the Lovable AI gateway (`LOVABLE_API_KEY`). Consumers should
+ * call `callAI()` and parse the response with `safeJson()` for JSON outputs.
  *
- *  Server-only: reads process.env and must never be imported from a component.
+ * **Server-only:** reads environment secrets and must never be imported from
+ * client code, route files, or `*.functions.ts` top-level imports.
+ *
+ * @example
+ * ```ts
+ * const raw = await callAI({ system: "...", user: "...", json: true });
+ * const parsed = safeJson(raw, {});
+ * ```
  */
+
+import { serverEnv } from "./env.server";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
@@ -17,7 +27,7 @@ export async function callAI(opts: {
   json?: boolean;
   model?: string;
 }): Promise<string> {
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  const openrouterKey = serverEnv.OPENROUTER_API_KEY;
 
   if (openrouterKey) {
     // NOTE: opts.json is deliberately not translated into a response_format
@@ -51,7 +61,7 @@ export async function callAI(opts: {
     return j?.choices?.[0]?.message?.content ?? "";
   }
 
-  const key = process.env.LOVABLE_API_KEY;
+  const key = serverEnv.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY missing on the server");
   const body: Record<string, unknown> = {
     model: opts.model ?? DEFAULT_MODEL,

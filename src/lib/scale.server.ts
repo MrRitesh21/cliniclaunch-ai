@@ -11,6 +11,7 @@
  */
 
 import { isIP } from "node:net";
+import { serverEnv } from "@/lib/env.server";
 
 type Tier = {
   name: string;
@@ -130,9 +131,9 @@ function localRateLimit(key: string, limit: number, windowSeconds: number) {
 function clientKey(request: Request): string {
   // Vercel overwrites its provider header. All other deployments must opt in
   // only after sealing the origin and configuring a proxy to overwrite it.
-  const configured = process.env.CLINICX_TRUSTED_PROXY_HEADER?.toLowerCase();
+  const configured = serverEnv.CLINICX_TRUSTED_PROXY_HEADER?.toLowerCase();
   const allowedHeaders = ["cf-connecting-ip", "x-real-ip", "x-forwarded-for", "x-vercel-forwarded-for"];
-  const header = process.env.VERCEL === "1" ? "x-vercel-forwarded-for"
+  const header = serverEnv.VERCEL === "1" ? "x-vercel-forwarded-for"
     : configured && allowedHeaders.includes(configured) ? configured : null;
   const value = header ? request.headers.get(header)?.trim() : null;
   // Reject chains, zone identifiers and arbitrary attacker-controlled keys.
@@ -395,7 +396,7 @@ let inFlight = 0;
  * shedding excess with a fast 503 + Retry-After is far cheaper than crashing
  * and dropping every in-flight request with it.
  */
-const MAX_IN_FLIGHT = Number(process.env.MAX_IN_FLIGHT_REQUESTS ?? 120);
+const MAX_IN_FLIGHT = Number(serverEnv.MAX_IN_FLIGHT_REQUESTS ?? 120);
 
 export function beginRequest(): boolean {
   if (inFlight >= MAX_IN_FLIGHT) return false;

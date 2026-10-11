@@ -2,14 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { baileysSend, clinicSessionId } from "@/lib/baileys.server";
 import { createHmac, timingSafeEqual } from "crypto";
+import { serverEnv } from "@/lib/env.server";
 
 /** Verify the bridge HMAC over the raw body. Rejects when the secret is unset. */
 function verifyBridgeSignature(rawBody: string, signature: string | null): boolean {
-  const secret =
-    process.env.WHATSAPP_BRIDGE_SECRET ||
-    process.env.BRIDGE_SECRET ||
-    process.env.BAILEYS_BRIDGE_SECRET ||
-    "";
+  const secret = serverEnv.WHATSAPP_BRIDGE_SECRET || "";
   if (!secret || !signature) return false;
   const provided = signature.replace(/^sha256=/, "").trim();
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
@@ -49,8 +46,8 @@ Guidelines:
 4. Keep replies under 3 sentences. Match the user's language (English, Hindi, or Hinglish).
 5. Never make up medical prescriptions or fake promises.`;
 
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
-  const lovableKey = process.env.LOVABLE_API_KEY;
+  const openrouterKey = serverEnv.OPENROUTER_API_KEY;
+  const lovableKey = serverEnv.LOVABLE_API_KEY;
 
   if (openrouterKey) {
     try {
@@ -207,7 +204,7 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
           );
 
           // Generate AI reply using the verified target clinic's details
-          const origin = process.env.VITE_APP_URL || "https://clinicx.app";
+          const origin = serverEnv.APP_URL || "https://clinicx.app";
           const bookingLink = `${origin}/c/${clinic.slug}/book`;
           const servicesList = Array.isArray(clinic.services)
             ? clinic.services.map((s: any) => s.title || s.name || s).join(", ")

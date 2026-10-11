@@ -40,6 +40,17 @@ const raw = {
   REDIS_PASSWORD: pick("REDIS_PASSWORD"),
   UPSTASH_REDIS_REST_URL: pick("UPSTASH_REDIS_REST_URL", "VITE_UPSTASH_REDIS_REST_URL"),
   UPSTASH_REDIS_REST_TOKEN: pick("UPSTASH_REDIS_REST_TOKEN", "VITE_UPSTASH_REDIS_REST_TOKEN"),
+  // Web Push / VAPID
+  VAPID_PUBLIC_KEY: pick("VAPID_PUBLIC_KEY"),
+  VAPID_PRIVATE_KEY: pick("VAPID_PRIVATE_KEY"),
+  VAPID_SUBJECT: pick("VAPID_SUBJECT"),
+  // WhatsApp bridge
+  WHATSAPP_BRIDGE_SECRET: pick("WHATSAPP_BRIDGE_SECRET", "BRIDGE_SECRET", "BAILEYS_BRIDGE_SECRET"),
+  LOVABLE_PROJECT_ID: pick("LOVABLE_PROJECT_ID"),
+  // Infrastructure / deployment
+  VERCEL: pick("VERCEL"),
+  CLINICX_TRUSTED_PROXY_HEADER: pick("CLINICX_TRUSTED_PROXY_HEADER"),
+  MAX_IN_FLIGHT_REQUESTS: pick("MAX_IN_FLIGHT_REQUESTS"),
 };
 
 // Hard requirements — the app cannot function without these.
@@ -60,6 +71,8 @@ const FEATURE_VARS: Array<{ key: keyof typeof raw; feature: string }> = [
   { key: "OPENROUTER_API_KEY", feature: "AI SEO generation" },
   { key: "GOOGLE_MAPS_API_KEY", feature: "Google reviews / places" },
   { key: "REDIS_URL", feature: "Redis cache & BullMQ queue" },
+  { key: "VAPID_PUBLIC_KEY", feature: "Web Push notifications" },
+  { key: "VAPID_PRIVATE_KEY", feature: "Web Push notifications" },
 ];
 
 export type ServerEnv = z.infer<typeof requiredSchema> & Partial<typeof raw>;

@@ -1,3 +1,19 @@
+/**
+ * @module tenant
+ * @description Tenant isolation primitives for ClinicX multi-tenant data access.
+ *
+ * Every database query must be scoped to an organization (and optionally a clinic)
+ * to prevent cross-tenant data leakage. This module provides:
+ *
+ *  - `TenantContext` — the shape of a verified workspace selection
+ *  - `assertTenantScope` — UUID-shape validation (does NOT verify membership)
+ *  - `scopeQuery` — Supabase query builder wrapper that applies org/clinic filters
+ *  - `TenantScopeError` — thrown on isolation violations
+ *
+ * Membership verification (ownership, role checks) is handled by
+ * `src/middleware/tenant.middleware.ts` via `withTenantContext`.
+ */
+
 /** Tenant query scope. Shape checks alone are NOT authorization; resolve membership
  * and clinic ownership through withTenantContext before using an untrusted selection.
  */

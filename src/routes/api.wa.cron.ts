@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { adminClient } from "@/lib/clinic.functions";
 import { notifyClinicEvent } from "@/lib/notify.server";
+import { serverEnv } from "@/lib/env.server";
 
 // Cron endpoint — call hourly from an external scheduler.
 // Auth: pass header `x-cron-key: <CRON_KEY>` or `?key=<CRON_KEY>`.
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/api/wa/cron")({
       GET: async ({ request }: { request: Request }) => {
         const url = new URL(request.url);
         const provided = request.headers.get("x-cron-key") || url.searchParams.get("key") || "";
-        const expected = process.env.CRON_KEY || process.env.VITE_CRON_KEY || "";
+        const expected = serverEnv.CRON_KEY || "";
         if (!expected || provided !== expected) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
@@ -84,7 +85,7 @@ export const Route = createFileRoute("/api/wa/cron")({
             continue;
           }
           const dt = new Date(a.scheduled_at ?? Date.now());
-          const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
+            const origin = serverEnv.APP_URL || "";
           const res = await notifyClinicEvent({
             sb,
             clinicId: a.clinic_id,
@@ -185,7 +186,7 @@ export const Route = createFileRoute("/api/wa/cron")({
               hour: "2-digit",
               minute: "2-digit",
             });
-            const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
+              const origin = serverEnv.APP_URL || "";
             const clinicLink = a.clinics?.slug ? `${origin}/c/${a.clinics.slug}` : "";
 
             const res = await notifyClinicEvent({
@@ -246,7 +247,7 @@ export const Route = createFileRoute("/api/wa/cron")({
               continue;
             }
 
-            const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
+              const origin = serverEnv.APP_URL || "";
             const { data: clinic } = await sb
               .from("clinics")
               .select("slug, clinic_name")
@@ -312,7 +313,7 @@ export const Route = createFileRoute("/api/wa/cron")({
               continue;
             }
 
-            const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
+              const origin = serverEnv.APP_URL || "";
             const { data: clinic } = await sb
               .from("clinics")
               .select("slug, clinic_name")

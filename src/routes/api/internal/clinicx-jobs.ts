@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
+import { serverEnv } from "@/lib/env.server";
 async function handler({ request }: { request: Request }) {
   const { handleClinicxJobs } = await import("@/lib/trial-engagement.server");
   return handleClinicxJobs(request, {
     // Server-only secret. VITE_* values are public and cannot authorize jobs.
-    cronKey: process.env.CRON_KEY,
+    cronKey: serverEnv.CRON_KEY,
     run: async () => {
       if (
-        !process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        !(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)
+        !serverEnv.SUPABASE_SERVICE_ROLE_KEY ||
+        !serverEnv.SUPABASE_URL
       ) {
         throw new Error("Scheduled service authority is not configured");
       }
@@ -18,8 +19,8 @@ async function handler({ request }: { request: Request }) {
       return runTrialEngagementJobs(
         supabaseAdmin as unknown as import("@/lib/trial-engagement.server").EngagementTransport,
         {
-          sendEmail: process.env.RESEND_API_KEY
-            ? createTrialEmailSender(process.env.RESEND_API_KEY)
+          sendEmail: serverEnv.RESEND_API_KEY
+            ? createTrialEmailSender(serverEnv.RESEND_API_KEY)
             : null,
           batchSize: 10,
         },

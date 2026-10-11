@@ -3,6 +3,7 @@
  * with Web Crypto only, so it runs in the Cloudflare Worker runtime where the
  * `web-push` npm package (node crypto/https) is not usable.
  */
+import { serverEnv } from "@/lib/env.server";
 
 export type PushPayload = {
   title: string;
@@ -178,12 +179,12 @@ async function vapidHeader(
 
 export function getVapidConfig() {
   const publicKey =
-    process.env["VAPID_PUBLIC_KEY"] ||
+    serverEnv.VAPID_PUBLIC_KEY ||
     "BB-vfIqGId228AlJeru8ZqePSS953h6A7fwfgP-90yStlQj09Ka3Xuk5KibiDL95VyxSSLzIfJSgPSyPcpjeGLo";
   const privateKey =
-    process.env["VAPID_PRIVATE_KEY"] ||
+    serverEnv.VAPID_PRIVATE_KEY ||
     "_PldHkiZcxiONkrTFCZieU-bfddu2mjAWQOtR5mDO6c";
-  const subject = process.env["VAPID_SUBJECT"] || "mailto:support@clinicx.in";
+  const subject = serverEnv.VAPID_SUBJECT || "mailto:support@clinicx.in";
   if (!publicKey || !privateKey) return null;
   return { publicKey, privateKey, subject };
 }

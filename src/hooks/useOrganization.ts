@@ -1,3 +1,38 @@
+/**
+ * @module useOrganization
+ * @description Organization context hook and shared subscription state for ClinicX.
+ *
+ * ## Architecture
+ *
+ * This module uses a **module-level singleton store** pattern (not React Context) because:
+ * 1. Multiple route-level components mount simultaneously after navigation and all need the
+ *    same org snapshot without redundant network requests.
+ * 2. React Context would require wrapping the entire app — the singleton avoids the context
+ *    tree without sacrificing reactivity (each consumer subscribes via a Set of listeners).
+ *
+ * ### Data flow
+ * ```
+ * supabase.auth → useAuthReady → loadShared(userId)
+ *                                       │
+ *                              fetchSnapshot() → Supabase DB
+ *                                       │
+ *                                    publish() → listeners → setSnapshot() → re-render
+ * ```
+ *
+ * ### Caching
+ * - **In-memory:** 60-second TTL (`TTL_MS`). Shared across all `useOrganization()` callers.
+ * - **localStorage:** org metadata only (not roles/entitlements). Used as a stale fallback for
+ *   instant paint on first load; never used as an authority source for write operations.
+ *
+ * ### Security
+ * - `authorityScope` is a composite key that ties role/entitlement grants to a specific
+ *   `(generation, userId, orgId, role)` tuple. Stale snapshots from a previous user are
+ *   rejected before returning from the hook.
+ * - `authorityPending` is set during fetches; callers must treat this as "no grants" state.
+ *
+ * @see {@link OrgContext} for the full shape returned by the hook.
+ */
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";

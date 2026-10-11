@@ -1,7 +1,9 @@
 /** Finance module server-only helpers.
  *
- *  Never import this from a component — it reads process.env.
+ *  Never import this from a component — it is server-only.
  */
+import { serverEnv } from "@/lib/env.server";
+
 
 export const EXPENSE_CATEGORIES = [
   "Rent",
@@ -93,22 +95,22 @@ function safeJson<T>(raw: string): T | null {
 
 async function gateway(messages: unknown[]): Promise<string> {
   const key =
-    process.env.LOVABLE_API_KEY || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY;
+    serverEnv.LOVABLE_API_KEY || serverEnv.OPENROUTER_API_KEY;
   if (!key) {
     throw new Error("FREE_FALLBACK_TRIGGERED");
   }
-  const url = process.env.OPENROUTER_API_KEY
+  const url = serverEnv.OPENROUTER_API_KEY
     ? "https://openrouter.ai/api/v1/chat/completions"
     : AI_URL;
-  const authHeader: Record<string, string> = process.env.OPENROUTER_API_KEY
-    ? { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` }
+  const authHeader: Record<string, string> = serverEnv.OPENROUTER_API_KEY
+    ? { Authorization: `Bearer ${serverEnv.OPENROUTER_API_KEY}` }
     : { "Lovable-API-Key": key };
 
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_API_KEY ? "google/gemini-2.5-flash:free" : AI_MODEL,
+      model: serverEnv.OPENROUTER_API_KEY ? "google/gemini-2.5-flash:free" : AI_MODEL,
       messages,
     }),
   });

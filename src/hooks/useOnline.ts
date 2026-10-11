@@ -1,3 +1,13 @@
+/**
+ * @module useOnline
+ * @description Reactive network connectivity status hook.
+ *
+ * Starts optimistic (`true`) to ensure SSR HTML and client hydration agree.
+ * Switches to real `navigator.onLine` after mount and tracks subsequent changes.
+ *
+ * @returns `true` when the browser reports an active network connection.
+ */
+
 import { useEffect, useState } from "react";
 
 /** Live network status. Starts optimistic so SSR and hydration agree. */
