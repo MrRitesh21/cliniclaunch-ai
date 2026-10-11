@@ -52,6 +52,10 @@ function watchForUpdates(reg: ServiceWorkerRegistration) {
   let reloading = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (reloading) return;
+    const lastReload = sessionStorage.getItem("clinicx_sw_reload");
+    const now = Date.now();
+    if (lastReload && now - Number(lastReload) < 60000) return;
+    sessionStorage.setItem("clinicx_sw_reload", String(now));
     reloading = true;
     window.location.reload();
   });

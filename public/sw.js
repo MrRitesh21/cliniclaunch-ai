@@ -33,7 +33,6 @@ self.addEventListener("install", (event) => {
         if (cacheableResponse(response)) await cache.put(request, response);
       } catch { /* Offline installation may retain no static assets. */ }
     }));
-    await self.skipWaiting();
   })());
 });
 

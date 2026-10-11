@@ -211,18 +211,22 @@ function RootContent() {
   useEffect(() => {
     import("../lib/pwa").then((m) => m.registerPWA());
 
-    // Auto-reload on deployment chunk mismatch / stale dynamic imports
+    // Auto-reload on deployment chunk mismatch / stale dynamic imports (guarded against loops)
     const handleChunkError = (e: ErrorEvent | PromiseRejectionEvent) => {
       const msg = (e instanceof ErrorEvent ? e.message : (e as PromiseRejectionEvent).reason?.message) || "";
-      if (
+      const isChunkError =
         msg.includes("Failed to fetch dynamically imported module") ||
-        msg.includes("Failed to load resource") ||
-        msg.includes("dynamically imported module")
-      ) {
+        msg.includes("error loading dynamically imported module") ||
+        msg.includes("Importing a module script failed");
+
+      if (isChunkError) {
         const lastReload = sessionStorage.getItem("clinicx_chunk_reload");
+        const reloadCount = Number(sessionStorage.getItem("clinicx_chunk_reload_count") || "0");
         const now = Date.now();
-        if (!lastReload || now - Number(lastReload) > 10000) {
+        // At most once per 60s, max 2 times per browser session
+        if ((!lastReload || now - Number(lastReload) > 60000) && reloadCount < 2) {
           sessionStorage.setItem("clinicx_chunk_reload", String(now));
+          sessionStorage.setItem("clinicx_chunk_reload_count", String(reloadCount + 1));
           window.location.reload();
         }
       }
