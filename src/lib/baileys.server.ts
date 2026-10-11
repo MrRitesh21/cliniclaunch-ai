@@ -16,7 +16,9 @@
 import { serverEnv } from "./env.server";
 
 /** Resolved from `BAILEYS_URL` env var. Empty string disables the integration. */
-const BAILEYS_URL = serverEnv.BAILEYS_URL || "";
+export function getBaileysUrl(): string {
+  return (serverEnv.BAILEYS_URL || "").trim().replace(/\/+$/, "");
+}
 
 export type BaileysStatus = {
   id: string;
@@ -28,7 +30,12 @@ export type BaileysStatus = {
 };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BAILEYS_URL}${path}`, {
+  const base = getBaileysUrl();
+  if (!base) {
+    throw new Error("BAILEYS_URL is not configured in server environment");
+  }
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const res = await fetch(`${base}${cleanPath}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
@@ -44,6 +51,67 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(msg);
   }
   return body as T;
+}
+
+export async function baileysPing(): Promise<{
+  ok: boolean;
+  status: number | null;
+  latencyMs: number;
+  url: string;
+  error?: string;
+  bodySnippet?: string;
+}> {
+  const base = getBaileysUrl();
+  if (!base) {
+    return {
+      ok: false,
+      status: null,
+      latencyMs: 0,
+      url: "",
+      error: "BAILEYS_URL environment variable is missing",
+    };
+  }
+  const start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    let res = await fetch(`${base}/health`, { signal: controller.signal }).catch(() => null);
+    if (!res || !res.ok) {
+      res = await fetch(`${base}/api/sessions`, { signal: controller.signal }).catch(() => null);
+    }
+    if (!res || !res.ok) {
+      res = await fetch(`${base}/`, { signal: controller.signal }).catch(() => null);
+    }
+    clearTimeout(timeout);
+
+    const latencyMs = Date.now() - start;
+    if (!res) {
+      return {
+        ok: false,
+        status: null,
+        latencyMs,
+        url: base,
+        error: "Gateway server did not respond (timeout or unreachable network)",
+      };
+    }
+    const text = await res.text().catch(() => "");
+    return {
+      ok: res.ok || res.status < 500,
+      status: res.status,
+      latencyMs,
+      url: base,
+      bodySnippet: text.slice(0, 150),
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      status: null,
+      latencyMs: Date.now() - start,
+      url: base,
+      error: err.message || "Failed to connect to WhatsApp Gateway",
+    };
+  }
 }
 
 export async function baileysCreateSession(sessionId: string) {
@@ -97,12 +165,13 @@ export async function baileysSend(
 ): Promise<{ ok: boolean; error?: string }> {
   const to = normalizePhone(phone);
   if (!to || !message) return { ok: false, error: "phone and message required" };
-  if (!BAILEYS_URL) {
+  const base = getBaileysUrl();
+  if (!base) {
     console.warn(`[Baileys] BAILEYS_URL not configured. Delegating delivery to webhook response or queue.`);
     return { ok: false, error: "BAILEYS_URL_NOT_CONFIGURED" };
   }
   try {
-    const res = await fetch(`${BAILEYS_URL}/api/sessions/${encodeURIComponent(sessionId)}/send`, {
+    const res = await fetch(`${base}/api/sessions/${encodeURIComponent(sessionId)}/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: to, message }),

@@ -217,3 +217,99 @@ export const sendAdminTestWhatsapp = createServerFn({ method: "POST" })
     if (!live?.ready) throw new Error("Platform WhatsApp is not connected.");
     return baileysSend(PLATFORM_ADMIN_SESSION, data.phone, data.message);
   });
+
+export const getAdminWhatsappDiagnostics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { getBaileysUrl } = await import("./baileys.server");
+    const { serverEnv } = await import("./env.server");
+    const serverUrl = getBaileysUrl();
+
+    const { count: readyClinics } = await context.supabase
+      .from("clinics")
+      .select("id", { count: "exact", head: true })
+      .eq("wa_status", "ready");
+
+    const { data: logs } = await context.supabase
+      .from("whatsapp_logs")
+      .select("id, organization_id, patient_name, patient_phone, message, template_key, status, error, sent_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(25);
+
+    const appUrl = (serverEnv.APP_URL || "https://clinicx.digiwil.com").replace(/\/+$/, "");
+    const webhookUrl = `${appUrl}/api/public/whatsapp/incoming`;
+    const altWebhookUrl = `${appUrl}/api/public/hooks/whatsapp`;
+    const webhookSecret = serverEnv.WHATSAPP_BRIDGE_SECRET || "clinicx-secret-key";
+
+    return {
+      serverUrl,
+      isConfigured: Boolean(serverUrl),
+      appUrl,
+      webhookUrl,
+      altWebhookUrl,
+      webhookSecret,
+      readyClinicsCount: readyClinics ?? 0,
+      logs: logs || [],
+    };
+  });
+
+export const pingAdminWhatsappGateway = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { baileysPing } = await import("./baileys.server");
+    return baileysPing();
+  });
+
+export const simulateAdminIncomingMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z.object({
+      message: z.string().trim().min(1).max(2000),
+      patientPhone: z.string().trim().default("+919876543210"),
+      patientName: z.string().trim().default("Test Patient"),
+      clinicId: z.string().uuid().optional(),
+    }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { processWhatsAppMessage } = await import("./whatsapp-booking.server");
+    const { baileysSend, clinicSessionId } = await import("./baileys.server");
+
+    let clinicQuery = supabaseAdmin.from("clinics").select("*");
+    if (data.clinicId) {
+      clinicQuery = clinicQuery.eq("id", data.clinicId);
+    } else {
+      clinicQuery = clinicQuery.order("created_at", { ascending: true });
+    }
+    const { data: clinic } = await clinicQuery.limit(1).maybeSingle();
+
+    if (!clinic) {
+      throw new Error("No clinic found in the system to simulate message with.");
+    }
+
+    const bookingResult = await processWhatsAppMessage({
+      clinic,
+      patientPhone: data.patientPhone,
+      senderName: data.patientName,
+      incomingText: data.message,
+    });
+
+    const replySessionId = clinic.wa_session_id || clinicSessionId(clinic.id);
+    const sendResult = await baileysSend(replySessionId, data.patientPhone, bookingResult.reply);
+
+    return {
+      clinic: {
+        id: clinic.id,
+        name: clinic.clinic_name,
+        doctor: clinic.doctor_name,
+        wa_status: clinic.wa_status,
+        wa_phone: clinic.wa_phone,
+      },
+      parsedResult: bookingResult,
+      sendResult,
+    };
+  });
+

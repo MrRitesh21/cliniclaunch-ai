@@ -5,7 +5,26 @@ export const Route = createFileRoute("/api/public/whatsapp/incoming")({
   server: {
     handlers: {
       POST: async ({ request }) => handleWhatsAppIncomingRequest(request),
-      GET: async () => Response.json({ ok: true, service: "ClinicX WhatsApp Incoming Gateway" }),
+      GET: async () => {
+        const { getBaileysUrl } = await import("@/lib/baileys.server");
+        const bUrl = getBaileysUrl();
+        let safeHost = "Not configured";
+        if (bUrl) {
+          try {
+            safeHost = new URL(bUrl).hostname;
+          } catch {
+            safeHost = "Invalid URL format";
+          }
+        }
+        return Response.json({
+          ok: true,
+          service: "ClinicX WhatsApp AI Receptionist Gateway",
+          whatsapp_server_configured: Boolean(bUrl),
+          whatsapp_server_host: safeHost,
+          webhook_path: "/api/public/whatsapp/incoming",
+          note: "Configure your WhatsApp Baileys bridge to POST incoming messages to this URL",
+        });
+      },
     },
   },
 });

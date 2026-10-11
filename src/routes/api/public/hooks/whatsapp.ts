@@ -5,7 +5,25 @@ export const Route = createFileRoute("/api/public/hooks/whatsapp")({
   server: {
     handlers: {
       POST: async ({ request }) => handleWhatsAppIncomingRequest(request),
-      GET: async () => Response.json({ ok: true, service: "ClinicX WhatsApp AI Webhook" }),
+      GET: async () => {
+        const { getBaileysUrl } = await import("@/lib/baileys.server");
+        const bUrl = getBaileysUrl();
+        let safeHost = "Not configured";
+        if (bUrl) {
+          try {
+            safeHost = new URL(bUrl).hostname;
+          } catch {
+            safeHost = "Invalid URL format";
+          }
+        }
+        return Response.json({
+          ok: true,
+          service: "ClinicX WhatsApp AI Webhook",
+          whatsapp_server_configured: Boolean(bUrl),
+          whatsapp_server_host: safeHost,
+          webhook_path: "/api/public/hooks/whatsapp",
+        });
+      },
     },
   },
 });
