@@ -153,8 +153,8 @@ export async function generatePlatformAiReply(opts: {
   incomingText: string;
   lead?: any;
 }): Promise<string> {
-  const config = await getPlatformAiConfig();
-  const name = opts.senderName || opts.lead?.name || "Doctor";
+  const rawName = opts.senderName || opts.lead?.name || "Doctor";
+  const name = rawName.replace(/^(?:dr\.?|doctor)\s+/i, "").trim() || "Doctor";
   const clinicName = opts.lead?.clinic_name || "aapke clinic";
   const city = opts.lead?.city || "";
   const specialty = opts.lead?.specialty || "practice";
@@ -400,18 +400,20 @@ export async function handlePlatformIncomingWhatsApp(opts: {
   if (!matchedLead && isLid) {
     try {
       const allLeads = await listCrmLeadsImpl({ limit: 10 });
-      // Find candidate lead that has outreach sent or was updated recently
-      const candidate = allLeads.find(
+      // Find candidate lead with a REAL phone number that has outreach sent or was updated recently
+      const realLeads = allLeads.filter((l) => !isLidPhone(l.phone));
+      const candidate = realLeads.find(
         (l) =>
           l.status === "outreach_sent" ||
           l.status === "new" ||
-          (l.last_outreach_at && Date.now() - new Date(l.last_outreach_at).getTime() < 48 * 3600 * 1000) ||
-          allLeads.length === 1
+          l.status === "in_conversation" ||
+          (l.last_outreach_at && Date.now() - new Date(l.last_outreach_at).getTime() < 72 * 3600 * 1000) ||
+          realLeads.length === 1
       );
       if (candidate) {
         matchedLead = candidate;
         console.log(
-          `[Platform AI Agent] Heuristically linked incoming LID ${fromDigits} to lead ${candidate.name} (${candidate.phone})`
+          `[Platform AI Agent] Heuristically linked incoming LID ${fromDigits} to real doctor lead ${candidate.name} (${candidate.phone})`
         );
       }
     } catch {}
@@ -445,16 +447,31 @@ export async function handlePlatformIncomingWhatsApp(opts: {
   let sent = false;
   let sendError: string | undefined;
 
-  if (opts.isBridgeLiveEvent) {
-    sent = true;
-  } else {
-    // If we have an LID or specific JID, use it for dispatch
-    const replyTarget = opts.rawFrom.includes("@")
-      ? opts.rawFrom
-      : (matchedLead?.phone || formattedPhone);
-    const res = await baileysSend(PLATFORM_ADMIN_SESSION, replyTarget, reply);
+  // Determine the best target phone / JID (prefer real verified phone number)
+  const targetPhone =
+    matchedLead?.phone && !isLidPhone(matchedLead.phone)
+      ? matchedLead.phone
+      : (cleanPhone || (opts.senderPn ? opts.senderPn : (rawLid || opts.rawFrom)));
+
+  try {
+    let res = await baileysSend(PLATFORM_ADMIN_SESSION, targetPhone, reply);
+    // If sending to primary target failed and we have an alternate JID/phone, retry
+    if (!res.ok) {
+      const altTarget =
+        targetPhone === opts.rawFrom
+          ? (matchedLead?.phone && !isLidPhone(matchedLead.phone) ? matchedLead.phone : null)
+          : (opts.rawFrom || rawLid);
+      if (altTarget && altTarget !== targetPhone) {
+        console.log(`[Platform AI Agent] Retrying send to alternate target ${altTarget}...`);
+        res = await baileysSend(PLATFORM_ADMIN_SESSION, altTarget, reply);
+      }
+    }
     sent = res.ok;
     sendError = res.error;
+    console.log(`[Platform AI Agent] baileysSend result:`, { ok: res.ok, target: targetPhone, error: res.error });
+  } catch (err: any) {
+    sendError = err?.message || String(err);
+    console.error(`[Platform AI Agent] Error calling baileysSend:`, err);
   }
 
   // Record outgoing message in logs & CRM lead activity

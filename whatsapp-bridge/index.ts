@@ -459,7 +459,7 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
       });
 
       // Immediate reply dispatch if returned directly in webhook response
-      if (webhookRes && webhookRes.reply) {
+      if (webhookRes && webhookRes.reply && webhookRes.needs_bridge_send !== false) {
         const textReply = String(webhookRes.reply);
         const preview = textReply.slice(0, 40).replace(/\n/g, " ");
         let altJid = realPhone ? (realPhone.replace(/\D/g, "") + "@s.whatsapp.net") : null;
@@ -677,8 +677,44 @@ fastify.post("/api/sessions/:sessionId/send", async (req, reply) => {
   }
 
   try {
-    const jid = String(toPhone).replace(/^\+/, "").replace(/\D/g, "") + "@s.whatsapp.net";
-    const sent = await sess.sock.sendMessage(jid, { text: String(message) });
+    const rawTo = String(toPhone).trim();
+    let jid = rawTo;
+    let altJid: string | null = null;
+
+    if (rawTo.endsWith("@lid") || rawTo.endsWith("@s.whatsapp.net")) {
+      jid = rawTo;
+      if (rawTo.endsWith("@lid")) {
+        const lidNum = rawTo.split("@")[0];
+        const mappedPhone = lidToPhoneCache.get(lidNum);
+        if (mappedPhone) {
+          altJid = mappedPhone.replace(/\D/g, "") + "@s.whatsapp.net";
+        }
+      }
+    } else {
+      const cleanDigits = rawTo.replace(/^\+/, "").replace(/\D/g, "");
+      if (cleanDigits.startsWith("6215") && cleanDigits.length >= 14) {
+        jid = cleanDigits + "@lid";
+        const mappedPhone = lidToPhoneCache.get(cleanDigits);
+        if (mappedPhone) {
+          altJid = mappedPhone.replace(/\D/g, "") + "@s.whatsapp.net";
+        }
+      } else {
+        jid = cleanDigits + "@s.whatsapp.net";
+      }
+    }
+
+    let sent: any = null;
+    try {
+      sent = await sess.sock.sendMessage(jid, { text: String(message) });
+    } catch (primaryErr: any) {
+      if (altJid && altJid !== jid) {
+        logger.warn({ primaryJid: jid, altJid, err: primaryErr.message }, "Retrying send via alternate JID");
+        sent = await sess.sock.sendMessage(altJid, { text: String(message) });
+      } else {
+        throw primaryErr;
+      }
+    }
+
     return { success: true, id: sent?.key?.id || null };
   } catch (err: any) {
     logger.error({ sessionId: cleanSid, err: err.message }, "Send failed on isolated socket");

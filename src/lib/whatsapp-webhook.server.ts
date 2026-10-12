@@ -249,11 +249,43 @@ export async function handleWhatsAppIncomingRequest(
     }
 
     // ─── CHECK IF INCOMING MESSAGE IS TO PLATFORM WHATSAPP (RITESH HUMAN AI OUTREACH AGENT) ───
-    const isPlatformSession =
+    let isPlatformSession =
       session_id === "platform-admin" ||
       session_id === "default" ||
       session_id === "platform" ||
+      session_id === "user-fa331c43-ae10-4a3d-bd95-483da978865e" ||
       (to_phone && String(to_phone).replace(/[^\d]/g, "").includes("8354998343"));
+
+    // If session is not explicitly platform-admin, verify if the sender is an existing CRM doctor lead
+    if (!isPlatformSession) {
+      try {
+        const senderDigits = String(rawFrom).replace(/[^\d]/g, "");
+        const pnDigits = body?.sender_pn ? String(body.sender_pn).replace(/[^\d]/g, "") : "";
+        const lookupDigits = pnDigits.slice(-10) || (!senderDigits.startsWith("6215") && senderDigits.length >= 10 ? senderDigits.slice(-10) : "");
+
+        if (lookupDigits && lookupDigits.length >= 8) {
+          const { data: matched } = await sb
+            .from("platform_crm_leads")
+            .select("id")
+            .ilike("phone", `%${lookupDigits}%`)
+            .limit(1);
+          if (matched && matched.length > 0) {
+            isPlatformSession = true;
+          }
+        }
+
+        if (!isPlatformSession && (String(rawFrom).includes("@lid") || senderDigits.startsWith("6215"))) {
+          const { data: matchedLid } = await sb
+            .from("platform_crm_leads")
+            .select("id")
+            .or(`whatsapp_lid.ilike.%${senderDigits}%,phone.ilike.%${senderDigits}%`)
+            .limit(1);
+          if (matchedLid && matchedLid.length > 0) {
+            isPlatformSession = true;
+          }
+        }
+      } catch {}
+    }
 
     if (isPlatformSession) {
       const { handlePlatformIncomingWhatsApp } = await import("./platform-ai-agent.server");
@@ -278,7 +310,7 @@ export async function handleWhatsAppIncomingRequest(
         reply: result.reply,
         sent: result.sent,
         leadId: result.leadId,
-        needs_bridge_send: isBridgeLiveEvent && Boolean(result.reply),
+        needs_bridge_send: !result.sent && isBridgeLiveEvent && Boolean(result.reply),
       });
     }
 
