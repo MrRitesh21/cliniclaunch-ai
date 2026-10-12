@@ -369,6 +369,31 @@ export async function handleWhatsAppIncomingRequest(
       }),
     );
 
+    // ─── CHECK IF AI RECEPTIONIST IS TURNED ON FOR THIS CLINIC ───
+    const isAiEnabled = (clinic.working_hours as any)?.ai_receptionist_enabled !== false;
+    if (!isAiEnabled) {
+      console.log(`[WhatsApp Webhook] AI Receptionist is paused (OFF) for clinic ${clinic.clinic_name} (${clinic.id})`);
+      await logBestEffort(
+        sb.from("whatsapp_logs").insert({
+          organization_id: clinic.organization_id,
+          patient_name: name || null,
+          patient_phone: formattedPhone,
+          template_key: "ai_receptionist_paused",
+          automation_key: "ai_receptionist_paused",
+          message: text + " (AI Receptionist is turned OFF)",
+          status: "paused",
+          sent_at: new Date().toISOString(),
+        }),
+      );
+      return Response.json({
+        ok: true,
+        ignored: true,
+        reason: "ai_receptionist_turned_off",
+        clinic_id: clinic.id,
+        message: "AI Receptionist is currently turned OFF by clinic admin",
+      });
+    }
+
     // ─── PROCESS AUTOMATED BOOKING & CONVERSATION ───
     const bookingResult = await processWhatsAppMessage({
       clinic,

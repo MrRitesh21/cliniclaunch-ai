@@ -107,12 +107,63 @@ export const getAiReceptionistInfo = createServerFn({ method: "GET" })
         waStatus: String(clinic.wa_status || "disconnected"),
         waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
         isOnline: clinic.wa_status === "ready",
+        isAiEnabled: (clinic.working_hours as any)?.ai_receptionist_enabled !== false,
       },
       stats: {
         todayBookings: Number(todayBookings ?? 0),
         totalBookings: Number(totalBookings ?? 0),
       },
       recentLogs: recentLogs || [],
+    };
+  });
+
+/**
+ * Toggle the AI Receptionist ON/OFF for the managed clinic.
+ */
+export const toggleAiReceptionistStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    z.object({
+      enabled: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const currentWh =
+      typeof clinic.working_hours === "object" && clinic.working_hours && !Array.isArray(clinic.working_hours)
+        ? clinic.working_hours
+        : {};
+
+    const updatedWh = {
+      ...currentWh,
+      ai_receptionist_enabled: data.enabled,
+    };
+
+    const { error: clinicErr } = await supabaseAdmin
+      .from("clinics")
+      .update({ working_hours: updatedWh } as any)
+      .eq("id", clinic.id);
+
+    if (clinicErr) throw new Error(clinicErr.message);
+
+    // Also persist in system_settings for extra reliability
+    try {
+      await supabaseAdmin.from("system_settings" as any).upsert(
+        {
+          key: `ai_receptionist_enabled_${clinic.id}`,
+          value: String(data.enabled),
+          description: `AI Receptionist toggle for clinic ${clinic.id}`,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+    } catch {}
+
+    return {
+      success: true,
+      enabled: data.enabled,
     };
   });
 

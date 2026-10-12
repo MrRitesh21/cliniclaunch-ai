@@ -3,11 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getAiReceptionistInfo,
   testAiReceptionistSimulation,
+  toggleAiReceptionistStatus,
 } from "@/lib/whatsapp-receptionist.functions";
 import {
   Bot,
@@ -26,6 +28,7 @@ import {
   ShieldCheck,
   AlertCircle,
   MessageSquare,
+  Power,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -53,10 +56,13 @@ function formatHoursText(raw: any): string {
 export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: () => void }) {
   const getInfoFn = useServerFn(getAiReceptionistInfo);
   const simulateFn = useServerFn(testAiReceptionistSimulation);
+  const toggleFn = useServerFn(toggleAiReceptionistStatus);
 
   const [data, setData] = useState<Awaited<ReturnType<typeof getInfoFn>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isAiEnabled, setIsAiEnabled] = useState(true);
+  const [isTogglingAi, setIsTogglingAi] = useState(false);
 
   // Chat simulator state
   const [inputMsg, setInputMsg] = useState("");
@@ -69,6 +75,7 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
     try {
       const res = await getInfoFn();
       setData(res);
+      setIsAiEnabled(res.clinic.isAiEnabled);
       if (chatHistory.length === 0) {
         setChatHistory([
           {
@@ -84,6 +91,32 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleToggleAi = async (nextVal: boolean) => {
+    setIsTogglingAi(true);
+    try {
+      const res = await toggleFn({ data: { enabled: nextVal } });
+      setIsAiEnabled(res.enabled);
+      if (data) {
+        setData({
+          ...data,
+          clinic: {
+            ...data.clinic,
+            isAiEnabled: res.enabled,
+          },
+        });
+      }
+      if (res.enabled) {
+        toast.success("AI Receptionist is now ON — Actively answering WhatsApp messages");
+      } else {
+        toast.warning("AI Receptionist is now OFF — WhatsApp auto-replies paused");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update AI Receptionist status");
+    } finally {
+      setIsTogglingAi(false);
     }
   };
 
@@ -166,15 +199,28 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
   return (
     <div className="space-y-6">
       {/* Status Banner */}
-      <Card className="p-6 overflow-hidden relative border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-background to-teal-500/5">
+      <Card className={`p-6 overflow-hidden relative transition-colors ${
+        !isAiEnabled
+          ? "border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-background to-orange-500/5"
+          : "border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-background to-teal-500/5"
+      }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+              <span className={`p-1.5 rounded-lg ${
+                !isAiEnabled
+                  ? "bg-amber-500/10 text-amber-600"
+                  : "bg-emerald-500/10 text-emerald-600"
+              }`}>
                 <Bot className="size-5" />
               </span>
               <h2 className="text-xl font-bold tracking-tight">24/7 WhatsApp AI Receptionist</h2>
-              {isOnline ? (
+              {!isAiEnabled ? (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 gap-1.5 px-2.5 py-0.5 font-medium">
+                  <span className="size-2 rounded-full bg-amber-500" />
+                  Turned OFF (Paused)
+                </Badge>
+              ) : isOnline ? (
                 <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 gap-1 px-2.5 py-0.5">
                   <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                   Live & Actively Answering
@@ -187,7 +233,11 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
               )}
             </div>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              {isOnline ? (
+              {!isAiEnabled ? (
+                <span className="text-amber-700 dark:text-amber-300 font-medium">
+                  AI Receptionist ko turn off kiya gaya hai. Patients ke incoming WhatsApp messages par automated AI replies pause rahenge jab tak isko dubara ON na kiya jaye.
+                </span>
+              ) : isOnline ? (
                 <span>
                   WhatsApp number <strong className="text-foreground">+{data?.clinic.waPhone}</strong> par
                   koi bhi patient message karega to AI Receptionist turant reply karega, inquiry solve karega aur direct database me appointment book kar dega.
@@ -200,7 +250,25 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            {/* Dedicated ON / OFF Toggle Button */}
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border bg-background/80 shadow-xs">
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">AI Receptionist</span>
+                <span className={`text-xs font-bold ${isAiEnabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                  {isAiEnabled ? "Status: ON" : "Status: OFF"}
+                </span>
+              </div>
+              <Switch
+                id="ai-receptionist-toggle"
+                checked={isAiEnabled}
+                onCheckedChange={handleToggleAi}
+                disabled={isTogglingAi}
+                aria-label="Toggle AI Receptionist ON/OFF"
+                className="data-[state=checked]:bg-emerald-600"
+              />
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -372,6 +440,28 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
                 </Badge>
               </div>
             </div>
+
+            {/* AI Receptionist Paused Warning Banner */}
+            {!isAiEnabled && (
+              <div className="px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/25 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0 text-amber-600" />
+                  <span>
+                    <strong>Receptionist is OFF:</strong> Live patient WhatsApp messages will not receive AI replies.
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleToggleAi(true)}
+                  disabled={isTogglingAi}
+                  className="h-7 text-xs border-amber-500/30 hover:bg-amber-500/20 text-amber-900 dark:text-amber-100 font-medium shrink-0 rounded-lg gap-1"
+                >
+                  <Power className="size-3 text-emerald-600" />
+                  Turn ON
+                </Button>
+              </div>
+            )}
 
             {/* Quick Prompt Chips */}
             <div className="px-4 py-2.5 bg-muted/20 border-b flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
