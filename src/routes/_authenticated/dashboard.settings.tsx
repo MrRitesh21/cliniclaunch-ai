@@ -472,12 +472,12 @@ function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="notifications" className="mt-4 space-y-4">
+        <TabsContent value="notifications" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <NotificationSettingsCard />
           <PushAnalyticsCard />
         </TabsContent>
 
-        <TabsContent value="profile" className="mt-4">
+        <TabsContent value="profile" forceMount className="mt-4 data-[state=inactive]:hidden">
           <Card className="p-4 sm:p-6 space-y-4 border-border/80 shadow-xs bg-card">
             <div className="flex items-center gap-3 p-3 bg-muted/20 rounded-2xl border border-border/60">
               <Avatar url={form.avatar_url} fallback={form.doctor_name} />
@@ -557,7 +557,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="contact" className="mt-4 space-y-4">
+        <TabsContent value="contact" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <Card className="p-5 sm:p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Lock className="size-4 text-muted-foreground" />
@@ -622,7 +622,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="schedule" className="mt-4 space-y-4">
+        <TabsContent value="schedule" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <Card className="p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2">
               <Clock className="size-4 text-primary" />
@@ -693,7 +693,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="walkin" className="mt-4 space-y-4">
+        <TabsContent value="walkin" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <Card className="p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2">
               <QrCode className="size-4 text-primary" />
@@ -768,7 +768,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="brand" className="mt-4 space-y-4">
+        <TabsContent value="brand" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <Card className="p-5 sm:p-6 space-y-5">
             <div>
               <h2 className="font-display text-lg">Clinic logo</h2>
@@ -868,7 +868,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="gallery" className="mt-4">
+        <TabsContent value="gallery" forceMount className="mt-4 data-[state=inactive]:hidden">
           <Card className="p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
@@ -936,7 +936,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="content" className="mt-4 space-y-4">
+        <TabsContent value="content" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <Card className="p-5 sm:p-6 space-y-4">
             <h2 className="font-display text-lg">About page</h2>
             <div>
@@ -965,7 +965,7 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="domain" className="mt-4">
+        <TabsContent value="domain" forceMount className="mt-4 data-[state=inactive]:hidden">
           <DomainPanel
             clinicId={clinic.id}
             domain={form.custom_domain}

@@ -459,15 +459,15 @@ function WhatsAppPage() {
           <TabsTrigger value="automations">Automations</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="receptionist" className="mt-4">
+        <TabsContent value="receptionist" forceMount className="mt-4 data-[state=inactive]:hidden">
           <AiReceptionistTab clinic={clinic} onSwitchToConnect={() => setActiveTab("connect")} />
         </TabsContent>
 
-        <TabsContent value="connect" className="mt-4">
+        <TabsContent value="connect" forceMount className="mt-4 data-[state=inactive]:hidden">
           <ConnectTab />
         </TabsContent>
 
-        <TabsContent value="templates" className="space-y-6 mt-4">
+        <TabsContent value="templates" forceMount className="space-y-6 mt-4 data-[state=inactive]:hidden">
           <div className="flex justify-between items-center flex-wrap gap-3 p-4 bg-muted/20 border rounded-2xl">
             <div>
               <h3 className="font-semibold text-base">WhatsApp Message Templates</h3>
@@ -570,7 +570,7 @@ function WhatsAppPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="automations" className="mt-4">
+        <TabsContent value="automations" forceMount className="mt-4 data-[state=inactive]:hidden">
           <Card className="p-6">
             <h3 className="font-semibold text-base mb-4">Automation Workflows</h3>
             <ul className="divide-y divide-border/40">
@@ -594,7 +594,7 @@ function WhatsAppPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="logs" className="mt-4">
+        <TabsContent value="logs" forceMount className="mt-4 data-[state=inactive]:hidden">
           <Card className="p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +97,7 @@ type CrmLead = {
   updated_at: string;
 };
 
-function AdminCrmPage() {
+export function AdminCrmPage() {
   const queryClient = useQueryClient();
 
   const listFn = useServerFn(listCrmLeads);
@@ -138,41 +139,70 @@ function AdminCrmPage() {
   });
   const [isAddingLead, setIsAddingLead] = useState(false);
 
-  // Queries
-  const { data: leads = [], isLoading: isLoadingLeads, refetch: refetchLeads } = useQuery({
-    queryKey: ["admin-crm-leads", activeTab, search],
-    queryFn: () => listFn({ data: { status: activeTab, search: search || undefined } }),
+  // Queries - fetch all leads with SWR caching for instant 0ms tab switches
+  const {
+    data: allLeads = [],
+    isLoading: isLoadingLeads,
+    isFetching: isFetchingLeads,
+    refetch: refetchLeads,
+  } = useQuery({
+    queryKey: ["admin-crm-leads"],
+    queryFn: () => listFn({ data: { status: "all" } }),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ["admin-crm-stats"],
     queryFn: () => statsFn(),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: waStatusData } = useQuery({
     queryKey: ["admin-crm-wa-status"],
     queryFn: () => getWaStatusFn().catch(() => null),
+    staleTime: 30_000,
   });
 
   const isWaConnected = Boolean(waStatusData?.status?.ready);
 
-  // Filtered leads
+  // In-memory stage counts for tab badges
+  const stageCounts = useMemo(() => {
+    const counts = {
+      all: 0,
+      new: 0,
+      outreach_sent: 0,
+      demo_sent: 0,
+      followup_1: 0,
+      converted: 0,
+    };
+    for (const lead of allLeads as CrmLead[]) {
+      counts.all++;
+      if (lead.status in counts) {
+        (counts as any)[lead.status]++;
+      }
+    }
+    return counts;
+  }, [allLeads]);
+
+  // Instant in-memory filtered leads (0ms tab switching)
   const filteredLeads = useMemo(() => {
-    return (leads as CrmLead[]).filter((lead) => {
+    return (allLeads as CrmLead[]).filter((lead) => {
       if (activeTab !== "all" && lead.status !== activeTab) return false;
       if (search.trim()) {
         const s = search.toLowerCase();
         return (
           lead.name.toLowerCase().includes(s) ||
           lead.phone.includes(s) ||
-          lead.clinic_name?.toLowerCase().includes(s) ||
-          lead.city?.toLowerCase().includes(s) ||
-          lead.specialty?.toLowerCase().includes(s)
+          (lead.clinic_name && lead.clinic_name.toLowerCase().includes(s)) ||
+          (lead.city && lead.city.toLowerCase().includes(s)) ||
+          (lead.specialty && lead.specialty.toLowerCase().includes(s))
         );
       }
       return true;
     });
-  }, [leads, activeTab, search]);
+  }, [allLeads, activeTab, search]);
 
   // Open pitch dialog for lead
   const handleOpenPitch = async (lead: CrmLead, toneOverride?: typeof pitchTone) => {
@@ -382,15 +412,15 @@ function AdminCrmPage() {
 
           <Button
             size="sm"
-            onClick={() => {
-              refetchLeads();
-              refetchStats();
+            onClick={async () => {
+              await Promise.all([refetchLeads(), refetchStats()]);
               toast.success("Refreshed leads data");
             }}
             variant="outline"
             className="h-9 rounded-xl text-xs"
+            disabled={isFetchingLeads}
           >
-            <RefreshCw className="size-3.5 mr-1" /> Refresh
+            <RefreshCw className={cn("size-3.5 mr-1", isFetchingLeads && "animate-spin")} /> Refresh
           </Button>
 
           <Button
@@ -407,31 +437,31 @@ function AdminCrmPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="p-3.5 space-y-1 rounded-2xl border-border/80 bg-surface">
           <p className="text-[11px] font-medium text-muted-foreground">Total Inquiries</p>
-          <p className="text-xl font-bold text-foreground">{stats?.totalLeads ?? 0}</p>
+          <p className="text-xl font-bold text-foreground">{stats?.totalLeads ?? stageCounts.all}</p>
           <span className="text-[10px] text-muted-foreground">All time pipeline</span>
         </Card>
 
         <Card className="p-3.5 space-y-1 rounded-2xl border-amber-500/20 bg-amber-500/5">
           <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">Needs Outreach</p>
-          <p className="text-xl font-bold text-amber-700 dark:text-amber-400">{stats?.newLeads ?? 0}</p>
+          <p className="text-xl font-bold text-amber-700 dark:text-amber-400">{stats?.newLeads ?? stageCounts.new}</p>
           <span className="text-[10px] text-amber-600/80">Pending warm intro</span>
         </Card>
 
         <Card className="p-3.5 space-y-1 rounded-2xl border-purple-500/20 bg-purple-500/5">
           <p className="text-[11px] font-medium text-purple-700 dark:text-purple-400">Demos Active</p>
-          <p className="text-xl font-bold text-purple-700 dark:text-purple-400">{stats?.demoSent ?? 0}</p>
+          <p className="text-xl font-bold text-purple-700 dark:text-purple-400">{stats?.demoSent ?? stageCounts.demo_sent}</p>
           <span className="text-[10px] text-purple-600/80">Custom link delivered</span>
         </Card>
 
         <Card className="p-3.5 space-y-1 rounded-2xl border-indigo-500/20 bg-indigo-500/5">
           <p className="text-[11px] font-medium text-indigo-700 dark:text-indigo-400">In Follow-up</p>
-          <p className="text-xl font-bold text-indigo-700 dark:text-indigo-400">{stats?.followupsActive ?? 0}</p>
+          <p className="text-xl font-bold text-indigo-700 dark:text-indigo-400">{stats?.followupsActive ?? stageCounts.followup_1}</p>
           <span className="text-[10px] text-indigo-600/80">Day 2 - Day 4 follow-up</span>
         </Card>
 
         <Card className="p-3.5 space-y-1 rounded-2xl border-emerald-500/20 bg-emerald-500/5">
           <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">Converted 🏆</p>
-          <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{stats?.converted ?? 0}</p>
+          <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{stats?.converted ?? stageCounts.converted}</p>
           <span className="text-[10px] text-emerald-600/80">Paying customers</span>
         </Card>
 
@@ -446,13 +476,25 @@ function AdminCrmPage() {
       <Card className="p-4 rounded-2xl border-border/80 bg-card space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-            <TabsList className="h-9 p-1 bg-muted/60 rounded-xl grid grid-cols-4 sm:flex sm:flex-wrap gap-1">
-              <TabsTrigger value="all" className="text-xs rounded-lg">All</TabsTrigger>
-              <TabsTrigger value="new" className="text-xs rounded-lg">New ({stats?.newLeads ?? 0})</TabsTrigger>
-              <TabsTrigger value="outreach_sent" className="text-xs rounded-lg">Outreach</TabsTrigger>
-              <TabsTrigger value="demo_sent" className="text-xs rounded-lg">Demo Sent</TabsTrigger>
-              <TabsTrigger value="followup_1" className="text-xs rounded-lg hidden sm:inline-flex">Follow-up 1</TabsTrigger>
-              <TabsTrigger value="converted" className="text-xs rounded-lg">Converted 🏆</TabsTrigger>
+            <TabsList className="h-9 p-1 bg-muted/60 rounded-xl flex flex-wrap gap-1">
+              <TabsTrigger value="all" className="text-xs rounded-lg transition-all duration-150">
+                All ({stageCounts.all})
+              </TabsTrigger>
+              <TabsTrigger value="new" className="text-xs rounded-lg transition-all duration-150">
+                New ({stageCounts.new})
+              </TabsTrigger>
+              <TabsTrigger value="outreach_sent" className="text-xs rounded-lg transition-all duration-150">
+                Outreach ({stageCounts.outreach_sent})
+              </TabsTrigger>
+              <TabsTrigger value="demo_sent" className="text-xs rounded-lg transition-all duration-150">
+                Demo Sent ({stageCounts.demo_sent})
+              </TabsTrigger>
+              <TabsTrigger value="followup_1" className="text-xs rounded-lg hidden sm:inline-flex transition-all duration-150">
+                Follow-up 1 ({stageCounts.followup_1})
+              </TabsTrigger>
+              <TabsTrigger value="converted" className="text-xs rounded-lg transition-all duration-150">
+                Converted 🏆 ({stageCounts.converted})
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -481,7 +523,7 @@ function AdminCrmPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {isLoadingLeads ? (
+              {isLoadingLeads && allLeads.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-muted-foreground">
                     <Loader2 className="size-5 animate-spin mx-auto mb-2 text-primary" />

@@ -19,6 +19,7 @@ import {
   updateWhatsappBridgeUrl,
   simulateAdminIncomingMessage,
 } from "@/lib/baileys.functions";
+import { AdminCrmPage } from "./admin.crm";
 import { toast } from "sonner";
 import {
   Server,
@@ -408,16 +409,24 @@ function AdminWhatsApp() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="webhook" className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-          <TabsTrigger value="webhook" className="text-xs">Webhook Setup</TabsTrigger>
-          <TabsTrigger value="simulate" className="text-xs">AI Simulator</TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs">Message Stream ({diagData?.logs?.length ?? 0})</TabsTrigger>
-          <TabsTrigger value="platform" className="text-xs">Platform Session</TabsTrigger>
+      <Tabs defaultValue="crm" className="space-y-4">
+        <TabsList className="flex flex-wrap w-full max-w-4xl h-auto p-1 gap-1 bg-muted/60 rounded-xl">
+          <TabsTrigger value="crm" className="text-xs gap-1.5 font-semibold transition-all duration-150">
+            <Bot className="size-3.5 text-primary" /> Doctor CRM & AI Outreach
+          </TabsTrigger>
+          <TabsTrigger value="platform" className="text-xs transition-all duration-150">Platform Session</TabsTrigger>
+          <TabsTrigger value="webhook" className="text-xs transition-all duration-150">Webhook Setup</TabsTrigger>
+          <TabsTrigger value="simulate" className="text-xs transition-all duration-150">AI Simulator</TabsTrigger>
+          <TabsTrigger value="logs" className="text-xs transition-all duration-150">Message Stream ({diagData?.logs?.length ?? 0})</TabsTrigger>
         </TabsList>
 
+        {/* TAB 0: DOCTOR CRM & AI OUTREACH */}
+        <TabsContent value="crm" forceMount className="space-y-4 data-[state=inactive]:hidden">
+          <AdminCrmPage />
+        </TabsContent>
+
         {/* TAB 1: WEBHOOK SETUP GUIDE */}
-        <TabsContent value="webhook" className="space-y-4">
+        <TabsContent value="webhook" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <Card className="p-6 border shadow-sm space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -512,7 +521,7 @@ function AdminWhatsApp() {
         </TabsContent>
 
         {/* TAB 2: AI RECEPTIONIST SIMULATION */}
-        <TabsContent value="simulate" className="space-y-4">
+        <TabsContent value="simulate" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <Card className="p-6 border shadow-sm space-y-5">
             <div>
               <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -634,7 +643,7 @@ function AdminWhatsApp() {
         </TabsContent>
 
         {/* TAB 3: MESSAGE STREAM LOGS */}
-        <TabsContent value="logs" className="space-y-4">
+        <TabsContent value="logs" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <Card className="p-4 border shadow-sm">
             <div className="flex items-center justify-between pb-3 border-b mb-3">
               <div>
@@ -715,7 +724,7 @@ function AdminWhatsApp() {
         </TabsContent>
 
         {/* TAB 4: PLATFORM CONNECT & SEND */}
-        <TabsContent value="platform" className="space-y-4">
+        <TabsContent value="platform" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <WhatsappConnectCard
             title="Platform WhatsApp account"
             description="This number sends platform-level messages (OTP, doctor alerts, system notifications). Use a dedicated business number."

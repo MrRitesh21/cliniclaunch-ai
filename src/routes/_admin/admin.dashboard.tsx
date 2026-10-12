@@ -484,7 +484,7 @@ function AdminDashboard() {
         {/* ═══════════════════════════════════════════════════════════════════════
             TAB 1: OVERVIEW & FINANCIALS
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="overview" className="space-y-6 m-0">
+        <TabsContent value="overview" forceMount className="space-y-6 m-0 data-[state=inactive]:hidden">
           {/* Unit Economics Secondary Strip */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
             <Kpi
@@ -615,7 +615,7 @@ function AdminDashboard() {
         {/* ═══════════════════════════════════════════════════════════════════════
             TAB 2: TENANT & DOCTOR FLEET COMMAND
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="tenants" className="space-y-4 m-0">
+        <TabsContent value="tenants" forceMount className="space-y-4 m-0 data-[state=inactive]:hidden">
           <Card className="p-4 sm:p-5 border-border/70 shadow-sm space-y-4">
             {/* Filter and Search Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -783,7 +783,7 @@ function AdminDashboard() {
         {/* ═══════════════════════════════════════════════════════════════════════
             TAB 3: LIVE DIAGNOSTICS & INFRASTRUCTURE HEALTH
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="health" className="space-y-6 m-0">
+        <TabsContent value="health" forceMount className="space-y-6 m-0 data-[state=inactive]:hidden">
           {/* Real-time Health Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <HealthServiceCard
@@ -959,7 +959,7 @@ function AdminDashboard() {
         {/* ═══════════════════════════════════════════════════════════════════════
             TAB 4: ACTIVITY STREAM
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="activity" className="space-y-4 m-0">
+        <TabsContent value="activity" forceMount className="space-y-4 m-0 data-[state=inactive]:hidden">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Recent Signups */}
             <Card className="p-5 border-border/70 shadow-sm space-y-3">
