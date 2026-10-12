@@ -19,11 +19,17 @@ CREATE TABLE IF NOT EXISTS public.platform_crm_leads (
   followup_count integer DEFAULT 0,
   notes text,
   deal_value numeric DEFAULT 0,
+  has_replied boolean DEFAULT false,
+  last_reply_at timestamptz,
+  last_reply_message text,
+  next_followup_at timestamptz,
+  autonomous_enabled boolean DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_platform_crm_leads_status ON public.platform_crm_leads(status);
+CREATE INDEX IF NOT EXISTS idx_platform_crm_leads_autonomous ON public.platform_crm_leads(autonomous_enabled, has_replied, status);
 CREATE INDEX IF NOT EXISTS idx_platform_crm_leads_phone ON public.platform_crm_leads(phone);
 CREATE INDEX IF NOT EXISTS idx_platform_crm_leads_created ON public.platform_crm_leads(created_at DESC);
 

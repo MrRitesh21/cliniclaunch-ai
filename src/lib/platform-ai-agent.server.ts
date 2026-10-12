@@ -281,15 +281,32 @@ export async function handlePlatformIncomingWhatsApp(opts: {
     });
 
     if (matchedLead?.id) {
-      await (supabaseAdmin as any)
-        .from("platform_crm_leads")
-        .update({
-          last_outreach_at: new Date().toISOString(),
-          last_outreach_message: reply,
-          status: matchedLead.status === "new" ? "outreach_sent" : matchedLead.status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", matchedLead.id);
+      const nowIso = new Date().toISOString();
+      try {
+        await (supabaseAdmin as any)
+          .from("platform_crm_leads")
+          .update({
+            has_replied: true,
+            last_reply_at: nowIso,
+            last_reply_message: opts.text,
+            status: "in_conversation",
+            last_outreach_at: nowIso,
+            last_outreach_message: reply,
+            updated_at: nowIso,
+          })
+          .eq("id", matchedLead.id);
+      } catch {}
+
+      try {
+        const { updateCrmLeadImpl } = await import("./crm.server");
+        await updateCrmLeadImpl({
+          id: matchedLead.id,
+          has_replied: true,
+          last_reply_at: nowIso,
+          last_reply_message: opts.text,
+          status: "in_conversation",
+        });
+      } catch {}
     }
   } catch {}
 
