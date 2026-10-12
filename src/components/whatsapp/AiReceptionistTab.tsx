@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
+import { readCache, writeCache } from "@/lib/persist-cache";
 import {
   getAiReceptionistInfo,
   testAiReceptionistSimulation,
@@ -53,41 +54,94 @@ function formatHoursText(raw: any): string {
   return "10:00 AM - 8:00 PM";
 }
 
-export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: () => void }) {
+function buildInitialData(clinic: any, cached: any) {
+  if (cached) return cached;
+  if (clinic) {
+    return {
+      clinic: {
+        id: String(clinic.id),
+        name: String(clinic.clinic_name || "My Clinic"),
+        doctor: String(clinic.doctor_name || "Doctor"),
+        specialization: String(clinic.specialization || "General Medicine"),
+        address: String(clinic.public_address || clinic.address || "Clinic Address"),
+        workingHours: formatHoursText(clinic.working_hours),
+        consultationFee: Number(clinic.consultation_fee ?? 500),
+        waStatus: String(clinic.wa_status || "disconnected"),
+        waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
+        isOnline: clinic.wa_status === "ready",
+        isAiEnabled: (clinic.working_hours as any)?.ai_receptionist_enabled !== false,
+      },
+      stats: { todayBookings: 0, totalBookings: 0 },
+      recentLogs: [],
+    };
+  }
+  return null;
+}
+
+export function AiReceptionistTab({
+  onSwitchToConnect,
+  clinic,
+}: {
+  onSwitchToConnect?: () => void;
+  clinic?: any;
+}) {
   const getInfoFn = useServerFn(getAiReceptionistInfo);
   const simulateFn = useServerFn(testAiReceptionistSimulation);
   const toggleFn = useServerFn(toggleAiReceptionistStatus);
 
-  const [data, setData] = useState<Awaited<ReturnType<typeof getInfoFn>> | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Instant SWR state: check cached data or derive from clinic prop
+  const [data, setData] = useState<any>(() => {
+    const cached = readCache<any>("ai_receptionist_info", 15 * 60 * 1000);
+    return buildInitialData(clinic, cached);
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => !data && !clinic);
   const [refreshing, setRefreshing] = useState(false);
-  const [isAiEnabled, setIsAiEnabled] = useState(true);
+  const [isAiEnabled, setIsAiEnabled] = useState<boolean>(() => {
+    if (data?.clinic) return data.clinic.isAiEnabled;
+    if (clinic) return (clinic.working_hours as any)?.ai_receptionist_enabled !== false;
+    return true;
+  });
   const [isTogglingAi, setIsTogglingAi] = useState(false);
+
+  // Sync if clinic arrives or changes from parent
+  useEffect(() => {
+    if (clinic && !data) {
+      const init = buildInitialData(clinic, null);
+      if (init) {
+        setData(init);
+        setIsAiEnabled(init.clinic.isAiEnabled);
+        setLoading(false);
+      }
+    }
+  }, [clinic]);
 
   // Chat simulator state
   const [inputMsg, setInputMsg] = useState("");
   const [patientName, setPatientName] = useState("Rahul");
   const [isSimulating, setIsSimulating] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
+    const cName = data?.clinic.name || clinic?.clinic_name || "My Clinic";
+    const dName = data?.clinic.doctor || clinic?.doctor_name || "Doctor";
+    return [
+      {
+        id: "init",
+        sender: "bot",
+        text: `Namaste! Main ${cName} (${dName}) ka 24/7 AI Receptionist hoon. Aap appointment book kar sakte hain, timings ya fees pooch sakte hain. Main kaise madad kar sakta hoon?`,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ];
+  });
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
       const res = await getInfoFn();
       setData(res);
+      writeCache("ai_receptionist_info", res);
       setIsAiEnabled(res.clinic.isAiEnabled);
-      if (chatHistory.length === 0) {
-        setChatHistory([
-          {
-            id: "init",
-            sender: "bot",
-            text: `Namaste! Main ${res.clinic.name} (${res.clinic.doctor}) ka 24/7 AI Receptionist hoon. Aap appointment book kar sakte hain, timings ya fees pooch sakte hain. Main kaise madad kar sakta hoon?`,
-            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
-      }
     } catch (err: any) {
-      toast.error(err.message || "Failed to load AI receptionist info");
+      if (!data) toast.error(err.message || "Failed to load AI receptionist info");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -100,13 +154,15 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
       const res = await toggleFn({ data: { enabled: nextVal } });
       setIsAiEnabled(res.enabled);
       if (data) {
-        setData({
+        const updated = {
           ...data,
           clinic: {
             ...data.clinic,
             isAiEnabled: res.enabled,
           },
-        });
+        };
+        setData(updated);
+        writeCache("ai_receptionist_info", updated);
       }
       if (res.enabled) {
         toast.success("AI Receptionist is now ON — Actively answering WhatsApp messages");
@@ -185,11 +241,11 @@ export function AiReceptionistTab({ onSwitchToConnect }: { onSwitchToConnect?: (
     { label: "Cancel Booking", text: "Mujhe apna appointment cancel karna hai" },
   ];
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Card className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
-        <Loader2 className="size-8 animate-spin text-primary" />
-        <p className="text-sm font-medium">Loading AI Receptionist engine...</p>
+        <Loader2 className="size-8 animate-spin text-emerald-600" />
+        <p className="text-sm font-medium">Connecting to AI Receptionist...</p>
       </Card>
     );
   }

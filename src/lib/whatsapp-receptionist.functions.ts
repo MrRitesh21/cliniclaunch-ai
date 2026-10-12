@@ -72,28 +72,30 @@ export const getAiReceptionistInfo = createServerFn({ method: "GET" })
 
     const todayStr = new Date().toISOString().split("T")[0];
 
-    // Count today's WhatsApp bookings
-    const { count: todayBookings } = await context.supabase
-      .from("appointments")
-      .select("id", { count: "exact", head: true })
-      .eq("clinic_id", clinic.id)
-      .eq("appointment_date", todayStr)
-      .eq("source", "whatsapp");
+    // Fetch stats and logs concurrently via Promise.all
+    const [todayRes, totalRes, logsRes] = await Promise.all([
+      context.supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", clinic.id)
+        .eq("appointment_date", todayStr)
+        .eq("source", "whatsapp"),
+      context.supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", clinic.id)
+        .eq("source", "whatsapp"),
+      context.supabase
+        .from("whatsapp_logs")
+        .select("id, patient_name, patient_phone, message, template_key, status, created_at")
+        .eq("organization_id", clinic.organization_id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
 
-    // Count total WhatsApp bookings
-    const { count: totalBookings } = await context.supabase
-      .from("appointments")
-      .select("id", { count: "exact", head: true })
-      .eq("clinic_id", clinic.id)
-      .eq("source", "whatsapp");
-
-    // Fetch latest receptionist messages (last 10)
-    const { data: recentLogs } = await context.supabase
-      .from("whatsapp_logs")
-      .select("id, patient_name, patient_phone, message, template_key, status, created_at")
-      .eq("organization_id", clinic.organization_id)
-      .order("created_at", { ascending: false })
-      .limit(10);
+    const todayBookings = todayRes.count;
+    const totalBookings = totalRes.count;
+    const recentLogs = logsRes.data;
 
     return {
       clinic: {

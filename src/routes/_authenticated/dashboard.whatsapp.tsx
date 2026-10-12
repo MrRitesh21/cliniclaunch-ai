@@ -328,7 +328,7 @@ function WhatsAppPage() {
   const load = useCallback(async () => {
     if (!org?.id) return;
     setLoading(true);
-    await ensureDefaultTemplates(org.id);
+    // Fetch templates & logs in parallel immediately without blocking on ensureDefaultTemplates
     const [{ data: t }, { data: l }] = await Promise.all([
       supabase
         .from("whatsapp_templates")
@@ -337,14 +337,17 @@ function WhatsAppPage() {
         .order("template_key"),
       supabase
         .from("whatsapp_logs")
-        .select("*")
+        .select("id, patient_name, patient_phone, template_key, message, wa_link, status, error, scheduled_for, sent_at, created_at")
         .eq("organization_id", org.id)
         .order("created_at", { ascending: false })
-        .limit(300),
+        .limit(100),
     ]);
     setTemplates((t ?? []) as TemplateRow[]);
     setLogs((l ?? []) as LogRow[]);
     setLoading(false);
+
+    // Ensure templates in the background if missing without freezing initial render
+    ensureDefaultTemplates(org.id).catch(() => {});
   }, [org?.id]);
 
   useEffect(() => {
@@ -457,7 +460,7 @@ function WhatsAppPage() {
         </TabsList>
 
         <TabsContent value="receptionist" className="mt-4">
-          <AiReceptionistTab onSwitchToConnect={() => setActiveTab("connect")} />
+          <AiReceptionistTab clinic={clinic} onSwitchToConnect={() => setActiveTab("connect")} />
         </TabsContent>
 
         <TabsContent value="connect" className="mt-4">
