@@ -92,13 +92,14 @@ export async function requirePublishedClinic(sb: Awaited<ReturnType<typeof admin
 }
 
 async function requirePublicDoctor(sb: Awaited<ReturnType<typeof adminClient>>, clinicId: string, orgId: string | null, doctorId?: string | null) {
-  if (!doctorId) return; // Legacy clinic-wide booking is supported.
-  let query = sb.from("doctors").select("id").eq("id", doctorId).eq("is_active", true);
+  if (!doctorId) return null; // Legacy clinic-wide booking is supported.
+  let query = sb.from("doctors").select("id, working_hours").eq("id", doctorId).eq("is_active", true);
   // Existing public catalog is organization-wide (including branch doctors).
   // Legacy unlinked clinics must match the doctor's clinic exactly.
   query = orgId ? query.eq("organization_id", orgId) : query.eq("clinic_id", clinicId);
   const { data: doctor, error } = await query.maybeSingle();
   if (error || !doctor) throw new Error("This doctor is not available at this clinic.");
+  return doctor;
 }
 
 export const getClinicBySlug = createServerFn({ method: "GET" })
@@ -540,7 +541,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const sb = await adminClient();
     const clinicRow = await requirePublishedClinic(sb, data.clinic_id);
     const orgId = clinicRow.organization_id ?? null;
-    await requirePublicDoctor(sb, data.clinic_id, orgId, data.doctor_id);
+    const doctorRow = await requirePublicDoctor(sb, data.clinic_id, orgId, data.doctor_id);
 
     // Reject duplicate active booking for the same patient on the same day
     const bookingDay = new Date(data.scheduled_at);
@@ -605,19 +606,35 @@ export const createBooking = createServerFn({ method: "POST" })
         }
       }
     } else {
-      // Standard booking: one-per-slot, scoped to the selected doctor so
-      // different doctors in the same clinic can hold the same time slot.
+      // Standard booking: scoped to the selected doctor and slot capacity.
+      // If doctor/clinic configured max_patients_per_slot (e.g. 3 patients / 30m),
+      // allow up to that limit before marking the slot full.
+      let maxPatients = 1;
+      const wh = (doctorRow as any)?.working_hours ?? (clinicRow as any)?.working_hours;
+      if (wh && typeof wh === "object" && !Array.isArray(wh)) {
+        const parsedMax = Number(wh.max_patients_per_slot);
+        if (Number.isFinite(parsedMax) && parsedMax >= 1) {
+          maxPatients = Math.floor(parsedMax);
+        }
+      }
+
       let exq = sb
         .from("appointments")
-        .select("id")
+        .select("id", { count: "exact", head: true })
         .eq("clinic_id", data.clinic_id)
         .eq("scheduled_at", data.scheduled_at)
         .neq("status", "cancelled");
       if (data.doctor_id) exq = exq.eq("doctor_id", data.doctor_id);
       else exq = exq.is("doctor_id", null);
-      const { data: existing, error: exErr } = await exq.maybeSingle();
+      const { count: existingCount, error: exErr } = await exq;
       if (exErr) throw new Error(exErr.message);
-      if (existing) throw new Error("This time slot was just taken. Please pick another.");
+      if ((existingCount ?? 0) >= maxPatients) {
+        throw new Error(
+          maxPatients > 1
+            ? `This slot is fully booked (${maxPatients} of ${maxPatients} spots taken). Please choose another time.`
+            : "This time slot was just taken. Please pick another."
+        );
+      }
     }
 
     const { data: appt, error } = await sb

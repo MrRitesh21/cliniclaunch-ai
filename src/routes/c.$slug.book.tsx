@@ -32,6 +32,7 @@ import {
   Loader2,
   Sun,
   Moon,
+  Users,
 } from "lucide-react";
 import { buildIcsDataUrl, buildWhatsAppShareUrl } from "@/lib/booking-share";
 
@@ -87,6 +88,9 @@ const SLOT_MINUTES = 30;
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
 function resolveSchedule(schedule: any, fallbackWh: any) {
+  let slotDuration = 30;
+  let maxPatients = 1;
+
   if (schedule && typeof schedule === "object" && !Array.isArray(schedule)) {
     const activeDays: number[] = [];
     let defaultStart = "09:00";
@@ -94,6 +98,15 @@ function resolveSchedule(schedule: any, fallbackWh: any) {
     let defaultStart2 = "17:00";
     let defaultEnd2 = "21:00";
     const isTwoShifts = Boolean(schedule.is_two_shifts);
+
+    if (schedule.slot_duration_minutes) {
+      const dur = Number(schedule.slot_duration_minutes);
+      if (dur > 0) slotDuration = dur;
+    }
+    if (schedule.max_patients_per_slot) {
+      const cap = Number(schedule.max_patients_per_slot);
+      if (cap > 0) maxPatients = Math.floor(cap);
+    }
 
     DAY_NAMES.forEach((dayName, idx) => {
       const dayObj = schedule[dayName];
@@ -114,8 +127,21 @@ function resolveSchedule(schedule: any, fallbackWh: any) {
         start2: defaultStart2,
         end2: defaultEnd2,
         is_two_shifts: isTwoShifts,
+        slot_duration_minutes: slotDuration,
+        max_patients_per_slot: maxPatients,
         perDay: schedule,
       };
+    }
+  }
+
+  if (fallbackWh && typeof fallbackWh === "object") {
+    if (fallbackWh.slot_duration_minutes) {
+      const dur = Number(fallbackWh.slot_duration_minutes);
+      if (dur > 0) slotDuration = dur;
+    }
+    if (fallbackWh.max_patients_per_slot) {
+      const cap = Number(fallbackWh.max_patients_per_slot);
+      if (cap > 0) maxPatients = Math.floor(cap);
     }
   }
 
@@ -137,6 +163,8 @@ function resolveSchedule(schedule: any, fallbackWh: any) {
     start2: "17:00",
     end2: "21:00",
     is_two_shifts: false,
+    slot_duration_minutes: slotDuration,
+    max_patients_per_slot: maxPatients,
     perDay: null,
   };
 }
@@ -216,7 +244,7 @@ function BookPage() {
   }, [activeSchedule.days]);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(days[0] ?? null);
-  const [bookedAt, setBookedAt] = useState<Set<number>>(new Set());
+  const [bookedCounts, setBookedCounts] = useState<Record<number, number>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [form, setForm] = useState({
@@ -374,15 +402,16 @@ function BookPage() {
         doctor_id: dbDoctorId,
       },
     })
-      .then((rows) =>
-        setBookedAt(
-          new Set(
-            (rows ?? [])
-              .filter((r): r is string => typeof r === "string")
-              .map((r) => new Date(r).getTime()),
-          ),
-        ),
-      )
+      .then((rows) => {
+        const counts: Record<number, number> = {};
+        (rows ?? []).forEach((r) => {
+          if (typeof r === "string") {
+            const t = new Date(r).getTime();
+            counts[t] = (counts[t] || 0) + 1;
+          }
+        });
+        setBookedCounts(counts);
+      })
       .catch(() => {})
       .finally(() => setLoadingSlots(false));
   }, [selectedDay, clinic.id, selectedDoctorId]);
@@ -411,6 +440,7 @@ function BookPage() {
 
     const now = new Date();
     const out: Date[] = [];
+    const slotMinutes = activeSchedule.slot_duration_minutes || 30;
 
     // Shift 1 (Morning / Standard Shift)
     const [sh1, sm1] = (startStr || "09:00").split(":").map((v) => Number(v) || 0);
@@ -422,8 +452,8 @@ function BookPage() {
 
     for (
       let t = start1.getTime();
-      t + SLOT_MINUTES * 60_000 <= end1.getTime();
-      t += SLOT_MINUTES * 60_000
+      t + slotMinutes * 60_000 <= end1.getTime();
+      t += slotMinutes * 60_000
     ) {
       const d = new Date(t);
       if (d > now) out.push(d);
@@ -440,8 +470,8 @@ function BookPage() {
 
       for (
         let t = start2.getTime();
-        t + SLOT_MINUTES * 60_000 <= end2.getTime();
-        t += SLOT_MINUTES * 60_000
+        t + slotMinutes * 60_000 <= end2.getTime();
+        t += slotMinutes * 60_000
       ) {
         const d = new Date(t);
         if (d > now) out.push(d);
@@ -453,6 +483,48 @@ function BookPage() {
 
   const morningSlots = useMemo(() => slots.filter((s) => s.getHours() < 14), [slots]);
   const eveningSlots = useMemo(() => slots.filter((s) => s.getHours() >= 14), [slots]);
+
+  const maxCap = activeSchedule.max_patients_per_slot || 1;
+
+  const renderSlotBtn = (s: Date) => {
+    const iso = s.toISOString();
+    const count = bookedCounts[s.getTime()] || 0;
+    const taken = count >= maxCap;
+    const spotsLeft = Math.max(0, maxCap - count);
+    const active = selectedSlot?.toISOString() === iso;
+    return (
+      <button
+        type="button"
+        key={iso}
+        disabled={taken || loadingSlots}
+        onClick={() => setSelectedSlot(s)}
+        className={`rounded-xl border px-1.5 sm:px-2 py-2 text-xs font-medium transition flex flex-col items-center justify-center min-h-[44px] ${
+          taken
+            ? "opacity-35 cursor-not-allowed line-through bg-muted"
+            : active
+              ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+              : "hover:bg-accent hover:border-primary/30"
+        }`}
+      >
+        <span className="leading-tight">{formatTime12h(s)}</span>
+        {maxCap > 1 && (
+          <span
+            className={`text-[10px] mt-0.5 leading-none ${
+              active
+                ? "text-primary-foreground/90 font-semibold"
+                : taken
+                  ? "text-muted-foreground"
+                  : count > 0
+                    ? "text-amber-600 dark:text-amber-400 font-bold"
+                    : "text-muted-foreground/80"
+            }`}
+          >
+            {taken ? "Full" : count > 0 ? `${spotsLeft} left` : `${maxCap} spots`}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   const nameError =
     form.name.trim().length === 0
@@ -772,6 +844,11 @@ function BookPage() {
                           <IndianRupee className="size-3" /> {d.consultation_fee} / visit
                         </span>
                       )}
+                      {Boolean((d.working_hours as any)?.max_patients_per_slot && Number((d.working_hours as any)?.max_patients_per_slot) > 1) && (
+                        <span className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-medium">
+                          <Users className="size-3" /> {(d.working_hours as any).max_patients_per_slot} pts / {(d.working_hours as any).slot_duration_minutes || 30}m slot
+                        </span>
+                      )}
                     </div>
 
                     {/* Bio snippet */}
@@ -880,28 +957,7 @@ function BookPage() {
                       <Sun className="size-3.5" /> Morning Shift ({morningSlots.length} slots)
                     </div>
                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-                      {morningSlots.map((s) => {
-                        const iso = s.toISOString();
-                        const taken = bookedAt.has(s.getTime());
-                        const active = selectedSlot?.toISOString() === iso;
-                        return (
-                          <button
-                            type="button"
-                            key={iso}
-                            disabled={taken || loadingSlots}
-                            onClick={() => setSelectedSlot(s)}
-                            className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${
-                              taken
-                                ? "opacity-35 cursor-not-allowed line-through bg-muted"
-                                : active
-                                  ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                                  : "hover:bg-accent hover:border-primary/30"
-                            }`}
-                          >
-                            {formatTime12h(s)}
-                          </button>
-                        );
-                      })}
+                      {morningSlots.map(renderSlotBtn)}
                     </div>
                   </div>
 
@@ -911,55 +967,13 @@ function BookPage() {
                       <Moon className="size-3.5" /> Evening Shift ({eveningSlots.length} slots)
                     </div>
                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-                      {eveningSlots.map((s) => {
-                        const iso = s.toISOString();
-                        const taken = bookedAt.has(s.getTime());
-                        const active = selectedSlot?.toISOString() === iso;
-                        return (
-                          <button
-                            type="button"
-                            key={iso}
-                            disabled={taken || loadingSlots}
-                            onClick={() => setSelectedSlot(s)}
-                            className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${
-                              taken
-                                ? "opacity-35 cursor-not-allowed line-through bg-muted"
-                                : active
-                                  ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                                  : "hover:bg-accent hover:border-primary/30"
-                            }`}
-                          >
-                            {formatTime12h(s)}
-                          </button>
-                        );
-                      })}
+                      {eveningSlots.map(renderSlotBtn)}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-                  {slots.map((s) => {
-                    const iso = s.toISOString();
-                    const taken = bookedAt.has(s.getTime());
-                    const active = selectedSlot?.toISOString() === iso;
-                    return (
-                      <button
-                        type="button"
-                        key={iso}
-                        disabled={taken || loadingSlots}
-                        onClick={() => setSelectedSlot(s)}
-                        className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${
-                          taken
-                            ? "opacity-35 cursor-not-allowed line-through bg-muted"
-                            : active
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                              : "hover:bg-accent hover:border-primary/30"
-                        }`}
-                      >
-                        {formatTime12h(s)}
-                      </button>
-                    );
-                  })}
+                  {slots.map(renderSlotBtn)}
                 </div>
               )}
             </Card>

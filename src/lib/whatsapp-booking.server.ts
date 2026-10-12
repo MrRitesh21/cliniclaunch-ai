@@ -34,6 +34,8 @@ export interface MergedDoctor {
   experience_years: number | null;
   isOwner: boolean;
   workingHoursText?: string;
+  maxPatientsPerSlot?: number;
+  slotDurationMinutes?: number;
 }
 
 interface ParsedBookingIntent {
@@ -568,6 +570,8 @@ export async function processWhatsAppMessage(params: {
     experience_years: clinic.experience_years || null,
     isOwner: true,
     workingHoursText: formatDoctorShifts(clinic.working_hours),
+    maxPatientsPerSlot: Number((clinic.working_hours as any)?.max_patients_per_slot) || 1,
+    slotDurationMinutes: Number((clinic.working_hours as any)?.slot_duration_minutes) || 30,
   };
 
   const otherDocs: MergedDoctor[] = (dbDoctors || [])
@@ -585,6 +589,8 @@ export async function processWhatsAppMessage(params: {
       experience_years: d.experience_years || null,
       isOwner: false,
       workingHoursText: formatDoctorShifts(d.working_hours),
+      maxPatientsPerSlot: Number((d.working_hours as any)?.max_patients_per_slot) || 1,
+      slotDurationMinutes: Number((d.working_hours as any)?.slot_duration_minutes) || 30,
     }));
 
   const allDoctors: MergedDoctor[] = [primaryDoc, ...otherDocs];
@@ -1049,18 +1055,23 @@ Kripya scheduled time se 10 minute pehle clinic pahuchein.`,
         };
       }
 
-      // Check slot conflict, auto-adjust +15 mins if occupied
+      // Check slot conflict, auto-adjust if slot capacity reached
       let finalScheduledAt = scheduledAt;
-      const { data: slotConflict } = await sb
+      const maxCap = assignedDoc.maxPatientsPerSlot || 1;
+      const slotDur = assignedDoc.slotDurationMinutes || 30;
+
+      let cq = sb
         .from("appointments")
-        .select("id")
+        .select("id", { count: "exact", head: true })
         .eq("clinic_id", clinic.id)
         .eq("scheduled_at", scheduledAt.toISOString())
-        .neq("status", "cancelled")
-        .maybeSingle();
+        .neq("status", "cancelled");
+      if (assignedDoc.id) cq = cq.eq("doctor_id", assignedDoc.id);
+      else cq = cq.is("doctor_id", null);
+      const { count: conflictCount } = await cq;
 
-      if (slotConflict) {
-        finalScheduledAt = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
+      if ((conflictCount ?? 0) >= maxCap) {
+        finalScheduledAt = new Date(scheduledAt.getTime() + slotDur * 60 * 1000);
       }
 
       // Insert Appointment into Supabase

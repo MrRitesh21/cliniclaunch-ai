@@ -41,6 +41,7 @@ import {
   Trash2,
   Upload,
   User,
+  Users,
   X,
   Clock,
   Sparkles,
@@ -63,6 +64,8 @@ type DayHours = {
 };
 type WeeklySchedule = {
   is_two_shifts?: boolean;
+  slot_duration_minutes?: number; // e.g. 15, 20, 30, 45, 60
+  max_patients_per_slot?: number; // e.g. 1, 2, 3 patients per slot
 } & Record<Day, DayHours>;
 
 const DAY_LABELS: Record<Day, string> = {
@@ -75,8 +78,12 @@ const DAY_LABELS: Record<Day, string> = {
   sunday: "Sun",
 };
 
-function defaultSchedule(isTwoShifts = false): WeeklySchedule {
-  const sched: any = { is_two_shifts: isTwoShifts };
+function defaultSchedule(isTwoShifts = false, slotDuration = 30, maxPatients = 1): WeeklySchedule {
+  const sched: any = {
+    is_two_shifts: isTwoShifts,
+    slot_duration_minutes: slotDuration,
+    max_patients_per_slot: maxPatients,
+  };
   for (const d of DAYS) {
     sched[d] = {
       enabled: d !== "sunday",
@@ -112,6 +119,10 @@ function normalizeSchedule(raw?: unknown): WeeklySchedule {
     }
   }
   base.is_two_shifts = anyShift2;
+  const parsedDur = Number(rawObj.slot_duration_minutes);
+  base.slot_duration_minutes = [10, 15, 20, 30, 45, 60, 90, 120].includes(parsedDur) ? parsedDur : 30;
+  const parsedCap = Number(rawObj.max_patients_per_slot);
+  base.max_patients_per_slot = Number.isFinite(parsedCap) && parsedCap >= 1 ? Math.floor(parsedCap) : 1;
   return base;
 }
 
@@ -628,6 +639,15 @@ function DoctorsPage() {
                       <IndianRupee className="size-3" /> {d.consultation_fee} / visit
                     </span>
                   )}
+                  {(d.working_hours?.max_patients_per_slot ?? 1) > 1 ? (
+                    <span className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-blue-500/20">
+                      <Users className="size-3" /> {d.working_hours.max_patients_per_slot} pts / {d.working_hours.slot_duration_minutes ?? 30}m slot
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-md text-[11px] font-medium border border-border/60">
+                      <Clock className="size-3" /> {d.working_hours?.slot_duration_minutes ?? 30}m slots
+                    </span>
+                  )}
                 </div>
 
                 {/* Bio note */}
@@ -666,7 +686,7 @@ function DoctorsPage() {
 
       {/* Edit / Add Doctor Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg p-5 sm:p-6 rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl sm:max-w-3xl w-[95vw] sm:w-full p-4 sm:p-6 rounded-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">
               {editing ? "Edit Doctor Profile" : "Add New Doctor"}
@@ -696,7 +716,7 @@ function DoctorsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs font-semibold">Specialization</Label>
                 <div className="mt-1">
@@ -717,7 +737,7 @@ function DoctorsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs font-semibold">Experience (years)</Label>
                 <Input
@@ -751,14 +771,77 @@ function DoctorsPage() {
               />
             </div>
 
+            {/* Slot Duration & Patient Capacity */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-muted/20 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 text-primary" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    OPD Slot Timing &amp; Patient Capacity
+                  </Label>
+                </div>
+                <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                  {form.working_hours?.max_patients_per_slot ?? 1} {(form.working_hours?.max_patients_per_slot ?? 1) > 1 ? "patients" : "patient"} / {form.working_hours?.slot_duration_minutes ?? 30}m
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-normal">
+                Ek time slot me doctor kitne patients ko check karte hain. Jaise 30 minute ka slot hai aur usme 3 patients dekhne hain, toh 10:00 AM ke slot par 3 appointments book ho sakti hain.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                <div>
+                  <Label className="text-xs font-semibold">Slot Duration (Minutes)</Label>
+                  <select
+                    value={form.working_hours?.slot_duration_minutes ?? 30}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        working_hours: {
+                          ...(f.working_hours ?? defaultSchedule()),
+                          slot_duration_minutes: Number(e.target.value) || 30,
+                        },
+                      }))
+                    }
+                    className="w-full mt-1 h-9 rounded-xl border border-border/80 bg-background px-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value={15}>15 minutes / slot</option>
+                    <option value={20}>20 minutes / slot</option>
+                    <option value={30}>30 minutes / slot (Standard)</option>
+                    <option value={45}>45 minutes / slot</option>
+                    <option value={60}>60 minutes (1 hour) / slot</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Patients per Slot (Token / Capacity)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={form.working_hours?.max_patients_per_slot ?? 1}
+                    onChange={(e) => {
+                      const val = Math.max(1, Math.min(50, Number(e.target.value) || 1));
+                      setForm((f) => ({
+                        ...f,
+                        working_hours: {
+                          ...(f.working_hours ?? defaultSchedule()),
+                          max_patients_per_slot: val,
+                        },
+                      }));
+                    }}
+                    className="text-xs h-9 rounded-xl mt-1"
+                    placeholder="e.g. 3"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Weekly schedule */}
             <div className="space-y-2.5 pt-2 border-t border-border/60">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Clock className="size-3.5" /> Weekly Working Hours
                 </Label>
                 {/* 2-Shift Toggle */}
-                <div className="flex items-center gap-2 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
+                <div className="flex items-center justify-between sm:justify-start gap-2 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
                   <span className="text-[11px] font-semibold text-foreground">
                     2 Shifts (Morning &amp; Evening)
                   </span>
@@ -792,7 +875,7 @@ function DoctorsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 bg-muted/20 p-2.5 rounded-xl border border-border/60">
+              <div className="space-y-2 bg-muted/20 p-2 sm:p-2.5 rounded-xl border border-border/60 overflow-x-auto">
                 {DAYS.map((day) => {
                   const d = form.working_hours?.[day] ?? {
                     enabled: false,
@@ -807,7 +890,7 @@ function DoctorsPage() {
                   return (
                     <div
                       key={day}
-                      className={`flex flex-col sm:flex-row sm:items-center gap-2 justify-between p-2 rounded-lg border transition ${
+                      className={`flex flex-col md:flex-row md:items-center gap-2 justify-between p-2.5 rounded-lg border transition ${
                         d.enabled ? "bg-background/90 border-border/70" : "bg-muted/10 border-transparent opacity-60"
                       }`}
                     >
@@ -836,7 +919,7 @@ function DoctorsPage() {
                               };
                             })
                           }
-                          className={`w-11 text-center text-xs font-semibold rounded-lg py-1 border transition ${
+                          className={`w-12 text-center text-xs font-semibold rounded-lg py-1 border transition ${
                             d.enabled
                               ? "bg-primary text-primary-foreground border-primary shadow-xs"
                               : "bg-muted text-muted-foreground border-border/80"
@@ -850,11 +933,11 @@ function DoctorsPage() {
                       </div>
 
                       {d.enabled && (
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-1 justify-end">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 justify-start md:justify-end">
                           {/* Shift 1 (Morning) */}
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-nowrap">
                             {isTwo && (
-                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/20 px-1.5 py-0.5 rounded shrink-0">
                                 Morning
                               </span>
                             )}
@@ -873,7 +956,7 @@ function DoctorsPage() {
                                   },
                                 }))
                               }
-                              className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                              className="h-7 w-[100px] sm:w-[108px] border border-border/80 rounded-lg px-1.5 text-xs bg-background"
                             />
                             <span className="text-muted-foreground text-xs">to</span>
                             <input
@@ -891,14 +974,14 @@ function DoctorsPage() {
                                   },
                                 }))
                               }
-                              className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                              className="h-7 w-[100px] sm:w-[108px] border border-border/80 rounded-lg px-1.5 text-xs bg-background"
                             />
                           </div>
 
                           {/* Shift 2 (Evening) */}
                           {isTwo && (
-                            <div className="flex items-center gap-1.5 pt-1 sm:pt-0 sm:border-l sm:border-border/60 sm:pl-3">
-                              <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 rounded">
+                            <div className="flex items-center gap-1.5 flex-nowrap pt-1 md:pt-0 md:border-l md:border-border/60 md:pl-3">
+                              <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 rounded shrink-0">
                                 Evening
                               </span>
                               <input
@@ -917,7 +1000,7 @@ function DoctorsPage() {
                                     },
                                   }))
                                 }
-                                className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                                className="h-7 w-[100px] sm:w-[108px] border border-border/80 rounded-lg px-1.5 text-xs bg-background"
                               />
                               <span className="text-muted-foreground text-xs">to</span>
                               <input
@@ -936,7 +1019,7 @@ function DoctorsPage() {
                                     },
                                   }))
                                 }
-                                className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                                className="h-7 w-[100px] sm:w-[108px] border border-border/80 rounded-lg px-1.5 text-xs bg-background"
                               />
                             </div>
                           )}
