@@ -190,6 +190,9 @@ export async function createCrmLeadImpl(input: {
 
 export async function updateCrmLeadImpl(input: {
   id: string;
+  name?: string;
+  phone?: string;
+  email?: string | null;
   status?: CrmLeadStage;
   notes?: string | null;
   deal_value?: number;
@@ -198,12 +201,24 @@ export async function updateCrmLeadImpl(input: {
   city?: string | null;
 }): Promise<CrmLead | null> {
   const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+  if (input.name !== undefined && input.name.trim()) updates.name = input.name.trim();
+  if (input.phone !== undefined && input.phone.trim()) updates.phone = input.phone.trim();
+  if (input.email !== undefined) updates.email = input.email ? input.email.trim() : null;
   if (input.status) updates.status = input.status;
-  if (input.notes !== undefined) updates.notes = input.notes;
+  if (input.notes !== undefined) updates.notes = input.notes ? input.notes.trim() : null;
   if (input.deal_value !== undefined) updates.deal_value = input.deal_value;
-  if (input.clinic_name !== undefined) updates.clinic_name = input.clinic_name;
-  if (input.specialty !== undefined) updates.specialty = input.specialty;
-  if (input.city !== undefined) updates.city = input.city;
+  if (input.clinic_name !== undefined) updates.clinic_name = input.clinic_name ? input.clinic_name.trim() : null;
+  if (input.specialty !== undefined) updates.specialty = input.specialty ? input.specialty.trim() : null;
+  if (input.city !== undefined) updates.city = input.city ? input.city.trim() : null;
+
+  if (input.name || input.clinic_name || input.specialty || input.city) {
+    updates.custom_demo_url = buildDemoUrl({
+      doctorName: input.name,
+      clinicName: input.clinic_name,
+      specialty: input.specialty,
+      city: input.city,
+    });
+  }
 
   try {
     const { data, error } = await (supabaseAdmin as any)

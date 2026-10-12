@@ -61,6 +61,9 @@ export const updateCrmLead = createServerFn({ method: "POST" })
   .validator(
     z.object({
       id: z.string(),
+      name: z.string().min(2).optional(),
+      phone: z.string().min(8).optional(),
+      email: z.string().email().optional().nullable().or(z.literal("")),
       status: crmLeadStageEnum.optional(),
       notes: z.string().max(1000).optional().nullable(),
       deal_value: z.number().optional(),
@@ -72,6 +75,34 @@ export const updateCrmLead = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { updateCrmLeadImpl } = await import("./crm.server");
     return updateCrmLeadImpl(data);
+  });
+
+export const getPlatformAiAgentSettings = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .handler(async () => {
+    const { getPlatformAiConfig } = await import("./platform-ai-agent.server");
+    return getPlatformAiConfig();
+  });
+
+export const updatePlatformAiAgentSettings = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      enabled: z.boolean().optional(),
+      agent_name: z.string().min(1).optional(),
+      agent_role: z.string().optional(),
+      system_prompt: z.string().min(10).optional(),
+      auto_reply_enabled: z.boolean().optional(),
+      auto_capture_leads: z.boolean().optional(),
+      model_provider: z.string().optional(),
+      model: z.string().optional(),
+      temperature: z.number().min(0).max(1).optional(),
+      pricing_info: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { savePlatformAiConfig } = await import("./platform-ai-agent.server");
+    return savePlatformAiConfig(data);
   });
 
 export const deleteCrmLead = createServerFn({ method: "POST" })

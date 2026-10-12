@@ -248,6 +248,35 @@ export async function handleWhatsAppIncomingRequest(
       return Response.json({ ok: true, ignored: true, reason: "missing_from_or_text" });
     }
 
+    // ─── CHECK IF INCOMING MESSAGE IS TO PLATFORM WHATSAPP (RITESH HUMAN AI OUTREACH AGENT) ───
+    const isPlatformSession =
+      session_id === "platform-admin" ||
+      session_id === "default" ||
+      session_id === "platform" ||
+      (to_phone && String(to_phone).replace(/[^\d]/g, "").includes("8354998343"));
+
+    if (isPlatformSession) {
+      const { handlePlatformIncomingWhatsApp } = await import("./platform-ai-agent.server");
+      const isBridgeLiveEvent = body?.event === "message";
+      const result = await handlePlatformIncomingWhatsApp({
+        rawFrom,
+        text,
+        senderName: name,
+        sessionId: session_id || "platform-admin",
+        isBridgeLiveEvent,
+      });
+
+      return Response.json({
+        ok: true,
+        handled: "platform_ai_agent",
+        aiEnabled: result.aiEnabled,
+        reply: result.reply,
+        sent: result.sent,
+        leadId: result.leadId,
+        needs_bridge_send: isBridgeLiveEvent && Boolean(result.reply),
+      });
+    }
+
     // ─── STRICT & SAFE CLINIC RESOLUTION ───
     let clinic: any = null;
 

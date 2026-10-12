@@ -59,6 +59,9 @@ import {
   Loader2,
   Check,
   CheckCheck,
+  Pencil,
+  Edit3,
+  Save,
 } from "lucide-react";
 import {
   listCrmLeads,
@@ -71,6 +74,8 @@ import {
   type crmLeadStageEnum,
 } from "@/lib/crm.functions";
 import { getAdminWhatsappStatus } from "@/lib/baileys.functions";
+import { PlatformAiAgentCard } from "@/components/admin/PlatformAiAgentCard";
+import { getInstantFounderPitch, getClientDemoUrl } from "@/lib/crm.shared";
 
 export const Route = createFileRoute("/_admin/admin/crm")({
   component: AdminCrmPage,
@@ -115,8 +120,24 @@ export function AdminCrmPage() {
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   const [activeLead, setActiveLead] = useState<CrmLead | null>(null);
+
+  // Edit lead state
+  const [editingLead, setEditingLead] = useState<CrmLead | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    clinic_name: "",
+    city: "",
+    specialty: "General Physician",
+    notes: "",
+    deal_value: 999,
+    status: "new",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Pitch generation state
   const [pitchTone, setPitchTone] = useState<
@@ -204,56 +225,103 @@ export function AdminCrmPage() {
     });
   }, [allLeads, activeTab, search]);
 
-  // Open pitch dialog for lead
-  const handleOpenPitch = async (lead: CrmLead, toneOverride?: typeof pitchTone) => {
+  // Open pitch dialog for lead - INSTANT 0ms response!
+  const handleOpenPitch = (lead: CrmLead, toneOverride?: typeof pitchTone) => {
     setActiveLead(lead);
     const tone = toneOverride || "warm_intro";
     setPitchTone(tone);
-    setIsGeneratingPitch(true);
-    setIsPitchModalOpen(true);
+    const demoUrl =
+      lead.custom_demo_url ||
+      getClientDemoUrl(lead.name, lead.clinic_name, lead.specialty, lead.city);
+    setActiveDemoUrl(demoUrl);
 
-    try {
-      const res = await generatePitchFn({
-        data: {
-          doctorName: lead.name,
-          clinicName: lead.clinic_name,
-          city: lead.city,
-          specialty: lead.specialty,
-          tone,
-          demoUrl: lead.custom_demo_url,
-        },
-      });
-      setGeneratedMessage(res.pitch);
-      setActiveDemoUrl(res.demoUrl);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to generate pitch");
-    } finally {
-      setIsGeneratingPitch(false);
-    }
+    // Instant pure client generation (0ms, no spinner or lag)
+    const instantPitch = getInstantFounderPitch({
+      doctorName: lead.name,
+      clinicName: lead.clinic_name,
+      city: lead.city,
+      specialty: lead.specialty,
+      tone,
+      demoUrl,
+    });
+    setGeneratedMessage(instantPitch);
+    setIsGeneratingPitch(false);
+    setIsPitchModalOpen(true);
   };
 
-  // Tone switch inside pitch modal
-  const handleToneChange = async (newTone: typeof pitchTone) => {
+  // Tone switch inside pitch modal - INSTANT 0ms
+  const handleToneChange = (newTone: typeof pitchTone) => {
     setPitchTone(newTone);
     if (!activeLead) return;
-    setIsGeneratingPitch(true);
+    const demoUrl =
+      activeDemoUrl ||
+      activeLead.custom_demo_url ||
+      getClientDemoUrl(
+        activeLead.name,
+        activeLead.clinic_name,
+        activeLead.specialty,
+        activeLead.city
+      );
+    const instantPitch = getInstantFounderPitch({
+      doctorName: activeLead.name,
+      clinicName: activeLead.clinic_name,
+      city: activeLead.city,
+      specialty: activeLead.specialty,
+      tone: newTone,
+      demoUrl,
+    });
+    setGeneratedMessage(instantPitch);
+    setIsGeneratingPitch(false);
+  };
+
+  // Edit lead modal actions
+  const handleOpenEdit = (lead: CrmLead) => {
+    setEditingLead(lead);
+    setEditForm({
+      name: lead.name,
+      phone: lead.phone,
+      email: lead.email || "",
+      clinic_name: lead.clinic_name || "",
+      city: lead.city || "",
+      specialty: lead.specialty || "General Physician",
+      notes: lead.notes || "",
+      deal_value: lead.deal_value || 999,
+      status: lead.status || "new",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLead) return;
+    if (!editForm.name.trim() || !editForm.phone.trim()) {
+      toast.error("Doctor name and WhatsApp phone are required");
+      return;
+    }
+    setIsSavingEdit(true);
     try {
-      const res = await generatePitchFn({
+      await updateFn({
         data: {
-          doctorName: activeLead.name,
-          clinicName: activeLead.clinic_name,
-          city: activeLead.city,
-          specialty: activeLead.specialty,
-          tone: newTone,
-          demoUrl: activeLead.custom_demo_url,
+          id: editingLead.id,
+          name: editForm.name.trim(),
+          phone: editForm.phone.trim(),
+          email: editForm.email.trim() || undefined,
+          clinic_name: editForm.clinic_name.trim() || undefined,
+          city: editForm.city.trim() || undefined,
+          specialty: editForm.specialty,
+          notes: editForm.notes.trim() || undefined,
+          deal_value: Number(editForm.deal_value) || 999,
+          status: editForm.status as any,
         },
       });
-      setGeneratedMessage(res.pitch);
-      setActiveDemoUrl(res.demoUrl);
+      toast.success("Doctor lead details updated!");
+      setIsEditModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-stats"] });
     } catch (err: any) {
-      toast.error(err.message || "Failed to change tone");
+      toast.error(err.message || "Failed to update lead");
     } finally {
-      setIsGeneratingPitch(false);
+      setIsSavingEdit(false);
     }
   };
 
@@ -432,6 +500,9 @@ export function AdminCrmPage() {
           </Button>
         </div>
       </div>
+
+      {/* Platform WhatsApp AI Sales Agent Control Command Card */}
+      <PlatformAiAgentCard />
 
       {/* KPI Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -618,33 +689,72 @@ export function AdminCrmPage() {
                     </td>
 
                     <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {/* 1. Instant AI Pitch Generator */}
                         <Button
                           size="sm"
                           onClick={() => handleOpenPitch(lead, "warm_intro")}
-                          className="h-8 rounded-xl text-xs font-bold bg-primary text-primary-foreground gap-1 px-3 shadow-xs"
+                          className="h-8 rounded-xl text-xs font-bold bg-primary text-primary-foreground gap-1 px-2.5 shadow-xs hover:opacity-90 transition-transform active:scale-95"
+                          title="Generate personalized AI Outreach pitch"
                         >
                           <Sparkles className="size-3 text-amber-400" />
                           <span>AI Pitch</span>
                         </Button>
 
+                        {/* 2. Direct WhatsApp Web Chat */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const cleanPhone = lead.phone.replace(/[^0-9]/g, "");
+                            const waNum = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                            const quickIntro = `Namaste Dr. ${lead.name.replace(/^Dr\.\s*/i, "")} ji 🙏 Ritesh here, founder of ClinicX.`;
+                            window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(quickIntro)}`, "_blank");
+                          }}
+                          className="h-8 rounded-xl text-xs px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1"
+                          title="Open WhatsApp Chat directly"
+                        >
+                          <MessageSquare className="size-3" />
+                          <span className="hidden sm:inline">Chat</span>
+                        </Button>
+
+                        {/* 3. Open Customized Demo */}
                         <Button
                           size="sm"
                           variant="outline"
                           asChild
-                          className="h-8 rounded-xl text-xs px-2.5"
+                          className="h-8 rounded-xl text-xs px-2 text-blue-600 border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-950/30 gap-1"
                           title="Open Live Clinic Demo"
                         >
-                          <a href={lead.custom_demo_url || `/c/demo?doctor=${encodeURIComponent(lead.name)}`} target="_blank" rel="noreferrer">
+                          <a
+                            href={lead.custom_demo_url || getClientDemoUrl(lead.name, lead.clinic_name, lead.specialty, lead.city)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             <ExternalLink className="size-3" />
+                            <span className="hidden sm:inline">Demo</span>
                           </a>
                         </Button>
 
+                        {/* 4. Edit Lead Details */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenEdit(lead)}
+                          className="h-8 rounded-xl text-xs px-2 gap-1 text-muted-foreground hover:text-foreground hover:border-primary/50"
+                          title="Edit Lead Information"
+                        >
+                          <Pencil className="size-3" />
+                          <span className="hidden sm:inline">Edit</span>
+                        </Button>
+
+                        {/* 5. Delete Lead */}
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => handleDeleteLead(lead.id, lead.name)}
                           className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
+                          title="Delete Lead"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -899,6 +1009,175 @@ export function AdminCrmPage() {
               >
                 {isAddingLead ? <Loader2 className="size-3.5 animate-spin mr-1" /> : null}
                 Save Lead to CRM
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Doctor Lead Dialog */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl border-border bg-background space-y-4">
+          <DialogHeader className="text-left space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center">
+                <Edit3 className="size-4" />
+              </div>
+              <DialogTitle className="text-lg font-bold text-foreground">
+                Edit Doctor Lead Details
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Update information, contact details, deal value, or pipeline stage for {editingLead?.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveEdit} className="space-y-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Doctor Name *</Label>
+                <Input
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="h-9 text-xs rounded-xl"
+                  placeholder="e.g. Dr. Ritesh"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">WhatsApp Number *</Label>
+                <Input
+                  required
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="h-9 text-xs rounded-xl"
+                  placeholder="e.g. 918354998343"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Clinic Name</Label>
+                <Input
+                  value={editForm.clinic_name}
+                  onChange={(e) => setEditForm({ ...editForm, clinic_name: e.target.value })}
+                  className="h-9 text-xs rounded-xl"
+                  placeholder="e.g. Ritesh Clinic"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">City / Location</Label>
+                <Input
+                  value={editForm.city}
+                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                  className="h-9 text-xs rounded-xl"
+                  placeholder="e.g. Jankipuram, Lucknow"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Medical Specialty</Label>
+                <Select
+                  value={editForm.specialty}
+                  onValueChange={(val) => setEditForm({ ...editForm, specialty: val })}
+                >
+                  <SelectTrigger className="h-9 text-xs rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="General Physician">General Physician / Internal Med</SelectItem>
+                    <SelectItem value="Dental Clinic">Dentistry / Dental Care</SelectItem>
+                    <SelectItem value="Pediatrics">Pediatrics / Child Specialist</SelectItem>
+                    <SelectItem value="Dermatology">Dermatology / Skin Care</SelectItem>
+                    <SelectItem value="Orthopedic">Orthopedic / Joint Care</SelectItem>
+                    <SelectItem value="Gynecology">Gynecology & Obstetrics</SelectItem>
+                    <SelectItem value="ENT & Eye">ENT / Eye Care</SelectItem>
+                    <SelectItem value="Ayurveda">Ayurveda / Homeopathy</SelectItem>
+                    <SelectItem value="Multispecialty">Multispecialty Hospital</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Pipeline Stage</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(val) => setEditForm({ ...editForm, status: val })}
+                >
+                  <SelectTrigger className="h-9 text-xs rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New Lead</SelectItem>
+                    <SelectItem value="outreach_sent">Outreach Sent</SelectItem>
+                    <SelectItem value="demo_sent">Demo Sent</SelectItem>
+                    <SelectItem value="followup_1">Follow-up 1</SelectItem>
+                    <SelectItem value="followup_2">Follow-up 2</SelectItem>
+                    <SelectItem value="converted">Converted 🏆</SelectItem>
+                    <SelectItem value="lost">Lost</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Deal Value (₹)</Label>
+                <Input
+                  type="number"
+                  value={editForm.deal_value}
+                  onChange={(e) => setEditForm({ ...editForm, deal_value: Number(e.target.value) || 0 })}
+                  className="h-9 text-xs rounded-xl"
+                  placeholder="999"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Email Address (Optional)</Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="h-9 text-xs rounded-xl"
+                  placeholder="doctor@gmail.com"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Internal Notes</Label>
+              <Textarea
+                rows={2}
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                className="text-xs rounded-xl"
+                placeholder="Doctor preferences, best contact time, OPD volume, objections..."
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditModalOpen(false)}
+                className="h-9 rounded-xl text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSavingEdit}
+                className="h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground gap-1.5"
+              >
+                {isSavingEdit ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                Save Changes
               </Button>
             </DialogFooter>
           </form>

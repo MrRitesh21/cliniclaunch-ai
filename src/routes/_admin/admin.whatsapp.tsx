@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsappConnectCard } from "@/components/whatsapp/ConnectCard";
+import { PlatformAiAgentCard } from "@/components/admin/PlatformAiAgentCard";
 import {
   startAdminWhatsapp,
   getAdminWhatsappStatus,
@@ -725,6 +726,8 @@ function AdminWhatsApp() {
 
         {/* TAB 4: PLATFORM CONNECT & SEND */}
         <TabsContent value="platform" forceMount className="space-y-4 data-[state=inactive]:hidden">
+          <PlatformAiAgentCard />
+
           <WhatsappConnectCard
             title="Platform WhatsApp account"
             description="This number sends platform-level messages (OTP, doctor alerts, system notifications). Use a dedicated business number."
