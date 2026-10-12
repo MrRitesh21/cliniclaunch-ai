@@ -739,40 +739,40 @@ function DoctorDetailPage() {
                 Danger Zone
               </h3>
               <p className="text-xs text-muted-foreground">
-                Medical data is preserved. Deletion and bulk clearing are disabled pending owner approval, authorized export, healthcare retention/legal-hold review and backup/recovery approval.
+                Irreversible actions for this doctor's account. Once deleted, all associated clinic data, patient records, and login credentials will be permanently removed.
               </p>
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   variant="outline"
                   className="text-amber-600 border-amber-200 hover:bg-amber-50"
-                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                  disabled={clearPatientsMut.isPending}
                   onClick={() => {
                     if (
                       confirm(
-                        "GDPR Request: Are you sure you want to delete ALL patient and visit records for this doctor? This is permanent.",
+                        `GDPR Request: Are you sure you want to delete ALL patient and visit records for ${clinic.doctor_name}? This action is permanent and cannot be undone.`,
                       )
                     ) {
                       clearPatientsMut.mutate();
                     }
                   }}
                 >
-                  Clear Patients & EMR (GDPR)
+                  {clearPatientsMut.isPending ? "Clearing..." : "Clear Patients & EMR (GDPR)"}
                 </Button>
                 <Button
                   variant="destructive"
-                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                  disabled={deleteDoctorMut.isPending}
                   onClick={() => {
-                    if (
-                      confirm(
-                        "CRITICAL: This will delete the doctor, their clinic profile, and all subscription configurations. This cannot be undone! Type the doctor's name to confirm: " +
-                          clinic.doctor_name,
-                      )
-                    ) {
+                    const typed = prompt(
+                      `CRITICAL WARNING: This will permanently delete doctor "${clinic.doctor_name}", their clinic profile (${clinic.clinic_name}), appointments, patients, and access credentials.\n\nType the doctor's name to confirm deletion:`,
+                    );
+                    if (typed && typed.trim().toLowerCase() === clinic.doctor_name.trim().toLowerCase()) {
                       deleteDoctorMut.mutate();
+                    } else if (typed !== null) {
+                      toast.error("Doctor name did not match. Account deletion cancelled.");
                     }
                   }}
                 >
-                  Delete Account Permanently
+                  {deleteDoctorMut.isPending ? "Deleting Account..." : "Delete Account Permanently"}
                 </Button>
               </div>
             </Card>

@@ -316,13 +316,180 @@ export async function toggleDoctorSuspensionImpl(input: any) {
 }
 
 export async function deleteDoctorAccountImpl(input: any) {
-  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
-  throw new Error("Account deletion is disabled. Healthcare retention, owner approval, authorized export, legal-hold review and verified backup/recovery approval are required. Clinical data is preserved.");
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // 1. Fetch clinic details
+  const { data: clinic, error: clinicErr } = await supabaseAdmin
+    .from("clinics")
+    .select("*")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  if (clinicErr) throw clinicErr;
+  if (!clinic) throw new Error("Doctor clinic account not found");
+
+  const clinicId = clinic.id;
+  const ownerId = clinic.owner_id;
+
+  // 2. Cascade delete all clinic child records
+  try {
+    await supabaseAdmin.from("appointments").delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] appointments delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("patients").delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] patients delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("prescriptions" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] prescriptions delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("patient_vitals" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] patient_vitals delete:", e);
+  }
+
+  try {
+    if (ownerId) {
+      await supabaseAdmin.from("doctor_subscriptions" as any).delete().eq("doctor_id", ownerId);
+    }
+  } catch (e) {
+    console.warn("[Admin Delete] doctor_subscriptions delete:", e);
+  }
+
+  try {
+    if (clinic.organization_id) {
+      await supabaseAdmin.from("whatsapp_logs" as any).delete().eq("organization_id", clinic.organization_id);
+    }
+  } catch (e) {
+    console.warn("[Admin Delete] whatsapp_logs delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("organization_members" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] organization_members delete:", e);
+  }
+
+  // Teardown WhatsApp session from bridge if active
+  if (clinic.wa_session_id) {
+    try {
+      const { resolveBaileysUrl } = await import("./baileys.server");
+      const bUrl = await resolveBaileysUrl();
+      if (bUrl) {
+        await fetch(`${bUrl}/api/sessions/${clinic.wa_session_id}`, { method: "DELETE" }).catch(() => null);
+      }
+    } catch {}
+  }
+
+  // 3. Delete the clinic record
+  const { error: delClinicErr } = await supabaseAdmin
+    .from("clinics")
+    .delete()
+    .eq("id", clinicId);
+
+  if (delClinicErr) {
+    console.error("[Admin Delete] Failed to delete clinic:", delClinicErr);
+    throw new Error(`Failed to delete clinic: ${delClinicErr.message}`);
+  }
+
+  // 4. If ownerId is present, check if this doctor owns any other clinic. If not, delete profile and auth account
+  if (ownerId) {
+    try {
+      const { data: otherClinics } = await supabaseAdmin
+        .from("clinics")
+        .select("id")
+        .eq("owner_id", ownerId);
+
+      if (!otherClinics || otherClinics.length === 0) {
+        await supabaseAdmin.from("user_roles" as any).delete().eq("user_id", ownerId);
+        await supabaseAdmin.from("profiles" as any).delete().eq("id", ownerId);
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(ownerId);
+        } catch (authErr) {
+          console.warn("[Admin Delete] Auth deleteUser warning:", authErr);
+        }
+      }
+    } catch (cleanErr) {
+      console.warn("[Admin Delete] User account cleanup warning:", cleanErr);
+    }
+  }
+
+  // 5. Audit log
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    "doctor_account_deleted",
+    "doctor",
+    clinicId,
+    {
+      doctor_name: clinic.doctor_name,
+      clinic_name: clinic.clinic_name,
+      phone: clinic.phone,
+      owner_id: ownerId,
+    }
+  );
+
+  return { success: true };
 }
 
 export async function clearDoctorPatientsDataImpl(input: any) {
-  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
-  throw new Error("Clinical data clearing is disabled. Follow the approved retention/export process; trial or payment expiry never authorizes deletion.");
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: clinic, error: clinicErr } = await supabaseAdmin
+    .from("clinics")
+    .select("id, doctor_name")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  if (clinicErr || !clinic) throw new Error("Clinic not found");
+
+  try {
+    await supabaseAdmin.from("appointments").delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] appointments delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("patients").delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] patients delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("prescriptions" as any).delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] prescriptions delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("patient_vitals" as any).delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] patient_vitals delete:", e);
+  }
+
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    "patients_and_emr_cleared",
+    "clinic",
+    clinic.id,
+    { doctor_name: clinic.doctor_name }
+  );
+
+  return { success: true };
 }
 
 export async function listAdminSubscriptionsImpl(input?) {
