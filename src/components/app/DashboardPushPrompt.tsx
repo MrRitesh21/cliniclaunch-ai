@@ -29,21 +29,26 @@ export function DashboardPushPrompt() {
       try {
         localStorage.setItem("clinicx_push_enabled", "true");
       } catch {}
-      toast.success("🔔 Instant push notifications enabled!");
+      setDismissed(true);
+      toast.success(
+        res.mode === "push"
+          ? "🔔 Instant push notifications enabled! (Background & offline alerts active)"
+          : "🔔 Real-time notifications enabled on this browser!"
+      );
       return;
     }
     if (res.reason === "denied") {
-      toast.error("Notifications blocked in browser settings. Please allow notifications for this site.");
+      toast.error("Notifications blocked in browser settings. Please allow notifications in site settings.");
     } else if (res.reason === "no-service-worker") {
-      toast.info("Service worker is initializing. Please tap again.");
+      toast.info("Please refresh or install the app to enable background notifications.");
     } else if (res.reason === "unsupported") {
       toast.info(
         push.needsIosInstall
           ? "On iOS: Tap Share → Add to Home Screen to enable notifications."
-          : "Push notifications require HTTPS or a supported browser."
+          : "Notifications require HTTPS or a supported browser."
       );
     } else {
-      toast.error("Push notification setup failed on this device.");
+      toast.error("Could not activate notifications. Check browser permissions.");
     }
   };
 

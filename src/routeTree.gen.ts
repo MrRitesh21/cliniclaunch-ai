@@ -51,6 +51,7 @@ import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin.index
 import { Route as AdminAdminAiRouteImport } from './routes/_admin/admin.ai'
 import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin/admin.announcements'
 import { Route as AdminAdminAuditRouteImport } from './routes/_admin/admin.audit'
+import { Route as AdminAdminCrmRouteImport } from './routes/_admin/admin.crm'
 import { Route as AdminAdminDashboardRouteImport } from './routes/_admin/admin.dashboard'
 import { Route as AdminAdminDbRouteImport } from './routes/_admin/admin.db'
 import { Route as AdminAdminDoctorsRouteImport } from './routes/_admin/admin.doctors'
@@ -328,6 +329,11 @@ const AdminAdminAnnouncementsRoute = AdminAdminAnnouncementsRouteImport.update({
 const AdminAdminAuditRoute = AdminAdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAdminCrmRoute = AdminAdminCrmRouteImport.update({
+  id: '/admin/crm',
+  path: '/admin/crm',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
@@ -744,6 +750,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai': typeof AdminAdminAiRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
+  '/admin/crm': typeof AdminAdminCrmRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
   '/admin/db': typeof AdminAdminDbRoute
   '/admin/doctors': typeof AdminAdminDoctorsRouteWithChildren
@@ -851,6 +858,7 @@ export interface FileRoutesByTo {
   '/admin/ai': typeof AdminAdminAiRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
+  '/admin/crm': typeof AdminAdminCrmRoute
   '/admin/dashboard': typeof AdminAdminDashboardRoute
   '/admin/db': typeof AdminAdminDbRoute
   '/admin/email': typeof AdminAdminEmailRoute
@@ -961,6 +969,7 @@ export interface FileRoutesById {
   '/_admin/admin/ai': typeof AdminAdminAiRoute
   '/_admin/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/_admin/admin/audit': typeof AdminAdminAuditRoute
+  '/_admin/admin/crm': typeof AdminAdminCrmRoute
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute
   '/_admin/admin/db': typeof AdminAdminDbRoute
   '/_admin/admin/doctors': typeof AdminAdminDoctorsRouteWithChildren
@@ -1072,6 +1081,7 @@ export interface FileRouteTypes {
     | '/admin/ai'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/crm'
     | '/admin/dashboard'
     | '/admin/db'
     | '/admin/doctors'
@@ -1179,6 +1189,7 @@ export interface FileRouteTypes {
     | '/admin/ai'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/crm'
     | '/admin/dashboard'
     | '/admin/db'
     | '/admin/email'
@@ -1288,6 +1299,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/ai'
     | '/_admin/admin/announcements'
     | '/_admin/admin/audit'
+    | '/_admin/admin/crm'
     | '/_admin/admin/dashboard'
     | '/_admin/admin/db'
     | '/_admin/admin/doctors'
@@ -1700,6 +1712,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/audit'
       fullPath: '/admin/audit'
       preLoaderRoute: typeof AdminAdminAuditRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_admin/admin/crm': {
+      id: '/_admin/admin/crm'
+      path: '/admin/crm'
+      fullPath: '/admin/crm'
+      preLoaderRoute: typeof AdminAdminCrmRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/_admin/admin/dashboard': {
@@ -2195,6 +2214,7 @@ interface AdminRouteRouteChildren {
   AdminAdminAiRoute: typeof AdminAdminAiRoute
   AdminAdminAnnouncementsRoute: typeof AdminAdminAnnouncementsRoute
   AdminAdminAuditRoute: typeof AdminAdminAuditRoute
+  AdminAdminCrmRoute: typeof AdminAdminCrmRoute
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute
   AdminAdminDbRoute: typeof AdminAdminDbRoute
   AdminAdminDoctorsRoute: typeof AdminAdminDoctorsRouteWithChildren
@@ -2217,6 +2237,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAdminAiRoute: AdminAdminAiRoute,
   AdminAdminAnnouncementsRoute: AdminAdminAnnouncementsRoute,
   AdminAdminAuditRoute: AdminAdminAuditRoute,
+  AdminAdminCrmRoute: AdminAdminCrmRoute,
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
   AdminAdminDbRoute: AdminAdminDbRoute,
   AdminAdminDoctorsRoute: AdminAdminDoctorsRouteWithChildren,
@@ -2433,3 +2454,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

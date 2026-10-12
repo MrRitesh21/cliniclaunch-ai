@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Sparkles,
   LayoutTemplate,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -70,8 +71,9 @@ const NAV: NavSection[] = [
     items: [{ to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "Doctors",
+    title: "Doctors & CRM",
     items: [
+      { to: "/admin/crm", label: "CRM & AI Outreach", icon: Bot },
       { to: "/admin/doctors", label: "All Doctors", icon: Users },
       { to: "/admin/doctors/new", label: "New Signups", icon: UserPlus },
       { to: "/admin/doctors/flagged", label: "Flagged", icon: AlertTriangle },

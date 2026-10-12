@@ -129,7 +129,74 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!clinic) return null;
+  if (!clinic) {
+    if (slug === "demo" || slug === "demo-clinic") {
+      return {
+        id: "demo-clinic-001",
+        organization_id: "demo-org-001",
+        slug: "demo",
+        doctor_name: "Dr. Rohit Sharma",
+        specialization: "General Physician & Cardiologist",
+        qualification: "MBBS, MD (Medicine)",
+        experience_years: 12,
+        clinic_name: "City Health Care & Diagnostics",
+        address: "B-12, Medical Enclave, Main Road, New Delhi",
+        phone: "+919876543210",
+        email: "contact@citycare.in",
+        public_phone: "+919876543210",
+        public_email: "contact@citycare.in",
+        public_address: "B-12, Medical Enclave, Main Road, New Delhi",
+        consultation_fee: 500,
+        bio: "Senior consultant with 12+ years clinical experience in managing chronic diseases, hypertension, diabetes, and family medicine.",
+        services: [
+          { name: "General Consultation", price: 500, duration: 15, description: "Detailed clinical examination & diagnosis" },
+          { name: "ECG & Cardiac Screening", price: 750, duration: 20, description: "Instant 12-lead cardiac assessment" },
+          { name: "Diabetes & Sugar Management", price: 400, duration: 15, description: "Blood sugar review & medication plan" },
+          { name: "Follow-up OPD Visit", price: 300, duration: 15, description: "Progress check and Rx refill" },
+        ],
+        working_hours: {
+          monday: { start: "10:00", end: "19:00", enabled: true },
+          tuesday: { start: "10:00", end: "19:00", enabled: true },
+          wednesday: { start: "10:00", end: "19:00", enabled: true },
+          thursday: { start: "10:00", end: "19:00", enabled: true },
+          friday: { start: "10:00", end: "19:00", enabled: true },
+          saturday: { start: "10:00", end: "16:00", enabled: true },
+          sunday: { start: "10:00", end: "13:00", enabled: false },
+        },
+        avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        logo_url: null,
+        gallery: [],
+        theme_color: "#059669",
+        hero_headline: "Compassionate, World-Class Healthcare for Your Family",
+        hero_subheadline: "Book instant appointments on WhatsApp or consult in-person with zero wait time.",
+        about_text: "City Health Care is a state-of-the-art modern clinic equipped with electronic prescriptions, 24/7 WhatsApp assistance, and rapid digital queueing.",
+        custom_domain: null,
+        template: "modern",
+        section_variants: {},
+        section_order: [],
+        section_hidden: [],
+        section_content: {},
+        seo_config: {},
+        walkin_max_per_slot: 3,
+        walkin_start_time: "10:00",
+        walkin_end_time: "19:00",
+        walkin_weekends_enabled: true,
+        walkin_slot_minutes: 30,
+        is_published: true,
+        published_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        medical_registration_no: "MCI-482910",
+        lead_popup: true,
+        installed_modules: ["whatsapp", "opd", "crm", "prescriptions"],
+        active_doctors: [],
+        db_reviews: [
+          { patient_name: "Anita Saxena", rating: 5, comment: "Doctor explains everything so patiently. WhatsApp appointment booking was super smooth!", created_at: new Date().toISOString() },
+          { patient_name: "Vikas Mehra", rating: 5, comment: "Zero waiting time at clinic. Best experience in town.", created_at: new Date().toISOString() },
+        ],
+      };
+    }
+    return null;
+  }
 
   let installed_modules: string[] = [];
   if ((clinic as any).organization_id) {

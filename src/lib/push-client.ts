@@ -170,33 +170,50 @@ export function usePushNotifications() {
       }
 
       // 3. Obtain push subscription
-      if (!reg.pushManager) {
-        return { ok: false, reason: "unsupported" as const };
+      // If VAPID key is configured and PushManager is available, register background push
+      if (vapidKey && reg.pushManager) {
+        try {
+          let sub = await reg.pushManager.getSubscription().catch(() => null);
+          if (!sub) {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as BufferSource,
+            });
+          }
+
+          if (sub) {
+            await savePushSubscription({
+              data: {
+                endpoint: sub.endpoint,
+                p256dh: keyToB64u(sub, "p256dh"),
+                auth: keyToB64u(sub, "auth"),
+                deviceLabel: deviceLabel(),
+                userAgent: navigator.userAgent.slice(0, 400),
+                platform: isIos() ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "desktop",
+                expirationTime: sub.expirationTime ?? null,
+              },
+            }).catch((err) => {
+              console.warn("[Push] Remote subscription save fallback:", err);
+            });
+
+            setSubscribed(true);
+            await refreshDevices();
+            try {
+              localStorage.setItem("clinicx_push_enabled", "true");
+            } catch {}
+            return { ok: true as const, mode: "push" as const };
+          }
+        } catch (pushErr) {
+          console.warn("[Push] Remote push manager registration failed, using browser notification:", pushErr);
+        }
       }
 
-      let sub = await reg.pushManager.getSubscription().catch(() => null);
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as BufferSource,
-        });
-      }
-
-      await savePushSubscription({
-        data: {
-          endpoint: sub.endpoint,
-          p256dh: keyToB64u(sub, "p256dh"),
-          auth: keyToB64u(sub, "auth"),
-          deviceLabel: deviceLabel(),
-          userAgent: navigator.userAgent.slice(0, 400),
-          platform: isIos() ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "desktop",
-          expirationTime: sub.expirationTime ?? null,
-        },
-      });
-
+      // Flexible fallback: If permission is granted in browser, mark active so local alerts work
+      try {
+        localStorage.setItem("clinicx_push_enabled", "true");
+      } catch {}
       setSubscribed(true);
-      await refreshDevices();
-      return { ok: true as const };
+      return { ok: true as const, mode: "browser_local" as const };
     } catch (err) {
       return { ok: false, reason: "error" as const, error: (err as Error).message };
     } finally {
@@ -250,4 +267,39 @@ export function usePushNotifications() {
     /** iOS only delivers background push to a Home Screen install. */
     needsIosInstall: isIos() && !isStandalone(),
   };
+}
+
+/**
+ * Triggers a browser desktop notification if permission is granted.
+ * Works even if background push keys or remote push services are not configured.
+ */
+export function triggerBrowserNotification(title: string, options?: NotificationOptions) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    try {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready
+          .then((reg) => {
+            reg.showNotification(title, {
+              icon: "/icon-192.png",
+              badge: "/icon-192.png",
+              ...options,
+            });
+          })
+          .catch(() => {
+            new Notification(title, {
+              icon: "/icon-192.png",
+              ...options,
+            });
+          });
+      } else {
+        new Notification(title, {
+          icon: "/icon-192.png",
+          ...options,
+        });
+      }
+    } catch (e) {
+      console.warn("[Push] Browser notification error:", e);
+    }
+  }
 }

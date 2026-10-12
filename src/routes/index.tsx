@@ -51,6 +51,8 @@ import { createFileRoute, Link, redirect, useNavigate, type ErrorComponentProps 
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
+import { LeadCaptureDialog } from "@/components/landing/LeadCaptureDialog";
+import { LeadCaptureSection } from "@/components/landing/LeadCaptureSection";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -372,6 +374,7 @@ function Landing() {
 
 function LandingContent() {
   const [activeTab, setActiveTab] = useState<"queue" | "whatsapp" | "rx" | "finance">("queue");
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   return (
     <div className="relative">
@@ -413,11 +416,14 @@ function LandingContent() {
                 Start 14-Day Free Trial <ArrowRight className="size-4" />
               </Button>
             </Link>
-            <Link to="/contact" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold border-border hover:bg-muted/60 bg-surface">
-                <Sparkles className="size-4 text-amber-500 mr-1.5" /> Book 10-Min Live Demo
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setDemoModalOpen(true)}
+              className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold border-border hover:bg-muted/60 bg-surface cursor-pointer"
+            >
+              <Sparkles className="size-4 text-amber-500 mr-1.5" /> Book 10-Min Live Demo
+            </Button>
           </div>
 
           {/* Micro-assurances */}
@@ -935,14 +941,20 @@ function LandingContent() {
                 Explore Plans & Pricing <ArrowRight className="size-4" />
               </Button>
             </Link>
-            <Link to="/contact">
-              <Button size="lg" variant="outline" className="rounded-xl font-semibold text-xs sm:text-sm px-6 h-12 bg-surface">
-                Schedule a 10-Min Live Demo
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setDemoModalOpen(true)}
+              className="rounded-xl font-semibold text-xs sm:text-sm px-6 h-12 bg-surface cursor-pointer"
+            >
+              Schedule a 10-Min Live Demo
+            </Button>
           </div>
         </div>
       </section>
+
+      {/* Interactive Lead Capture Section */}
+      <LeadCaptureSection />
 
       {/* Security & Healthcare Compliance */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 space-y-10">
@@ -1023,27 +1035,36 @@ function LandingContent() {
               Start 14-Day Free Trial <ArrowRight className="size-4" />
             </Button>
           </Link>
-          <Link to="/contact" className="w-full sm:w-auto">
-            <Button size="lg" variant="outline" className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold bg-surface">
-              Schedule Staff Onboarding Call
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => setDemoModalOpen(true)}
+            className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold bg-surface cursor-pointer"
+          >
+            Schedule Staff Onboarding Call
+          </Button>
         </div>
       </section>
 
       {/* Floating Mobile Bottom Action Bar (Thumb-friendly on phones) */}
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-md border-t border-border p-2.5 flex items-center justify-between gap-2 shadow-lg">
-        <Link to="/contact" className="flex-1">
-          <Button variant="outline" size="sm" className="w-full h-10 text-xs font-semibold gap-1 bg-surface">
-            <Sparkles className="size-3.5 text-amber-500" /> Book Demo
-          </Button>
-        </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setDemoModalOpen(true)}
+          className="flex-1 h-10 text-xs font-semibold gap-1 bg-surface"
+        >
+          <Sparkles className="size-3.5 text-amber-500" /> Book Demo
+        </Button>
         <Link to="/signup" className="flex-1">
           <Button size="sm" className="w-full h-10 text-xs font-bold gap-1 bg-primary text-primary-foreground shadow-sm">
             Free Trial <ArrowRight className="size-3.5" />
           </Button>
         </Link>
       </div>
+
+      {/* Interactive Live Demo Lead Capture Dialog */}
+      <LeadCaptureDialog open={demoModalOpen} onOpenChange={setDemoModalOpen} />
     </div>
   );
 }
