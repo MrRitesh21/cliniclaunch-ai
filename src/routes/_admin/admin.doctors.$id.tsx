@@ -297,7 +297,7 @@ function DoctorDetailPage() {
             <Button
               variant="secondary"
               size="sm"
-              disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+              disabled={impersonateMut.isPending}
               onClick={() => impersonateMut.mutate()}
             >
               {impersonateMut.isPending ? (
@@ -432,7 +432,7 @@ function DoctorDetailPage() {
                   <Button
                     size="sm"
                     className="mt-2"
-                    disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                    disabled={changePlanMut.isPending}
                     onClick={() => changePlanMut.mutate({ planId: selectedPlan })}
                   >
                     Change Plan
@@ -453,7 +453,7 @@ function DoctorDetailPage() {
                       size="sm"
                       variant="outline"
                       className="mt-2 w-full"
-                      disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                      disabled={changePlanMut.isPending}
                       onClick={() =>
                         changePlanMut.mutate({
                           planId: subscription?.plan_id || "free_plan",
@@ -473,7 +473,7 @@ function DoctorDetailPage() {
                       size="sm"
                       variant="outline"
                       className="w-full"
-                      disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                      disabled={changePlanMut.isPending}
                       onClick={() =>
                         changePlanMut.mutate({
                           planId: subscription?.plan_id || "free_plan",
@@ -490,7 +490,7 @@ function DoctorDetailPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                    disabled={changePlanMut.isPending}
                     onClick={() => {
                       if (confirm("Are you sure you want to cancel this doctor's subscription?")) {
                         changePlanMut.mutate({ planId: "", cancelSub: true });
@@ -654,7 +654,7 @@ function DoctorDetailPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
-                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                  disabled={impersonateMut.isPending}
                   onClick={() => impersonateMut.mutate()}
                 >
                   {impersonateMut.isPending ? (
@@ -666,7 +666,7 @@ function DoctorDetailPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                  disabled={resetPasswordMut.isPending}
                   onClick={() => {
                     if (
                       confirm(

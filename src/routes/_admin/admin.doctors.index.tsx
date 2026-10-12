@@ -153,6 +153,8 @@ function DoctorsPage() {
     }) => updateProfileServerFn({ data: variables }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
       toast.success("Doctor profile updated successfully");
       setEditingDoctor(null);
     },

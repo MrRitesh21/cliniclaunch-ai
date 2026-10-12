@@ -258,6 +258,8 @@ function SubscriptionsPage() {
       updateFn({ data: args }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
       toast.success("Subscription updated");
     },
     onError: (err: any) => toast.error(err.message || "Failed to update subscription"),
@@ -313,6 +315,8 @@ function SubscriptionsPage() {
     }) => updateDoctorProfileFn({ data: variables }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
       toast.success("Subscription details updated successfully");
       setEditingSub(null);
     },
@@ -508,7 +512,7 @@ function SubscriptionsPage() {
                         size="sm"
                         variant="outline"
                         className="h-7 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                        disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                        disabled={editSubMut.isPending}
                         onClick={() => startEditSub(s)}
                       >
                         <Edit className="size-3.5 mr-1" /> Edit
@@ -518,7 +522,7 @@ function SubscriptionsPage() {
                           size="sm"
                           variant="outline"
                           className="text-rose-600 border-rose-200 hover:bg-rose-50 h-7"
-                          disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                          disabled={updateMut.isPending}
                           onClick={() => {
                             if (confirm(`Cancel subscription for ${s.doctorName}?`))
                               updateMut.mutate({ id: s.subscriptionId, action: "cancel" });
@@ -533,7 +537,7 @@ function SubscriptionsPage() {
                             size="sm"
                             variant="outline"
                             className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-7"
-                            disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                            disabled={editSubMut.isPending || updateMut.isPending}
                             onClick={() => {
                               // Open the edit dialog pre-filled for reactivation so the
                               // admin picks a new billing period end before we mark it active.
@@ -703,7 +707,7 @@ function SubscriptionsPage() {
                     periodEnd: editPeriodEnd || null,
                   })
                 }
-                disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                disabled={editSubMut.isPending}
               >
                 {editSubMut.isPending ? "Saving..." : "Save Changes"}
               </Button>

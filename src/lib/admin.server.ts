@@ -246,7 +246,7 @@ export async function updateDoctorProfileImpl(input: any) {
   if (lookupError) throw lookupError;
   if (!clinic) throw new Error("Clinic not found");
 
-  const updateData: Record<string, string> = {};
+  const updateData: Record<string, any> = {};
   for (const [key, column] of Object.entries({
     doctorName: "doctor_name",
     clinicName: "clinic_name",
@@ -260,76 +260,144 @@ export async function updateDoctorProfileImpl(input: any) {
     }
   }
 
-  if (Object.keys(updateData).length) {
-    const { error } = await supabaseAdmin.from("clinics").update(updateData).eq("id", input.id);
-    if (error) throw error;
+  // Handle suspension status on clinic
+  if (input.status === "suspended") {
+    updateData.suspended_at = new Date().toISOString();
+  } else if (input.status && input.status !== "suspended" && clinic.suspended_at) {
+    updateData.suspended_at = null;
+    updateData.suspended_reason = null;
   }
 
-  // Update subscription details if provided and organization exists
-  if (clinic.organization_id && (input.planId !== undefined || input.status !== undefined || input.periodEnd !== undefined)) {
+  if (Object.keys(updateData).length) {
+    const { error: clinicUpdateErr } = await supabaseAdmin.from("clinics").update(updateData).eq("id", input.id);
+    if (clinicUpdateErr) throw clinicUpdateErr;
+  }
+
+  // Ensure clinic has an organization
+  let orgId = clinic.organization_id;
+  if (!orgId) {
+    if (clinic.owner_id) {
+      const { data: userOrg } = await supabaseAdmin
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", clinic.owner_id)
+        .maybeSingle();
+      if (userOrg?.organization_id) {
+        orgId = userOrg.organization_id;
+        await supabaseAdmin.from("clinics").update({ organization_id: orgId }).eq("id", clinic.id);
+      }
+    }
+    if (!orgId) {
+      const { data: newOrg } = await supabaseAdmin
+        .from("organizations")
+        .insert({
+          name: clinic.clinic_name || clinic.doctor_name || "Clinic",
+          slug: clinic.slug || `org-${clinic.id.slice(0, 8)}`,
+        })
+        .select("id")
+        .maybeSingle();
+      if (newOrg?.id) {
+        orgId = newOrg.id;
+        await supabaseAdmin.from("clinics").update({ organization_id: orgId }).eq("id", clinic.id);
+        if (clinic.owner_id) {
+          await supabaseAdmin.from("organization_members").insert({
+            organization_id: orgId,
+            user_id: clinic.owner_id,
+            role: "owner",
+          });
+        }
+      }
+    }
+  }
+
+  // Update subscription details if planId, status, or periodEnd is passed
+  if (orgId && (input.planId !== undefined || input.status !== undefined || input.periodEnd !== undefined)) {
     try {
       let resolvedPlanId: string | null = null;
-      if (input.planId && input.planId !== "free") {
+      if (input.planId && input.planId !== "free" && input.planId !== "free_plan") {
         const { data: plans } = await supabaseAdmin.from("plans").select("id, name");
         const match = (plans || []).find(
           (p: any) =>
-            p.id === input.planId ||
+            p.id.toLowerCase() === String(input.planId).toLowerCase() ||
             p.name.toLowerCase() === String(input.planId).toLowerCase()
         );
         resolvedPlanId = match ? match.id : input.planId;
       }
 
-      const subUpdates: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
+      // Safe mapping for Postgres enum: subscription_status ('trialing', 'active', 'past_due', 'cancelled', 'expired')
+      const validSubStatuses = ["trialing", "active", "past_due", "cancelled", "expired"];
+      let mappedSubStatus: "trialing" | "active" | "past_due" | "cancelled" | "expired" = "active";
 
-      if (input.status) {
-        subUpdates.status = input.status;
+      if (input.status === "cancelled") {
+        mappedSubStatus = "cancelled";
+      } else if (input.status === "expired" || input.status === "unpaid") {
+        mappedSubStatus = "expired";
+      } else if (input.status === "past_due") {
+        mappedSubStatus = "past_due";
+      } else if (input.status === "trialing") {
+        mappedSubStatus = "trialing";
+      } else if (input.status === "suspended") {
+        mappedSubStatus = "past_due";
+      } else if (input.status && validSubStatuses.includes(input.status)) {
+        mappedSubStatus = input.status as any;
+      } else {
+        mappedSubStatus = "active";
       }
-      if (input.planId !== undefined) {
-        subUpdates.plan_id = resolvedPlanId;
-      }
-      if (input.periodEnd !== undefined) {
-        subUpdates.current_period_end = input.periodEnd ? new Date(input.periodEnd).toISOString() : null;
+
+      let periodEndIso: string | null = null;
+      if (input.periodEnd) {
+        const parsed = new Date(input.periodEnd);
+        if (!isNaN(parsed.getTime())) {
+          periodEndIso = parsed.toISOString();
+        }
       }
 
       const { data: existingSub } = await supabaseAdmin
         .from("subscriptions")
-        .select("id")
-        .eq("organization_id", clinic.organization_id)
+        .select("id, status, plan_id")
+        .eq("organization_id", orgId)
         .maybeSingle();
 
       if (existingSub) {
-        await supabaseAdmin
+        const subUpdates: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+          status: mappedSubStatus,
+        };
+        if (resolvedPlanId) {
+          subUpdates.plan_id = resolvedPlanId;
+        }
+        if (input.periodEnd !== undefined) {
+          subUpdates.current_period_end = periodEndIso;
+        }
+        if (mappedSubStatus === "cancelled") {
+          subUpdates.cancel_at_period_end = true;
+        } else if (mappedSubStatus === "active") {
+          subUpdates.cancel_at_period_end = false;
+        }
+
+        const { error: subUpdateErr } = await supabaseAdmin
           .from("subscriptions")
           .update(subUpdates)
           .eq("id", existingSub.id);
-      } else if (resolvedPlanId || input.status) {
-        await supabaseAdmin
+        if (subUpdateErr) throw subUpdateErr;
+      } else {
+        const planToInsert = resolvedPlanId || "starter";
+        const { error: subInsertErr } = await supabaseAdmin
           .from("subscriptions")
           .insert({
-            organization_id: clinic.organization_id,
-            status: input.status || "active",
-            plan_id: resolvedPlanId,
-            current_period_end: input.periodEnd ? new Date(input.periodEnd).toISOString() : null,
+            organization_id: orgId,
+            status: mappedSubStatus,
+            plan_id: planToInsert,
+            current_period_start: new Date().toISOString(),
+            current_period_end: periodEndIso,
+            billing_cycle: "monthly",
           });
+        if (subInsertErr) throw subInsertErr;
       }
     } catch (subErr) {
-      console.warn("[Admin] Subscription update warning:", subErr);
+      console.warn("[Admin] Subscription update error:", subErr);
+      throw subErr;
     }
-  }
-
-  // Handle suspension status
-  if (input.status === "suspended") {
-    await supabaseAdmin
-      .from("clinics")
-      .update({ suspended_at: new Date().toISOString() })
-      .eq("id", input.id);
-  } else if (input.status && input.status !== "suspended" && clinic.suspended_at) {
-    await supabaseAdmin
-      .from("clinics")
-      .update({ suspended_at: null, suspended_reason: null })
-      .eq("id", input.id);
   }
 
   await createAuditLog(supabaseAdmin, admin.id, "doctor_profile_updated", "doctor", input.id, {
@@ -341,8 +409,97 @@ export async function updateDoctorProfileImpl(input: any) {
 }
 
 export async function changeDoctorPlanImpl(input: any) {
-  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
-  throw new Error("Legacy plan grants, trial extensions and cancellation are disabled. The clinic owner must use /dashboard/billing for verified provider commands; a documented super-admin exception uses the separate audited override workflow.");
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: clinic, error: clinicErr } = await supabaseAdmin
+    .from("clinics")
+    .select("id, organization_id, doctor_name")
+    .eq("id", input.clinicId)
+    .maybeSingle();
+
+  if (clinicErr || !clinic) throw new Error("Clinic not found");
+
+  const orgId = clinic.organization_id;
+  if (!orgId) throw new Error("Clinic has no associated organization");
+
+  const { data: existingSub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("*")
+    .eq("organization_id", orgId)
+    .maybeSingle();
+
+  if (input.cancelSub) {
+    if (existingSub) {
+      await supabaseAdmin
+        .from("subscriptions")
+        .update({
+          status: "cancelled",
+          cancel_at_period_end: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingSub.id);
+    }
+    await createAuditLog(supabaseAdmin, admin.id, "subscription_cancelled", "subscription", existingSub?.id || clinic.id, {
+      clinic_id: clinic.id,
+    });
+    return { success: true };
+  }
+
+  const now = new Date();
+  let baseDate = existingSub?.current_period_end ? new Date(existingSub.current_period_end) : now;
+  if (baseDate.getTime() < now.getTime()) {
+    baseDate = now;
+  }
+
+  let newPeriodEnd = baseDate;
+  if (input.grantFreeMonth) {
+    newPeriodEnd = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  } else if (input.extendDays && input.extendDays > 0) {
+    newPeriodEnd = new Date(baseDate.getTime() + input.extendDays * 24 * 60 * 60 * 1000);
+  }
+
+  let planIdToUse = input.planId;
+  if (planIdToUse === "free_plan" || planIdToUse === "free") {
+    planIdToUse = "starter";
+  }
+
+  if (existingSub) {
+    const updates: Record<string, any> = {
+      status: "active",
+      cancel_at_period_end: false,
+      updated_at: new Date().toISOString(),
+    };
+    if (planIdToUse) updates.plan_id = planIdToUse;
+    if (input.grantFreeMonth || input.extendDays) {
+      updates.current_period_end = newPeriodEnd.toISOString();
+    }
+    await supabaseAdmin
+      .from("subscriptions")
+      .update(updates)
+      .eq("id", existingSub.id);
+  } else {
+    await supabaseAdmin
+      .from("subscriptions")
+      .insert({
+        organization_id: orgId,
+        plan_id: planIdToUse || "starter",
+        status: "active",
+        current_period_start: now.toISOString(),
+        current_period_end: newPeriodEnd.toISOString(),
+        billing_cycle: "monthly",
+      });
+  }
+
+  await createAuditLog(supabaseAdmin, admin.id, "plan_changed", "clinic", clinic.id, {
+    plan_id: planIdToUse,
+    extend_days: input.extendDays,
+    grant_free_month: input.grantFreeMonth,
+  });
+
+  return { success: true };
 }
 
 export async function issueRefundImpl(input: any) {
@@ -1358,8 +1515,75 @@ export async function toggleClinicPublishImpl(input: any) {
 // Extended: Subscription lifecycle actions
 // -------------------------------------------------------------
 export async function updateSubscriptionStatusImpl(input: any) {
-  if (!(await getVerifiedAdmin())) throw new Error("Unauthorized");
-  throw new Error("Legacy subscription status commands are disabled. The clinic owner must use /dashboard/billing for authorized provider cancellation/resume. Verified settlement and lifecycle jobs alone control paid access and expiry.");
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  let statusToSet: "cancelled" | "active" | "expired" = "cancelled";
+  if (input.action === "reactivate") statusToSet = "active";
+  else if (input.action === "mark_expired") statusToSet = "expired";
+  else statusToSet = "cancelled";
+
+  // Find subscription by id, organization_id, or clinic_id
+  let subId = input.id;
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("id, organization_id, current_period_end")
+    .eq("id", subId)
+    .maybeSingle();
+
+  if (!sub) {
+    // Check if input.id is a clinic_id
+    const { data: clinic } = await supabaseAdmin
+      .from("clinics")
+      .select("organization_id")
+      .eq("id", input.id)
+      .maybeSingle();
+
+    if (clinic?.organization_id) {
+      const { data: orgSub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id, organization_id, current_period_end")
+        .eq("organization_id", clinic.organization_id)
+        .maybeSingle();
+      if (orgSub) {
+        subId = orgSub.id;
+      }
+    }
+  }
+
+  const updates: Record<string, any> = {
+    status: statusToSet,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (statusToSet === "cancelled") {
+    updates.cancel_at_period_end = true;
+  } else if (statusToSet === "active") {
+    updates.cancel_at_period_end = false;
+    const now = new Date();
+    if (!sub?.current_period_end || new Date(sub.current_period_end).getTime() < now.getTime()) {
+      updates.current_period_end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    }
+  }
+
+  const { error } = await supabaseAdmin
+    .from("subscriptions")
+    .update(updates)
+    .eq("id", subId);
+
+  if (error) {
+    console.error("[Admin updateSubscriptionStatusImpl] error:", error);
+    throw error;
+  }
+
+  await createAuditLog(supabaseAdmin, admin.id, `subscription_${input.action}`, "subscription", subId, {
+    action: input.action,
+    new_status: statusToSet,
+  });
+
+  return { success: true };
 }
 
 export async function deleteCouponImpl(input: any) {

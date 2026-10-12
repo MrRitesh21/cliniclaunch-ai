@@ -48,7 +48,7 @@ export const updateDoctorProfile = createServerFn({ method: "POST" })
       doctorName: z.string().optional(),
       clinicName: z.string().optional(),
       specialization: z.string().optional(),
-      email: z.string().email().optional().or(z.literal("")),
+      email: z.string().optional().nullable(),
       phone: z.string().optional(),
       city: z.string().optional(),
       planId: z.string().nullable().optional(),
