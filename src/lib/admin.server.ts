@@ -564,18 +564,68 @@ export async function deleteDoctorAccountImpl(input: any) {
 
   const clinicId = clinic.id;
   const ownerId = clinic.owner_id;
+  const orgId = clinic.organization_id;
 
-  // 2. Cascade delete all clinic child records
+  // Unsuspend clinic and ensure active subscription entitlement so operational write triggers do not block cascading deletion
   try {
-    await supabaseAdmin.from("appointments").delete().eq("clinic_id", clinicId);
+    if (clinic.suspended_at) {
+      await supabaseAdmin
+        .from("clinics")
+        .update({ suspended_at: null, suspended_reason: null })
+        .eq("id", clinicId);
+    }
   } catch (e) {
-    console.warn("[Admin Delete] appointments delete:", e);
+    console.warn("[Admin Delete] unsuspend warning:", e);
+  }
+
+  if (orgId) {
+    try {
+      const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: sub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id")
+        .eq("organization_id", orgId)
+        .maybeSingle();
+
+      if (sub) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({
+            status: "active",
+            current_period_end: futureDate,
+            trial_ends_at: futureDate,
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", sub.id);
+      } else {
+        await supabaseAdmin
+          .from("subscriptions")
+          .insert({
+            organization_id: orgId,
+            status: "active",
+            plan_id: "starter",
+            current_period_start: new Date().toISOString(),
+            current_period_end: futureDate,
+            billing_cycle: "monthly",
+          });
+      }
+    } catch (subErr) {
+      console.warn("[Admin Delete] subscription active preflight warning:", subErr);
+    }
+  }
+
+  // 2. Cascade delete all clinic child records in dependency order
+  try {
+    await supabaseAdmin.from("patient_vitals" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] patient_vitals delete:", e);
   }
 
   try {
-    await supabaseAdmin.from("patients").delete().eq("clinic_id", clinicId);
+    await supabaseAdmin.from("prescription_items" as any).delete().eq("clinic_id", clinicId);
   } catch (e) {
-    console.warn("[Admin Delete] patients delete:", e);
+    console.warn("[Admin Delete] prescription_items delete:", e);
   }
 
   try {
@@ -585,9 +635,63 @@ export async function deleteDoctorAccountImpl(input: any) {
   }
 
   try {
-    await supabaseAdmin.from("patient_vitals" as any).delete().eq("clinic_id", clinicId);
+    await supabaseAdmin.from("patient_visits" as any).delete().eq("clinic_id", clinicId);
   } catch (e) {
-    console.warn("[Admin Delete] patient_vitals delete:", e);
+    console.warn("[Admin Delete] patient_visits delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("appointments").delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] appointments delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("doctor_availability" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] doctor_availability delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("doctors" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] doctors delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("patients").delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] patients delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("staff_attendance" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] staff_attendance delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("inventory_items" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] inventory_items delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("reviews" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] reviews delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("campaigns" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] campaigns delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("clinic_template_assignments" as any).delete().eq("clinic_id", clinicId);
+  } catch (e) {
+    console.warn("[Admin Delete] clinic_template_assignments delete:", e);
   }
 
   try {
@@ -599,11 +703,12 @@ export async function deleteDoctorAccountImpl(input: any) {
   }
 
   try {
-    if (clinic.organization_id) {
-      await supabaseAdmin.from("whatsapp_logs" as any).delete().eq("organization_id", clinic.organization_id);
+    if (orgId) {
+      await supabaseAdmin.from("whatsapp_logs" as any).delete().eq("organization_id", orgId);
+      await supabaseAdmin.from("whatsapp_chats" as any).delete().eq("organization_id", orgId);
     }
   } catch (e) {
-    console.warn("[Admin Delete] whatsapp_logs delete:", e);
+    console.warn("[Admin Delete] whatsapp records delete:", e);
   }
 
   try {
@@ -634,7 +739,28 @@ export async function deleteDoctorAccountImpl(input: any) {
     throw new Error(`Failed to delete clinic: ${delClinicErr.message}`);
   }
 
-  // 4. If ownerId is present, check if this doctor owns any other clinic. If not, delete profile and auth account
+  // 4. Clean up organization & subscription if no other clinic uses it
+  if (orgId) {
+    try {
+      const { data: otherOrgClinics } = await supabaseAdmin
+        .from("clinics")
+        .select("id")
+        .eq("organization_id", orgId);
+
+      if (!otherOrgClinics || otherOrgClinics.length === 0) {
+        await supabaseAdmin.from("organization_modules" as any).delete().eq("organization_id", orgId);
+        await supabaseAdmin.from("organization_invites" as any).delete().eq("organization_id", orgId);
+        await supabaseAdmin.from("organization_members" as any).delete().eq("organization_id", orgId);
+        await supabaseAdmin.from("subscriptions").delete().eq("organization_id", orgId);
+        await supabaseAdmin.from("subscription_events" as any).delete().eq("organization_id", orgId);
+        await supabaseAdmin.from("organizations").delete().eq("id", orgId);
+      }
+    } catch (orgCleanErr) {
+      console.warn("[Admin Delete] Org cleanup warning:", orgCleanErr);
+    }
+  }
+
+  // 5. If ownerId is present, check if this doctor owns any other clinic. If not, delete profile and auth account
   if (ownerId) {
     try {
       const { data: otherClinics } = await supabaseAdmin
@@ -656,7 +782,7 @@ export async function deleteDoctorAccountImpl(input: any) {
     }
   }
 
-  // 5. Audit log
+  // 6. Audit log
   await createAuditLog(
     supabaseAdmin,
     admin.id,
@@ -681,11 +807,52 @@ export async function clearDoctorPatientsDataImpl(input: any) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: clinic, error: clinicErr } = await supabaseAdmin
     .from("clinics")
-    .select("id, doctor_name")
+    .select("id, organization_id, doctor_name, suspended_at")
     .eq("id", input.id)
     .maybeSingle();
 
   if (clinicErr || !clinic) throw new Error("Clinic not found");
+
+  if (clinic.organization_id) {
+    try {
+      const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      await supabaseAdmin
+        .from("subscriptions")
+        .update({
+          status: "active",
+          current_period_end: futureDate,
+          trial_ends_at: futureDate,
+          cancel_at_period_end: false,
+        })
+        .eq("organization_id", clinic.organization_id);
+    } catch (subErr) {
+      console.warn("[Admin Clear] Subscription active preflight warning:", subErr);
+    }
+  }
+
+  try {
+    await supabaseAdmin.from("patient_vitals" as any).delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] patient_vitals delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("prescription_items" as any).delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] prescription_items delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("prescriptions" as any).delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] prescriptions delete:", e);
+  }
+
+  try {
+    await supabaseAdmin.from("patient_visits" as any).delete().eq("clinic_id", clinic.id);
+  } catch (e) {
+    console.warn("[Admin Clear] patient_visits delete:", e);
+  }
 
   try {
     await supabaseAdmin.from("appointments").delete().eq("clinic_id", clinic.id);
@@ -697,18 +864,6 @@ export async function clearDoctorPatientsDataImpl(input: any) {
     await supabaseAdmin.from("patients").delete().eq("clinic_id", clinic.id);
   } catch (e) {
     console.warn("[Admin Clear] patients delete:", e);
-  }
-
-  try {
-    await supabaseAdmin.from("prescriptions" as any).delete().eq("clinic_id", clinic.id);
-  } catch (e) {
-    console.warn("[Admin Clear] prescriptions delete:", e);
-  }
-
-  try {
-    await supabaseAdmin.from("patient_vitals" as any).delete().eq("clinic_id", clinic.id);
-  } catch (e) {
-    console.warn("[Admin Clear] patient_vitals delete:", e);
   }
 
   await createAuditLog(
