@@ -26,6 +26,7 @@ import {
   Receipt,
   WalletCards,
   Banknote,
+  Sliders,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -212,7 +213,7 @@ export function OverviewTab({
     <div className="space-y-5">
       {/* Quick Operations Bar for Clinic Staff */}
       {onNavigateTab && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
           <button
             type="button"
             onClick={() => onNavigateTab("invoices", "new")}
@@ -251,7 +252,7 @@ export function OverviewTab({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-semibold text-foreground truncate">Cash Drawer</div>
-              <div className="text-[11px] text-muted-foreground truncate">Day-end reconciliation</div>
+              <div className="text-[11px] text-muted-foreground truncate">Day-end tally</div>
             </div>
           </button>
 
@@ -266,6 +267,20 @@ export function OverviewTab({
             <div className="min-w-0">
               <div className="text-xs font-semibold text-foreground truncate">P&amp;L Statement</div>
               <div className="text-[11px] text-muted-foreground truncate">Income vs expenses</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab("settings")}
+            className="flex items-center gap-3 p-3 rounded-xl border border-border/80 bg-card hover:bg-emerald-500/5 hover:border-emerald-500/40 transition-all text-left group shadow-xs cursor-pointer col-span-2 sm:col-span-1"
+          >
+            <div className="size-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
+              <Sliders className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-foreground truncate">Billing &amp; Fees</div>
+              <div className="text-[11px] text-muted-foreground truncate">Configure rates &amp; UPI</div>
             </div>
           </button>
         </div>

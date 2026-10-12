@@ -357,17 +357,23 @@ function InvoiceSheet({
 }) {
   const [patientName, setPatientName] = useState(existing?.patient_name ?? "");
   const [patientPhone, setPatientPhone] = useState("");
+  const billingCfg = (clinic?.working_hours as any)?.billing_settings;
+  const defaultPrefix = billingCfg?.invoice_prefix || "INV-";
+  const defaultNotes = billingCfg?.invoice_notes || "";
+  const defaultTax = typeof billingCfg?.gst_percent === "number" ? billingCfg.gst_percent : 0;
+  const defaultFee = Number(clinic?.consultation_fee ?? 500);
+
   const [patientId, setPatientId] = useState<string | null>(existing?.patient_id ?? null);
   const [invoiceNumber, setInvoiceNumber] = useState(
-    existing?.invoice_number ?? `INV-${Date.now().toString().slice(-6)}`,
+    existing?.invoice_number ?? `${defaultPrefix}${Date.now().toString().slice(-6)}`,
   );
   const [issueDate, setIssueDate] = useState(
     existing?.issue_date ?? new Date().toISOString().slice(0, 10),
   );
   const [dueDate, setDueDate] = useState(existing?.due_date ?? "");
-  const [taxPercent, setTaxPercent] = useState(existing?.tax_percent ?? 0);
+  const [taxPercent, setTaxPercent] = useState(existing?.tax_percent ?? defaultTax);
   const [discount, setDiscount] = useState(existing?.discount ?? 0);
-  const [notes, setNotes] = useState(existing?.notes ?? "");
+  const [notes, setNotes] = useState(existing?.notes ?? defaultNotes);
   const [items, setItems] = useState<Item[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -413,7 +419,15 @@ function InvoiceSheet({
           });
       }
     } else {
-      setItems([{ description: "", quantity: 1, unit_price: 0, amount: 0, position: 0 }]);
+      setItems([
+        {
+          description: "OPD Consultation & Clinical Examination",
+          quantity: 1,
+          unit_price: defaultFee,
+          amount: defaultFee,
+          position: 0,
+        },
+      ]);
     }
   }, [existing, orgId]);
 
@@ -1098,6 +1112,17 @@ function PrintDialog({
                     Notes / Instructions
                   </span>
                   <p className="leading-relaxed">{invoice.notes}</p>
+                </div>
+              )}
+              {(clinic?.working_hours as any)?.billing_settings?.upi_id && (
+                <div className="mt-3 p-2 rounded-lg border border-slate-200 bg-slate-50 text-[10px]">
+                  <span className="font-bold text-slate-600 block uppercase tracking-wider text-[9px]">
+                    Scan &amp; Pay via UPI
+                  </span>
+                  <div className="font-mono font-semibold text-slate-800 mt-0.5">
+                    {(clinic?.working_hours as any)?.billing_settings?.upi_id}
+                  </div>
+                  <span className="text-[9px] text-slate-400">Accepted: GPay, PhonePe, Paytm, BHIM</span>
                 </div>
               )}
             </div>

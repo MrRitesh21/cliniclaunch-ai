@@ -37,10 +37,23 @@ export interface ActivationClinic {
   is_published?: boolean;
   booking_enabled?: boolean;
   invoicing_configured?: boolean;
+  consultation_fee?: number | null;
 }
 export function activationSteps(u: SubscriptionSnapshot["usage"], clinic: ActivationClinic | null) {
-  const wh = clinic?.working_hours as { start?: string; end?: string; days?: unknown[] } | null;
+  const wh = clinic?.working_hours as {
+    start?: string;
+    end?: string;
+    days?: unknown[];
+    billing_configured?: boolean;
+    billing_settings?: unknown;
+  } | null;
   const hours = !!wh?.start && !!wh.end && Array.isArray(wh.days) && wh.days.length > 0;
+  const isBillingConfigured =
+    (typeof clinic?.consultation_fee === "number" && clinic.consultation_fee > 0) ||
+    wh?.billing_configured === true ||
+    wh?.billing_settings != null ||
+    clinic?.invoicing_configured === true;
+
   return [
     {
       key: "profile",
@@ -72,12 +85,11 @@ export function activationSteps(u: SubscriptionSnapshot["usage"], clinic: Activa
       done: u.prescriptions > 0,
       to: "/dashboard/prescriptions",
     },
-    // No dedicated billing-configuration signal yet. Activity is not configuration.
     {
       key: "billing",
-      label: "Configure billing (configuration not yet tracked)",
-      done: clinic?.invoicing_configured === true,
-      to: "/dashboard/finance",
+      label: "Configure billing & OPD fees",
+      done: isBillingConfigured,
+      to: "/dashboard/finance?tab=settings",
     },
     {
       key: "booking",

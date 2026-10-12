@@ -20,6 +20,7 @@ import { CashBookTab } from "@/components/finance/CashBookTab";
 import { ProfitLossTab } from "@/components/finance/ProfitLossTab";
 import { TaxCenterTab } from "@/components/finance/TaxCenterTab";
 import { AiFinanceTab } from "@/components/finance/AiFinanceTab";
+import { BillingSettingsTab } from "@/components/finance/BillingSettingsTab";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -35,9 +36,13 @@ import {
   Building2,
   RefreshCw,
   Plus,
+  Sliders,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/finance")({
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   component: () => (
     <AppGuard appKey="billing">
       <FinancePage />
@@ -46,15 +51,22 @@ export const Route = createFileRoute("/_authenticated/dashboard/finance")({
 });
 
 function FinancePage() {
+  const search = Route.useSearch();
   const { org } = useOrganization();
   const orgId = org?.id;
   const syncModulesFn = useServerFn(syncAllClinicModulesToLedger);
   const [clinics, setClinics] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(search?.tab || "overview");
   const [syncing, setSyncing] = useState(false);
   const [initialNewInvoice, setInitialNewInvoice] = useState(false);
   const [initialNewExpense, setInitialNewExpense] = useState(false);
+
+  useEffect(() => {
+    if (search?.tab) {
+      setActiveTab(search.tab);
+    }
+  }, [search?.tab]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -238,6 +250,13 @@ function FinancePage() {
             Tax &amp; CA Reports
           </TabsTrigger>
           <TabsTrigger
+            value="settings"
+            className="rounded-xl px-3.5 py-2 text-xs font-medium flex items-center gap-1.5 data-[state=active]:font-semibold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
+          >
+            <Sliders className="size-3.5" />
+            Billing Settings
+          </TabsTrigger>
+          <TabsTrigger
             value="ai"
             className="rounded-xl px-3.5 py-2 text-xs font-medium flex items-center gap-1.5 data-[state=active]:font-semibold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap"
           >
@@ -251,6 +270,13 @@ function FinancePage() {
             orgId={orgId}
             clinicId={selectedClinicId}
             onNavigateTab={handleNavigateTab}
+          />
+        </TabsContent>
+        <TabsContent value="settings" className="mt-4">
+          <BillingSettingsTab
+            orgId={orgId}
+            clinicId={selectedClinicId}
+            onNavigateToInvoices={() => setActiveTab("invoices")}
           />
         </TabsContent>
         <TabsContent value="invoices" className="mt-4">
