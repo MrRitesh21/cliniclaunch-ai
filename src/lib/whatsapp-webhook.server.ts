@@ -258,8 +258,13 @@ export async function handleWhatsAppIncomingRequest(
     if (isPlatformSession) {
       const { handlePlatformIncomingWhatsApp } = await import("./platform-ai-agent.server");
       const isBridgeLiveEvent = body?.event === "message";
+      const senderPn = body?.sender_pn || body?.senderPn || body?.phone || null;
+      const senderLid = body?.sender_lid || body?.senderLid || (String(rawFrom).includes("@lid") ? rawFrom : null);
+
       const result = await handlePlatformIncomingWhatsApp({
         rawFrom,
+        senderPn,
+        senderLid,
         text,
         senderName: name,
         sessionId: session_id || "platform-admin",

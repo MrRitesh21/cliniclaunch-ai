@@ -74,9 +74,20 @@ async function postWebhook(payload: Record<string, any>): Promise<any> {
   }
 }
 
+// In-memory cache mapping WhatsApp LIDs (e.g. 62152488562936) to real verified phone numbers
+const lidToPhoneCache = new Map<string, string>();
+
+function isLidJid(jid: string | null | undefined): boolean {
+  if (!jid) return false;
+  return jid.endsWith("@lid") || (!jid.includes("@") && jid.length >= 14);
+}
+
 function normalizeJid(jid: string | null | undefined): string {
-  const num = (jid || "").split("@")[0].split(":")[0];
-  return num ? "+" + num : "";
+  if (!jid) return "";
+  const clean = jid.trim();
+  const num = clean.split("@")[0].split(":")[0];
+  if (!num) return "";
+  return "+" + num.replace(/[^\d]/g, "");
 }
 
 function sanitizeSessionId(sessionId: string): string {
@@ -354,6 +365,19 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
     }
   });
 
+  // Track phoneNumberShare events emitted by Baileys
+  sock.ev.on("chats.phoneNumberShare" as any, (data: any) => {
+    if (data?.lid && data?.jid) {
+      const lidNum = data.lid.split("@")[0];
+      const phoneNum = normalizeJid(data.jid);
+      if (phoneNum) {
+        lidToPhoneCache.set(lidNum, phoneNum);
+        lidToPhoneCache.set(data.lid, phoneNum);
+        logger.info({ lid: data.lid, phone: phoneNum }, "Mapped WhatsApp LID to real phone number");
+      }
+    }
+  });
+
   // ─── Isolated Inbound Message Dispatch ─────────────────────────────────────
   sock.ev.on("messages.upsert", async (upsert: any) => {
     const { messages, type } = upsert;
@@ -392,15 +416,42 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
         await sock.sendPresenceUpdate("composing", remoteJid);
       } catch {}
 
+      // Resolve real phone number if sender is using an internal WhatsApp LID (@lid)
+      const senderPn =
+        (m.key as any)?.senderPn ||
+        (m.key as any)?.participantPn ||
+        ((m.key?.participant && !m.key.participant.endsWith("@lid")) ? m.key.participant : null) ||
+        ((m.participant && !m.participant.endsWith("@lid")) ? m.participant : null);
+
+      let realPhone = "";
+      const isLid = isLidJid(remoteJid);
+      const cleanLid = remoteJid.split("@")[0];
+
+      if (senderPn && !senderPn.endsWith("@lid")) {
+        realPhone = normalizeJid(senderPn);
+        if (isLid) {
+          lidToPhoneCache.set(cleanLid, realPhone);
+          lidToPhoneCache.set(remoteJid, realPhone);
+        }
+      } else if (isLid && lidToPhoneCache.has(cleanLid)) {
+        realPhone = lidToPhoneCache.get(cleanLid)!;
+      } else if (!isLid) {
+        realPhone = normalizeJid(remoteJid);
+      }
+
       // Dispatch to ClinicX incoming webhook with full tenant isolation parameters
       const webhookRes = await postWebhook({
         event: "message",
         session_id: cleanSid,
         clinic_id: clinicId,
         to_phone: stateObj.phone,
-        from: normalizeJid(remoteJid),
+        from: realPhone || normalizeJid(remoteJid),
+        phone: realPhone || undefined,
         remote_jid: remoteJid,
         remoteJid,
+        is_lid: isLid,
+        sender_lid: isLid ? remoteJid : (m.key as any)?.senderLid || undefined,
+        sender_pn: senderPn ? normalizeJid(senderPn) : (realPhone || undefined),
         name: m.pushName || null,
         text,
         wa_message_id: m.key.id,

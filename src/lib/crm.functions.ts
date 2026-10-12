@@ -260,3 +260,29 @@ export const submitPlatformLead = createServerFn({ method: "POST" })
 
     return { ok: true, leadId: lead.id, demoUrl };
   });
+
+/**
+ * Reconcile and deduplicate leads (merges WhatsApp LID inbound duplicates with real phone leads).
+ */
+export const reconcileCrmLeads = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .handler(async () => {
+    const { reconcileCrmLeadsImpl } = await import("./crm.server");
+    return reconcileCrmLeadsImpl();
+  });
+
+/**
+ * Manually merge two leads into a single master lead.
+ */
+export const mergeCrmLeads = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      primaryLeadId: z.string(),
+      secondaryLeadId: z.string(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const { mergeCrmLeadsImpl } = await import("./crm.server");
+    return mergeCrmLeadsImpl(data);
+  });

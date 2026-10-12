@@ -77,11 +77,13 @@ import {
   importCrmLeadsCsv,
   runAutonomousBatch,
   triggerLeadOutreach,
+  reconcileCrmLeads,
+  mergeCrmLeads,
   type crmLeadStageEnum,
 } from "@/lib/crm.functions";
 import { getAdminWhatsappStatus } from "@/lib/baileys.functions";
 import { PlatformAiAgentCard } from "@/components/admin/PlatformAiAgentCard";
-import { getInstantFounderPitch, getClientDemoUrl, type PitchToneKey } from "@/lib/crm.shared";
+import { getInstantFounderPitch, getClientDemoUrl, isLidPhone, type PitchToneKey } from "@/lib/crm.shared";
 
 export const Route = createFileRoute("/_admin/admin/crm")({
   component: AdminCrmPage,
@@ -109,6 +111,7 @@ type CrmLead = {
   last_reply_message?: string | null;
   next_followup_at?: string | null;
   autonomous_enabled?: boolean;
+  whatsapp_lid?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -127,10 +130,14 @@ export function AdminCrmPage() {
   const importCsvFn = useServerFn(importCrmLeadsCsv);
   const runAutoBatchFn = useServerFn(runAutonomousBatch);
   const triggerOutreachFn = useServerFn(triggerLeadOutreach);
+  const reconcileFn = useServerFn(reconcileCrmLeads);
+  const mergeFn = useServerFn(mergeCrmLeads);
 
   // Filters state
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [isReconciling, setIsReconciling] = useState(false);
+  const [mergingLeadId, setMergingLeadId] = useState<string | null>(null);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -395,6 +402,45 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
       toast.error(err.message || "Failed to trigger outreach");
     } finally {
       setTriggeringLeadId(null);
+    }
+  };
+
+  const handleReconcileLeads = async (silent = false) => {
+    setIsReconciling(true);
+    try {
+      const res = await reconcileFn();
+      if (res.merged > 0) {
+        toast.success(`Deduplicated & merged ${res.merged} doctor leads into unified records! 🚀`);
+      } else if (!silent) {
+        toast.info("All leads are synchronized and unique.");
+      }
+      await Promise.all([refetchLeads(), refetchStats()]);
+    } catch (err: any) {
+      if (!silent) toast.error(err.message || "Failed to reconcile leads");
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
+  const handleMergeLeads = async (primaryId: string, secondaryId: string) => {
+    setMergingLeadId(secondaryId);
+    try {
+      const res = await mergeFn({
+        data: {
+          primaryLeadId: primaryId,
+          secondaryLeadId: secondaryId,
+        },
+      });
+      if (res) {
+        toast.success(`Merged leads into ${res.name} (${res.phone}) successfully!`);
+        await Promise.all([refetchLeads(), refetchStats()]);
+      } else {
+        toast.error("Could not merge leads");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to merge leads");
+    } finally {
+      setMergingLeadId(null);
     }
   };
 
@@ -699,14 +745,15 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
           <Button
             size="sm"
             onClick={async () => {
+              await handleReconcileLeads(false);
               await Promise.all([refetchLeads(), refetchStats()]);
-              toast.success("Refreshed leads data");
             }}
             variant="outline"
-            className="h-9 rounded-xl text-xs"
-            disabled={isFetchingLeads}
+            className="h-9 rounded-xl text-xs gap-1.5"
+            disabled={isFetchingLeads || isReconciling}
           >
-            <RefreshCw className={cn("size-3.5 mr-1", isFetchingLeads && "animate-spin")} /> Refresh
+            <RefreshCw className={cn("size-3.5", (isFetchingLeads || isReconciling) && "animate-spin")} />
+            <span>{isReconciling ? "Syncing…" : "Refresh"}</span>
           </Button>
 
           <Button
@@ -869,7 +916,9 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-1.5 font-medium text-foreground">
                         <Phone className="size-3 text-emerald-600 shrink-0" />
-                        <span>{lead.phone}</span>
+                        <span className={cn(isLidPhone(lead.phone) && "text-muted-foreground text-[11px] font-mono")}>
+                          {lead.phone}
+                        </span>
                         <a
                           href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}`}
                           target="_blank"
@@ -880,7 +929,18 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                           <ExternalLink className="size-3" />
                         </a>
                       </div>
-                      <span className="text-[10px] text-muted-foreground capitalize">Source: {lead.source}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground capitalize">Source: {lead.source}</span>
+                        {lead.whatsapp_lid ? (
+                          <Badge variant="outline" className="text-[9px] py-0 px-1 text-emerald-600 border-emerald-500/20 bg-emerald-500/5">
+                            WA Paired
+                          </Badge>
+                        ) : isLidPhone(lead.phone) ? (
+                          <Badge variant="outline" className="text-[9px] py-0 px-1 text-amber-600 border-amber-500/30 bg-amber-500/10 font-mono">
+                            WhatsApp LID
+                          </Badge>
+                        ) : null}
+                      </div>
                     </td>
 
                     <td className="py-3 px-3">
@@ -931,6 +991,34 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
 
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {/* Merge Button for WhatsApp LID duplicate leads */}
+                        {(isLidPhone(lead.phone) || lead.name.includes("शिव सदा सहायते")) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={mergingLeadId === lead.id || isReconciling}
+                            onClick={() => {
+                              const otherLead = (allLeads as CrmLead[]).find(
+                                (l) => l.id !== lead.id && !isLidPhone(l.phone)
+                              );
+                              if (otherLead) {
+                                void handleMergeLeads(otherLead.id, lead.id);
+                              } else {
+                                void handleReconcileLeads();
+                              }
+                            }}
+                            className="h-8 rounded-xl text-xs px-2 text-amber-700 dark:text-amber-400 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 gap-1 font-bold"
+                            title="Merge this WhatsApp LID record into doctor's real phone lead"
+                          >
+                            {mergingLeadId === lead.id || isReconciling ? (
+                              <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                              <Zap className="size-3 text-amber-500" />
+                            )}
+                            <span>⚡ Merge</span>
+                          </Button>
+                        )}
+
                         {/* Quick Autonomous Dispatch button */}
                         {!lead.has_replied && (
                           <Button

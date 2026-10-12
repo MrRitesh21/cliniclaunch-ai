@@ -188,6 +188,8 @@ export async function handlePlatformIncomingWhatsApp(opts: {
   senderName?: string | null;
   sessionId: string;
   isBridgeLiveEvent: boolean;
+  senderPn?: string | null;
+  senderLid?: string | null;
 }): Promise<{
   ok: boolean;
   handled: boolean;
@@ -223,25 +225,90 @@ export async function handlePlatformIncomingWhatsApp(opts: {
     };
   }
 
-  const cleanPhone = opts.rawFrom.replace(/@.*$/, "").replace(/[^\d]/g, "");
-  const formattedPhone = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
+  const { isLidPhone, cleanDoctorName, normalizeIndianPhone } = await import("./crm.server");
+
+  const fromDigits = opts.rawFrom.replace(/@.*$/, "").replace(/[^\d]/g, "");
+  const pnDigits = opts.senderPn ? opts.senderPn.replace(/@.*$/, "").replace(/[^\d]/g, "") : "";
+
+  // Is this sender an internal WhatsApp Linked Device ID (LID)?
+  const isLid =
+    opts.rawFrom.includes("@lid") ||
+    Boolean(opts.senderLid) ||
+    isLidPhone(opts.rawFrom) ||
+    fromDigits.startsWith("6215") ||
+    fromDigits.length >= 13;
+
+  const rawLid = opts.senderLid || (isLid ? (opts.rawFrom.includes("@") ? opts.rawFrom : `${fromDigits}@lid`) : null);
+
+  // Determine real phone number (prefer senderPn if present)
+  let cleanPhone = pnDigits;
+  if (!cleanPhone && !isLid) {
+    cleanPhone = fromDigits;
+  }
+
+  const formattedPhone = cleanPhone
+    ? (cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`)
+    : (isLid ? (rawLid || opts.rawFrom) : `+${fromDigits}`);
 
   // Find or auto-capture lead in platform_crm_leads
   let matchedLead: any = null;
-  try {
-    const leads = await listCrmLeadsImpl({ search: cleanPhone.slice(-10), limit: 5 });
-    if (leads && leads.length > 0) {
-      matchedLead = leads[0];
-    }
-  } catch {}
 
+  // Step 1: Match by actual phone number (last 10 digits)
+  if (cleanPhone && cleanPhone.length >= 8) {
+    try {
+      const leads = await listCrmLeadsImpl({ search: cleanPhone.slice(-10), limit: 5 });
+      if (leads && leads.length > 0) {
+        matchedLead = leads[0];
+      }
+    } catch {}
+  }
+
+  // Step 2: Match by WhatsApp LID
+  if (!matchedLead && rawLid) {
+    try {
+      const lidDigits = rawLid.replace(/[^\d]/g, "");
+      const { data } = await (supabaseAdmin as any)
+        .from("platform_crm_leads")
+        .select("*")
+        .or(`whatsapp_lid.ilike.%${lidDigits}%,phone.ilike.%${lidDigits}%`)
+        .limit(1);
+      if (data && data.length > 0) {
+        matchedLead = data[0];
+      }
+    } catch {}
+  }
+
+  // Step 3: Smart Heuristic: If this message came from an LID and a doctor lead was recently contacted
+  if (!matchedLead && isLid) {
+    try {
+      const allLeads = await listCrmLeadsImpl({ limit: 10 });
+      // Find candidate lead that has outreach sent or was updated recently
+      const candidate = allLeads.find(
+        (l) =>
+          l.status === "outreach_sent" ||
+          l.status === "new" ||
+          (l.last_outreach_at && Date.now() - new Date(l.last_outreach_at).getTime() < 48 * 3600 * 1000) ||
+          allLeads.length === 1
+      );
+      if (candidate) {
+        matchedLead = candidate;
+        console.log(
+          `[Platform AI Agent] Heuristically linked incoming LID ${fromDigits} to lead ${candidate.name} (${candidate.phone})`
+        );
+      }
+    } catch {}
+  }
+
+  // Step 4: Auto-capture new lead if none matched
   if (!matchedLead && config.auto_capture_leads) {
     try {
+      const sanitizedName = cleanDoctorName(opts.senderName) || `Doctor ${fromDigits.slice(-4)}`;
       matchedLead = await createCrmLeadImpl({
-        name: opts.senderName || `Dr. ${cleanPhone.slice(-4)}`,
+        name: sanitizedName,
         phone: formattedPhone,
+        whatsapp_lid: rawLid,
         source: "whatsapp_inbound",
-        notes: `Inbounded via Platform WhatsApp with message: "${opts.text.slice(0, 150)}"`,
+        notes: `Inbounded via Platform WhatsApp: "${opts.text.slice(0, 150)}"`,
       });
     } catch (e) {
       console.warn("[Platform AI Agent] Could not auto-create lead:", e);
@@ -250,8 +317,8 @@ export async function handlePlatformIncomingWhatsApp(opts: {
 
   // Generate contextual founder reply
   const reply = await generatePlatformAiReply({
-    senderPhone: formattedPhone,
-    senderName: opts.senderName,
+    senderPhone: matchedLead?.phone || formattedPhone,
+    senderName: matchedLead?.name || cleanDoctorName(opts.senderName),
     incomingText: opts.text,
     lead: matchedLead,
   });
@@ -263,7 +330,11 @@ export async function handlePlatformIncomingWhatsApp(opts: {
   if (opts.isBridgeLiveEvent) {
     sent = true;
   } else {
-    const res = await baileysSend(PLATFORM_ADMIN_SESSION, formattedPhone, reply);
+    // If we have an LID or specific JID, use it for dispatch
+    const replyTarget = opts.rawFrom.includes("@")
+      ? opts.rawFrom
+      : (matchedLead?.phone || formattedPhone);
+    const res = await baileysSend(PLATFORM_ADMIN_SESSION, replyTarget, reply);
     sent = res.ok;
     sendError = res.error;
   }
@@ -271,8 +342,8 @@ export async function handlePlatformIncomingWhatsApp(opts: {
   // Record outgoing message in logs & CRM lead activity
   try {
     await (supabaseAdmin as any).from("whatsapp_logs").insert({
-      patient_name: opts.senderName || matchedLead?.name || null,
-      patient_phone: formattedPhone,
+      patient_name: matchedLead?.name || opts.senderName || null,
+      patient_phone: matchedLead?.phone || formattedPhone,
       template_key: "platform_ai_outreach_reply",
       message: reply,
       status: sent ? "sent" : "failed",
@@ -282,18 +353,24 @@ export async function handlePlatformIncomingWhatsApp(opts: {
 
     if (matchedLead?.id) {
       const nowIso = new Date().toISOString();
+      const updates: Record<string, any> = {
+        has_replied: true,
+        last_reply_at: nowIso,
+        last_reply_message: opts.text,
+        status: "in_conversation",
+        last_outreach_at: nowIso,
+        last_outreach_message: reply,
+        updated_at: nowIso,
+      };
+
+      if (rawLid && !matchedLead.whatsapp_lid) {
+        updates.whatsapp_lid = rawLid;
+      }
+
       try {
         await (supabaseAdmin as any)
           .from("platform_crm_leads")
-          .update({
-            has_replied: true,
-            last_reply_at: nowIso,
-            last_reply_message: opts.text,
-            status: "in_conversation",
-            last_outreach_at: nowIso,
-            last_outreach_message: reply,
-            updated_at: nowIso,
-          })
+          .update(updates)
           .eq("id", matchedLead.id);
       } catch {}
 
@@ -305,6 +382,7 @@ export async function handlePlatformIncomingWhatsApp(opts: {
           last_reply_at: nowIso,
           last_reply_message: opts.text,
           status: "in_conversation",
+          whatsapp_lid: rawLid || undefined,
         });
       } catch {}
     }

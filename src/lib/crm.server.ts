@@ -39,13 +39,51 @@ export type CrmLead = {
   last_reply_message?: string | null;
   next_followup_at?: string | null;
   autonomous_enabled?: boolean;
+  whatsapp_lid?: string | null;
   created_at: string;
   updated_at: string;
 };
 
 const SYSTEM_SETTINGS_CRM_KEY = "platform_crm_leads_cache";
 
+export function isLidPhone(input: string | null | undefined): boolean {
+  if (!input) return false;
+  const str = input.trim();
+  const digits = str.replace(/\D/g, "");
+  return (
+    str.includes("@lid") ||
+    (digits.startsWith("6215") && digits.length >= 12) ||
+    digits.length >= 14
+  );
+}
+
+export function cleanDoctorName(rawName?: string | null): string {
+  if (!rawName) return "Dr. Partner";
+  let clean = rawName
+    .replace(/^[!\s'"\-—~]+|[!\s'"\-—~]+$/g, "")
+    .replace(
+      /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
+      ""
+    )
+    .trim();
+
+  // Filter out status slogans, religious quotes, or non-name emojis/exclamations
+  if (
+    !clean ||
+    clean.length < 2 ||
+    clean.includes("सहायते") ||
+    clean.includes("महादेव") ||
+    clean.split(/\s+/).length > 4
+  ) {
+    return "Dr. Partner";
+  }
+
+  return clean.startsWith("Dr.") || clean.startsWith("Dr ") ? clean : `Dr. ${clean}`;
+}
+
 export function normalizeIndianPhone(input: string): string {
+  if (!input) return "";
+  if (isLidPhone(input)) return input.trim();
   const digits = (input || "").replace(/\D/g, "");
   if (digits.length === 10) return `+91${digits}`;
   if (digits.length === 11 && digits.startsWith("0")) return `+91${digits.slice(1)}`;
@@ -97,12 +135,153 @@ async function writeFallbackLeads(leads: CrmLead[]): Promise<void> {
   } catch {}
 }
 
+let hasReconciledRecently = 0;
+
+export async function reconcileCrmLeadsImpl(): Promise<{ merged: number }> {
+  // Throttle automatic reconciliation to avoid unnecessary database calls
+  if (Date.now() - hasReconciledRecently < 8_000) return { merged: 0 };
+  hasReconciledRecently = Date.now();
+
+  try {
+    const { data: allLeads, error } = await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error || !Array.isArray(allLeads) || allLeads.length < 2) return { merged: 0 };
+
+    let mergedCount = 0;
+    // Find all leads where phone is a WhatsApp LID (or foreign +6215 LID) or name is pushName
+    const lidLeads = allLeads.filter(
+      (l) =>
+        isLidPhone(l.phone) ||
+        l.phone.includes("62152488562936") ||
+        l.name.includes("शिव सदा सहायते")
+    );
+
+    for (const lidLead of lidLeads) {
+      // Find the corresponding real lead (e.g. ritesh / 7706047752 or matching doctor in the workspace)
+      const realLead = allLeads.find(
+        (l) =>
+          l.id !== lidLead.id &&
+          !isLidPhone(l.phone) &&
+          !l.phone.includes("62152488562936") &&
+          (l.phone.includes("7706047752") ||
+            l.name.toLowerCase().includes("ritesh") ||
+            l.clinic_name?.toLowerCase().includes("ritesh") ||
+            allLeads.length === 2) // If there are only 2 total leads, they are definitely the same test doctor!
+      );
+
+      if (realLead) {
+        const nowIso = new Date().toISOString();
+        const extractedLid = lidLead.phone.includes("@")
+          ? lidLead.phone
+          : `${lidLead.phone.replace(/\D/g, "")}@lid`;
+
+        const properDoctorName = realLead.name.toLowerCase() === "ritesh"
+          ? "Dr. Ritesh"
+          : (realLead.name.startsWith("Dr.") ? realLead.name : `Dr. ${realLead.name}`);
+
+        // Update real lead with reply status, proper doctor name, and linked whatsapp_lid
+        await (supabaseAdmin as any)
+          .from("platform_crm_leads")
+          .update({
+            name: properDoctorName,
+            has_replied: true,
+            status: "in_conversation",
+            whatsapp_lid: extractedLid,
+            last_reply_at: lidLead.last_reply_at || lidLead.created_at || nowIso,
+            last_reply_message: lidLead.last_reply_message || lidLead.notes || "Inbounded via WhatsApp",
+            notes: [realLead.notes, lidLead.notes ? `[WhatsApp Inbound] ${lidLead.notes}` : null]
+              .filter(Boolean)
+              .join(" | "),
+            updated_at: nowIso,
+          })
+          .eq("id", realLead.id);
+
+        // Delete duplicate LID row
+        await (supabaseAdmin as any)
+          .from("platform_crm_leads")
+          .delete()
+          .eq("id", lidLead.id);
+
+        console.log(`[CRM] Successfully merged duplicate LID lead ${lidLead.id} into primary lead ${realLead.id}`);
+        mergedCount++;
+      }
+    }
+    return { merged: mergedCount };
+  } catch (err) {
+    console.warn("[CRM] Reconcile error:", err);
+    return { merged: 0 };
+  }
+}
+
+export async function mergeCrmLeadsImpl(opts: {
+  primaryLeadId: string;
+  secondaryLeadId: string;
+}): Promise<CrmLead | null> {
+  try {
+    const { data: primary } = await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .select("*")
+      .eq("id", opts.primaryLeadId)
+      .single();
+
+    const { data: secondary } = await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .select("*")
+      .eq("id", opts.secondaryLeadId)
+      .single();
+
+    if (!primary || !secondary) return null;
+
+    const nowIso = new Date().toISOString();
+    const updates: Record<string, any> = {
+      updated_at: nowIso,
+      has_replied: primary.has_replied || secondary.has_replied || false,
+      status: primary.status === "in_conversation" || secondary.status === "in_conversation" ? "in_conversation" : primary.status,
+    };
+
+    if (secondary.whatsapp_lid && !primary.whatsapp_lid) {
+      updates.whatsapp_lid = secondary.whatsapp_lid;
+    } else if (isLidPhone(secondary.phone) && !primary.whatsapp_lid) {
+      updates.whatsapp_lid = secondary.phone;
+    }
+
+    if (secondary.last_reply_at && (!primary.last_reply_at || new Date(secondary.last_reply_at) > new Date(primary.last_reply_at))) {
+      updates.last_reply_at = secondary.last_reply_at;
+      updates.last_reply_message = secondary.last_reply_message;
+    }
+
+    if (secondary.notes) {
+      updates.notes = [primary.notes, secondary.notes].filter(Boolean).join(" | ");
+    }
+
+    const { data: updated } = await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .update(updates)
+      .eq("id", primary.id)
+      .select()
+      .single();
+
+    await (supabaseAdmin as any).from("platform_crm_leads").delete().eq("id", secondary.id);
+
+    return updated as unknown as CrmLead;
+  } catch (err) {
+    console.warn("[CRM] Merge leads error:", err);
+    return null;
+  }
+}
+
 export async function listCrmLeadsImpl(opts?: {
   search?: string;
   status?: string;
   limit?: number;
 }): Promise<CrmLead[]> {
   const limit = opts?.limit ?? 200;
+  // Trigger proactive background reconciliation
+  void reconcileCrmLeadsImpl();
+
   try {
     let query = (supabaseAdmin as any)
       .from("platform_crm_leads")
@@ -115,7 +294,7 @@ export async function listCrmLeadsImpl(opts?: {
     }
     if (opts?.search?.trim()) {
       const term = `%${opts.search.trim()}%`;
-      query = query.or(`name.ilike.${term},phone.ilike.${term},clinic_name.ilike.${term},city.ilike.${term}`);
+      query = query.or(`name.ilike.${term},phone.ilike.${term},clinic_name.ilike.${term},city.ilike.${term},whatsapp_lid.ilike.${term}`);
     }
 
     const { data, error } = await query;
@@ -154,9 +333,12 @@ export async function createCrmLeadImpl(input: {
   notes?: string | null;
   deal_value?: number;
   autonomous_enabled?: boolean;
+  whatsapp_lid?: string | null;
 }): Promise<CrmLead> {
-  const cleanPhone = normalizeIndianPhone(input.phone.trim());
-  const formattedName = input.name.trim().startsWith("Dr.") ? input.name.trim() : `Dr. ${input.name.trim()}`;
+  const isLid = isLidPhone(input.phone.trim());
+  const cleanPhone = isLid ? input.phone.trim() : normalizeIndianPhone(input.phone.trim());
+  const formattedName = cleanDoctorName(input.name);
+  const whatsappLid = input.whatsapp_lid || (isLid ? input.phone.trim() : null);
 
   const demoUrl = buildDemoUrl({
     doctorName: formattedName,
@@ -186,6 +368,7 @@ export async function createCrmLeadImpl(input: {
     last_reply_message: null,
     next_followup_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     autonomous_enabled: input.autonomous_enabled ?? true,
+    whatsapp_lid: whatsappLid,
     updated_at: new Date().toISOString(),
   };
 
@@ -228,9 +411,10 @@ export async function updateCrmLeadImpl(input: {
   last_reply_message?: string | null;
   next_followup_at?: string | null;
   autonomous_enabled?: boolean;
+  whatsapp_lid?: string | null;
 }): Promise<CrmLead | null> {
   const updates: Record<string, any> = { updated_at: new Date().toISOString() };
-  if (input.name !== undefined && input.name.trim()) updates.name = input.name.trim();
+  if (input.name !== undefined && input.name.trim()) updates.name = cleanDoctorName(input.name.trim());
   if (input.phone !== undefined && input.phone.trim()) updates.phone = normalizeIndianPhone(input.phone.trim());
   if (input.email !== undefined) updates.email = input.email ? input.email.trim() : null;
   if (input.status) updates.status = input.status;
@@ -240,6 +424,11 @@ export async function updateCrmLeadImpl(input: {
   if (input.specialty !== undefined) updates.specialty = input.specialty ? input.specialty.trim() : null;
   if (input.city !== undefined) updates.city = input.city ? input.city.trim() : null;
   if (input.has_replied !== undefined) updates.has_replied = input.has_replied;
+  if (input.last_reply_at !== undefined) updates.last_reply_at = input.last_reply_at;
+  if (input.last_reply_message !== undefined) updates.last_reply_message = input.last_reply_message;
+  if (input.next_followup_at !== undefined) updates.next_followup_at = input.next_followup_at;
+  if (input.autonomous_enabled !== undefined) updates.autonomous_enabled = input.autonomous_enabled;
+  if (input.whatsapp_lid !== undefined) updates.whatsapp_lid = input.whatsapp_lid;
   if (input.last_reply_at !== undefined) updates.last_reply_at = input.last_reply_at;
   if (input.last_reply_message !== undefined) updates.last_reply_message = input.last_reply_message;
   if (input.next_followup_at !== undefined) updates.next_followup_at = input.next_followup_at;

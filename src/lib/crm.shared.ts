@@ -17,6 +17,17 @@ export type PitchToneKey =
   | "followup_2"
   | "closing_offer";
 
+export function isLidPhone(input: string | null | undefined): boolean {
+  if (!input) return false;
+  const str = input.trim();
+  const digits = str.replace(/\D/g, "");
+  return (
+    str.includes("@lid") ||
+    (digits.startsWith("6215") && digits.length >= 12) ||
+    digits.length >= 14
+  );
+}
+
 export function getClientDemoUrl(
   optsOrDoctorName?:
     | {
