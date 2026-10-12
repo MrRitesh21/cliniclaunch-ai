@@ -770,17 +770,15 @@ export function AdminCrmPage() {
 
       {/* AI Human Pitch & WhatsApp Dispatch Modal */}
       <Dialog open={isPitchModalOpen} onOpenChange={setIsPitchModalOpen}>
-        <DialogContent className="sm:max-w-[620px] p-6 rounded-2xl border-border bg-background space-y-4">
-          <DialogHeader className="text-left space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center">
-                  <Sparkles className="size-4 text-amber-500" />
-                </div>
-                <DialogTitle className="text-lg font-bold text-foreground">
-                  Ritesh's AI Outreach Engine
-                </DialogTitle>
+        <DialogContent className="w-[95vw] max-w-[640px] p-5 sm:p-6 rounded-2xl border-border bg-background space-y-4">
+          <DialogHeader className="text-left space-y-1.5 pr-8">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                <Sparkles className="size-4 text-amber-500" />
               </div>
+              <DialogTitle className="text-lg font-bold text-foreground">
+                Ritesh's AI Outreach Engine
+              </DialogTitle>
               <Badge variant="outline" className="text-[11px] font-semibold text-emerald-600 border-emerald-500/30">
                 Speaks as Real Human
               </Badge>
@@ -790,10 +788,10 @@ export function AdminCrmPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Tone Selector Pills */}
-          <div className="space-y-1.5">
+          {/* Tone Selector Grid */}
+          <div className="space-y-1.5 w-full">
             <Label className="text-xs font-semibold text-muted-foreground">Select Outreach Tone / Stage:</Label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 w-full">
               {[
                 { id: "warm_intro", label: "👋 Warm Founder Intro" },
                 { id: "demo_delivery", label: "🎯 Send Live Demo" },
@@ -806,11 +804,12 @@ export function AdminCrmPage() {
                   key={t.id}
                   type="button"
                   onClick={() => handleToneChange(t.id as any)}
-                  className={`text-xs px-2.5 py-1.5 rounded-xl border transition-all ${
+                  className={`text-xs px-2 py-1.5 rounded-xl border text-center transition-all truncate ${
                     pitchTone === t.id
                       ? "bg-primary text-primary-foreground font-semibold border-primary shadow-xs"
                       : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/80"
                   }`}
+                  title={t.label}
                 >
                   {t.label}
                 </button>
@@ -819,7 +818,7 @@ export function AdminCrmPage() {
           </div>
 
           {/* Message Content Area */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 w-full">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold text-foreground">WhatsApp Message Draft (Editable):</Label>
               <button
@@ -834,28 +833,18 @@ export function AdminCrmPage() {
               </button>
             </div>
 
-            <div className="relative">
-              {isGeneratingPitch && (
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-xs flex items-center justify-center rounded-xl z-10">
-                  <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                    <Loader2 className="size-4 animate-spin text-primary" />
-                    <span>Writing human founder pitch…</span>
-                  </div>
-                </div>
-              )}
-              <Textarea
-                rows={9}
-                value={generatedMessage}
-                onChange={(e) => setGeneratedMessage(e.target.value)}
-                className="text-xs sm:text-sm font-sans leading-relaxed rounded-xl p-3 resize-none border-border/80"
-              />
-            </div>
+            <Textarea
+              rows={9}
+              value={generatedMessage}
+              onChange={(e) => setGeneratedMessage(e.target.value)}
+              className="w-full text-xs sm:text-sm font-sans leading-relaxed rounded-xl p-3 resize-none border-border/80 bg-background"
+            />
           </div>
 
           {/* Live Demo Preview Link Card */}
           {activeDemoUrl && (
-            <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between gap-3 text-xs">
-              <div className="min-w-0 flex-1">
+            <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between gap-3 text-xs w-full min-w-0">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <span className="font-semibold text-primary block">Doctor's Personalized Demo URL:</span>
                 <span className="text-[11px] text-muted-foreground truncate block">{activeDemoUrl}</span>
               </div>
@@ -867,7 +856,7 @@ export function AdminCrmPage() {
             </div>
           )}
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2 w-full">
             <Button
               variant="outline"
               size="sm"
@@ -876,7 +865,7 @@ export function AdminCrmPage() {
                 const waNum = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
                 window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(generatedMessage)}`, "_blank");
               }}
-              className="h-10 rounded-xl text-xs font-semibold gap-1.5"
+              className="h-10 rounded-xl text-xs font-semibold gap-1.5 w-full sm:w-auto"
             >
               <ExternalLink className="size-3.5" /> Open in WhatsApp Web
             </Button>
@@ -885,7 +874,7 @@ export function AdminCrmPage() {
               size="sm"
               disabled={isSendingOutreach || isGeneratingPitch}
               onClick={handleSendOutreach}
-              className="h-10 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 flex-1 shadow-md"
+              className="h-10 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 w-full sm:flex-1 shadow-md"
             >
               {isSendingOutreach ? (
                 <>
@@ -905,8 +894,8 @@ export function AdminCrmPage() {
 
       {/* Add New Doctor Lead Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-[480px] p-6 rounded-2xl border-border bg-background space-y-4">
-          <DialogHeader className="text-left space-y-1">
+        <DialogContent className="w-[95vw] max-w-[480px] p-5 sm:p-6 rounded-2xl border-border bg-background space-y-4">
+          <DialogHeader className="text-left space-y-1 pr-8">
             <DialogTitle className="text-lg font-bold text-foreground">Add New Doctor / Clinic Lead</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Add a lead to the CRM to start automated human outreach and demo delivery.
@@ -1017,10 +1006,10 @@ export function AdminCrmPage() {
 
       {/* Edit Doctor Lead Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl border-border bg-background space-y-4">
-          <DialogHeader className="text-left space-y-1">
+        <DialogContent className="w-[95vw] max-w-[520px] p-5 sm:p-6 rounded-2xl border-border bg-background space-y-4">
+          <DialogHeader className="text-left space-y-1 pr-8">
             <div className="flex items-center gap-2">
-              <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                 <Edit3 className="size-4" />
               </div>
               <DialogTitle className="text-lg font-bold text-foreground">

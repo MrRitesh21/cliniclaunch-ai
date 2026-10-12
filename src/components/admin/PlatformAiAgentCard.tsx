@@ -227,8 +227,8 @@ export function PlatformAiAgentCard() {
 
       {/* AI Settings & Parameter Customizer Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pr-8">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Bot className="size-4 text-primary" /> Configure Platform AI Agent Parameters
             </DialogTitle>
