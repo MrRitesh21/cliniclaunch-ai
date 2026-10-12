@@ -460,12 +460,24 @@ async function getOrCreateSession(sessionId: string, autoConnect = true): Promis
 
       // Immediate reply dispatch if returned directly in webhook response
       if (webhookRes && webhookRes.reply) {
+        const textReply = String(webhookRes.reply);
+        const preview = textReply.slice(0, 40).replace(/\n/g, " ");
+        let altJid = realPhone ? (realPhone.replace(/\D/g, "") + "@s.whatsapp.net") : null;
+        if (altJid === remoteJid) altJid = null;
+
         try {
-          const preview = String(webhookRes.reply).slice(0, 40).replace(/\n/g, " ");
           logger.info({ session: cleanSid, remoteJid, preview }, "Dispatching AI reply via isolated socket");
-          await sock.sendMessage(remoteJid, { text: String(webhookRes.reply) });
+          await sock.sendMessage(remoteJid, { text: textReply });
         } catch (sendErr: any) {
-          logger.error({ session: cleanSid, err: sendErr.message }, "Error sending AI reply");
+          logger.error({ session: cleanSid, remoteJid, err: sendErr.message }, "Error sending AI reply to primary remoteJid");
+          if (altJid) {
+            try {
+              logger.info({ session: cleanSid, altJid }, "Retrying AI reply via alternate phone JID");
+              await sock.sendMessage(altJid, { text: textReply });
+            } catch (altErr: any) {
+              logger.error({ session: cleanSid, altJid, err: altErr.message }, "Failed to send AI reply via alternate JID");
+            }
+          }
         }
       }
 
