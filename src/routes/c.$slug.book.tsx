@@ -30,6 +30,8 @@ import {
   CalendarPlus,
   MessageCircle,
   Loader2,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { buildIcsDataUrl, buildWhatsAppShareUrl } from "@/lib/booking-share";
 
@@ -89,6 +91,9 @@ function resolveSchedule(schedule: any, fallbackWh: any) {
     const activeDays: number[] = [];
     let defaultStart = "09:00";
     let defaultEnd = "17:00";
+    let defaultStart2 = "17:00";
+    let defaultEnd2 = "21:00";
+    const isTwoShifts = Boolean(schedule.is_two_shifts);
 
     DAY_NAMES.forEach((dayName, idx) => {
       const dayObj = schedule[dayName];
@@ -96,11 +101,21 @@ function resolveSchedule(schedule: any, fallbackWh: any) {
         activeDays.push(idx);
         if (dayObj.start) defaultStart = dayObj.start;
         if (dayObj.end) defaultEnd = dayObj.end;
+        if (dayObj.start2) defaultStart2 = dayObj.start2;
+        if (dayObj.end2) defaultEnd2 = dayObj.end2;
       }
     });
 
     if (activeDays.length > 0) {
-      return { days: activeDays, start: defaultStart, end: defaultEnd, perDay: schedule };
+      return {
+        days: activeDays,
+        start: defaultStart,
+        end: defaultEnd,
+        start2: defaultStart2,
+        end2: defaultEnd2,
+        is_two_shifts: isTwoShifts,
+        perDay: schedule,
+      };
     }
   }
 
@@ -115,7 +130,15 @@ function resolveSchedule(schedule: any, fallbackWh: any) {
   const start = typeof rawWh.start === "string" && rawWh.start ? rawWh.start : "09:00";
   const end = typeof rawWh.end === "string" && rawWh.end ? rawWh.end : "17:00";
 
-  return { days: days.length > 0 ? days : [1, 2, 3, 4, 5], start, end, perDay: null };
+  return {
+    days: days.length > 0 ? days : [1, 2, 3, 4, 5],
+    start,
+    end,
+    start2: "17:00",
+    end2: "21:00",
+    is_two_shifts: false,
+    perDay: null,
+  };
 }
 
 function formatTime12h(d?: Date | null): string {
@@ -368,6 +391,9 @@ function BookPage() {
     if (!selectedDay) return [];
     let startStr = activeSchedule.start;
     let endStr = activeSchedule.end;
+    let hasShift2 = Boolean(activeSchedule.is_two_shifts);
+    let start2Str = activeSchedule.start2 || "17:00";
+    let end2Str = activeSchedule.end2 || "21:00";
 
     if (activeSchedule.perDay) {
       const dayName = DAY_NAMES[selectedDay.getDay()];
@@ -375,27 +401,58 @@ function BookPage() {
       if (customDay && typeof customDay === "object") {
         if (customDay.start) startStr = customDay.start;
         if (customDay.end) endStr = customDay.end;
+        if (typeof customDay.shift2_enabled === "boolean") {
+          hasShift2 = customDay.shift2_enabled;
+        }
+        if (customDay.start2) start2Str = customDay.start2;
+        if (customDay.end2) end2Str = customDay.end2;
       }
     }
 
-    const [sh, sm] = (startStr || "09:00").split(":").map((v) => Number(v) || 0);
-    const [eh, em] = (endStr || "17:00").split(":").map((v) => Number(v) || 0);
-    const start = new Date(selectedDay);
-    start.setHours(sh, sm, 0, 0);
-    const end = new Date(selectedDay);
-    end.setHours(eh, em, 0, 0);
     const now = new Date();
     const out: Date[] = [];
+
+    // Shift 1 (Morning / Standard Shift)
+    const [sh1, sm1] = (startStr || "09:00").split(":").map((v) => Number(v) || 0);
+    const [eh1, em1] = (endStr || "13:00").split(":").map((v) => Number(v) || 0);
+    const start1 = new Date(selectedDay);
+    start1.setHours(sh1, sm1, 0, 0);
+    const end1 = new Date(selectedDay);
+    end1.setHours(eh1, em1, 0, 0);
+
     for (
-      let t = start.getTime();
-      t + SLOT_MINUTES * 60_000 <= end.getTime();
+      let t = start1.getTime();
+      t + SLOT_MINUTES * 60_000 <= end1.getTime();
       t += SLOT_MINUTES * 60_000
     ) {
       const d = new Date(t);
       if (d > now) out.push(d);
     }
+
+    // Shift 2 (Evening Shift - only if enabled)
+    if (hasShift2 && start2Str && end2Str) {
+      const [sh2, sm2] = start2Str.split(":").map((v) => Number(v) || 0);
+      const [eh2, em2] = end2Str.split(":").map((v) => Number(v) || 0);
+      const start2 = new Date(selectedDay);
+      start2.setHours(sh2, sm2, 0, 0);
+      const end2 = new Date(selectedDay);
+      end2.setHours(eh2, em2, 0, 0);
+
+      for (
+        let t = start2.getTime();
+        t + SLOT_MINUTES * 60_000 <= end2.getTime();
+        t += SLOT_MINUTES * 60_000
+      ) {
+        const d = new Date(t);
+        if (d > now) out.push(d);
+      }
+    }
+
     return out;
   }, [selectedDay, activeSchedule]);
+
+  const morningSlots = useMemo(() => slots.filter((s) => s.getHours() < 14), [slots]);
+  const eveningSlots = useMemo(() => slots.filter((s) => s.getHours() >= 14), [slots]);
 
   const nameError =
     form.name.trim().length === 0
@@ -815,6 +872,70 @@ function BookPage() {
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="size-4" /> No slots available for this day.
                 </p>
+              ) : morningSlots.length > 0 && eveningSlots.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Morning Shift */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+                      <Sun className="size-3.5" /> Morning Shift ({morningSlots.length} slots)
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                      {morningSlots.map((s) => {
+                        const iso = s.toISOString();
+                        const taken = bookedAt.has(s.getTime());
+                        const active = selectedSlot?.toISOString() === iso;
+                        return (
+                          <button
+                            type="button"
+                            key={iso}
+                            disabled={taken || loadingSlots}
+                            onClick={() => setSelectedSlot(s)}
+                            className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${
+                              taken
+                                ? "opacity-35 cursor-not-allowed line-through bg-muted"
+                                : active
+                                  ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+                                  : "hover:bg-accent hover:border-primary/30"
+                            }`}
+                          >
+                            {formatTime12h(s)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Evening Shift */}
+                  <div className="space-y-2 pt-3 border-t border-border/60">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                      <Moon className="size-3.5" /> Evening Shift ({eveningSlots.length} slots)
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                      {eveningSlots.map((s) => {
+                        const iso = s.toISOString();
+                        const taken = bookedAt.has(s.getTime());
+                        const active = selectedSlot?.toISOString() === iso;
+                        return (
+                          <button
+                            type="button"
+                            key={iso}
+                            disabled={taken || loadingSlots}
+                            onClick={() => setSelectedSlot(s)}
+                            className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${
+                              taken
+                                ? "opacity-35 cursor-not-allowed line-through bg-muted"
+                                : active
+                                  ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+                                  : "hover:bg-accent hover:border-primary/30"
+                            }`}
+                          >
+                            {formatTime12h(s)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
                   {slots.map((s) => {

@@ -53,8 +53,17 @@ export const Route = createFileRoute("/_authenticated/dashboard/doctors")({
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 type Day = (typeof DAYS)[number];
-type DayHours = { enabled: boolean; start: string; end: string };
-type WeeklySchedule = Record<Day, DayHours>;
+type DayHours = {
+  enabled: boolean;
+  start: string; // Shift 1 start
+  end: string; // Shift 1 end
+  shift2_enabled?: boolean;
+  start2?: string; // Shift 2 start
+  end2?: string; // Shift 2 end
+};
+type WeeklySchedule = {
+  is_two_shifts?: boolean;
+} & Record<Day, DayHours>;
 
 const DAY_LABELS: Record<Day, string> = {
   monday: "Mon",
@@ -66,25 +75,43 @@ const DAY_LABELS: Record<Day, string> = {
   sunday: "Sun",
 };
 
-function defaultSchedule(): WeeklySchedule {
-  return Object.fromEntries(
-    DAYS.map((d) => [d, { enabled: d !== "sunday", start: "09:00", end: "18:00" }]),
-  ) as WeeklySchedule;
+function defaultSchedule(isTwoShifts = false): WeeklySchedule {
+  const sched: any = { is_two_shifts: isTwoShifts };
+  for (const d of DAYS) {
+    sched[d] = {
+      enabled: d !== "sunday",
+      start: isTwoShifts ? "10:00" : "09:00",
+      end: isTwoShifts ? "13:00" : "18:00",
+      shift2_enabled: isTwoShifts,
+      start2: "17:00",
+      end2: "21:00",
+    };
+  }
+  return sched as WeeklySchedule;
 }
 
 function normalizeSchedule(raw?: unknown): WeeklySchedule {
-  const base = defaultSchedule();
+  const base = defaultSchedule(false);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const rawObj = raw as Record<string, any>;
+  let anyShift2 = Boolean(rawObj.is_two_shifts);
+
   for (const day of DAYS) {
-    const d = (raw as Record<string, any>)[day];
+    const d = rawObj[day];
     if (d && typeof d === "object") {
+      const hasShift2 = Boolean(d.shift2_enabled || (d.start2 && d.end2));
+      if (hasShift2) anyShift2 = true;
       base[day] = {
         enabled: typeof d.enabled === "boolean" ? d.enabled : day !== "sunday",
-        start: typeof d.start === "string" && d.start ? d.start : "09:00",
-        end: typeof d.end === "string" && d.end ? d.end : "18:00",
+        start: typeof d.start === "string" && d.start ? d.start : "10:00",
+        end: typeof d.end === "string" && d.end ? d.end : "13:00",
+        shift2_enabled: typeof d.shift2_enabled === "boolean" ? d.shift2_enabled : hasShift2,
+        start2: typeof d.start2 === "string" && d.start2 ? d.start2 : "17:00",
+        end2: typeof d.end2 === "string" && d.end2 ? d.end2 : "21:00",
       };
     }
   }
+  base.is_two_shifts = anyShift2;
   return base;
 }
 
@@ -725,93 +752,195 @@ function DoctorsPage() {
             </div>
 
             {/* Weekly schedule */}
-            <div className="space-y-2 pt-2 border-t border-border/60">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Clock className="size-3.5" /> Weekly Working Hours
-              </Label>
-              <div className="space-y-1.5 bg-muted/20 p-2.5 rounded-xl border border-border/60">
-                {DAYS.map((day) => {
-                  const d = form.working_hours?.[day] ?? { enabled: false, start: "09:00", end: "18:00" };
-                  return (
-                    <div key={day} className="flex items-center gap-2 justify-between">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((f) => {
-                            const current = f.working_hours?.[day] ?? {
-                              enabled: false,
-                              start: "09:00",
-                              end: "18:00",
-                            };
-                            return {
-                              ...f,
-                              working_hours: {
-                                ...f.working_hours,
-                                [day]: {
-                                  ...current,
-                                  enabled: !current.enabled,
-                                },
-                              },
-                            };
-                          })
+            <div className="space-y-2.5 pt-2 border-t border-border/60">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="size-3.5" /> Weekly Working Hours
+                </Label>
+                {/* 2-Shift Toggle */}
+                <div className="flex items-center gap-2 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
+                  <span className="text-[11px] font-semibold text-foreground">
+                    2 Shifts (Morning &amp; Evening)
+                  </span>
+                  <Switch
+                    checked={Boolean(form.working_hours?.is_two_shifts)}
+                    onCheckedChange={(checked) => {
+                      setForm((f) => {
+                        const curSched = f.working_hours || defaultSchedule(checked);
+                        const updatedDays: any = {
+                          ...curSched,
+                          is_two_shifts: checked,
+                        };
+                        for (const day of DAYS) {
+                          const cur = curSched[day] ?? { enabled: day !== "sunday", start: "09:00", end: "18:00" };
+                          updatedDays[day] = {
+                            ...cur,
+                            start: checked && cur.start === "09:00" && cur.end === "18:00" ? "10:00" : cur.start,
+                            end: checked && cur.start === "09:00" && cur.end === "18:00" ? "13:00" : cur.end,
+                            shift2_enabled: checked,
+                            start2: cur.start2 || "17:00",
+                            end2: cur.end2 || "21:00",
+                          };
                         }
-                        className={`w-11 text-center text-xs font-semibold rounded-lg py-1 border transition ${
-                          d.enabled
-                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                            : "bg-muted text-muted-foreground border-border/80"
-                        }`}
-                      >
-                        {DAY_LABELS[day]}
-                      </button>
+                        return {
+                          ...f,
+                          working_hours: updatedDays,
+                        };
+                      });
+                    }}
+                  />
+                </div>
+              </div>
 
-                      {d.enabled ? (
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="time"
-                            value={d.start}
-                            onChange={(e) =>
-                              setForm((f) => ({
+              <div className="space-y-2 bg-muted/20 p-2.5 rounded-xl border border-border/60">
+                {DAYS.map((day) => {
+                  const d = form.working_hours?.[day] ?? {
+                    enabled: false,
+                    start: "09:00",
+                    end: "18:00",
+                    shift2_enabled: false,
+                    start2: "17:00",
+                    end2: "21:00",
+                  };
+                  const isTwo = Boolean(form.working_hours?.is_two_shifts);
+
+                  return (
+                    <div
+                      key={day}
+                      className={`flex flex-col sm:flex-row sm:items-center gap-2 justify-between p-2 rounded-lg border transition ${
+                        d.enabled ? "bg-background/90 border-border/70" : "bg-muted/10 border-transparent opacity-60"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => {
+                              const current = f.working_hours?.[day] ?? {
+                                enabled: false,
+                                start: isTwo ? "10:00" : "09:00",
+                                end: isTwo ? "13:00" : "18:00",
+                                shift2_enabled: isTwo,
+                                start2: "17:00",
+                                end2: "21:00",
+                              };
+                              return {
                                 ...f,
                                 working_hours: {
                                   ...f.working_hours,
                                   [day]: {
-                                    ...(f.working_hours?.[day] ?? {
-                                      enabled: true,
-                                      start: "09:00",
-                                      end: "18:00",
-                                    }),
-                                    start: e.target.value,
+                                    ...current,
+                                    enabled: !current.enabled,
                                   },
                                 },
-                              }))
-                            }
-                            className="h-7 border border-border/80 rounded-lg px-2 text-xs bg-background"
-                          />
-                          <span className="text-muted-foreground text-xs">to</span>
-                          <input
-                            type="time"
-                            value={d.end}
-                            onChange={(e) =>
-                              setForm((f) => ({
-                                ...f,
-                                working_hours: {
-                                  ...f.working_hours,
-                                  [day]: {
-                                    ...(f.working_hours?.[day] ?? {
-                                      enabled: true,
-                                      start: "09:00",
-                                      end: "18:00",
-                                    }),
-                                    end: e.target.value,
+                              };
+                            })
+                          }
+                          className={`w-11 text-center text-xs font-semibold rounded-lg py-1 border transition ${
+                            d.enabled
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                              : "bg-muted text-muted-foreground border-border/80"
+                          }`}
+                        >
+                          {DAY_LABELS[day]}
+                        </button>
+                        {!d.enabled && (
+                          <span className="text-xs text-muted-foreground font-medium">Closed</span>
+                        )}
+                      </div>
+
+                      {d.enabled && (
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-1 justify-end">
+                          {/* Shift 1 (Morning) */}
+                          <div className="flex items-center gap-1.5">
+                            {isTwo && (
+                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                                Morning
+                              </span>
+                            )}
+                            <input
+                              type="time"
+                              value={d.start}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  working_hours: {
+                                    ...f.working_hours,
+                                    [day]: {
+                                      ...(f.working_hours?.[day] ?? d),
+                                      start: e.target.value,
+                                    },
                                   },
-                                },
-                              }))
-                            }
-                            className="h-7 border border-border/80 rounded-lg px-2 text-xs bg-background"
-                          />
+                                }))
+                              }
+                              className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                            />
+                            <span className="text-muted-foreground text-xs">to</span>
+                            <input
+                              type="time"
+                              value={d.end}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  working_hours: {
+                                    ...f.working_hours,
+                                    [day]: {
+                                      ...(f.working_hours?.[day] ?? d),
+                                      end: e.target.value,
+                                    },
+                                  },
+                                }))
+                              }
+                              className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                            />
+                          </div>
+
+                          {/* Shift 2 (Evening) */}
+                          {isTwo && (
+                            <div className="flex items-center gap-1.5 pt-1 sm:pt-0 sm:border-l sm:border-border/60 sm:pl-3">
+                              <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 rounded">
+                                Evening
+                              </span>
+                              <input
+                                type="time"
+                                value={d.start2 ?? "17:00"}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    working_hours: {
+                                      ...f.working_hours,
+                                      [day]: {
+                                        ...(f.working_hours?.[day] ?? d),
+                                        shift2_enabled: true,
+                                        start2: e.target.value,
+                                      },
+                                    },
+                                  }))
+                                }
+                                className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                              />
+                              <span className="text-muted-foreground text-xs">to</span>
+                              <input
+                                type="time"
+                                value={d.end2 ?? "21:00"}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    working_hours: {
+                                      ...f.working_hours,
+                                      [day]: {
+                                        ...(f.working_hours?.[day] ?? d),
+                                        shift2_enabled: true,
+                                        end2: e.target.value,
+                                      },
+                                    },
+                                  }))
+                                }
+                                className="h-7 border border-border/80 rounded-lg px-1.5 text-xs bg-background"
+                              />
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground font-medium pr-4">Closed</span>
                       )}
                     </div>
                   );

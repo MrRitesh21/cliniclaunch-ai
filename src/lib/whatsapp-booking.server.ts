@@ -33,6 +33,7 @@ export interface MergedDoctor {
   fee: number;
   experience_years: number | null;
   isOwner: boolean;
+  workingHoursText?: string;
 }
 
 interface ParsedBookingIntent {
@@ -126,7 +127,11 @@ function formatClinicSchedule(clinic: any): string {
     if (item && item.enabled) {
       activeDays.push(dayLabels[d]);
       if (!sampleHours && item.start && item.end) {
-        sampleHours = `${format12Hour(item.start)} – ${format12Hour(item.end)}`;
+        if (item.shift2_enabled && item.start2 && item.end2) {
+          sampleHours = `Morning ${format12Hour(item.start)} – ${format12Hour(item.end)} & Evening ${format12Hour(item.start2)} – ${format12Hour(item.end2)}`;
+        } else {
+          sampleHours = `${format12Hour(item.start)} – ${format12Hour(item.end)}`;
+        }
       }
     }
   }
@@ -139,6 +144,20 @@ function formatClinicSchedule(clinic: any): string {
   const hours = sampleHours || "9:00 AM – 8:00 PM";
   const sunClosed = wh.sunday && !wh.sunday.enabled ? " (Sunday Closed)" : "";
   return `${range}: ${hours}${sunClosed}`;
+}
+
+/** Format a doctor's shift hours into a concise readable string */
+function formatDoctorShifts(wh: any): string {
+  if (!wh || typeof wh !== "object" || Array.isArray(wh)) return "";
+  const firstDay = Object.values(wh).find((v: any) => v && typeof v === "object" && v.enabled) as any;
+  if (!firstDay) return "";
+  if (firstDay.shift2_enabled && firstDay.start2 && firstDay.end2) {
+    return `Morning: ${format12Hour(firstDay.start)}–${format12Hour(firstDay.end)}, Evening: ${format12Hour(firstDay.start2)}–${format12Hour(firstDay.end2)}`;
+  }
+  if (firstDay.start && firstDay.end) {
+    return `${format12Hour(firstDay.start)}–${format12Hour(firstDay.end)}`;
+  }
+  return "";
 }
 
 /**
@@ -386,7 +405,7 @@ async function extractBookingDetailsAI(opts: {
   const doctorsCatalog = opts.doctors
     .map(
       (d, i) =>
-        `${i + 1}. ${d.name} (${d.specialization}${d.qualification ? `, ${d.qualification}` : ""}) — Fee: ₹${d.fee} [ID: ${d.id || "owner"}]`,
+        `${i + 1}. ${d.name} (${d.specialization}${d.qualification ? `, ${d.qualification}` : ""}) — Fee: ₹${d.fee}${d.workingHoursText ? ` — Shifts: ${d.workingHoursText}` : ""} [ID: ${d.id || "owner"}]`,
     )
     .join("\n");
 
@@ -422,7 +441,10 @@ ROLES & RULES:
    - Extract patient_name, date (YYYY-MM-DD), time (HH:MM 24hr), problem.
    - NEVER output "ka naam", "patient", or symptom words as "patient_name". If actual person name is not stated, return null.
    - Set ready_to_book: true ONLY if both date and time are clear.
-6. TIMINGS & FEES:
+6. 2 SHIFTS & AFTERNOON BREAK:
+   - Doctors often sit in 2 shifts (Morning e.g. 10:00 AM – 1:00 PM and Evening e.g. 5:00 PM – 9:00 PM) with an afternoon break in between.
+   - Do not offer or book slots during afternoon break hours when the clinic/doctor is closed.
+7. TIMINGS & FEES:
    - If patient asks about fees, timings, or options, provide accurate factual details based STRICTLY on the doctors and timings above. DO NOT guess ₹500 if Dr. Durgesh is ₹300!
 
 CRITICAL JSON SCHEMA:
@@ -545,6 +567,7 @@ export async function processWhatsAppMessage(params: {
     fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
     experience_years: clinic.experience_years || null,
     isOwner: true,
+    workingHoursText: formatDoctorShifts(clinic.working_hours),
   };
 
   const otherDocs: MergedDoctor[] = (dbDoctors || [])
@@ -561,6 +584,7 @@ export async function processWhatsAppMessage(params: {
       fee: d.consultation_fee != null ? Number(d.consultation_fee) : 0,
       experience_years: d.experience_years || null,
       isOwner: false,
+      workingHoursText: formatDoctorShifts(d.working_hours),
     }));
 
   const allDoctors: MergedDoctor[] = [primaryDoc, ...otherDocs];
@@ -616,7 +640,7 @@ export async function processWhatsAppMessage(params: {
     const doctorsListDisplay = allDoctors
       .map(
         (d) =>
-          `• 👨‍⚕️ *${d.name}* (${d.specialization}${d.qualification ? ` - ${d.qualification}` : ""}): *₹${d.fee}*`,
+          `• 👨‍⚕️ *${d.name}* (${d.specialization}${d.qualification ? ` - ${d.qualification}` : ""}): *₹${d.fee}*${d.workingHoursText ? `\n   ⏰ _${d.workingHoursText}_` : ""}`,
       )
       .join("\n");
 
