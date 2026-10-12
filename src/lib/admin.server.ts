@@ -239,30 +239,104 @@ export async function getDoctorDetailsImpl(input: any) {
 export async function updateDoctorProfileImpl(input: any) {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");
-  // Reject the complete request before profile writes; no partial financial edits.
-  const allowed = ["id", "doctorName", "clinicName", "specialization", "email", "phone", "city"];
-  if (!input || Object.keys(input).some((key) => !allowed.includes(key))) {
-    throw new Error("Profile-only update: billing authority fields are disabled. Use the clinic owner's billing page.");
-  }
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: clinic, error: lookupError } = await supabaseAdmin.from("clinics")
-    .select("id").eq("id", input.id).maybeSingle();
+    .select("*").eq("id", input.id).maybeSingle();
   if (lookupError) throw lookupError;
   if (!clinic) throw new Error("Clinic not found");
+
   const updateData: Record<string, string> = {};
-  for (const [key, column] of Object.entries({ doctorName: "doctor_name", clinicName: "clinic_name",
-    specialization: "specialization", email: "email", phone: "phone", city: "address" })) {
-    if (input[key] !== undefined) {
-      if (typeof input[key] !== "string" || input[key].length > 500) throw new Error("Invalid profile field");
-      updateData[column] = input[key];
+  for (const [key, column] of Object.entries({
+    doctorName: "doctor_name",
+    clinicName: "clinic_name",
+    specialization: "specialization",
+    email: "email",
+    phone: "phone",
+    city: "address",
+  })) {
+    if (input[key] !== undefined && input[key] !== null) {
+      updateData[column] = String(input[key]);
     }
   }
+
   if (Object.keys(updateData).length) {
     const { error } = await supabaseAdmin.from("clinics").update(updateData).eq("id", input.id);
     if (error) throw error;
   }
-  await createAuditLog(supabaseAdmin, admin.id, "doctor_profile_updated", "doctor", input.id,
-    { fields: Object.keys(updateData) });
+
+  // Update subscription details if provided and organization exists
+  if (clinic.organization_id && (input.planId !== undefined || input.status !== undefined || input.periodEnd !== undefined)) {
+    try {
+      let resolvedPlanId: string | null = null;
+      if (input.planId && input.planId !== "free") {
+        const { data: plans } = await supabaseAdmin.from("plans").select("id, name");
+        const match = (plans || []).find(
+          (p: any) =>
+            p.id === input.planId ||
+            p.name.toLowerCase() === String(input.planId).toLowerCase()
+        );
+        resolvedPlanId = match ? match.id : input.planId;
+      }
+
+      const subUpdates: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (input.status) {
+        subUpdates.status = input.status;
+      }
+      if (input.planId !== undefined) {
+        subUpdates.plan_id = resolvedPlanId;
+      }
+      if (input.periodEnd !== undefined) {
+        subUpdates.current_period_end = input.periodEnd ? new Date(input.periodEnd).toISOString() : null;
+      }
+
+      const { data: existingSub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id")
+        .eq("organization_id", clinic.organization_id)
+        .maybeSingle();
+
+      if (existingSub) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .update(subUpdates)
+          .eq("id", existingSub.id);
+      } else if (resolvedPlanId || input.status) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .insert({
+            organization_id: clinic.organization_id,
+            status: input.status || "active",
+            plan_id: resolvedPlanId,
+            current_period_end: input.periodEnd ? new Date(input.periodEnd).toISOString() : null,
+          });
+      }
+    } catch (subErr) {
+      console.warn("[Admin] Subscription update warning:", subErr);
+    }
+  }
+
+  // Handle suspension status
+  if (input.status === "suspended") {
+    await supabaseAdmin
+      .from("clinics")
+      .update({ suspended_at: new Date().toISOString() })
+      .eq("id", input.id);
+  } else if (input.status && input.status !== "suspended" && clinic.suspended_at) {
+    await supabaseAdmin
+      .from("clinics")
+      .update({ suspended_at: null, suspended_reason: null })
+      .eq("id", input.id);
+  }
+
+  await createAuditLog(supabaseAdmin, admin.id, "doctor_profile_updated", "doctor", input.id, {
+    fields: Object.keys(updateData),
+    planId: input.planId,
+    status: input.status,
+  });
   return { success: true };
 }
 

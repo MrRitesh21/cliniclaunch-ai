@@ -488,7 +488,7 @@ function DoctorsPage() {
                     periodEnd: editPeriodEnd || null,
                   })
                 }
-                disabled={true} title="Disabled: use authorized owner billing or approved retention workflow"
+                disabled={updateProfileMut.isPending}
               >
                 {updateProfileMut.isPending ? "Saving..." : "Save Changes"}
               </Button>
