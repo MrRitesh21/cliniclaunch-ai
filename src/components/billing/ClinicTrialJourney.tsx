@@ -20,11 +20,13 @@ export function ClinicTrialJourney({
   snapshot,
   clinic,
   checklist = false,
+  hideWhenComplete = true,
   engagement: _engagement,
 }: {
   snapshot: SubscriptionSnapshot;
   clinic?: ActivationClinic | null;
   checklist?: boolean;
+  hideWhenComplete?: boolean;
   engagement?: TrialEngagement;
 }) {
   const steps = activationSteps(snapshot.usage, clinic ?? null);
@@ -56,6 +58,11 @@ export function ClinicTrialJourney({
   const [skipped, setSkipped] = useState<string[]>([]);
   const remainingCount = total - completed;
   const isFullySetup = completed === total;
+
+  // Once setup is 100% complete, hide the setup journey card so it doesn't take up daily dashboard space
+  if (hideWhenComplete && isFullySetup) {
+    return null;
+  }
 
   const stateLabel =
     snapshot.effective_state === "active"
