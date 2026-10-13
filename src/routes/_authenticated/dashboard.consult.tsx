@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import {
   Stethoscope,
@@ -28,10 +28,19 @@ import {
   MicOff,
   Sparkle,
   ArrowRight,
+  Copy,
+  RotateCcw,
+  Volume2,
+  AlertCircle,
+  HelpCircle,
+  Check,
+  Share2,
+  X,
+  History,
+  ShieldCheck,
+  Flame,
 } from "lucide-react";
 import { AppGuard } from "@/components/app/AppGuard";
-import { EmptyState } from "@/components/app/EmptyState";
-import { StatsCard } from "@/components/app/StatsCard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useClinic } from "./dashboard";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,16 +49,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard/consult")({
   validateSearch: (
@@ -101,7 +108,7 @@ type QueuePatient = {
   scheduled_at?: string;
 };
 
-type PatientOpt = { id: string; name: string; phone: string | null };
+type PatientOpt = { id: string; name: string; phone: string | null; age?: number | null; gender?: string | null };
 
 function escapeHtml(str?: string | null): string {
   if (!str) return "";
@@ -113,6 +120,38 @@ function escapeHtml(str?: string | null): string {
     .replace(/'/g, "&#039;");
 }
 
+function playAudioChime(type: "call" | "complete" = "complete") {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "complete") {
+      // Pleasant double chord (C5 -> G5)
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } else {
+      // Bell chime for calling next patient (E5 -> A5)
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(880.0, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    }
+  } catch {
+    // Audio restricted until first user interaction
+  }
+}
+
 function getBpStatus(bp: string) {
   if (!bp || !bp.includes("/")) return null;
   const [sysStr, diaStr] = bp.split("/");
@@ -120,77 +159,126 @@ function getBpStatus(bp: string) {
   const dia = parseInt(diaStr);
   if (isNaN(sys) || isNaN(dia)) return null;
   if (sys >= 140 || dia >= 90)
-    return { label: "High BP", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
+    return { label: "⚠️ High BP (HTN)", color: "text-red-700 bg-red-500/15 border-red-500/30" };
   if (sys < 90 || dia < 60)
-    return { label: "Low BP", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20 border-blue-200" };
-  return { label: "Normal BP", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
+    return { label: "⚠️ Low BP", color: "text-blue-700 bg-blue-500/15 border-blue-500/30" };
+  return { label: "✓ Normal BP", color: "text-emerald-700 bg-emerald-500/15 border-emerald-500/30" };
 }
 
 function getTempStatus(temp: string) {
   if (!temp) return null;
   const t = parseFloat(temp);
   if (isNaN(t)) return null;
-  if (t >= 100.4) return { label: "High Fever", color: "text-red-600 bg-red-50 dark:bg-red-950/20 border-red-200" };
-  if (t >= 99.0) return { label: "Mild Fever", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20 border-amber-200" };
-  return { label: "Normal Temp", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
+  if (t >= 100.4)
+    return { label: "🔥 High Fever (≥100.4°)", color: "text-red-700 bg-red-500/15 border-red-500/30" };
+  if (t >= 99.0)
+    return { label: "🌡️ Mild Fever", color: "text-amber-700 bg-amber-500/15 border-amber-500/30" };
+  return { label: "✓ Normal Temp", color: "text-emerald-700 bg-emerald-500/15 border-emerald-500/30" };
 }
 
-const PRESETS: Record<string, { label: string; complaint: string; diagnosis: string; history: string; plan: string }> = {
+function getBmi(weightKg: string, heightCm: string) {
+  const w = parseFloat(weightKg);
+  const h = parseFloat(heightCm);
+  if (isNaN(w) || isNaN(h) || h <= 0) return null;
+  const bmiVal = (w / ((h / 100) * (h / 100))).toFixed(1);
+  const num = parseFloat(bmiVal);
+  let category = "Normal";
+  let color = "text-emerald-700 bg-emerald-500/15 border-emerald-500/30";
+  if (num < 18.5) {
+    category = "Underweight";
+    color = "text-blue-700 bg-blue-500/15 border-blue-500/30";
+  } else if (num >= 25 && num < 30) {
+    category = "Overweight";
+    color = "text-amber-700 bg-amber-500/15 border-amber-500/30";
+  } else if (num >= 30) {
+    category = "Obese";
+    color = "text-red-700 bg-red-500/15 border-red-500/30";
+  }
+  return { val: bmiVal, category, color };
+}
+
+const PRESETS: Record<string, { label: string; complaint: string; diagnosis: string; history: string; plan: string; followUpDays: number }> = {
   fever: {
-    label: "🌡️ Fever / Cold",
-    complaint: "Acute viral fever with body ache and chills",
-    diagnosis: "Viral Pyrexia / Upper Respiratory Infection",
-    history: "Fever for 2-3 days associated with fatigue and headache. No warning signs.",
-    plan: "• Tab Paracetamol 650mg — 1-0-1 after food x 3 days\n• Tab Levocetirizine 5mg — 0-0-1 at night x 5 days\n• Syp ORS / Electral — 1 sachet in 1L water sip through day\n• Warm fluid intake & physical rest. Follow-up if fever persists after 3 days.",
+    label: "🌡️ Viral Fever / URI",
+    complaint: "Acute fever with chills, body ache, and general fatigue for 2-3 days",
+    diagnosis: "Acute Viral Pyrexia / Upper Respiratory Infection",
+    history: "Sudden onset fever, mild nasal congestion. No chest pain or respiratory distress.",
+    plan: "• Tab Paracetamol 650mg — 1-0-1 after food x 3 days\n• Tab Levocetirizine 5mg — 0-0-1 at night x 5 days\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Syp ORS / Electral — 1 sachet in 1L water sip continuously\n• Rest, plenty of warm fluids & sponge bath if temp > 101°F.",
+    followUpDays: 3,
   },
   throat: {
-    label: "🗣️ Sore Throat",
-    complaint: "Sore throat and painful swallowing with dry cough",
-    diagnosis: "Acute Pharyngitis / Tonsillitis",
-    history: "Throat pain for 2 days, aggravated on swallowing. Mild dry cough.",
-    plan: "• Tab Amoxicillin+Clav 625mg — 1-0-1 after meals x 5 days\n• Tab Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Betadine gargles twice daily with warm water\n• Avoid chilled water and oily food.",
+    label: "🗣️ Sore Throat / Tonsils",
+    complaint: "Throat pain, painful swallowing (odynophagia), and dry cough for 2 days",
+    diagnosis: "Acute Pharyngitis / Follicular Tonsillitis",
+    history: "Sore throat aggravated by cold fluids. Mild anterior cervical tenderness.",
+    plan: "• Tab Amoxicillin+Clav 625mg — 1-0-1 after meals x 5 days\n• Tab Aceclofenac + Paracetamol — 1-0-1 after food x 3 days SOS\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Betadine Gargles (2%) — twice daily in warm water\n• Avoid cold/oily food and aerated drinks.",
+    followUpDays: 5,
   },
   hypertension: {
-    label: "❤️ BP Refill",
-    complaint: "Routine blood pressure check & refill",
-    diagnosis: "Essential Hypertension (Controlled)",
-    history: "Patient on regular antihypertensive therapy. No chest tightness or palpitations.",
-    plan: "• Tab Telmisartan 40mg — 1-0-0 morning x 30 days\n• Low sodium diet (< 2g/day) & regular 30m brisk walking\n• Self BP monitoring weekly. Follow up in 3 months.",
+    label: "❤️ BP Refill / HTN",
+    complaint: "Routine monthly blood pressure check-up and medication refill",
+    diagnosis: "Essential Hypertension (Stage 1 / Controlled)",
+    history: "Known hypertensive on regular treatment. No headache, chest pain, or palpitations.",
+    plan: "• Tab Telmisartan 40mg — 1-0-0 morning x 30 days\n• Tab Amlodipine 5mg — 0-0-1 night (if BP > 140/90)\n• Low sodium diet (< 2g/day), restrict papad/pickles\n• 30 mins brisk walking daily. Self BP monitoring weekly.",
+    followUpDays: 30,
+  },
+  diabetes: {
+    label: "🩸 Diabetes Refill",
+    complaint: "Routine blood glucose monitoring & medication refill",
+    diagnosis: "Type 2 Diabetes Mellitus (Controlled)",
+    history: "Diabetic on oral hypoglycemics. No polyuria, polydipsia, or hypoglycemic spells.",
+    plan: "• Tab Metformin 500mg SR — 1-0-1 with meals x 30 days\n• Tab Glimepiride 1mg — 1-0-0 before breakfast x 30 days\n• Cap B-Complex with Zinc — 0-1-0 after lunch x 30 days\n• Strict diabetic diet, zero refined sugar, daily foot inspection\n• Fasting & PP blood sugar test before next review.",
+    followUpDays: 30,
   },
   gastritis: {
     label: "🔥 Acidity / GERD",
-    complaint: "Epigastric burning pain, acid reflux, and bloating",
-    diagnosis: "Acute GERD / Dyspepsia",
-    history: "Heartburn and postprandial fullness for 4 days after irregular eating habits.",
-    plan: "• Cap Rabeprazole 20mg + Domperidone 30mg — 1-0-0 before breakfast x 10 days\n• Antacid Gelucil Syrup — 10ml after meals SOS\n• Avoid spicy, fried food and tea on empty stomach.\n• Early dinner 2 hours before bedtime.",
-  },
-  skin: {
-    label: "🌿 Skin Allergy",
-    complaint: "Itchy red rash with localized itching",
-    diagnosis: "Allergic Contact Dermatitis / Urticaria",
-    history: "Itching and erythematous papules for 3 days. No breathing difficulty.",
-    plan: "• Tab Bilastine 20mg — 0-0-1 at night x 7 days\n• Calamine lotion topically twice daily\n• Tab Pantoprazole 40mg — 1-0-0 before breakfast x 7 days\n• Avoid synthetic fabrics and harsh soaps.",
+    complaint: "Heartburn, retrosternal burning, and acid regurgitation after meals",
+    diagnosis: "Gastroesophageal Reflux Disease (GERD) / Dyspepsia",
+    history: "Epigastric discomfort and bloating for 4 days after irregular eating habits.",
+    plan: "• Cap Rabeprazole 20mg + Domperidone 30mg — 1-0-0 before breakfast x 10 days\n• Syp Gelusil / Digene — 10ml after food x 5 days SOS\n• Tab Ondansetron 4mg — 1 tab SOS for nausea\n• Avoid spicy, fried foods, tea/coffee on empty stomach\n• Maintain 2 hours gap between dinner and sleeping.",
+    followUpDays: 7,
   },
   gastro: {
-    label: "🤢 Diarrhea / Gastro",
-    complaint: "Loose stools (3-4 episodes), mild abdominal cramps, and nausea",
-    diagnosis: "Acute Gastroenteritis / Food Intolerance",
-    history: "Sudden onset loose stools after outside food. Mild dehydration.",
-    plan: "• Tab Ofloxacin + Ornidazole — 1-0-1 after meals x 3 days\n• Tab Ondansetron 4mg — 1 tab SOS for nausea\n• Syp ORS Electral — 1 sachet in 1L water sip continuously\n• Light khichdi / curd-rice diet.",
+    label: "🤢 Diarrhea / Loose Stools",
+    complaint: "Frequent watery stools (4-5 episodes), mild cramping, and nausea",
+    diagnosis: "Acute Gastroenteritis / Food-Borne Infection",
+    history: "Sudden onset loose motions following outside food intake. Mild dehydration.",
+    plan: "• Tab Ofloxacin 200mg + Ornidazole 500mg — 1-0-1 after meals x 3 days\n• Tab Ondansetron 4mg — 1 tab SOS for vomiting\n• Cap Racecadotril 100mg — 1-1-1 before meals x 2 days\n• Syp ORS Electral — 1 sachet in 1L water sip continuously\n• Bland diet: curd rice, light khichdi, avoid milk and spicy food.",
+    followUpDays: 3,
+  },
+  allergy: {
+    label: "🌿 Skin Allergy / Rash",
+    complaint: "Intense generalized itching with erythematous raised rashes / hives",
+    diagnosis: "Acute Urticaria / Allergic Contact Dermatitis",
+    history: "Itching and wheals started 24h ago. No breathing difficulty or lip swelling.",
+    plan: "• Tab Bilastine 20mg — 0-0-1 at bedtime x 7 days\n• Tab Montelukast+Levocet 10/5 — 0-0-1 at night x 5 days\n• Calamine Lotion — apply gently over itchy areas twice daily\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 7 days\n• Avoid synthetic clothes, hot water bath, and suspected food triggers.",
+    followUpDays: 5,
+  },
+  bodyache: {
+    label: "🦴 Body Ache / Myalgia",
+    complaint: "Generalized body ache, muscular fatigue, and back stiffness",
+    diagnosis: "Acute Musculoskeletal Strain / Myalgia",
+    history: "Physical exertion and poor posture leading to lumbar and neck stiffness.",
+    plan: "• Tab Aceclofenac 100mg + Paracetamol 325mg — 1-0-1 after food x 5 days\n• Cap Thiocolchicoside 4mg — 1-0-1 after food x 3 days\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Hot fomentation 15 mins twice daily & posture ergonomics\n• Avoid heavy lifting for 1 week.",
+    followUpDays: 7,
   },
 };
 
 const FAST_MEDS = [
   { name: "Tab Paracetamol 650mg", dose: "1-0-1 after food x 3 days" },
-  { name: "Tab Amoxicillin+Clav 625mg", dose: "1-0-1 after meals x 5 days" },
+  { name: "Tab Augmentin 625mg (Amox-Clav)", dose: "1-0-1 after meals x 5 days" },
   { name: "Tab Azithromycin 500mg", dose: "1-0-0 before meals x 3 days" },
-  { name: "Tab Pantoprazole 40mg", dose: "1-0-0 before breakfast x 7 days" },
+  { name: "Tab Aceclofenac+Paracetamol", dose: "1-0-1 after food x 3 days SOS" },
+  { name: "Cap Pantoprazole 40mg+Domp", dose: "1-0-0 before breakfast x 7 days" },
   { name: "Tab Levocetirizine 5mg", dose: "0-0-1 at night x 5 days" },
-  { name: "Tab Montelukast+Levocet 10/5", dose: "0-0-1 at night x 5 days" },
+  { name: "Tab Montelukast+Levocet 10/5", dose: "0-0-1 at night x 7 days" },
   { name: "Tab Telmisartan 40mg", dose: "1-0-0 morning x 30 days" },
   { name: "Tab Metformin 500mg", dose: "1-0-1 with meals x 30 days" },
   { name: "Tab Ondansetron 4mg", dose: "1 tab SOS for nausea" },
+  { name: "Tab Ofloxacin+Ornidazole", dose: "1-0-1 after meals x 3 days" },
   { name: "Syp ORS / Electral Sachet", dose: "1 sachet in 1L water sip through day" },
+  { name: "Cap B-Complex with Zinc", dose: "0-1-0 after lunch x 15 days" },
+  { name: "Tab Vitamin D3 60k IU", dose: "1 cap once weekly x 8 weeks" },
 ];
 
 function todayDateStr(): string {
@@ -201,6 +289,8 @@ function todayDateStr(): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 }
+
+const DRAFT_STORAGE_KEY = "clinicx_consult_draft_v2";
 
 function ConsultCockpitPage() {
   const { org } = useOrganization();
@@ -215,11 +305,13 @@ function ConsultCockpitPage() {
   const [patients, setPatients] = useState<PatientOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [queueSearch, setQueueSearch] = useState("");
+  const [queueFilter, setQueueFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
 
   // Active Patient in Cockpit
   const [selectedPatient, setSelectedPatient] = useState<QueuePatient | null>(null);
 
   // Form Fields
+  const [patientId, setPatientId] = useState<string | null>(null);
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [patientAge, setPatientAge] = useState("");
@@ -228,7 +320,7 @@ function ConsultCockpitPage() {
 
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
-  const [historyNotes, setHistoryNotes] = useState("");
+  const [historyNotes, setHistoryNotes] = useState("NKDA (No Known Allergies)");
   const [treatmentPlan, setTreatmentPlan] = useState("");
   const [bp, setBp] = useState("");
   const [pulse, setPulse] = useState("");
@@ -237,8 +329,25 @@ function ConsultCockpitPage() {
   const [height, setHeight] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
 
-  const [saving, setSaving] = useState(false);
+  // Interactive Quick Medicine Inserter State
+  const [customMedName, setCustomMedName] = useState("");
+  const [customMedDosage, setCustomMedDosage] = useState("1-0-1");
+  const [customMedTiming, setCustomMedTiming] = useState("After meals");
+  const [customMedDuration, setCustomMedDuration] = useState("5 days");
 
+  // Patient History Drawer / Repeat Rx
+  const [patientPastConsults, setPatientPastConsults] = useState<Consultation[]>([]);
+  const [loadingPastConsults, setLoadingPastConsults] = useState(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
+
+  // Modals & UI States
+  const [walkinModalOpen, setWalkinModalOpen] = useState(false);
+  const [walkinSearch, setWalkinSearch] = useState("");
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasDraftRestored, setHasDraftRestored] = useState(false);
+
+  // Load Data
   const loadData = useCallback(async () => {
     if (!orgId && !clinicId) return;
     setLoading(true);
@@ -273,9 +382,9 @@ function ConsultCockpitPage() {
           .then((r) => (r.error ? { data: [] } : r), () => ({ data: [] })),
         supabase
           .from("patients")
-          .select("id, name, phone")
+          .select("id, name, phone, age, gender")
           .order("name")
-          .limit(100)
+          .limit(200)
           .then((r) => (r.error ? { data: [] } : r)),
       ]);
 
@@ -283,27 +392,24 @@ function ConsultCockpitPage() {
       setHistoryRows(consults);
       setPatients((patientRes.data as any[]) ?? []);
 
-      // Build unified today's queue
-      const tokenMap = new Map<string, any>();
-      for (const t of (tokenRes.data as any[]) ?? []) {
-        tokenMap.set(t.patient_name?.trim().toLowerCase(), t);
-      }
-
+      // Build unified queue
       const qList: QueuePatient[] = [];
       let tokenCounter = 1;
 
       // Map today's appointments
       for (const a of (apptRes.data as any[]) ?? []) {
-        let st: QueuePatient["status"] = "confirmed";
+        let st: QueuePatient["status"] = "waiting";
         if (a.status === "completed") st = "done";
         else if (a.status === "serving" || a.status === "in_consultation") st = "serving";
-        else if (a.status === "waiting") st = "waiting";
+        else if (a.status === "waiting" || a.status === "checked_in") st = "waiting";
+        else if (a.status === "confirmed") st = "confirmed";
 
         qList.push({
           id: `appt-${a.id}`,
           source: "appointment",
           token_number: tokenCounter++,
           appointment_id: a.id,
+          patient_id: a.patient_id || null,
           patient_name: a.patient_name,
           patient_phone: a.patient_phone,
           patient_age: a.patient_age,
@@ -314,7 +420,7 @@ function ConsultCockpitPage() {
         });
       }
 
-      // Map walk-in tokens not linked to appointments
+      // Map walk-in tokens
       for (const t of (tokenRes.data as any[]) ?? []) {
         const exists = qList.some(
           (q) => q.patient_name.trim().toLowerCase() === t.patient_name?.trim().toLowerCase()
@@ -334,7 +440,7 @@ function ConsultCockpitPage() {
 
       setQueue(qList);
 
-      // Auto-select patient
+      // Auto-select patient from query or next in line
       if (searchParams?.appointmentId) {
         const target = qList.find((x) => x.appointment_id === searchParams.appointmentId);
         if (target) {
@@ -343,11 +449,13 @@ function ConsultCockpitPage() {
         }
       }
 
-      // Default: select first waiting or serving patient if none selected
       if (!selectedPatient && qList.length > 0) {
-        const nextActive = qList.find((x) => x.status === "serving") || qList.find((x) => x.status === "waiting") || qList[0];
-        if (nextActive) {
-          selectPatient(nextActive);
+        const active =
+          qList.find((x) => x.status === "serving") ||
+          qList.find((x) => x.status === "waiting") ||
+          qList[0];
+        if (active) {
+          selectPatient(active);
         }
       }
     } catch (e) {
@@ -361,8 +469,32 @@ function ConsultCockpitPage() {
     void loadData();
   }, [loadData]);
 
+  // Load previous consultations for currently active patient
+  const loadPatientPastConsults = useCallback(async (pName: string, pPhone?: string | null) => {
+    if (!pName || !pName.trim()) {
+      setPatientPastConsults([]);
+      return;
+    }
+    setLoadingPastConsults(true);
+    try {
+      const { data } = await supabase
+        .from("consultations" as any)
+        .select("*")
+        .ilike("patient_name", pName.trim())
+        .order("created_at", { ascending: false })
+        .limit(3);
+      setPatientPastConsults((data as any[]) || []);
+    } catch (e) {
+      console.warn("Past consult load error:", e);
+    } finally {
+      setLoadingPastConsults(false);
+    }
+  }, []);
+
+  // Select patient into cockpit
   const selectPatient = (p: QueuePatient) => {
     setSelectedPatient(p);
+    setPatientId(p.patient_id || null);
     setPatientName(p.patient_name || "");
     setPatientPhone(p.patient_phone || "");
     setPatientAge(p.patient_age ? String(p.patient_age) : "");
@@ -378,8 +510,172 @@ function ConsultCockpitPage() {
     setWeight("");
     setHeight("");
     setFollowUpDate("");
+
+    // Load their history
+    void loadPatientPastConsults(p.patient_name, p.patient_phone);
   };
 
+  // 1-Click Call Patient (announces, chimes, and marks serving)
+  const handleCallPatient = async (p: QueuePatient) => {
+    selectPatient(p);
+    playAudioChime("call");
+    toast.success(`📢 Calling Token #${p.token_number}: ${p.patient_name}`);
+
+    try {
+      if (p.appointment_id) {
+        await supabase
+          .from("appointments")
+          .update({ status: "serving" } as any)
+          .eq("id", p.appointment_id);
+      }
+      const todayStr = todayDateStr();
+      await supabase
+        .from("queue_tokens")
+        .update({ status: "serving", called_at: new Date().toISOString() })
+        .eq("queue_date", todayStr)
+        .eq("patient_name", p.patient_name.trim());
+
+      setQueue((prev) =>
+        prev.map((item) =>
+          item.id === p.id ? { ...item, status: "serving" } : item
+        )
+      );
+    } catch (e) {
+      console.warn("Error updating serving status:", e);
+    }
+  };
+
+  // Draft auto-save to localStorage
+  useEffect(() => {
+    if (!patientName && !chiefComplaint && !diagnosis && !treatmentPlan) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({
+            patientName,
+            patientPhone,
+            patientAge,
+            patientGender,
+            appointmentId,
+            chiefComplaint,
+            diagnosis,
+            treatmentPlan,
+            historyNotes,
+            bp,
+            pulse,
+            temp,
+            weight,
+            height,
+            followUpDate,
+            savedAt: Date.now(),
+          })
+        );
+      } catch {}
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [
+    patientName,
+    patientPhone,
+    patientAge,
+    patientGender,
+    appointmentId,
+    chiefComplaint,
+    diagnosis,
+    treatmentPlan,
+    historyNotes,
+    bp,
+    pulse,
+    temp,
+    weight,
+    height,
+    followUpDate,
+  ]);
+
+  // Check draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft && draft.patientName && Date.now() - draft.savedAt < 12 * 60 * 60 * 1000) {
+          // If cockpit has no active patient loaded, offer to restore
+          setHasDraftRestored(true);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const restoreDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        setPatientName(d.patientName || "");
+        setPatientPhone(d.patientPhone || "");
+        setPatientAge(d.patientAge || "");
+        setPatientGender(d.patientGender || "");
+        setAppointmentId(d.appointmentId || null);
+        setChiefComplaint(d.chiefComplaint || "");
+        setDiagnosis(d.diagnosis || "");
+        setTreatmentPlan(d.treatmentPlan || "");
+        setHistoryNotes(d.historyNotes || "NKDA");
+        setBp(d.bp || "");
+        setPulse(d.pulse || "");
+        setTemp(d.temp || "");
+        setWeight(d.weight || "");
+        setHeight(d.height || "");
+        setFollowUpDate(d.followUpDate || "");
+        setHasDraftRestored(false);
+        toast.success("Prescription draft restored successfully!");
+      }
+    } catch {
+      toast.error("Failed to restore draft");
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraftRestored(false);
+    toast.info("Draft discarded");
+  };
+
+  // Keyboard Shortcuts Hook (Ctrl+Enter, Ctrl+P, Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Enter or Cmd+Enter => Complete & Next
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        void handleCompleteAndNext();
+      }
+      // Ctrl+P or Cmd+P => Print Slip
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        handlePrintSlip();
+      }
+      // Ctrl+K or Cmd+K => Queue Search Focus
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        document.getElementById("consult-queue-search")?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [patientName, chiefComplaint, diagnosis, treatmentPlan, appointmentId, bp, pulse, temp, weight, height, followUpDate]);
+
+  // Repeat Rx from previous visit
+  const handleRepeatLastRx = () => {
+    const last = patientPastConsults[0];
+    if (!last) return;
+    if (last.diagnosis) setDiagnosis(last.diagnosis);
+    if (last.treatment_plan) setTreatmentPlan(last.treatment_plan);
+    if (last.chief_complaint && !chiefComplaint) {
+      setChiefComplaint(`Follow-up: ${last.chief_complaint}`);
+    }
+    toast.success(`Repeated prescription from ${new Date(last.created_at).toLocaleDateString("en-IN")}`);
+  };
+
+  // 1-Click Clinical Preset
   const applyPreset = (key: string) => {
     const p = PRESETS[key];
     if (!p) return;
@@ -387,15 +683,35 @@ function ConsultCockpitPage() {
     setDiagnosis(p.diagnosis);
     setHistoryNotes((prev) => (prev ? `${prev}, ${p.history}` : p.history));
     setTreatmentPlan(p.plan);
+
+    // Auto set recommended follow-up date
+    const d = new Date();
+    d.setDate(d.getDate() + p.followUpDays);
+    setFollowUpDate(d.toISOString().slice(0, 10));
+
     toast.success(`⚡ 1-Click Preset Applied: ${p.label}`);
   };
 
+  // 1-Click Quick Medicine Add
   const addMedicine = (med: { name: string; dose: string }) => {
     const line = `• ${med.name} — ${med.dose}`;
     setTreatmentPlan((prev) => (prev ? `${prev}\n${line}` : line));
     toast.success(`Added ${med.name}`);
   };
 
+  // Custom Medicine Bar Add
+  const handleAddCustomMed = () => {
+    if (!customMedName.trim()) {
+      toast.error("Please enter medicine name");
+      return;
+    }
+    const line = `• ${customMedName.trim()} — ${customMedDosage} (${customMedTiming}) x ${customMedDuration}`;
+    setTreatmentPlan((prev) => (prev ? `${prev}\n${line}` : line));
+    setCustomMedName("");
+    toast.success(`Added to Rx: ${customMedName.trim()}`);
+  };
+
+  // Allergy / Medical Tag Toggle
   const toggleAllergy = (tag: string) => {
     setHistoryNotes((prev) => {
       if (prev.includes(tag)) {
@@ -408,7 +724,7 @@ function ConsultCockpitPage() {
   // Complete consultation & immediately load NEXT patient
   const handleCompleteAndNext = async () => {
     if (!patientName.trim()) {
-      toast.error("Please enter or select a patient name");
+      toast.error("Please select or enter a patient name");
       return;
     }
     setSaving(true);
@@ -416,6 +732,7 @@ function ConsultCockpitPage() {
       const payload = {
         organization_id: orgId || clinic?.organization_id || null,
         clinic_id: clinicId || null,
+        patient_id: patientId || null,
         patient_name: patientName.trim(),
         appointment_id: appointmentId || null,
         chief_complaint: chiefComplaint.trim() || null,
@@ -452,22 +769,30 @@ function ConsultCockpitPage() {
         .eq("patient_name", patientName.trim())
         .then(() => {}, () => {});
 
-      toast.success(`✅ Consultation completed for ${patientName}!`);
+      // Play completion chime
+      playAudioChime("complete");
+      toast.success(`✅ Consultation finished for ${patientName}!`);
 
-      // 4. Instantly advance to the NEXT waiting patient without page reload or redirection
+      // Clear local draft
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch {}
+
+      // 4. Instantly advance to the NEXT waiting patient
       const remainingWaiting = queue.filter(
-        (q) => q.status === "waiting" && q.patient_name !== patientName
+        (q) => (q.status === "waiting" || q.status === "serving") && q.patient_name !== patientName
       );
-      const remainingUpcoming = queue.filter(
+      const remainingConfirmed = queue.filter(
         (q) => q.status === "confirmed" && q.patient_name !== patientName
       );
 
-      const nextPatient = remainingWaiting[0] || remainingUpcoming[0];
+      const nextPatient = remainingWaiting[0] || remainingConfirmed[0];
       if (nextPatient) {
         selectPatient(nextPatient);
-        toast.info(`➡️ Now treating: ${nextPatient.patient_name}`);
+        toast.info(`➡️ Now treating Token #${nextPatient.token_number}: ${nextPatient.patient_name}`);
       } else {
-        // Clear form for next walk-in
+        // Clear cockpit for next walk-in
+        setPatientId(null);
         setPatientName("");
         setPatientPhone("");
         setPatientAge("");
@@ -477,12 +802,19 @@ function ConsultCockpitPage() {
         setDiagnosis("");
         setTreatmentPlan("");
         setHistoryNotes("NKDA (No Known Allergies)");
+        setBp("");
+        setPulse("");
+        setTemp("");
+        setWeight("");
+        setHeight("");
+        setFollowUpDate("");
         setSelectedPatient(null);
-        toast.success("🎉 All waiting patients treated! OPD Queue is clear.");
+        setPatientPastConsults([]);
+        toast.success("🎉 All waiting patients attended! OPD Queue is clear.");
       }
 
-      // Refresh background queue
-      loadData();
+      // Background refresh
+      void loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to complete consultation");
     } finally {
@@ -490,13 +822,57 @@ function ConsultCockpitPage() {
     }
   };
 
-  // Print Consultation Slip
+  // WhatsApp 1-Click Formatted Rx Sender
+  const handleWhatsAppShare = () => {
+    const cleanPhone = (patientPhone || "").replace(/\D/g, "");
+    if (!cleanPhone) {
+      toast.error("Please add a patient phone number to send WhatsApp");
+      return;
+    }
+    const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const clinicTitle = clinic?.clinic_name || org?.name || "Medical Clinic";
+    const docTitle = clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Consulting Physician";
+
+    const msg = `*${clinicTitle}*
+${docTitle} — Consultation Summary
+────────────────────────────
+*Patient:* ${patientName} ${patientAge ? `(${patientAge} yrs)` : ""}
+*Date:* ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+${diagnosis ? `*Diagnosis:* ${diagnosis}\n` : ""}${bp || pulse || temp ? `*Vitals:* ${[bp ? `BP: ${bp}` : "", pulse ? `Pulse: ${pulse} bpm` : "", temp ? `Temp: ${temp}°F` : ""].filter(Boolean).join(" | ")}\n` : ""}
+*Prescribed Medications (Rx):*
+${treatmentPlan || "• General advice & hydration."}
+
+${followUpDate ? `*Next Follow-up:* ${new Date(followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}\n` : ""}
+────────────────────────────
+_Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clinic"}._`;
+
+    window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  // Copy Rx to Clipboard
+  const handleCopyRx = () => {
+    if (!treatmentPlan && !diagnosis) {
+      toast.error("Prescription is empty");
+      return;
+    }
+    const text = `Prescription for ${patientName}\nDiagnosis: ${diagnosis || "—"}\n\nRx:\n${treatmentPlan}\n\nFollow-up: ${followUpDate || "SOS"}`;
+    navigator.clipboard.writeText(text);
+    toast.success("Prescription copied to clipboard!");
+  };
+
+  // Clean, Medical-Grade Print Slip
   const handlePrintSlip = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       window.print();
       return;
     }
+
+    const clinicTitle = clinic?.clinic_name || org?.name || "Medical Clinic";
+    const docName = clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Consulting Doctor";
+    const regNo = clinic?.medical_registration_no ? `Reg No: ${clinic.medical_registration_no}` : "";
+    const address = clinic?.address || clinic?.public_address || "";
+    const phone = clinic?.phone || clinic?.public_phone || "";
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -505,45 +881,105 @@ function ConsultCockpitPage() {
           <title>Rx - ${escapeHtml(patientName)}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <style>
-            body { font-family: system-ui, sans-serif; color: #1e293b; margin: 0; padding: 0; background: #f8fafc; }
-            .no-print { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; justify-content: space-between; }
-            .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: #f1f5f9; }
-            .btn-p { background: #2563eb; color: #fff; border: none; }
-            .paper { max-width: 750px; margin: 20px auto; background: #fff; padding: 35px; border-radius: 12px; border: 1px solid #e2e8f0; }
-            .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px; }
-            .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
-            .sec-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #1e3a8a; border-bottom: 1px solid #93c5fd; padding-bottom: 3px; margin-top: 15px; margin-bottom: 8px; }
-            .rx { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
-            @media print { .no-print { display: none !important; } .paper { border: none; margin: 0; padding: 0; } }
+            @page { size: A4 portrait; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; background: #fff; line-height: 1.45; }
+            .no-print { position: sticky; top: 0; background: #f8fafc; border-bottom: 1px solid #cbd5e1; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+            .btn { padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; font-size: 13px; }
+            .btn-p { background: #0284c7; color: #fff; border: none; }
+            .paper { max-width: 800px; margin: 20px auto; background: #fff; padding: 24px 32px; border: 1px solid #e2e8f0; border-radius: 12px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 14px; margin-bottom: 16px; }
+            .clinic-name { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+            .doctor-name { font-size: 15px; font-weight: 700; color: #0369a1; margin-top: 4px; }
+            .doc-sub { font-size: 11px; color: #64748b; }
+            .clinic-meta { text-align: right; font-size: 11px; color: #64748b; }
+            .patient-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 16px; }
+            .patient-bar div { display: flex; flex-direction: column; }
+            .patient-bar span { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; }
+            .patient-bar strong { font-size: 13px; color: #0f172a; }
+            .sec-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #0369a1; border-bottom: 1px solid #e0f2fe; padding-bottom: 4px; margin: 14px 0 6px 0; }
+            .vitals-strip { display: flex; gap: 16px; font-size: 12px; margin-bottom: 10px; background: #f0f9ff; padding: 8px 12px; border-radius: 6px; }
+            .vitals-strip b { color: #0369a1; }
+            .diag-box { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+            .rx-symbol { font-size: 22px; font-family: serif; font-weight: bold; color: #0284c7; margin-bottom: 4px; }
+            .rx-content { background: #fafafa; border: 1px dashed #cbd5e1; padding: 14px; border-radius: 8px; font-family: "SFMono-Regular", Consolas, monospace; white-space: pre-wrap; font-size: 13px; line-height: 1.7; color: #1e293b; min-height: 160px; }
+            .footer { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+            .sign-box { text-align: center; font-size: 12px; }
+            .sign-line { width: 180px; border-top: 1px solid #0f172a; margin-bottom: 6px; }
+            @media print {
+              .no-print { display: none !important; }
+              .paper { border: none; margin: 0; padding: 0; box-shadow: none; }
+            }
           </style>
         </head>
         <body>
           <div class="no-print">
-            <button class="btn" onclick="window.close(); history.back();">← Back to Dashboard</button>
-            <button class="btn btn-p" onclick="window.print()">🖨️ Print / Save PDF</button>
+            <button class="btn" onclick="window.close()">← Close</button>
+            <button class="btn btn-p" onclick="window.print()">🖨️ Print Prescription Slip</button>
           </div>
           <div class="paper">
             <div class="header">
-              <h2 style="margin:0;color:#1e3a8a;">${escapeHtml(clinic?.clinic_name || org?.name || "Medical Clinic")}</h2>
-              <div style="font-size:12px;color:#64748b;margin-top:4px;">Clinical Consultation &amp; Prescription Slip</div>
+              <div>
+                <h1 class="clinic-name">${escapeHtml(clinicTitle)}</h1>
+                <div class="doctor-name">${escapeHtml(docName)}</div>
+                ${regNo ? `<div class="doc-sub">${escapeHtml(regNo)}</div>` : ""}
+              </div>
+              <div class="clinic-meta">
+                ${address ? `<div>${escapeHtml(address)}</div>` : ""}
+                ${phone ? `<div>Phone: ${escapeHtml(phone)}</div>` : ""}
+                <div>Date: <b>${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</b></div>
+              </div>
             </div>
-            <div class="meta">
-              <div><strong>Patient:</strong> ${escapeHtml(patientName)} ${patientAge ? `(${patientAge}y)` : ""}</div>
-              <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
-              <div><strong>Phone:</strong> ${escapeHtml(patientPhone || "—")}</div>
-              <div><strong>Follow-up:</strong> ${followUpDate ? new Date(followUpDate).toLocaleDateString() : "SOS / As needed"}</div>
+
+            <div class="patient-bar">
+              <div>
+                <span>Patient Name</span>
+                <strong>${escapeHtml(patientName)}</strong>
+              </div>
+              <div>
+                <span>Age / Gender</span>
+                <strong>${patientAge ? `${patientAge} yrs` : "—"} / ${patientGender ? patientGender : "—"}</strong>
+              </div>
+              <div>
+                <span>Phone</span>
+                <strong>${escapeHtml(patientPhone || "—")}</strong>
+              </div>
+              <div>
+                <span>Follow-up Date</span>
+                <strong>${followUpDate ? new Date(followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "SOS / As needed"}</strong>
+              </div>
             </div>
+
             ${bp || pulse || temp || weight ? `
             <div class="sec-title">Vitals</div>
-            <div style="font-size:12px;margin-bottom:15px;">
-              ${bp ? `BP: <b>${escapeHtml(bp)}</b> ` : ""}
-              ${pulse ? `Pulse: <b>${escapeHtml(pulse)} bpm</b> ` : ""}
-              ${temp ? `Temp: <b>${escapeHtml(temp)}°F</b> ` : ""}
-              ${weight ? `Weight: <b>${escapeHtml(weight)} kg</b>` : ""}
+            <div class="vitals-strip">
+              ${bp ? `<div>BP: <b>${escapeHtml(bp)} mmHg</b></div>` : ""}
+              ${pulse ? `<div>Pulse: <b>${escapeHtml(pulse)} bpm</b></div>` : ""}
+              ${temp ? `<div>Temp: <b>${escapeHtml(temp)}°F</b></div>` : ""}
+              ${weight ? `<div>Weight: <b>${escapeHtml(weight)} kg</b></div>` : ""}
             </div>` : ""}
-            ${diagnosis ? `<div class="sec-title">Diagnosis</div><div style="font-size:14px;font-weight:bold;color:#1e3a8a;margin-bottom:15px;">${escapeHtml(diagnosis)}</div>` : ""}
-            <div class="sec-title">Prescription (Rx) &amp; Advice</div>
-            <div class="rx">${escapeHtml(treatmentPlan || "No medications prescribed.")}</div>
+
+            ${chiefComplaint ? `
+            <div class="sec-title">Symptoms / Chief Complaint</div>
+            <div style="font-size:12px;margin-bottom:10px;">${escapeHtml(chiefComplaint)}</div>` : ""}
+
+            ${diagnosis ? `
+            <div class="sec-title">Clinical Diagnosis</div>
+            <div class="diag-box">${escapeHtml(diagnosis)}</div>` : ""}
+
+            <div class="rx-symbol">℞</div>
+            <div class="rx-content">${escapeHtml(treatmentPlan || "No oral medications prescribed. Follow general advice and rest.")}</div>
+
+            <div class="footer">
+              <div style="font-size:11px;color:#64748b;">
+                <div>• Emergency? Visit nearest hospital casualty immediately.</div>
+                <div>• Please bring this slip for follow-up review.</div>
+              </div>
+              <div class="sign-box">
+                <div class="sign-line"></div>
+                <strong>${escapeHtml(docName)}</strong>
+                <div style="font-size:10px;color:#64748b;">Authorized Signatory</div>
+              </div>
+            </div>
           </div>
           <script>setTimeout(function(){ window.print(); }, 250);</script>
         </body>
@@ -552,45 +988,96 @@ function ConsultCockpitPage() {
     printWindow.document.close();
   };
 
-  const waitingCount = queue.filter((q) => q.status === "waiting").length;
+  // Filtered Queue
+  const filteredQueue = useMemo(() => {
+    return queue
+      .filter((q) => {
+        if (queueFilter === "waiting") return q.status === "waiting" || q.status === "confirmed";
+        if (queueFilter === "serving") return q.status === "serving";
+        if (queueFilter === "done") return q.status === "done";
+        return true;
+      })
+      .filter((q) => {
+        if (!queueSearch.trim()) return true;
+        const s = queueSearch.toLowerCase();
+        return (
+          q.patient_name.toLowerCase().includes(s) ||
+          (q.patient_phone ?? "").includes(s) ||
+          String(q.token_number).includes(s)
+        );
+      });
+  }, [queue, queueFilter, queueSearch]);
+
+  const waitingCount = queue.filter((q) => q.status === "waiting" || q.status === "confirmed").length;
   const servingCount = queue.filter((q) => q.status === "serving").length;
-  const completedCount = queue.filter((q) => q.status === "done").length;
+  const doneCount = queue.filter((q) => q.status === "done").length;
+
+  const bpStatus = getBpStatus(bp);
+  const tempStatus = getTempStatus(temp);
+  const bmiInfo = getBmi(weight, height);
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-16">
-      {/* Top Header & Mode Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
-              Doctor Consultation Cockpit
-            </h1>
-            <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold">
-              ● Live OPD Session
-            </Badge>
+      {/* Top Header & Fast Mode Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border/80 p-3 sm:p-4 rounded-2xl shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+            <Stethoscope className="size-5" />
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            1-Screen Flow: Patient Select ➔ Vitals ➔ 1-Tap Rx ➔ Complete &amp; Next Patient.
-          </p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+                Doctor Consultation Cockpit
+              </h1>
+              <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-semibold gap-1">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live OPD
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Fast 1-screen consultation flow: Queue ➔ Vitals ➔ 1-Tap Presets ➔ Complete &amp; Next Patient.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-xl border border-border p-1 bg-card text-xs">
+          {/* Draft Restored Banner */}
+          {hasDraftRestored && (
+            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs px-2.5 py-1 rounded-xl">
+              <span>Unsaved draft</span>
+              <Button size="sm" variant="ghost" onClick={restoreDraft} className="h-6 text-[11px] px-1.5 font-bold text-primary">
+                Restore
+              </Button>
+              <Button size="sm" variant="ghost" onClick={discardDraft} className="h-6 text-[11px] px-1.5 text-muted-foreground">
+                ✕
+              </Button>
+            </div>
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShortcutsModalOpen(true)}
+            className="h-8 text-xs gap-1 rounded-xl hidden md:flex border-border/80"
+          >
+            <HelpCircle className="size-3.5" /> Shortcuts
+          </Button>
+
+          <div className="inline-flex rounded-xl border border-border/80 p-0.5 bg-muted/40 text-xs">
             <button
               onClick={() => setActiveTab("cockpit")}
               className={`px-3 py-1 rounded-lg font-semibold transition-all ${
-                activeTab === "cockpit" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                activeTab === "cockpit" ? "bg-card text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              ⚡ Live OPD Cockpit
+              ⚡ Cockpit
             </button>
             <button
               onClick={() => setActiveTab("history")}
               className={`px-3 py-1 rounded-lg font-semibold transition-all ${
-                activeTab === "history" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                activeTab === "history" ? "bg-card text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              📚 Past Records ({historyRows.length})
+              📚 Records ({historyRows.length})
             </button>
           </div>
         </div>
@@ -598,145 +1085,199 @@ function ConsultCockpitPage() {
 
       {activeTab === "cockpit" ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          {/* LEFT COLUMN: Real-time Patient Queue (4 Cols Desktop, Top Row Mobile) */}
+          {/* ================= LEFT COLUMN: OPD QUEUE (4 Cols) ================= */}
           <div className="lg:col-span-4 space-y-3">
-            <Card className="p-3 sm:p-4 border-border/80 bg-card shadow-xs space-y-3">
+            <Card className="p-3 sm:p-4 border-border/80 bg-card shadow-xs space-y-3 rounded-2xl">
+              {/* Queue Header & Walk-in */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div>
                   <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                    <Users className="size-4 text-primary" /> Today's Queue ({queue.length})
+                    <Users className="size-4 text-primary" /> Today's OPD Queue
                   </h3>
+                  <div className="text-[11px] text-muted-foreground">
+                    {queue.length} patients booked / waiting today
+                  </div>
                 </div>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedPatient(null);
-                    setPatientName("");
-                    setPatientPhone("");
-                    setPatientAge("");
-                    setPatientGender("");
-                    setAppointmentId(null);
-                    setChiefComplaint("");
-                    setDiagnosis("");
-                    setTreatmentPlan("");
-                  }}
-                  className="h-7 text-xs px-2.5 rounded-lg gap-1"
+                  onClick={() => setWalkinModalOpen(true)}
+                  className="h-7 text-xs px-2.5 rounded-lg gap-1 bg-primary text-primary-foreground font-semibold shadow-2xs"
                 >
                   <Plus className="size-3" /> Walk-in
                 </Button>
               </div>
 
-              {/* Micro Status Indicators */}
-              <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
-                <div className="bg-amber-500/10 text-amber-700 dark:text-amber-400 py-1 rounded-lg border border-amber-500/20">
-                  {waitingCount} Waiting
-                </div>
-                <div className="bg-emerald-500/10 text-emerald-600 py-1 rounded-lg border border-emerald-500/20">
-                  {servingCount} In-Consult
-                </div>
-                <div className="bg-zinc-500/10 text-zinc-600 py-1 rounded-lg border border-zinc-500/20">
-                  {completedCount} Done
-                </div>
+              {/* Status Tabs Filter */}
+              <div className="grid grid-cols-4 gap-1 p-1 bg-muted/30 border border-border/60 rounded-xl text-center text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setQueueFilter("all")}
+                  className={`py-1 rounded-lg transition-all ${
+                    queueFilter === "all" ? "bg-card text-foreground shadow-2xs" : "text-muted-foreground"
+                  }`}
+                >
+                  All ({queue.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueueFilter("waiting")}
+                  className={`py-1 rounded-lg transition-all ${
+                    queueFilter === "waiting" ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 shadow-2xs" : "text-muted-foreground"
+                  }`}
+                >
+                  Wait ({waitingCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueueFilter("serving")}
+                  className={`py-1 rounded-lg transition-all ${
+                    queueFilter === "serving" ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shadow-2xs" : "text-muted-foreground"
+                  }`}
+                >
+                  In ({servingCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueueFilter("done")}
+                  className={`py-1 rounded-lg transition-all ${
+                    queueFilter === "done" ? "bg-card text-foreground shadow-2xs" : "text-muted-foreground"
+                  }`}
+                >
+                  Done ({doneCount})
+                </button>
               </div>
 
-              {/* Patient Queue Search */}
+              {/* Instant Search Bar */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Quick search patient…"
+                  id="consult-queue-search"
+                  placeholder="Search name, phone, token (Ctrl+K)…"
                   value={queueSearch}
                   onChange={(e) => setQueueSearch(e.target.value)}
-                  className="pl-8 h-8 text-xs rounded-xl"
+                  className="pl-8 pr-7 h-8 text-xs rounded-xl bg-card border-border/80"
                 />
+                {queueSearch && (
+                  <button
+                    onClick={() => setQueueSearch("")}
+                    className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
-              {/* Scrollable Patient Cards */}
-              <div className="space-y-1.5 max-h-[480px] lg:max-h-[620px] overflow-y-auto pr-1 no-scrollbar">
-                {queue.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
-                    No patients in today's queue. Click <b>+ Walk-in</b> to start.
+              {/* Patient List */}
+              <div className="space-y-1.5 max-h-[520px] lg:max-h-[640px] overflow-y-auto pr-1 no-scrollbar">
+                {filteredQueue.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
+                    No patients matching filter.
+                    <div className="mt-2">
+                      <Button size="sm" variant="outline" onClick={() => setWalkinModalOpen(true)} className="h-7 text-xs">
+                        + Add Walk-in Patient
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  queue
-                    .filter(
-                      (q) =>
-                        !queueSearch.trim() ||
-                        q.patient_name.toLowerCase().includes(queueSearch.toLowerCase()) ||
-                        (q.patient_phone ?? "").includes(queueSearch)
-                    )
-                    .map((item) => {
-                      const isSelected =
-                        selectedPatient?.patient_name === item.patient_name ||
-                        selectedPatient?.appointment_id === item.appointment_id;
+                  filteredQueue.map((item) => {
+                    const isSelected =
+                      (selectedPatient?.patient_name && selectedPatient.patient_name === item.patient_name) ||
+                      (selectedPatient?.appointment_id && selectedPatient.appointment_id === item.appointment_id);
 
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => selectPatient(item)}
-                          className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
-                            isSelected
-                              ? "bg-primary/10 border-primary text-foreground shadow-2xs"
-                              : "bg-muted/20 hover:bg-muted/60 border-border/70 text-muted-foreground"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="size-6 rounded-lg bg-card border text-[11px] font-mono font-bold grid place-items-center text-foreground shrink-0">
-                              #{item.token_number}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-foreground truncate">
-                                {item.patient_name}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground truncate">
-                                {item.problem || (item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "General")}
-                              </div>
+                    return (
+                      <div
+                        key={item.id}
+                        className={`w-full p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 cursor-pointer ${
+                          isSelected
+                            ? "bg-primary/10 border-primary text-foreground shadow-2xs"
+                            : "bg-muted/20 hover:bg-muted/50 border-border/70 text-muted-foreground"
+                        }`}
+                        onClick={() => selectPatient(item)}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className={`size-7 rounded-lg border text-xs font-mono font-bold grid place-items-center shrink-0 ${
+                            item.status === "serving"
+                              ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+                              : item.status === "waiting"
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                                : "bg-card text-foreground border-border"
+                          }`}>
+                            #{item.token_number}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-foreground truncate flex items-center gap-1.5">
+                              {item.patient_name}
+                              {item.patient_age && <span className="text-[10px] text-muted-foreground font-normal">({item.patient_age}y)</span>}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {item.problem || (item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "General Consult")}
                             </div>
                           </div>
+                        </div>
 
-                          <div className="shrink-0 flex items-center gap-1">
-                            {item.status === "waiting" && (
-                              <span className="size-2 rounded-full bg-amber-500 animate-ping" />
-                            )}
-                            <Badge
-                              variant="outline"
-                              className={`text-[9px] px-1.5 py-0 font-semibold ${
-                                item.status === "waiting"
-                                  ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
-                                  : item.status === "serving"
-                                    ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
-                                    : item.status === "done"
-                                      ? "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
-                                      : "bg-blue-500/10 text-blue-700 border-blue-500/20"
-                              }`}
+                        <div className="shrink-0 flex items-center gap-1.5">
+                          {item.status !== "done" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleCallPatient(item);
+                              }}
+                              className="h-6 px-1.5 text-[10px] text-primary hover:bg-primary/10 font-bold"
+                              title="Call this patient into cabin"
                             >
-                              {item.status === "done" ? "Done" : item.status === "waiting" ? "Waiting" : item.status === "serving" ? "In-Consult" : "Booked"}
-                            </Badge>
-                          </div>
-                        </button>
-                      );
-                    })
+                              <Volume2 className="size-3 mr-0.5" /> Call
+                            </Button>
+                          )}
+
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] px-1.5 py-0 font-bold ${
+                              item.status === "waiting" || item.status === "confirmed"
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                                : item.status === "serving"
+                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                                  : "bg-muted text-muted-foreground border-border"
+                            }`}
+                          >
+                            {item.status === "done" ? "Done" : item.status === "serving" ? "In-Consult" : "Waiting"}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </Card>
           </div>
 
-          {/* RIGHT COLUMN: Active Consultation & Prescription Cockpit (8 Cols) */}
+          {/* ================= RIGHT COLUMN: CONSULTATION COCKPIT (8 Cols) ================= */}
           <div className="lg:col-span-8 space-y-4">
-            <Card className="p-4 sm:p-6 border-border/80 bg-card shadow-xs space-y-5 rounded-2xl">
-              {/* Active Patient Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
+            <Card className="p-4 sm:p-5 border-border/80 bg-card shadow-xs space-y-4 rounded-2xl">
+              {/* Active Patient Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="size-11 rounded-2xl bg-primary/10 text-primary grid place-items-center font-bold text-base shadow-xs">
+                  <div className="size-11 rounded-2xl bg-primary/10 text-primary grid place-items-center font-bold text-base shrink-0 shadow-xs">
                     {patientName ? patientName.slice(0, 2).toUpperCase() : "Rx"}
                   </div>
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                      {patientName || "Walk-in Patient Consultation"}
-                      {patientAge && <span className="text-xs font-normal text-muted-foreground font-mono">({patientAge} yrs{patientGender ? `, ${patientGender}` : ""})</span>}
-                    </h2>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-lg font-bold text-foreground">
+                        {patientName || "Walk-in Consultation"}
+                      </h2>
+                      {patientAge && (
+                        <span className="text-xs text-muted-foreground font-mono">
+                          ({patientAge} yrs{patientGender ? `, ${patientGender}` : ""})
+                        </span>
+                      )}
+                      {selectedPatient && (
+                        <Badge variant="outline" className="text-[10px] font-mono bg-muted text-muted-foreground">
+                          Token #{selectedPatient.token_number}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                       {patientPhone ? (
                         <span className="flex items-center gap-1 font-medium text-foreground">
                           <Phone className="size-3 text-emerald-600" /> {patientPhone}
@@ -744,82 +1285,155 @@ function ConsultCockpitPage() {
                       ) : (
                         <span>No phone attached</span>
                       )}
-                      {appointmentId && <Badge variant="secondary" className="text-[10px]">Linked Appt</Badge>}
+                      {appointmentId && (
+                        <Badge variant="secondary" className="text-[9px]">Linked Appt</Badge>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {/* Quick Allergy Tags */}
-                  {["NKDA", "Penicillin Allergy", "Sulfa Allergy", "Diabetic", "Hypertensive"].map((tag) => {
-                    const active = historyNotes.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleAllergy(tag)}
-                        className={`text-[10px] px-2 py-0.5 rounded-lg border font-semibold transition-all ${
-                          active
-                            ? tag.includes("Allergy")
-                              ? "bg-rose-500 text-white border-rose-600"
-                              : "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted/40 text-muted-foreground hover:text-foreground border-border/60"
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
+                {/* Medical History & Repeat Rx Strip */}
+                <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                  {patientPastConsults.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRepeatLastRx}
+                      className="h-7 text-xs gap-1 rounded-lg border-primary/30 text-primary hover:bg-primary/10 font-semibold"
+                      title="Load previous diagnosis and prescription"
+                    >
+                      <RotateCcw className="size-3" /> Repeat Last Rx
+                    </Button>
+                  )}
+                  {patientPastConsults.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {patientPastConsults.length} past visit(s) on file
+                    </Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Vitals Quick Bar */}
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Activity className="size-3.5 text-emerald-600" /> Patient Vitals
-                </Label>
+              {/* Past Visit Snippet (If available) */}
+              {patientPastConsults.length > 0 && (
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 text-xs space-y-1">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-primary">
+                    <span className="flex items-center gap-1">
+                      <History className="size-3" /> Previous Visit on {new Date(patientPastConsults[0].created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}:
+                    </span>
+                    <span className="font-bold">{patientPastConsults[0].diagnosis || "Clinical Visit"}</span>
+                  </div>
+                  {patientPastConsults[0].treatment_plan && (
+                    <div className="text-[11px] text-muted-foreground font-mono truncate">
+                      {patientPastConsults[0].treatment_plan.replace(/\n/g, " • ")}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Allergy / Condition Tags */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase mr-1">Alerts:</span>
+                {["NKDA", "Penicillin Allergy", "Sulfa Allergy", "Diabetic", "Hypertensive", "Asthmatic"].map((tag) => {
+                  const active = historyNotes.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleAllergy(tag)}
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border font-semibold transition-all ${
+                        active
+                          ? tag.includes("Allergy")
+                            ? "bg-rose-500 text-white border-rose-600 shadow-2xs"
+                            : "bg-primary text-primary-foreground border-primary shadow-2xs"
+                          : "bg-muted/40 text-muted-foreground hover:text-foreground border-border/60"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Vitals Quick Bar with Intelligent Health Indicators */}
+              <div className="space-y-1.5 bg-muted/20 p-3 rounded-2xl border border-border/60">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Activity className="size-3.5 text-emerald-600" /> Patient Vitals
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    {bpStatus && (
+                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${bpStatus.color}`}>
+                        {bpStatus.label}
+                      </Badge>
+                    )}
+                    {tempStatus && (
+                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${tempStatus.color}`}>
+                        {tempStatus.label}
+                      </Badge>
+                    )}
+                    {bmiInfo && (
+                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${bmiInfo.color}`}>
+                        BMI: {bmiInfo.val} ({bmiInfo.category})
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  <Input
-                    placeholder="BP (120/80)"
-                    value={bp}
-                    onChange={(e) => setBp(e.target.value)}
-                    className="h-8 text-xs font-mono bg-muted/20"
-                  />
-                  <Input
-                    placeholder="Pulse (bpm)"
-                    type="number"
-                    value={pulse}
-                    onChange={(e) => setPulse(e.target.value)}
-                    className="h-8 text-xs font-mono bg-muted/20"
-                  />
-                  <Input
-                    placeholder="Temp (°F)"
-                    value={temp}
-                    onChange={(e) => setTemp(e.target.value)}
-                    className="h-8 text-xs font-mono bg-muted/20"
-                  />
-                  <Input
-                    placeholder="Weight (kg)"
-                    type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="h-8 text-xs font-mono bg-muted/20"
-                  />
-                  <Input
-                    placeholder="Height (cm)"
-                    type="number"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="h-8 text-xs font-mono bg-muted/20"
-                  />
+                  <div>
+                    <Input
+                      placeholder="BP (120/80)"
+                      value={bp}
+                      onChange={(e) => setBp(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Pulse (bpm)"
+                      type="number"
+                      value={pulse}
+                      onChange={(e) => setPulse(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Temp (°F)"
+                      value={temp}
+                      onChange={(e) => setTemp(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Weight (kg)"
+                      type="number"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Height (cm)"
+                      type="number"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 1-Click Fast Clinical Presets Strip */}
+              {/* 1-Click Clinical Presets Strip */}
               <div className="space-y-1.5">
-                <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="size-3.5 text-amber-500" /> 1-Click Clinical Presets (Auto-fills Diagnosis &amp; Rx)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="size-3.5 text-amber-500" /> 1-Click Clinical Presets (Fills Symptoms, Diagnosis &amp; Rx)
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground">Select to auto-populate</span>
+                </div>
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                   {Object.entries(PRESETS).map(([key, p]) => (
                     <button
@@ -839,16 +1453,16 @@ function ConsultCockpitPage() {
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Chief Complaint / Symptoms</Label>
                   <Input
-                    placeholder="e.g. High fever with dry cough for 3 days"
+                    placeholder="e.g. High fever with chills and dry cough for 3 days"
                     value={chiefComplaint}
                     onChange={(e) => setChiefComplaint(e.target.value)}
                     className="text-xs h-9 bg-card"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Diagnosis</Label>
+                  <Label className="text-xs font-semibold">Clinical Diagnosis</Label>
                   <Input
-                    placeholder="e.g. Acute Upper Respiratory Tract Infection"
+                    placeholder="e.g. Acute Viral Bronchitis / Pyrexia"
                     value={diagnosis}
                     onChange={(e) => setDiagnosis(e.target.value)}
                     className="text-xs h-9 font-medium text-primary bg-card"
@@ -856,18 +1470,85 @@ function ConsultCockpitPage() {
                 </div>
               </div>
 
-              {/* Frequently Prescribed Medicines Inserter */}
-              <div className="p-3 bg-muted/20 border border-border/70 rounded-2xl space-y-2">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="size-3 text-amber-500" /> 1-Click Medicine Inserter:
+              {/* Interactive Medicine Inserter */}
+              <div className="p-3 bg-muted/20 border border-border/70 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="size-3 text-amber-500" /> Fast Medicine Inserter
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Add customized medicine with 1 tap</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+
+                {/* Quick Add Custom Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
+                  <Input
+                    placeholder="Medicine Name (e.g. Tab Dolo 650mg)"
+                    value={customMedName}
+                    onChange={(e) => setCustomMedName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomMed();
+                      }
+                    }}
+                    className="h-8 text-xs flex-1 bg-card"
+                  />
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={customMedDosage}
+                      onChange={(e) => setCustomMedDosage(e.target.value)}
+                      className="h-8 text-xs bg-card border border-border rounded-lg px-2"
+                    >
+                      <option value="1-0-1">1-0-1 (Morn-Night)</option>
+                      <option value="1-0-0">1-0-0 (Morning)</option>
+                      <option value="0-0-1">0-0-1 (Night)</option>
+                      <option value="1-1-1">1-1-1 (Thrice)</option>
+                      <option value="0-1-0">0-1-0 (Afternoon)</option>
+                      <option value="1 tab SOS">1 tab SOS (As needed)</option>
+                    </select>
+
+                    <select
+                      value={customMedTiming}
+                      onChange={(e) => setCustomMedTiming(e.target.value)}
+                      className="h-8 text-xs bg-card border border-border rounded-lg px-2"
+                    >
+                      <option value="After food">After food</option>
+                      <option value="Before breakfast">Before breakfast</option>
+                      <option value="Empty stomach">Empty stomach</option>
+                      <option value="At bedtime">At bedtime</option>
+                    </select>
+
+                    <select
+                      value={customMedDuration}
+                      onChange={(e) => setCustomMedDuration(e.target.value)}
+                      className="h-8 text-xs bg-card border border-border rounded-lg px-2"
+                    >
+                      <option value="3 days">3 days</option>
+                      <option value="5 days">5 days</option>
+                      <option value="7 days">7 days</option>
+                      <option value="14 days">14 days</option>
+                      <option value="30 days">30 days</option>
+                    </select>
+
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={handleAddCustomMed}
+                      className="h-8 px-2.5 text-xs bg-primary text-primary-foreground font-semibold rounded-lg shrink-0"
+                    >
+                      + Add
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Popular Medicine Quick Chips */}
+                <div className="flex flex-wrap gap-1 pt-1">
                   {FAST_MEDS.map((med) => (
                     <button
                       key={med.name}
                       type="button"
                       onClick={() => addMedicine(med)}
-                      className="px-2 py-0.5 rounded-lg text-xs font-medium bg-card border border-border/80 hover:border-primary/50 hover:bg-primary/5 text-foreground transition-all shadow-2xs"
+                      className="px-2 py-0.5 rounded-lg text-[11px] font-medium bg-card border border-border/80 hover:border-primary/50 hover:bg-primary/5 text-foreground transition-all shadow-2xs"
                     >
                       + {med.name.replace(/^(Tab|Cap|Syp)\s*/, "")}
                     </button>
@@ -878,29 +1559,41 @@ function ConsultCockpitPage() {
               {/* Prescription Textarea */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Prescription (Rx) &amp; Advice</Label>
-                  <span className="text-[10px] text-muted-foreground">Autosaved locally</span>
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <FileText className="size-3.5 text-primary" /> Prescription (Rx) &amp; Advice
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyRx}
+                      className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      <Copy className="size-3" /> Copy
+                    </button>
+                    <span className="text-[10px] text-muted-foreground">• Autosaved</span>
+                  </div>
                 </div>
                 <Textarea
-                  rows={5}
+                  rows={6}
                   value={treatmentPlan}
                   onChange={(e) => setTreatmentPlan(e.target.value)}
-                  placeholder="1. Tab Paracetamol 650mg — 1-0-1 after food x 3 days&#10;2. Syp ORS — 1 sachet in 1L water sip continuously&#10;3. Physical rest & plenty of warm fluids."
-                  className="text-xs font-mono leading-relaxed bg-card"
+                  placeholder="• Tab Paracetamol 650mg — 1-0-1 after food x 3 days&#10;• Syp ORS — 1 sachet in 1L water sip continuously&#10;• Rest & plenty of warm fluids."
+                  className="text-xs font-mono leading-relaxed bg-card rounded-xl border-border/80"
                 />
               </div>
 
-              {/* Follow-up & Quick Date Offsets */}
+              {/* Follow-up & Quick Date Chips */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <Label className="text-xs font-semibold">Follow-up:</Label>
                   <Input
                     type="date"
                     value={followUpDate}
                     onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="h-8 text-xs w-36 bg-card"
+                    className="h-8 text-xs w-36 bg-card rounded-lg"
                   />
                   {[
+                    { label: "SOS", days: 0 },
                     { label: "+3d", days: 3 },
                     { label: "+5d", days: 5 },
                     { label: "+1w", days: 7 },
@@ -911,9 +1604,13 @@ function ConsultCockpitPage() {
                       key={chip.label}
                       type="button"
                       onClick={() => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + chip.days);
-                        setFollowUpDate(d.toISOString().slice(0, 10));
+                        if (chip.days === 0) {
+                          setFollowUpDate("");
+                        } else {
+                          const d = new Date();
+                          d.setDate(d.getDate() + chip.days);
+                          setFollowUpDate(d.toISOString().slice(0, 10));
+                        }
                       }}
                       className="px-2 py-1 text-[11px] rounded-lg bg-muted border border-border/80 hover:bg-muted/80 text-foreground font-semibold"
                     >
@@ -924,31 +1621,28 @@ function ConsultCockpitPage() {
               </div>
 
               {/* STICKY SPEED ACTION BAR */}
-              <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handlePrintSlip}
-                    className="h-9 text-xs gap-1.5 rounded-xl border-border/80"
+                    className="h-9 text-xs gap-1.5 rounded-xl border-border/80 font-semibold"
+                    title="Print or Save PDF prescription (Ctrl+P)"
                   >
                     <Printer className="size-3.5" /> Print Rx
                   </Button>
-                  {patientPhone && (
-                    <a
-                      href={`https://wa.me/${patientPhone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-9 text-xs gap-1.5 rounded-xl text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
-                      >
-                        <MessageSquare className="size-3.5" /> WhatsApp
-                      </Button>
-                    </a>
-                  )}
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleWhatsAppShare}
+                    disabled={!patientPhone}
+                    className="h-9 text-xs gap-1.5 rounded-xl text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-semibold"
+                    title="Send formatted prescription on WhatsApp"
+                  >
+                    <MessageSquare className="size-3.5" /> WhatsApp Rx
+                  </Button>
                 </div>
 
                 {/* Primary Complete & Next Patient CTA */}
@@ -956,57 +1650,266 @@ function ConsultCockpitPage() {
                   size="lg"
                   onClick={handleCompleteAndNext}
                   disabled={saving}
-                  className="h-10 px-6 bg-primary text-primary-foreground font-bold text-xs sm:text-sm gap-2 rounded-xl shadow-md"
+                  className="h-10 px-6 bg-primary text-primary-foreground font-bold text-xs sm:text-sm gap-2 rounded-xl shadow-md hover:opacity-95"
+                  title="Save & transition to next patient (Ctrl+Enter)"
                 >
                   <CheckCircle2 className="size-4" />
-                  {saving ? "Completing…" : "⚡ Complete & Next Patient"}
+                  {saving ? "Saving…" : "⚡ Complete & Next Patient"}
+                  <span className="hidden sm:inline text-[10px] opacity-75 font-mono ml-1">
+                    (Ctrl+↵)
+                  </span>
                 </Button>
               </div>
             </Card>
           </div>
         </div>
       ) : (
-        /* ARCHIVED / PAST CONSULTATIONS TAB */
+        /* ================= ARCHIVED / PAST CONSULTATIONS TAB ================= */
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {historyRows.map((c) => (
-              <Card key={c.id} className="p-4 border-border/80 bg-card shadow-xs space-y-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground">{c.patient_name}</h3>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(c.created_at).toLocaleDateString("en-IN", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+          <Card className="p-4 border-border/80 bg-card shadow-xs space-y-3 rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                <FileText className="size-4 text-primary" /> Past Consultation Records
+              </h3>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Filter past records…"
+                  value={historySearchQuery}
+                  onChange={(e) => setHistorySearchQuery(e.target.value)}
+                  className="pl-8 h-8 text-xs rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {historyRows
+                .filter((c) => {
+                  if (!historySearchQuery.trim()) return true;
+                  const q = historySearchQuery.toLowerCase();
+                  return (
+                    c.patient_name.toLowerCase().includes(q) ||
+                    (c.diagnosis ?? "").toLowerCase().includes(q) ||
+                    (c.treatment_plan ?? "").toLowerCase().includes(q)
+                  );
+                })
+                .map((c) => (
+                  <Card key={c.id} className="p-4 border-border/80 bg-card shadow-xs space-y-2 rounded-xl">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-sm text-foreground">{c.patient_name}</h4>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(c.created_at).toLocaleDateString("en-IN", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                      {c.diagnosis && (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 font-bold">
+                          {c.diagnosis}
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                  {c.diagnosis && (
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 font-bold">
-                      {c.diagnosis}
-                    </Badge>
-                  )}
-                </div>
 
-                {c.chief_complaint && (
-                  <p className="text-xs text-muted-foreground bg-muted/20 p-2 rounded-lg border border-border/60">
-                    <b>Symptoms:</b> {c.chief_complaint}
-                  </p>
-                )}
+                    {c.chief_complaint && (
+                      <p className="text-xs text-muted-foreground bg-muted/20 p-2 rounded-lg border border-border/60">
+                        <b>Symptoms:</b> {c.chief_complaint}
+                      </p>
+                    )}
 
-                {c.treatment_plan && (
-                  <p className="text-xs font-mono text-foreground bg-muted/30 p-2 rounded-lg border border-border/60 whitespace-pre-wrap">
-                    {c.treatment_plan}
-                  </p>
-                )}
-              </Card>
-            ))}
-          </div>
+                    {c.treatment_plan && (
+                      <p className="text-xs font-mono text-foreground bg-muted/30 p-2 rounded-lg border border-border/60 whitespace-pre-wrap">
+                        {c.treatment_plan}
+                      </p>
+                    )}
+                  </Card>
+                ))}
+            </div>
+          </Card>
         </div>
       )}
+
+      {/* ================= MODAL: ADD WALK-IN PATIENT ================= */}
+      <Dialog open={walkinModalOpen} onOpenChange={setWalkinModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="size-4 text-primary" /> Add Walk-in Patient
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Quickly register a walk-in patient or pick an existing clinic patient to start consultation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            {/* Quick Pick Existing Patient */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Search Existing Clinic Patient (Optional):</Label>
+              <Input
+                placeholder="Type patient name or phone…"
+                value={walkinSearch}
+                onChange={(e) => setWalkinSearch(e.target.value)}
+                className="h-8 text-xs"
+              />
+              {walkinSearch.trim() && (
+                <div className="max-h-36 overflow-y-auto border rounded-lg p-1 bg-muted/30 space-y-1">
+                  {patients
+                    .filter(
+                      (p) =>
+                        p.name.toLowerCase().includes(walkinSearch.toLowerCase()) ||
+                        (p.phone ?? "").includes(walkinSearch)
+                    )
+                    .slice(0, 5)
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setPatientId(p.id);
+                          setPatientName(p.name);
+                          setPatientPhone(p.phone || "");
+                          setPatientAge(p.age ? String(p.age) : "");
+                          setPatientGender(p.gender || "");
+                          setSelectedPatient({
+                            id: `walkin-${p.id}`,
+                            source: "manual",
+                            token_number: queue.length + 1,
+                            patient_id: p.id,
+                            patient_name: p.name,
+                            patient_phone: p.phone,
+                            patient_age: p.age,
+                            patient_gender: p.gender,
+                            status: "serving",
+                          });
+                          setWalkinModalOpen(false);
+                          setWalkinSearch("");
+                          void loadPatientPastConsults(p.name, p.phone);
+                          toast.success(`Selected existing patient: ${p.name}`);
+                        }}
+                        className="w-full text-left p-1.5 text-xs rounded hover:bg-primary/10 flex justify-between items-center"
+                      >
+                        <span className="font-semibold">{p.name}</span>
+                        <span className="text-muted-foreground">{p.phone || "No phone"}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-border"></div>
+              <span className="flex-shrink mx-2 text-[10px] text-muted-foreground uppercase font-bold">OR Enter New</span>
+              <div className="flex-grow border-t border-border"></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Patient Name *</Label>
+                <Input
+                  placeholder="e.g. Rahul Sharma"
+                  value={patientName}
+                  onChange={(e) => setPatientName(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Phone Number</Label>
+                <Input
+                  placeholder="e.g. 9876543210"
+                  value={patientPhone}
+                  onChange={(e) => setPatientPhone(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Age</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 35"
+                  value={patientAge}
+                  onChange={(e) => setPatientAge(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Chief Complaint (Optional)</Label>
+                <Input
+                  placeholder="e.g. Fever, body pain"
+                  value={chiefComplaint}
+                  onChange={(e) => setChiefComplaint(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setWalkinModalOpen(false)} className="h-8 text-xs">
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!patientName.trim()) {
+                    toast.error("Please enter patient name");
+                    return;
+                  }
+                  setSelectedPatient({
+                    id: `walkin-${Date.now()}`,
+                    source: "manual",
+                    token_number: queue.length + 1,
+                    patient_name: patientName.trim(),
+                    patient_phone: patientPhone.trim() || null,
+                    patient_age: patientAge ? parseInt(patientAge) : null,
+                    status: "serving",
+                    problem: chiefComplaint.trim() || null,
+                  });
+                  setWalkinModalOpen(false);
+                  toast.success(`Walk-in consultation started for ${patientName}`);
+                }}
+                className="h-8 text-xs bg-primary text-primary-foreground font-semibold"
+              >
+                Start Consultation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= MODAL: KEYBOARD SHORTCUTS ================= */}
+      <Dialog open={shortcutsModalOpen} onOpenChange={setShortcutsModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <HelpCircle className="size-4 text-primary" /> Keyboard Shortcuts
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-2 pt-1 text-xs">
+            <div className="flex justify-between items-center p-2 rounded-lg bg-muted/40">
+              <span className="font-medium">Complete &amp; Next Patient</span>
+              <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold text-[11px]">
+                Ctrl + Enter
+              </kbd>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded-lg bg-muted/40">
+              <span className="font-medium">Print Rx Slip</span>
+              <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold text-[11px]">
+                Ctrl + P
+              </kbd>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded-lg bg-muted/40">
+              <span className="font-medium">Search Patient Queue</span>
+              <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold text-[11px]">
+                Ctrl + K
+              </kbd>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -159,6 +159,7 @@ export async function generatePlatformAiReply(opts: {
   const city = opts.lead?.city || "";
   const specialty = opts.lead?.specialty || "practice";
 
+  const config = await getPlatformAiConfig();
   const demoUrl = buildDemoUrl({
     doctorName: name,
     clinicName,

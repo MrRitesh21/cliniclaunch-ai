@@ -264,8 +264,8 @@ export async function handleWhatsAppIncomingRequest(
         const lookupDigits = pnDigits.slice(-10) || (!senderDigits.startsWith("6215") && senderDigits.length >= 10 ? senderDigits.slice(-10) : "");
 
         if (lookupDigits && lookupDigits.length >= 8) {
-          const { data: matched } = await sb
-            .from("platform_crm_leads")
+          const { data: matched } = await (sb
+            .from("platform_crm_leads" as any) as any)
             .select("id")
             .ilike("phone", `%${lookupDigits}%`)
             .limit(1);
@@ -275,8 +275,8 @@ export async function handleWhatsAppIncomingRequest(
         }
 
         if (!isPlatformSession && (String(rawFrom).includes("@lid") || senderDigits.startsWith("6215"))) {
-          const { data: matchedLid } = await sb
-            .from("platform_crm_leads")
+          const { data: matchedLid } = await (sb
+            .from("platform_crm_leads" as any) as any)
             .select("id")
             .or(`whatsapp_lid.ilike.%${senderDigits}%,phone.ilike.%${senderDigits}%`)
             .limit(1);
