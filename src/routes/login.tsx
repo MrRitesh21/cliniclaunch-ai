@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft, Tag, X, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { guardAuthAttempt } from "@/lib/limits.functions";
@@ -54,6 +55,21 @@ function LoginPage() {
       } catch {}
     }
   }, [searchRef]);
+
+  const [manualRefInput, setManualRefInput] = useState("");
+  const [showRefInput, setShowRefInput] = useState(false);
+
+  const handleApplyReferral = () => {
+    if (!manualRefInput.trim()) return;
+    const clean = manualRefInput.trim().toUpperCase();
+    setReferralCode(clean);
+    setShowRefInput(false);
+    try {
+      localStorage.setItem("clinicx_referral_code", clean);
+      document.cookie = `clinicx_referral_code=${clean}; path=/; max-age=2592000; SameSite=Lax`;
+    } catch {}
+    toast.success(`Partner invitation code ${clean} applied! 14-day trial unlocked.`);
+  };
 
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
@@ -409,18 +425,84 @@ function LoginPage() {
               </TabsContent>
 
               <TabsContent value="signup">
-                {referralCode && (
-                  <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2.5 shadow-sm animate-in fade-in duration-200">
-                    <Sparkles className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 fill-emerald-500/20" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-1.5 font-medium">
-                        <span>Partner Invitation:</span>
-                        <span className="font-mono font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded text-[11px]">{referralCode}</span>
+                {referralCode ? (
+                  <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2.5 shadow-sm animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                        <Check className="size-4" />
                       </div>
-                      <p className="text-[11px] opacity-90 mt-0.5 leading-snug">
-                        Your 14-Day Free Doctor Trial with AI Receptionist will automatically activate.
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-1.5 font-medium">
+                          <span>Partner Invitation:</span>
+                          <Badge className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 text-[11px] font-mono font-bold px-2 py-0">
+                            {referralCode}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] opacity-90 mt-0.5 leading-snug">
+                          14-Day Free Doctor Trial with AI WhatsApp Receptionist unlocked.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReferralCode(null);
+                        try {
+                          localStorage.removeItem("clinicx_referral_code");
+                          document.cookie = "clinicx_referral_code=; path=/; max-age=0";
+                        } catch {}
+                        toast.info("Partner referral code removed");
+                      }}
+                      className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+                      title="Remove partner code"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    {!showRefInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowRefInput(true)}
+                        className="text-xs text-primary hover:underline flex items-center gap-1.5 font-medium transition-colors"
+                      >
+                        <Tag className="size-3.5" />
+                        <span>Have a partner or creator referral code?</span>
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2 text-xs animate-in fade-in duration-150">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="manualRef" className="text-xs font-semibold">
+                            Enter Partner Code
+                          </Label>
+                          <button
+                            type="button"
+                            onClick={() => setShowRefInput(false)}
+                            className="text-muted-foreground hover:text-foreground text-[11px]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="manualRef"
+                            value={manualRefInput}
+                            onChange={(e) => setManualRefInput(e.target.value.toUpperCase())}
+                            placeholder="e.g. VIPUL14"
+                            className="h-9 uppercase font-mono text-xs"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleApplyReferral}
+                            className="h-9 text-xs px-3"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <form onSubmit={signUp} className="space-y-4">

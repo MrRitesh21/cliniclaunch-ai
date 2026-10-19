@@ -180,6 +180,7 @@ function AdminReferralsPage() {
   const origin = typeof window !== "undefined" ? window.location.origin : "https://clinicx.ai";
 
   const getReferralUrl = (code: string) => `${origin}/ref/${code}`;
+  const getJoinUrl = (code: string) => `${origin}/join/${code}`;
 
   const copyToClipboard = (text: string, label = "Link") => {
     if (navigator?.clipboard?.writeText) {
@@ -845,8 +846,8 @@ function AdminReferralsPage() {
               {/* Direct Bio Link Box */}
               <div className="space-y-1.5">
                 <Label className="font-semibold text-foreground flex items-center justify-between">
-                  <span>1. Instagram Bio Link</span>
-                  <span className="text-muted-foreground text-[11px] font-normal">Best for Profile Link / Linktree</span>
+                  <span>1. Creator Landing Page URL</span>
+                  <span className="text-muted-foreground text-[11px] font-normal">High-converting doctor invitation page</span>
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -856,8 +857,44 @@ function AdminReferralsPage() {
                   />
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() =>
-                      copyToClipboard(getReferralUrl(selectedCreatorForShare.code), "Bio link")
+                      window.open(getReferralUrl(selectedCreatorForShare.code), "_blank")
+                    }
+                    className="h-9 px-2.5 gap-1 shrink-0 text-xs"
+                    title="Preview landing page"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    <span>Preview</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      copyToClipboard(getReferralUrl(selectedCreatorForShare.code), "Landing page link")
+                    }
+                    className="h-9 px-3 gap-1.5 shrink-0"
+                  >
+                    <Copy className="size-3.5" /> Copy
+                  </Button>
+                </div>
+              </div>
+
+              {/* Short Vanity Link Box */}
+              <div className="space-y-1.5">
+                <Label className="font-semibold text-foreground flex items-center justify-between">
+                  <span>2. Short Vanity URL</span>
+                  <span className="text-muted-foreground text-[11px] font-normal">Best for Instagram Bio / Story Swipe / DM</span>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={getJoinUrl(selectedCreatorForShare.code)}
+                    className="h-9 text-xs font-mono bg-muted/40"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      copyToClipboard(getJoinUrl(selectedCreatorForShare.code), "Short vanity link")
                     }
                     className="h-9 px-3 gap-1.5 shrink-0"
                   >
