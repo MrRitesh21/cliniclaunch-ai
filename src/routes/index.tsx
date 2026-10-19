@@ -60,6 +60,9 @@ import {
   BeforeAfterSlider,
   UsVsThemSection,
   BentoArchitectureSection,
+  HeroWordSplit,
+  LiveClinicSocialProof,
+  StackedDeckTestimonials,
 } from "@/components/landing/LandingMotion";
 
 export const Route = createFileRoute("/")({
@@ -399,13 +402,11 @@ function LandingContent() {
                 </div>
               </div>
 
-              {/* Main Headline */}
-              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
-                Less Time on Admin.{" "}
-                <span className="text-primary block sm:inline">
-                  More Time for Patients.
-                </span>
-              </h1>
+              {/* Main Headline with GSAP 3 Word Split Entrance (Pattern 01 / landing-hero.html) */}
+              <HeroWordSplit
+                headline="Less Time on Admin. More Time for Patients."
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold"
+              />
 
               {/* High-Impact Word Rotator (MadeToScale Guide Animation 02) */}
               <WordRotator
@@ -786,90 +787,17 @@ function LandingContent() {
         </div>
       </section>
 
+      {/* 10: Live Practice Activity Stream & Social Proof (social-proof-widget.html) */}
+      <LiveClinicSocialProof />
+
       {/* 08: Process Draw Flow (Guide Animation 08) */}
       <ProcessDrawSection />
 
       {/* 09: Interactive Before / After Comparison Slider (Guide Animation 09) */}
       <BeforeAfterSlider />
 
-      {/* Real Verified Doctor Testimonials */}
-      <section className="border-y border-border/60 bg-muted/20 py-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Practicing Doctor Testimonials
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-bold font-display tracking-tight text-foreground">
-              Trusted by Doctors Across 30+ Indian Cities
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Real feedback from physicians, dental surgeons, gynecologists, and pediatricians using ClinicX daily.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <Card className="p-5 sm:p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "Pehle evening clinic me receptionist phone uthate uthate thak jaati thi aur consultations me disturb hota tha. ClinicX lagane ke baad 70% appointments WhatsApp se automatic book ho jaate hain. No-shows 28% se kam ho kar sirf 3% reh gaye."
-              </p>
-              <div className="pt-3 border-t border-border/60 flex items-center gap-3">
-                <div className="size-10 rounded-full bg-primary/10 text-primary font-bold text-xs grid place-items-center">
-                  DR
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-foreground">Dr. Rajesh Sharma, MD (Medicine)</p>
-                  <p className="text-[11px] text-muted-foreground">Consultant Physician • Hazratganj, Lucknow</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-5 sm:p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "Meri dental clinic ka custom website aur automated Google Review bot ne 3 mahine me 180+ verified 5-star reviews dilwaye. Ab local patients direct search karke aate hain, bina kisi aggregator commission ke. Complete game changer!"
-              </p>
-              <div className="pt-3 border-t border-border/60 flex items-center gap-3">
-                <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-xs grid place-items-center">
-                  DA
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-foreground">Dr. Ananya Sen, BDS, MDS</p>
-                  <p className="text-[11px] text-muted-foreground">Dental Surgeon • Sector 62, Noida (Delhi NCR)</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-5 sm:p-6 rounded-3xl border border-border/80 bg-card space-y-4 shadow-xs">
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "OPD Token Queue display humne waiting room TV par lagaya hai. Patients ko unka token aur expected time dikhta hai, to front desk par zero bheed aur shanti rehti hai. Receptionist ab billing aur follow-ups par dhyan de pati hai."
-              </p>
-              <div className="pt-3 border-t border-border/60 flex items-center gap-3">
-                <div className="size-10 rounded-full bg-purple-500/10 text-purple-600 font-bold text-xs grid place-items-center">
-                  DV
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-foreground">Dr. Vikram Rao, MS (Ortho)</p>
-                  <p className="text-[11px] text-muted-foreground">Orthopedic Specialist • Jayanagar, Bengaluru</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
+      {/* 11: 3D Stacked Doctor Testimonials Deck (stacked-testimonials.html / Pattern 04) */}
+      <StackedDeckTestimonials />
 
       {/* 06: Bento Architecture & Feature Grid (Guide Animation 06) */}
       <BentoArchitectureSection />
