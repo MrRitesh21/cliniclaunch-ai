@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stacked Testimonials Deck - Loop Animation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,500;1,600;1,700&display=swap" rel="stylesheet" />
+  <!-- GSAP 3 from cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --brand: #0284c7;
+      --brand-glow: rgba(2, 132, 199, 0.25);
+      --star-color: #f59e0b;
+      --bg-dark: #07090e;
+      --card-bg-front: #111622;
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 30%, rgba(2, 132, 199, 0.08) 0%, transparent 60%);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2.5rem 1.25rem;
+      overflow-x: hidden;
+    }
+
+    .section-wrapper {
+      max-width: 680px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+      color: #38bdf8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      margin-bottom: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       STACKED CARDS DECK (Pattern 04 / MadeToScale Guide)
+       ========================================================================== */
+    .deck-container {
+      position: relative;
+      width: 100%;
+      max-width: 580px;
+      height: 310px;
+      margin: 0 auto;
+      perspective: 1200px;
+    }
+
+    .review-card {
+      position: absolute;
+      inset: 0;
+      background: var(--card-bg-front);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 2.25rem 2rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-origin: center bottom;
+      user-select: none;
+      will-change: transform, opacity;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    /* 5 Stars in Brand Color */
+    .stars-group {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--brand);
+    }
+
+    .stars-group svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .quote-mark {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.1);
+      font-style: italic;
+    }
+
+    /* Italic Serif Quote */
+    .card-quote {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(1.1rem, 2.2vw, 1.25rem);
+      line-height: 1.55;
+      color: #f1f5f9;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+
+    /* Reviewer Profile Row */
+    .reviewer-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .avatar-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #ffffff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .reviewer-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .reviewer-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .verified-customer {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .verified-customer svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* ==========================================================================
+       UNDER THE DECK RATING BAR
+       ========================================================================== */
+    .deck-footer-rating {
+      margin-top: 3.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 0.6rem 1.25rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 9999px;
+    }
+
+    .deck-footer-rating .star-highlight {
+      color: var(--brand);
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .deck-footer-rating .bold-text {
+      color: #ffffff;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="section-wrapper">
+    <header class="section-header">
+      <div class="section-badge">Clinician Feedback</div>
+      <h2 class="section-title">Trusted by 500+ Indian Doctors</h2>
+    </header>
+
+    <!-- 3 Review Cards Stacked Like a Deck -->
+    <div class="deck-container" id="deck-container"></div>
+
+    <!-- Under the deck: rating proof -->
+    <div class="deck-footer-rating" id="deck-rating">
+      <span class="star-highlight">★</span>
+      <span class="bold-text" id="rating-val">4.9</span>
+      <span>average from</span>
+      <span class="bold-text" id="reviews-count">1,280</span>
+      <span>verified reviews</span>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================================================
+    // CONFIGURATION: REVIEWS & STACK CONSTANTS
+    // ==========================================================================
+    const REVIEWS = [
+      {
+        quote: "ClinicX cut our patient waiting time by 45 minutes in the first week. The WhatsApp automated reminders alone reduced missed appointments to almost zero.",
+        name: "Dr. Rajesh Sharma",
+        role: "Verified Customer",
+        avatar: "RS",
+        avatarBg: "#0284c7"
+      },
+      {
+        quote: "Switching from paper registers to this live OPD token queue transformed our clinic reception. Patients love the live status tracking on their phones.",
+        name: "Dr. Ananya Iyer",
+        role: "Verified Customer",
+        avatar: "AI",
+        avatarBg: "#10b981"
+      },
+      {
+        quote: "Billing and prescription generation takes literally 20 seconds now. It is the cleanest, most reliable clinic software we have ever used in our polyclinic.",
+        name: "Dr. Vikram Malhotra",
+        role: "Verified Customer",
+        avatar: "VM",
+        avatarBg: "#8b5cf6"
+      }
+    ];
+
+    const STACK_CONFIG = {
+      brandColour: "#0284c7", // 5 stars in brand colour
+      intervalSeconds: 2.5,   // Every 2.5 seconds throw top card
+      rating: "4.9",
+      count: "1,280",
+      yOffsetPerCard: 34,     // Each card behind is 34px lower
+      scaleStep: 0.06,        // 6% smaller per card behind (1.0 -> 0.94 -> 0.88)
+      opacityStep: 0.28       // Fainter per card behind (1.0 -> 0.72 -> 0.44)
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const container = document.getElementById("deck-container");
+      document.getElementById("rating-val").textContent = STACK_CONFIG.rating;
+      document.getElementById("reviews-count").textContent = STACK_CONFIG.count;
+
+      // Star SVG icon
+      const starSvg = `
+        <svg viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      `;
+
+      const checkSvg = `
+        <svg viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+      `;
+
+      // Create the 3 card elements
+      const cardEls = REVIEWS.map((review, i) => {
+        const card = document.createElement("div");
+        card.className = "review-card";
+        card.innerHTML = `
+          <div>
+            <div class="card-top">
+              <div class="stars-group" style="color: ${STACK_CONFIG.brandColour};">
+                ${starSvg.repeat(5)}
+              </div>
+              <span class="quote-mark">“</span>
+            </div>
+            <blockquote class="card-quote">
+              “${review.quote}”
+            </blockquote>
+          </div>
+          <div class="reviewer-row">
+            <div class="avatar-circle" style="background: ${review.avatarBg};">${review.avatar}</div>
+            <div class="reviewer-meta">
+              <span class="reviewer-name">${review.name}</span>
+              <span class="verified-customer">
+                ${checkSvg}
+                verified customer
+              </span>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+        return card;
+      });
+
+      // Initial stack positioning
+      // Card 0: Top (y: 0, scale: 1.0, opacity: 1.0, zIndex: 3)
+      // Card 1: Middle (y: 34, scale: 0.94, opacity: 0.72, zIndex: 2)
+      // Card 2: Back (y: 68, scale: 0.88, opacity: 0.44, zIndex: 1)
+      let stack = [...cardEls];
+
+      function applyStackPositions(cards, immediate = false) {
+        cards.forEach((card, index) => {
+          const y = index * STACK_CONFIG.yOffsetPerCard;
+          const scale = 1 - index * STACK_CONFIG.scaleStep;
+          const opacity = Math.max(0.2, 1 - index * STACK_CONFIG.opacityStep);
+          const zIndex = cards.length - index;
+
+          card.style.zIndex = zIndex;
+
+          if (immediate) {
+            gsap.set(card, { y, scale, opacity, x: 0, rotation: 0 });
+          } else {
+            gsap.to(card, {
+              y,
+              scale,
+              opacity,
+              duration: 0.65,
+              ease: "back.out(1.5)"
+            });
+          }
+        });
+      }
+
+      // Apply immediately at start
+      applyStackPositions(stack, true);
+
+      // Rotation / throw loop every 2.5 seconds
+      function throwTopCard() {
+        const topCard = stack[0];
+        const nextCard = stack[1];
+        const backCard = stack[2];
+
+        // 1. Throw top card to the left with -18deg rotation
+        gsap.to(topCard, {
+          x: -420,
+          y: -20,
+          rotation: -18,
+          opacity: 0,
+          duration: 0.6,
+          ease: "power2.in",
+          onComplete: () => {
+            // Move thrown card to the back of the stack array
+            stack.shift();
+            stack.push(topCard);
+
+            // Position it at the back slot invisibly, then fade in
+            const backY = 2 * STACK_CONFIG.yOffsetPerCard;
+            const backScale = 1 - 2 * STACK_CONFIG.scaleStep;
+            const backOpacity = Math.max(0.2, 1 - 2 * STACK_CONFIG.opacityStep);
+
+            topCard.style.zIndex = 1;
+            gsap.set(topCard, {
+              x: 0,
+              y: backY + 20,
+              rotation: 0,
+              scale: backScale,
+              opacity: 0
+            });
+
+            gsap.to(topCard, {
+              y: backY,
+              opacity: backOpacity,
+              duration: 0.45,
+              ease: "power2.out"
+            });
+          }
+        });
+
+        // 2. Move remaining cards forward with back.out easing
+        gsap.to(nextCard, {
+          y: 0,
+          scale: 1.0,
+          opacity: 1.0,
+          duration: 0.65,
+          ease: "back.out(1.6)",
+          onStart: () => {
+            nextCard.style.zIndex = 3;
+          }
+        });
+
+        gsap.to(backCard, {
+          y: STACK_CONFIG.yOffsetPerCard,
+          scale: 1 - STACK_CONFIG.scaleStep,
+          opacity: 1 - STACK_CONFIG.opacityStep,
+          duration: 0.65,
+          ease: "back.out(1.6)",
+          onStart: () => {
+            backCard.style.zIndex = 2;
+          }
+        });
+      }
+
+      // Run throwing loop every 2.5 seconds
+      setInterval(throwTopCard, STACK_CONFIG.intervalSeconds * 1000);
+    });
+  </script>
+</body>
+</html>

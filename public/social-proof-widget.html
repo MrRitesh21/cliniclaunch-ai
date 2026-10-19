@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Social Proof & Revenue Stream Widget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- GSAP 3 from cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --brand: #0284c7;
+      --brand-glow: rgba(2, 132, 199, 0.15);
+      --bg-page: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --phone-border: #1e293b;
+      --phone-bg: #0b0f17;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    .widget-container {
+      max-width: 920px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    @media (min-width: 768px) {
+      .widget-container {
+        grid-template-columns: 320px 1fr;
+        gap: 3rem;
+      }
+    }
+
+    /* ==========================================================================
+       LEFT: Dark Phone Mock-up
+       ========================================================================== */
+    .phone-mockup {
+      background: var(--phone-bg);
+      border: 8px solid var(--phone-border);
+      border-radius: 40px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      height: 520px;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+      padding: 1rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Phone Dynamic Island / Speaker Notch */
+    .phone-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 18px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 10;
+    }
+
+    .phone-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.35rem 0.5rem 1.25rem;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      font-weight: 600;
+      z-index: 5;
+    }
+
+    .phone-clock {
+      color: #ffffff;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .phone-date {
+      font-size: 0.7rem;
+      color: #64748b;
+    }
+
+    /* Notification Feed Container */
+    .feed-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      overflow: hidden;
+    }
+
+    .notif-card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 0.75rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #ffffff;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+      transform-origin: top center;
+      will-change: transform, opacity;
+    }
+
+    .notif-icon-wrap {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+    }
+
+    .notif-icon-wrap svg {
+      width: 20px;
+      height: 20px;
+      stroke: #ffffff;
+      fill: none;
+    }
+
+    .notif-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .notif-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      line-height: 1.25;
+      margin-bottom: 2px;
+    }
+
+    .notif-amount {
+      color: #38bdf8;
+      font-weight: 800;
+    }
+
+    .notif-sub {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+    }
+
+    /* ==========================================================================
+       RIGHT: White Card "Today's revenue"
+       ========================================================================== */
+    .revenue-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 2.25rem 2rem;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .card-title-group h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .revenue-amount {
+      font-size: clamp(2.25rem, 4vw, 3.25rem);
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      display: flex;
+      align-items: baseline;
+      gap: 0.2rem;
+    }
+
+    .revenue-currency {
+      color: var(--brand);
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+    }
+
+    .live-ping-dot {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .live-ping-dot::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: #10b981;
+      opacity: 0.6;
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes ping {
+      75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    /* Metrics Grid */
+    .metrics-row {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 1rem 1.25rem;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px solid #f1f5f9;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    /* Sparkline Section */
+    .sparkline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sparkline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .sparkline-svg-wrap {
+      width: 100%;
+      height: 80px;
+      background: linear-gradient(180deg, rgba(2, 132, 199, 0.06) 0%, rgba(2, 132, 199, 0) 100%);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    svg.sparkline {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .sparkline-path {
+      fill: none;
+      stroke: var(--brand);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke-dashoffset 0.8s ease-out;
+    }
+
+    .sparkline-dot {
+      fill: var(--brand);
+      stroke: #ffffff;
+      stroke-width: 2.5;
+      r: 5;
+      transition: cx 0.5s ease-out, cy 0.5s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="widget-container">
+    <!-- LEFT: Dark Phone Mockup -->
+    <div class="phone-mockup">
+      <div class="phone-island"></div>
+      <div class="phone-status-bar">
+        <span class="phone-clock">9:41</span>
+        <span class="phone-date" id="live-date">Today</span>
+      </div>
+
+      <!-- Dynamic Feed of dropping notifications (Max 4 visible) -->
+      <div class="feed-container" id="feed-container"></div>
+    </div>
+
+    <!-- RIGHT: White Card "Today's revenue" -->
+    <div class="revenue-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2>Today's revenue</h2>
+          <div class="revenue-amount">
+            <span class="revenue-currency" id="currency-symbol">₹</span>
+            <span id="revenue-display">0</span>
+          </div>
+        </div>
+        <div class="live-badge">
+          <span class="live-ping-dot"></span>
+          <span>LIVE STREAM</span>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-item">
+          <span class="metric-label">Orders Today</span>
+          <span class="metric-value" id="orders-count">0</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Avg. Order Value</span>
+          <span class="metric-value" id="aov-display">₹0</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Status</span>
+          <span class="metric-value" style="color: #10b981; font-size: 1.125rem; font-weight: 700;">+24.8% ↑</span>
+        </div>
+      </div>
+
+      <div class="sparkline-container">
+        <div class="sparkline-header">
+          <span>Real-time Velocity Curve</span>
+          <span style="color: var(--brand); font-weight: 600;">Auto-syncing</span>
+        </div>
+        <div class="sparkline-svg-wrap">
+          <svg class="sparkline" viewBox="0 0 400 80" preserveAspectRatio="none">
+            <path id="sparkline-path" class="sparkline-path" d="" />
+            <circle id="sparkline-head" class="sparkline-dot" cx="-10" cy="-10" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================================================
+    // CONFIGURATION: PLUG IN YOUR REAL DATA HERE
+    // ==========================================================================
+    const ORDERS_DATA = [
+      { amount: 1450, city: "Mumbai" },
+      { amount: 890, city: "Bengaluru" },
+      { amount: 2150, city: "Delhi" },
+      { amount: 620, city: "Pune" },
+      { amount: 3400, city: "Hyderabad" },
+      { amount: 1200, city: "Chennai" },
+      { amount: 950, city: "Ahmedabad" },
+      { amount: 1850, city: "Kolkata" },
+      { amount: 2600, city: "Jaipur" },
+      { amount: 1100, city: "Chandigarh" },
+      { amount: 1750, city: "Indore" },
+      { amount: 3100, city: "Surat" }
+    ];
+
+    const APP_CONFIG = {
+      currency: "₹",            // Change to '$', '€', etc.
+      intervalSeconds: 2,       // New notification every 2 seconds
+      maxVisibleCards: 4,       // Keep at most 4 visible in the mockup
+      initialOrders: 14,        // Base orders
+      initialRevenue: 18450     // Base revenue
+    };
+
+    // ==========================================================================
+    // LOGIC & GSAP ANIMATIONS
+    // ==========================================================================
+    document.addEventListener("DOMContentLoaded", () => {
+      // Set today's date in phone header
+      const dateEl = document.getElementById("live-date");
+      const now = new Date();
+      dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+      // Setup initial metric states
+      let totalRevenue = APP_CONFIG.initialRevenue;
+      let totalOrders = APP_CONFIG.initialOrders;
+      let orderIndex = 0;
+      const currencySymbolEl = document.getElementById("currency-symbol");
+      const revenueDisplayEl = document.getElementById("revenue-display");
+      const ordersCountEl = document.getElementById("orders-count");
+      const aovDisplayEl = document.getElementById("aov-display");
+      const feedContainer = document.getElementById("feed-container");
+      const sparklinePath = document.getElementById("sparkline-path");
+      const sparklineHead = document.getElementById("sparkline-head");
+
+      currencySymbolEl.textContent = APP_CONFIG.currency;
+      revenueDisplayEl.textContent = totalRevenue.toLocaleString('en-IN');
+      ordersCountEl.textContent = totalOrders;
+      aovDisplayEl.textContent = APP_CONFIG.currency + Math.round(totalRevenue / totalOrders).toLocaleString('en-IN');
+
+      // Points for sparkline
+      const sparkPoints = [20, 28, 22, 35, 30, 42, 38, 52, 48, 60, 55, 68];
+
+      function renderSparkline(animateDash = false) {
+        const width = 400;
+        const height = 80;
+        const maxVal = Math.max(...sparkPoints, 75);
+        const minVal = Math.min(...sparkPoints, 15);
+        const range = maxVal - minVal || 1;
+
+        const coords = sparkPoints.map((pt, i) => {
+          const x = (i / (sparkPoints.length - 1)) * width;
+          const y = height - ((pt - minVal) / range) * (height - 24) - 12;
+          return { x, y };
+        });
+
+        // Construct smooth bezier path
+        let d = `M ${coords[0].x} ${coords[0].y}`;
+        for (let i = 1; i < coords.length; i++) {
+          const prev = coords[i - 1];
+          const curr = coords[i];
+          const cx = (prev.x + curr.x) / 2;
+          d += ` Q ${prev.x} ${prev.y}, ${cx} ${(prev.y + curr.y) / 2} T ${curr.x} ${curr.y}`;
+        }
+
+        sparklinePath.setAttribute("d", d);
+        const lastCoord = coords[coords.length - 1];
+        sparklineHead.setAttribute("cx", lastCoord.x);
+        sparklineHead.setAttribute("cy", lastCoord.y);
+
+        if (animateDash) {
+          const len = sparklinePath.getTotalLength();
+          sparklinePath.style.strokeDasharray = len;
+          sparklinePath.style.strokeDashoffset = len;
+          gsap.to(sparklinePath, {
+            strokeDashoffset: 0,
+            duration: 0.9,
+            ease: "power2.out"
+          });
+        }
+      }
+
+      renderSparkline(true);
+
+      // Animated count-up helper for revenue
+      function animateRevenue(targetValue) {
+        const currentVal = totalRevenue;
+        const obj = { val: currentVal };
+        gsap.to(obj, {
+          val: targetValue,
+          duration: 1.2,
+          ease: "power3.out",
+          onUpdate: () => {
+            revenueDisplayEl.textContent = Math.round(obj.val).toLocaleString('en-IN');
+          }
+        });
+        totalRevenue = targetValue;
+      }
+
+      // SVG shopping bag icon
+      const shoppingBagSvg = `
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+          <path d="M3 6h18"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+      `;
+
+      // Trigger notification drop-in every 2 seconds
+      function triggerNextOrder() {
+        const order = ORDERS_DATA[orderIndex % ORDERS_DATA.length];
+        orderIndex++;
+
+        // 1. Create notification card element
+        const card = document.createElement("div");
+        card.className = "notif-card";
+        card.innerHTML = `
+          <div class="notif-icon-wrap">${shoppingBagSvg}</div>
+          <div class="notif-details">
+            <div class="notif-title">
+              <span>New order</span>
+              <span class="notif-amount">${APP_CONFIG.currency}${order.amount.toLocaleString('en-IN')}</span>
+            </div>
+            <div class="notif-sub">
+              <span class="pulse-dot"></span>
+              <span>${order.city} · just now</span>
+            </div>
+          </div>
+        `;
+
+        // Insert at the top of feed container
+        feedContainer.insertBefore(card, feedContainer.firstChild);
+
+        // 2. Animate card dropping in from top with GSAP 3 back.out easing
+        gsap.fromTo(card, 
+          {
+            y: -50,
+            opacity: 0,
+            scale: 0.88
+          },
+          {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            duration: 0.65,
+            ease: "back.out(1.7)"
+          }
+        );
+
+        // 3. Keep at most 4 visible: discard 5th+ with smooth fade/slide
+        const allCards = feedContainer.querySelectorAll(".notif-card");
+        if (allCards.length > APP_CONFIG.maxVisibleCards) {
+          for (let i = APP_CONFIG.maxVisibleCards; i < allCards.length; i++) {
+            const excessCard = allCards[i];
+            gsap.to(excessCard, {
+              opacity: 0,
+              y: 20,
+              scale: 0.9,
+              duration: 0.4,
+              ease: "power2.in",
+              onComplete: () => {
+                if (excessCard.parentNode) {
+                  excessCard.parentNode.removeChild(excessCard);
+                }
+              }
+            });
+          }
+        }
+
+        // 4. Update metrics: revenue count-up and orders increment
+        totalOrders += 1;
+        ordersCountEl.textContent = totalOrders;
+        animateRevenue(totalRevenue + order.amount);
+        aovDisplayEl.textContent = APP_CONFIG.currency + Math.round((totalRevenue + order.amount) / totalOrders).toLocaleString('en-IN');
+
+        // 5. Update sparkline and draw with stroke-dashoffset
+        sparkPoints.shift();
+        sparkPoints.push(Math.min(75, Math.max(20, sparkPoints[sparkPoints.length - 1] + (Math.random() * 16 - 7))));
+        renderSparkline(true);
+      }
+
+      // Run first notification immediately, then loop every 2 seconds
+      triggerNextOrder();
+      setInterval(triggerNextOrder, APP_CONFIG.intervalSeconds * 1000);
+    });
+  </script>
+</body>
+</html>
