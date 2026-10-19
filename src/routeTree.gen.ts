@@ -44,8 +44,10 @@ import { Route as CompareCompetitorRouteImport } from './routes/compare.$competi
 import { Route as ConsultAppointmentIdRouteImport } from './routes/consult.$appointmentId'
 import { Route as ForSpecialtyRouteImport } from './routes/for.$specialty'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as JoinCodeRouteImport } from './routes/join.$code'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as RefCodeRouteImport } from './routes/ref.$code'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin.index'
 import { Route as AdminAdminAiRouteImport } from './routes/_admin/admin.ai'
@@ -59,6 +61,7 @@ import { Route as AdminAdminEmailRouteImport } from './routes/_admin/admin.email
 import { Route as AdminAdminFeaturesRouteImport } from './routes/_admin/admin.features'
 import { Route as AdminAdminModulesRouteImport } from './routes/_admin/admin.modules'
 import { Route as AdminAdminPlansRouteImport } from './routes/_admin/admin.plans'
+import { Route as AdminAdminReferralsRouteImport } from './routes/_admin/admin.referrals'
 import { Route as AdminAdminRefundsRouteImport } from './routes/_admin/admin.refunds'
 import { Route as AdminAdminSubscriptionsRouteImport } from './routes/_admin/admin.subscriptions'
 import { Route as AdminAdminSupportRouteImport } from './routes/_admin/admin.support'
@@ -295,6 +298,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinCodeRoute = JoinCodeRouteImport.update({
+  id: '/join/$code',
+  path: '/join/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LSlugRoute = LSlugRouteImport.update({
   id: '/l/$slug',
   path: '/l/$slug',
@@ -303,6 +311,11 @@ const LSlugRoute = LSlugRouteImport.update({
 const RSlugRoute = RSlugRouteImport.update({
   id: '/r/$slug',
   path: '/r/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefCodeRoute = RefCodeRouteImport.update({
+  id: '/ref/$code',
+  path: '/ref/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
@@ -369,6 +382,11 @@ const AdminAdminModulesRoute = AdminAdminModulesRouteImport.update({
 const AdminAdminPlansRoute = AdminAdminPlansRouteImport.update({
   id: '/admin/plans',
   path: '/admin/plans',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAdminReferralsRoute = AdminAdminReferralsRouteImport.update({
+  id: '/admin/referrals',
+  path: '/admin/referrals',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAdminRefundsRoute = AdminAdminRefundsRouteImport.update({
@@ -744,8 +762,10 @@ export interface FileRoutesByFullPath {
   '/consult/$appointmentId': typeof ConsultAppointmentIdRoute
   '/for/$specialty': typeof ForSpecialtyRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/join/$code': typeof JoinCodeRoute
   '/l/$slug': typeof LSlugRoute
   '/r/$slug': typeof RSlugRoute
+  '/ref/$code': typeof RefCodeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/ai': typeof AdminAdminAiRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
@@ -758,6 +778,7 @@ export interface FileRoutesByFullPath {
   '/admin/features': typeof AdminAdminFeaturesRoute
   '/admin/modules': typeof AdminAdminModulesRoute
   '/admin/plans': typeof AdminAdminPlansRoute
+  '/admin/referrals': typeof AdminAdminReferralsRoute
   '/admin/refunds': typeof AdminAdminRefundsRoute
   '/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
   '/admin/support': typeof AdminAdminSupportRoute
@@ -852,8 +873,10 @@ export interface FileRoutesByTo {
   '/consult/$appointmentId': typeof ConsultAppointmentIdRoute
   '/for/$specialty': typeof ForSpecialtyRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/join/$code': typeof JoinCodeRoute
   '/l/$slug': typeof LSlugRoute
   '/r/$slug': typeof RSlugRoute
+  '/ref/$code': typeof RefCodeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/ai': typeof AdminAdminAiRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
@@ -865,6 +888,7 @@ export interface FileRoutesByTo {
   '/admin/features': typeof AdminAdminFeaturesRoute
   '/admin/modules': typeof AdminAdminModulesRoute
   '/admin/plans': typeof AdminAdminPlansRoute
+  '/admin/referrals': typeof AdminAdminReferralsRoute
   '/admin/refunds': typeof AdminAdminRefundsRoute
   '/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
   '/admin/support': typeof AdminAdminSupportRoute
@@ -963,8 +987,10 @@ export interface FileRoutesById {
   '/consult/$appointmentId': typeof ConsultAppointmentIdRoute
   '/for/$specialty': typeof ForSpecialtyRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/join/$code': typeof JoinCodeRoute
   '/l/$slug': typeof LSlugRoute
   '/r/$slug': typeof RSlugRoute
+  '/ref/$code': typeof RefCodeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_admin/admin/ai': typeof AdminAdminAiRoute
   '/_admin/admin/announcements': typeof AdminAdminAnnouncementsRoute
@@ -977,6 +1003,7 @@ export interface FileRoutesById {
   '/_admin/admin/features': typeof AdminAdminFeaturesRoute
   '/_admin/admin/modules': typeof AdminAdminModulesRoute
   '/_admin/admin/plans': typeof AdminAdminPlansRoute
+  '/_admin/admin/referrals': typeof AdminAdminReferralsRoute
   '/_admin/admin/refunds': typeof AdminAdminRefundsRoute
   '/_admin/admin/subscriptions': typeof AdminAdminSubscriptionsRoute
   '/_admin/admin/support': typeof AdminAdminSupportRoute
@@ -1075,8 +1102,10 @@ export interface FileRouteTypes {
     | '/consult/$appointmentId'
     | '/for/$specialty'
     | '/invite/$token'
+    | '/join/$code'
     | '/l/$slug'
     | '/r/$slug'
+    | '/ref/$code'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/ai'
     | '/admin/announcements'
@@ -1089,6 +1118,7 @@ export interface FileRouteTypes {
     | '/admin/features'
     | '/admin/modules'
     | '/admin/plans'
+    | '/admin/referrals'
     | '/admin/refunds'
     | '/admin/subscriptions'
     | '/admin/support'
@@ -1183,8 +1213,10 @@ export interface FileRouteTypes {
     | '/consult/$appointmentId'
     | '/for/$specialty'
     | '/invite/$token'
+    | '/join/$code'
     | '/l/$slug'
     | '/r/$slug'
+    | '/ref/$code'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/ai'
     | '/admin/announcements'
@@ -1196,6 +1228,7 @@ export interface FileRouteTypes {
     | '/admin/features'
     | '/admin/modules'
     | '/admin/plans'
+    | '/admin/referrals'
     | '/admin/refunds'
     | '/admin/subscriptions'
     | '/admin/support'
@@ -1293,8 +1326,10 @@ export interface FileRouteTypes {
     | '/consult/$appointmentId'
     | '/for/$specialty'
     | '/invite/$token'
+    | '/join/$code'
     | '/l/$slug'
     | '/r/$slug'
+    | '/ref/$code'
     | '/.mcp/invoke-tool/$tool'
     | '/_admin/admin/ai'
     | '/_admin/admin/announcements'
@@ -1307,6 +1342,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/features'
     | '/_admin/admin/modules'
     | '/_admin/admin/plans'
+    | '/_admin/admin/referrals'
     | '/_admin/admin/refunds'
     | '/_admin/admin/subscriptions'
     | '/_admin/admin/support'
@@ -1404,8 +1440,10 @@ export interface RootRouteChildren {
   ConsultAppointmentIdRoute: typeof ConsultAppointmentIdRoute
   ForSpecialtyRoute: typeof ForSpecialtyRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  JoinCodeRoute: typeof JoinCodeRoute
   LSlugRoute: typeof LSlugRoute
   RSlugRoute: typeof RSlugRoute
+  RefCodeRoute: typeof RefCodeRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiInternalClinicxBillingJobsRoute: typeof ApiInternalClinicxBillingJobsRoute
   ApiInternalClinicxJobsRoute: typeof ApiInternalClinicxJobsRoute
@@ -1665,6 +1703,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join/$code': {
+      id: '/join/$code'
+      path: '/join/$code'
+      fullPath: '/join/$code'
+      preLoaderRoute: typeof JoinCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/l/$slug': {
       id: '/l/$slug'
       path: '/l/$slug'
@@ -1677,6 +1722,13 @@ declare module '@tanstack/react-router' {
       path: '/r/$slug'
       fullPath: '/r/$slug'
       preLoaderRoute: typeof RSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ref/$code': {
+      id: '/ref/$code'
+      path: '/ref/$code'
+      fullPath: '/ref/$code'
+      preLoaderRoute: typeof RefCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/invoke-tool/$tool': {
@@ -1768,6 +1820,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/plans'
       fullPath: '/admin/plans'
       preLoaderRoute: typeof AdminAdminPlansRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_admin/admin/referrals': {
+      id: '/_admin/admin/referrals'
+      path: '/admin/referrals'
+      fullPath: '/admin/referrals'
+      preLoaderRoute: typeof AdminAdminReferralsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/_admin/admin/refunds': {
@@ -2222,6 +2281,7 @@ interface AdminRouteRouteChildren {
   AdminAdminFeaturesRoute: typeof AdminAdminFeaturesRoute
   AdminAdminModulesRoute: typeof AdminAdminModulesRoute
   AdminAdminPlansRoute: typeof AdminAdminPlansRoute
+  AdminAdminReferralsRoute: typeof AdminAdminReferralsRoute
   AdminAdminRefundsRoute: typeof AdminAdminRefundsRoute
   AdminAdminSubscriptionsRoute: typeof AdminAdminSubscriptionsRoute
   AdminAdminSupportRoute: typeof AdminAdminSupportRoute
@@ -2245,6 +2305,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAdminFeaturesRoute: AdminAdminFeaturesRoute,
   AdminAdminModulesRoute: AdminAdminModulesRoute,
   AdminAdminPlansRoute: AdminAdminPlansRoute,
+  AdminAdminReferralsRoute: AdminAdminReferralsRoute,
   AdminAdminRefundsRoute: AdminAdminRefundsRoute,
   AdminAdminSubscriptionsRoute: AdminAdminSubscriptionsRoute,
   AdminAdminSupportRoute: AdminAdminSupportRoute,
@@ -2438,8 +2499,10 @@ const rootRouteChildren: RootRouteChildren = {
   ConsultAppointmentIdRoute: ConsultAppointmentIdRoute,
   ForSpecialtyRoute: ForSpecialtyRoute,
   InviteTokenRoute: InviteTokenRoute,
+  JoinCodeRoute: JoinCodeRoute,
   LSlugRoute: LSlugRoute,
   RSlugRoute: RSlugRoute,
+  RefCodeRoute: RefCodeRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiInternalClinicxBillingJobsRoute: ApiInternalClinicxBillingJobsRoute,
   ApiInternalClinicxJobsRoute: ApiInternalClinicxJobsRoute,

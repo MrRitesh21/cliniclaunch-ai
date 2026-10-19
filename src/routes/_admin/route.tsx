@@ -37,6 +37,7 @@ import {
   Sparkles,
   LayoutTemplate,
   Bot,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -74,6 +75,7 @@ const NAV: NavSection[] = [
     title: "Doctors & CRM",
     items: [
       { to: "/admin/crm", label: "CRM & AI Outreach", icon: Bot },
+      { to: "/admin/referrals", label: "Creators & Referrals", icon: Share2 },
       { to: "/admin/doctors", label: "All Doctors", icon: Users },
       { to: "/admin/doctors/new", label: "New Signups", icon: UserPlus },
       { to: "/admin/doctors/flagged", label: "Flagged", icon: AlertTriangle },

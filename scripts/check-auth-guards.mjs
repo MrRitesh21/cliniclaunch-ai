@@ -38,6 +38,13 @@ const PUBLIC_ALLOWLIST = new Set([
   // Public template gallery & site template
   "site-templates.functions.ts:listTemplateLibrary",
   "site-templates.functions.ts:getClinicSiteTemplate",
+  // Public CRM lead capture
+  "crm.functions.ts:submitPlatformLead",
+  // Public Creator Referral tracking & resolution
+  "referral.functions.ts:getPublicReferralInfo",
+  "referral.functions.ts:trackReferralClick",
+  "referral.functions.ts:trackReferralSignup",
+  "referral.functions.ts:linkReferralOnboarding",
 ]);
 
 function scanFunctions() {

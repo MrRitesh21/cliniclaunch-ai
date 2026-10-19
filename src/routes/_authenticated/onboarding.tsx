@@ -31,6 +31,7 @@ import {
 import type { Database } from "@/integrations/supabase/types";
 import { resolveAvailableOrgSlug } from "@/lib/clinic.functions";
 import { provisionClinicTrial, getClinicSubscription } from "@/lib/subscription.functions";
+import { linkReferralOnboarding } from "@/lib/referral.functions";
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { pricePresentation } from "@/components/billing/clinicx-ux";
@@ -473,6 +474,21 @@ function Onboarding() {
         throw new Error("Profile configuration readback failed. Your workspace is preserved; review settings before continuing.");
       }
       localStorage.removeItem(`onboarding_draft_${user.id}`);
+      // Attribute onboarding completion to referral if registered with one
+      try {
+        const refCode = localStorage.getItem("clinicx_referral_code");
+        if (refCode) {
+          linkReferralOnboarding({
+            data: {
+              referralCode: refCode,
+              userId: user.id,
+              clinicId: result.clinic_id,
+              clinicName: orgName.trim(),
+              organizationId: result.organization_id,
+            },
+          }).catch((err) => console.warn("Referral link onboarding error:", err));
+        }
+      } catch {}
       toast.success("Welcome to ClinicX. Your 30-day free trial has started.");
       navigate({ to: "/dashboard" });
     } catch (err) {

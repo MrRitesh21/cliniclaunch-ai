@@ -10,16 +10,18 @@ import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft } from
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { guardAuthAttempt } from "@/lib/limits.functions";
+import { trackReferralSignup } from "@/lib/referral.functions";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { redirect?: string; email?: string; tab?: string } => ({
+  ): { redirect?: string; email?: string; tab?: string; ref?: string } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     email: typeof search.email === "string" ? search.email : undefined,
     tab: typeof search.tab === "string" ? search.tab : undefined,
+    ref: typeof search.ref === "string" ? search.ref : undefined,
   }),
   head: () => ({
     meta: [
@@ -32,9 +34,26 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { redirect, email: searchEmail, tab: searchTab } = Route.useSearch();
+  const { redirect, email: searchEmail, tab: searchTab, ref: searchRef } = Route.useSearch();
   const [checkingAuth, setCheckingAuth] = useState(() => hasCachedSession());
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchRef) {
+      const clean = searchRef.trim().toUpperCase();
+      setReferralCode(clean);
+      try {
+        localStorage.setItem("clinicx_referral_code", clean);
+        document.cookie = `clinicx_referral_code=${clean}; path=/; max-age=2592000; SameSite=Lax`;
+      } catch {}
+    } else if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("clinicx_referral_code");
+        if (stored) setReferralCode(stored.trim().toUpperCase());
+      } catch {}
+    }
+  }, [searchRef]);
 
   const { data: mStatus } = useQuery({
     queryKey: ["maintenance-status"],
@@ -146,6 +165,20 @@ function LoginPage() {
 
     setLoading(false);
     if (error) return toast.error(error.message);
+
+    // Attribute referral conversion if referred
+    const effectiveRef = referralCode || (typeof window !== "undefined" ? localStorage.getItem("clinicx_referral_code") : null);
+    if (effectiveRef) {
+      trackReferralSignup({
+        data: {
+          referralCode: effectiveRef,
+          email,
+          fullName,
+          userId: data?.user?.id ?? null,
+        },
+      }).catch((err) => console.warn("Referral tracking signup error:", err));
+    }
+
     if (data?.session) {
       toast.success("Account created successfully!");
       navigate({ to: redirect ? (redirect as any) : "/onboarding" });
@@ -376,6 +409,20 @@ function LoginPage() {
               </TabsContent>
 
               <TabsContent value="signup">
+                {referralCode && (
+                  <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2.5 shadow-sm animate-in fade-in duration-200">
+                    <Sparkles className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 fill-emerald-500/20" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 font-medium">
+                        <span>Partner Invitation:</span>
+                        <span className="font-mono font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded text-[11px]">{referralCode}</span>
+                      </div>
+                      <p className="text-[11px] opacity-90 mt-0.5 leading-snug">
+                        Your 14-Day Free Doctor Trial with AI Receptionist will automatically activate.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <form onSubmit={signUp} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="fname">Full name</Label>
