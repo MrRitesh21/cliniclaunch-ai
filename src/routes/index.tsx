@@ -391,15 +391,13 @@ function LandingContent() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             {/* Left Column: Value Proposition, Dominant CTA & Trust */}
             <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-              {/* Product Audience Tag & Word Rotator */}
+              {/* Product Audience Tag */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5">
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
                   <span className="size-2 rounded-full bg-primary animate-pulse" />
-                  <span>Dedicated Clinic Platform for Indian Doctors</span>
+                  <span>Dedicated Clinic Platform for Indian Doctors & Polyclinics</span>
                 </div>
               </div>
-
-              <WordRotator />
 
               {/* Main Headline */}
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
@@ -408,6 +406,13 @@ function LandingContent() {
                   More Time for Patients.
                 </span>
               </h1>
+
+              {/* High-Impact Word Rotator (MadeToScale Guide Animation 02) */}
+              <WordRotator
+                leadText="Eliminate"
+                words={["Reception Chaos", "Paper Registers", "Missed Calls", "Billing Stress"]}
+                suffixText="in your clinic practice"
+              />
 
               {/* Benefit-Driven Subheadline */}
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 font-normal">

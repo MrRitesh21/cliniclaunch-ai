@@ -119,7 +119,7 @@ interface WordRotatorProps {
 export function WordRotator({
   leadText = "Eliminate",
   words = ["Reception Chaos", "Lost Paper Registers", "Missed Patient Calls", "Evening Accounts Stress"],
-  suffixText = "in your practice",
+  suffixText = "in your clinic practice",
   intervalMs = 2400,
 }: WordRotatorProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -136,32 +136,34 @@ export function WordRotator({
 
   return (
     <div
-      className="inline-flex flex-wrap items-center justify-center lg:justify-start gap-2 text-xs sm:text-sm font-semibold text-muted-foreground select-none"
+      className="flex flex-col items-center lg:items-start gap-2 select-none py-1"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <span>{leadText}</span>
-      <div className="relative h-7 sm:h-8 px-3 py-0.5 rounded-full border border-primary/25 bg-primary/10 overflow-hidden flex items-center min-w-[160px] sm:min-w-[190px] shadow-xs">
-        <div
-          className="w-full transition-transform duration-500 ease-out"
-          style={{
-            transform: reducedMotion ? "none" : `translateY(-${currentIndex * 28}px)`,
-          }}
-        >
-          {words.map((word, i) => (
-            <div
-              key={i}
-              className="h-7 flex items-center justify-center text-primary font-bold text-xs sm:text-sm whitespace-nowrap"
-            >
-              {word}
-            </div>
-          ))}
+      <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 text-lg sm:text-xl lg:text-2xl font-bold tracking-tight text-foreground">
+        <span className="text-muted-foreground font-semibold">{leadText}</span>
+        <div className="relative h-11 sm:h-13 px-4 sm:px-5 rounded-2xl border-2 border-primary/30 bg-primary/10 overflow-hidden flex items-center min-w-[210px] sm:min-w-[280px] shadow-sm">
+          <div
+            className="w-full transition-transform duration-500 ease-out"
+            style={{
+              transform: reducedMotion ? "none" : `translateY(-${currentIndex * 100}%)`,
+            }}
+          >
+            {words.map((word, i) => (
+              <div
+                key={i}
+                className="h-11 sm:h-13 flex items-center justify-center text-primary font-extrabold text-base sm:text-xl lg:text-2xl whitespace-nowrap tracking-tight"
+              >
+                {word}
+              </div>
+            ))}
+          </div>
         </div>
+        {suffixText && <span className="text-foreground">{suffixText}</span>}
       </div>
-      {suffixText && <span className="hidden sm:inline">{suffixText}</span>}
 
-      {/* Progress indicators */}
-      <div className="flex items-center gap-1 ml-1">
+      {/* Progress indicators under pill (MadeToScale Guide Animation 02) */}
+      <div className="flex items-center gap-1.5 pt-0.5 pl-1">
         {words.map((_, i) => (
           <button
             key={i}
@@ -169,7 +171,7 @@ export function WordRotator({
             onClick={() => setCurrentIndex(i)}
             aria-label={`Show ${words[i]}`}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              currentIndex === i ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+              currentIndex === i ? "w-5 bg-primary shadow-xs" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
             }`}
           />
         ))}
