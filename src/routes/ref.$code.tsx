@@ -59,15 +59,53 @@ function ProfessionalReferralPage() {
         console.warn("Attribution storage failed:", e);
       }
 
-      // Track click analytics in background
-      trackClickFn({
-        data: {
-          code: cleanCode,
-          userAgent: navigator.userAgent,
-          referrer: document.referrer || "direct",
-          landingPage: window.location.href,
-        },
-      }).catch(() => {});
+      // Deduplicate click tracking: prevent multiple counts on reload/refresh
+      try {
+        const sessionKey = `clinicx_ref_tracked_${cleanCode}`;
+        const timestampKey = `clinicx_ref_last_click_${cleanCode}`;
+        const visitorIdKey = "clinicx_visitor_id";
+        const sessionIdKey = "clinicx_session_id";
+
+        // Persistent visitor ID (across tabs)
+        let visitorId = localStorage.getItem(visitorIdKey);
+        if (!visitorId) {
+          visitorId = "vid_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+          localStorage.setItem(visitorIdKey, visitorId);
+        }
+
+        // Tab session ID
+        let sessionId = sessionStorage.getItem(sessionIdKey);
+        if (!sessionId) {
+          sessionId = "sid_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+          sessionStorage.setItem(sessionIdKey, sessionId);
+        }
+
+        const isSessionTracked = sessionStorage.getItem(sessionKey) === "1";
+        const lastTrackedTime = parseInt(localStorage.getItem(timestampKey) || "0", 10);
+        const now = Date.now();
+        const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown
+
+        const isDuplicate = isSessionTracked || (now - lastTrackedTime < COOLDOWN_MS);
+
+        if (!isDuplicate) {
+          sessionStorage.setItem(sessionKey, "1");
+          localStorage.setItem(timestampKey, now.toString());
+
+          // Track click analytics in background
+          trackClickFn({
+            data: {
+              code: cleanCode,
+              userAgent: navigator.userAgent,
+              referrer: document.referrer || "direct",
+              landingPage: window.location.href,
+              visitorId,
+              sessionId,
+            },
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn("Click tracking deduplication failed:", err);
+      }
     }
 
     getInfoFn({ data: { code: cleanCode } })

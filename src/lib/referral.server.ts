@@ -114,10 +114,15 @@ export async function recordReferralClickImpl(opts: {
   userAgent?: string;
   referrer?: string;
   landingPage?: string;
+  visitorId?: string;
+  sessionId?: string;
   ip?: string;
-}): Promise<{ success: boolean }> {
+}): Promise<{ success: boolean; duplicate?: boolean }> {
   const normCode = cleanCode(opts.code);
   if (!normCode) return { success: false };
+
+  const dedupKey = opts.visitorId?.trim() || opts.sessionId?.trim() || null;
+  const deduplicationWindowMs = 30 * 60 * 1000; // 30 minutes cooldown window
 
   let creatorId: string | null = null;
   let creatorName = "";
@@ -132,13 +137,31 @@ export async function recordReferralClickImpl(opts: {
     if (creator) {
       creatorId = creator.id;
       creatorName = creator.creator_name;
+
+      // Prevent duplicate click counts if same visitor/session refreshed recently
+      if (dedupKey) {
+        const windowAgo = new Date(Date.now() - deduplicationWindowMs).toISOString();
+        const { data: recentClick } = await (supabaseAdmin as any)
+          .from("platform_referral_clicks")
+          .select("id")
+          .eq("referral_code", normCode)
+          .eq("ip_hash", dedupKey)
+          .gte("created_at", windowAgo)
+          .limit(1)
+          .maybeSingle();
+
+        if (recentClick) {
+          return { success: true, duplicate: true };
+        }
+      }
+
       await (supabaseAdmin as any).from("platform_referral_clicks").insert({
         creator_id: creatorId,
         referral_code: normCode,
         user_agent: opts.userAgent?.slice(0, 500) || null,
         referrer: opts.referrer?.slice(0, 500) || null,
         landing_page: opts.landingPage?.slice(0, 500) || null,
-        ip_hash: opts.ip ? "ip_logged" : null,
+        ip_hash: dedupKey || (opts.ip ? "ip_logged" : null),
       });
       return { success: true };
     }
@@ -149,6 +172,21 @@ export async function recordReferralClickImpl(opts: {
   // Fallback store handling
   const store = await readFallbackStore();
   const creator = store.creators.find((c) => c.code.toUpperCase() === normCode);
+
+  // Prevent duplicate click in fallback store
+  if (dedupKey) {
+    const cutoff = Date.now() - deduplicationWindowMs;
+    const isRecentDuplicate = store.clicks.some(
+      (c) =>
+        c.referral_code === normCode &&
+        c.ip_hash === dedupKey &&
+        new Date(c.created_at).getTime() > cutoff
+    );
+    if (isRecentDuplicate) {
+      return { success: true, duplicate: true };
+    }
+  }
+
   if (creator) {
     creator.click_count = (creator.click_count || 0) + 1;
     creator.updated_at = new Date().toISOString();
@@ -161,7 +199,7 @@ export async function recordReferralClickImpl(opts: {
     creator_id: creatorId,
     referral_code: normCode,
     creator_name: creatorName,
-    ip_hash: null,
+    ip_hash: dedupKey || null,
     user_agent: opts.userAgent || null,
     referrer: opts.referrer || null,
     landing_page: opts.landingPage || null,

@@ -20,6 +20,8 @@ export const trackReferralClick = createServerFn({ method: "POST" })
       userAgent: z.string().optional(),
       referrer: z.string().optional(),
       landingPage: z.string().optional(),
+      visitorId: z.string().optional(),
+      sessionId: z.string().optional(),
     })
   )
   .handler(async ({ data }) => {
