@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hero Word Rotator - GSAP 3 (Pattern 02)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- GSAP 3 from cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --brand: #0284c7;            /* Brand colour (Sky 600 / Healthcare Blue) */
+      --brand-glow: rgba(2, 132, 199, 0.25);
+      --brand-pill-bg: rgba(2, 132, 199, 0.12);
+      --brand-pill-border: rgba(2, 132, 199, 0.35);
+      --bg-dark: #07090e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --row-height: 72px;         /* Desktop row height for big bold type */
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --row-height: 54px;       /* Mobile row height */
+      }
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 20%, rgba(2, 132, 199, 0.12) 0%, transparent 60%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+
+    .hero-container {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(2, 132, 199, 0.1);
+      border: 1px solid rgba(2, 132, 199, 0.25);
+      color: #38bdf8;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      padding: 0.4rem 0.95rem;
+      border-radius: 9999px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: #38bdf8;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #38bdf8;
+    }
+
+    /* ==========================================================================
+       3-LINE HERO HEADLINE STRUCTURE (MadeToScale Guide Pattern 02)
+       ========================================================================== */
+    .line-start {
+      font-size: clamp(2.25rem, 5.5vw, 4.25rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      line-height: 1.1;
+    }
+
+    .rotator-pill-wrapper {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+      margin: 0.35rem 0;
+    }
+
+    /* Fixed-height pill with overflow hidden */
+    .rotator-pill {
+      height: var(--row-height);
+      background: var(--brand-pill-bg);
+      border: 2px solid var(--brand-pill-border);
+      border-radius: 9999px;
+      padding: 0 2rem;
+      overflow: hidden;
+      position: relative;
+      display: inline-flex;
+      align-items: flex-start;
+      box-shadow: 0 10px 30px -10px var(--brand-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .rotator-list {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      will-change: transform;
+    }
+
+    .rotator-item {
+      height: var(--row-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.85rem, 5vw, 3.75rem);
+      font-weight: 900;
+      color: #38bdf8;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+      text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+    }
+
+    .line-end {
+      font-size: clamp(1.75rem, 4.5vw, 3.25rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    /* Progress dots under pill */
+    .progress-dots {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .progress-dot.active {
+      width: 24px;
+      background: var(--brand);
+      box-shadow: 0 0 12px var(--brand);
+    }
+
+    /* Hero Supporting Text & CTAs */
+    .hero-subtext {
+      font-size: clamp(1rem, 1.8vw, 1.25rem);
+      color: #94a3b8;
+      max-width: 620px;
+      line-height: 1.6;
+      margin-top: 1rem;
+    }
+
+    .cta-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.85rem 1.75rem;
+      border-radius: 14px;
+      text-decoration: none;
+      box-shadow: 0 10px 25px -5px var(--brand-glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px -5px rgba(2, 132, 199, 0.45);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.85rem 1.75rem;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero-container">
+    <div class="badge-tag">
+      <span class="pulse-dot"></span>
+      <span>MadeToScale Animation Guide · Pattern 02</span>
+    </div>
+
+    <!-- Line 1: [FIXED START] -->
+    <div class="line-start">Say Goodbye to</div>
+
+    <!-- Line 2: Brand Pill with Vertical Rotator -->
+    <div class="rotator-pill-wrapper">
+      <div class="rotator-pill" id="rotator-pill">
+        <div class="rotator-list" id="rotator-list">
+          <!-- Injected via JS with duplicate first word for seamless loop -->
+        </div>
+      </div>
+
+      <!-- Progress dots under the pill -->
+      <div class="progress-dots" id="progress-dots"></div>
+    </div>
+
+    <!-- Line 3: [FIXED END] in muted grey -->
+    <div class="line-end">in your clinic practice</div>
+
+    <p class="hero-subtext">
+      ClinicX automates WhatsApp bookings, live OPD queues, billing, and patient records — so Indian clinicians can spend more time on care and zero time on reception chaos.
+    </p>
+
+    <div class="cta-group">
+      <a href="/signup" class="btn-primary">Start 14-Day Free Doctor Trial →</a>
+      <a href="/" class="btn-secondary">Back to Landing Page</a>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================================================
+    // CONFIGURATION: WORDS & ROTATION DURATION
+    // ==========================================================================
+    const WORDS = [
+      "Reception Chaos",
+      "Paper Registers",
+      "Missed Calls",
+      "Billing Stress"
+    ];
+
+    const INTERVAL_SECONDS = 2; // Every 2 seconds slide up
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const listEl = document.getElementById("rotator-list");
+      const dotsEl = document.getElementById("progress-dots");
+      const pillEl = document.getElementById("rotator-pill");
+
+      // Respect prefers-reduced-motion
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // 1. Create seamless loop array: duplicate first word at the end
+      const wordsWithClone = [...WORDS, WORDS[0]];
+
+      // 2. Render words into vertical list
+      wordsWithClone.forEach((word) => {
+        const item = document.createElement("div");
+        item.className = "rotator-item";
+        item.textContent = word;
+        listEl.appendChild(item);
+      });
+
+      // 3. Render progress dots
+      WORDS.forEach((_, i) => {
+        const dot = document.createElement("div");
+        dot.className = `progress-dot ${i === 0 ? 'active' : ''}`;
+        dot.addEventListener("click", () => goToIndex(i));
+        dotsEl.appendChild(dot);
+      });
+
+      const dots = dotsEl.querySelectorAll(".progress-dot");
+
+      function updateDots(activeIdx) {
+        dots.forEach((dot, i) => {
+          if (i === activeIdx % WORDS.length) {
+            dot.classList.add("active");
+          } else {
+            dot.classList.remove("active");
+          }
+        });
+      }
+
+      if (prefersReducedMotion) {
+        // Show first word instantly without motion
+        return;
+      }
+
+      let currentIndex = 0;
+      let timer = null;
+
+      function getRowHeight() {
+        const firstItem = listEl.querySelector(".rotator-item");
+        return firstItem ? firstItem.offsetHeight : 72;
+      }
+
+      function goToIndex(targetIndex) {
+        currentIndex = targetIndex;
+        updateDots(currentIndex);
+        const rowH = getRowHeight();
+        gsap.to(listEl, {
+          y: -currentIndex * rowH,
+          duration: 0.65,
+          ease: "back.inOut(1.4)"
+        });
+      }
+
+      function rotateNext() {
+        currentIndex++;
+        const rowH = getRowHeight();
+
+        // Update dots
+        updateDots(currentIndex);
+
+        // Slide up one row with GSAP 3 back.inOut ease
+        gsap.to(listEl, {
+          y: -currentIndex * rowH,
+          duration: 0.65,
+          ease: "back.inOut(1.4)",
+          onComplete: () => {
+            // Seamless loop: If we reached the cloned last word, reset immediately to 0
+            if (currentIndex === WORDS.length) {
+              currentIndex = 0;
+              gsap.set(listEl, { y: 0 });
+              updateDots(0);
+            }
+          }
+        });
+      }
+
+      // Start 2-second interval loop
+      timer = setInterval(rotateNext, INTERVAL_SECONDS * 1000);
+
+      // Pause on hover
+      pillEl.addEventListener("mouseenter", () => clearInterval(timer));
+      pillEl.addEventListener("mouseleave", () => {
+        clearInterval(timer);
+        timer = setInterval(rotateNext, INTERVAL_SECONDS * 1000);
+      });
+    });
+  </script>
+</body>
+</html>

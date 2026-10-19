@@ -119,7 +119,7 @@ interface WordRotatorProps {
 export function WordRotator({
   leadText = "Eliminate",
   words = ["Reception Chaos", "Lost Paper Registers", "Missed Patient Calls", "Evening Accounts Stress"],
-  suffixText = "in your clinic practice",
+  suffixText = "in your practice",
   intervalMs = 2400,
 }: WordRotatorProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -136,34 +136,40 @@ export function WordRotator({
 
   return (
     <div
-      className="flex flex-col items-center lg:items-start gap-2 select-none py-1"
+      className="inline-flex flex-col items-center lg:items-start gap-2.5 select-none py-1.5 w-full sm:w-auto"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 text-lg sm:text-xl lg:text-2xl font-bold tracking-tight text-foreground">
-        <span className="text-muted-foreground font-semibold">{leadText}</span>
-        <div className="relative h-11 sm:h-13 px-4 sm:px-5 rounded-2xl border-2 border-primary/30 bg-primary/10 overflow-hidden flex items-center min-w-[210px] sm:min-w-[280px] shadow-sm">
-          <div
-            className="w-full transition-transform duration-500 ease-out"
-            style={{
-              transform: reducedMotion ? "none" : `translateY(-${currentIndex * 100}%)`,
-            }}
-          >
-            {words.map((word, i) => (
-              <div
+      {/* Main phrase: On mobile stacks cleanly as Pattern 02; on sm+ screens lines up in one bold hero row */}
+      <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
+        <span className="text-muted-foreground font-bold shrink-0">{leadText}</span>
+        
+        {/* Fixed-height pill with bold centered animated word */}
+        <div className="relative h-12 sm:h-14 px-5 sm:px-6 rounded-2xl border-2 border-primary/40 bg-primary/10 overflow-hidden inline-flex items-center justify-center min-w-[230px] sm:min-w-[290px] shadow-sm shrink-0">
+          {words.map((word, i) => {
+            const isActive = i === currentIndex;
+            return (
+              <span
                 key={i}
-                className="h-11 sm:h-13 flex items-center justify-center text-primary font-extrabold text-base sm:text-xl lg:text-2xl whitespace-nowrap tracking-tight"
+                className={`absolute inset-0 flex items-center justify-center text-primary font-black text-lg sm:text-2xl lg:text-3xl whitespace-nowrap tracking-tight transition-all duration-500 ease-out ${
+                  isActive
+                    ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
+                    : i < currentIndex || (currentIndex === 0 && i === words.length - 1)
+                    ? "opacity-0 -translate-y-6 scale-95 pointer-events-none"
+                    : "opacity-0 translate-y-6 scale-95 pointer-events-none"
+                }`}
               >
                 {word}
-              </div>
-            ))}
-          </div>
+              </span>
+            );
+          })}
         </div>
-        {suffixText && <span className="text-foreground">{suffixText}</span>}
+
+        {suffixText && <span className="text-foreground font-bold shrink-0">{suffixText}</span>}
       </div>
 
       {/* Progress indicators under pill (MadeToScale Guide Animation 02) */}
-      <div className="flex items-center gap-1.5 pt-0.5 pl-1">
+      <div className="flex items-center gap-1.5 pt-0.5 sm:self-center lg:self-start sm:pl-32 lg:pl-32">
         {words.map((_, i) => (
           <button
             key={i}
@@ -171,7 +177,7 @@ export function WordRotator({
             onClick={() => setCurrentIndex(i)}
             aria-label={`Show ${words[i]}`}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              currentIndex === i ? "w-5 bg-primary shadow-xs" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+              currentIndex === i ? "w-6 bg-primary shadow-xs" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
             }`}
           />
         ))}
