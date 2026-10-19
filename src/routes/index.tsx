@@ -53,6 +53,14 @@ import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
 import { LeadCaptureDialog } from "@/components/landing/LeadCaptureDialog";
 import { LeadCaptureSection } from "@/components/landing/LeadCaptureSection";
+import {
+  WordRotator,
+  LiveActivityPing,
+  ProcessDrawSection,
+  BeforeAfterSlider,
+  UsVsThemSection,
+  BentoArchitectureSection,
+} from "@/components/landing/LandingMotion";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -383,11 +391,15 @@ function LandingContent() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             {/* Left Column: Value Proposition, Dominant CTA & Trust */}
             <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-              {/* Product Audience Tag */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
-                <span className="size-2 rounded-full bg-primary" />
-                <span>Dedicated Clinic Platform for Indian Doctors & Polyclinics</span>
+              {/* Product Audience Tag & Word Rotator */}
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
+                  <span className="size-2 rounded-full bg-primary animate-pulse" />
+                  <span>Dedicated Clinic Platform for Indian Doctors</span>
+                </div>
               </div>
+
+              <WordRotator />
 
               {/* Main Headline */}
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
@@ -472,7 +484,12 @@ function LandingContent() {
             </div>
 
             {/* Right Column: Prominent Above-the-Fold Interactive Live Workflow Preview */}
-            <div className="lg:col-span-6">
+            <div className="lg:col-span-6 relative">
+              {/* Floating Social Proof Activity Ping */}
+              <div className="absolute -top-3.5 right-2 sm:right-6 z-20 pointer-events-auto">
+                <LiveActivityPing />
+              </div>
+
               <div className="rounded-2xl sm:rounded-3xl border border-border/90 bg-card p-2 sm:p-2.5 shadow-xl shadow-primary/5 text-left">
                 {/* Window Frame Header */}
                 <div className="rounded-xl border border-border/70 bg-background overflow-hidden">
@@ -764,47 +781,11 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* REALITY CHECK: Before ClinicX vs After ClinicX */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 space-y-12">
-        <div className="text-center max-w-2xl mx-auto space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary">
-            Practical Comparison
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-bold font-display tracking-tight text-foreground">
-            The Reality of Running a Clinic in India
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            See how ClinicX replaces paper registers, chaotic WhatsApp groups, and expensive aggregators with one effortless system.
-          </p>
-        </div>
+      {/* 08: Process Draw Flow (Guide Animation 08) */}
+      <ProcessDrawSection />
 
-        <div className="grid grid-cols-1 gap-4">
-          {BEFORE_AFTER.map((item, idx) => (
-            <div
-              key={idx}
-              className="rounded-2xl border border-border/80 bg-surface p-4 sm:p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch"
-            >
-              {/* Before */}
-              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider">
-                  <X className="size-4" /> Traditional Clinic Chaos
-                </div>
-                <h4 className="font-semibold text-xs sm:text-sm text-foreground">{item.challenge}</h4>
-                <p className="text-xs leading-relaxed text-muted-foreground">{item.before}</p>
-              </div>
-
-              {/* After */}
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
-                  <Check className="size-4" /> With ClinicX Automation
-                </div>
-                <h4 className="font-semibold text-xs sm:text-sm text-foreground">Smooth & Automated</h4>
-                <p className="text-xs leading-relaxed text-foreground">{item.after}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* 09: Interactive Before / After Comparison Slider (Guide Animation 09) */}
+      <BeforeAfterSlider />
 
       {/* Real Verified Doctor Testimonials */}
       <section className="border-y border-border/60 bg-muted/20 py-20 px-4 sm:px-6">
@@ -885,40 +866,11 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* Feature Grid / Modules */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 space-y-12">
-        <div className="max-w-2xl">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
-            Modular Clinical Architecture
-          </p>
-          <h2 className="mt-3 font-display text-2xl sm:text-4xl font-semibold tracking-tight text-foreground">
-            {MODULES.length} Clinical Modules. Enable Only What You Use.
-          </h2>
-          <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            ClinicX works like a specialized app store. No bloat or confusing menus. What you don't install stays out of your dashboard and off your patient site.
-          </p>
-        </div>
+      {/* 06: Bento Architecture & Feature Grid (Guide Animation 06) */}
+      <BentoArchitectureSection />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-          {MODULES.map((m) => (
-            <div
-              key={m.name}
-              className="bg-surface p-4 sm:p-5 rounded-2xl border border-border/80 hover:border-primary/40 transition-colors space-y-2.5 relative group"
-            >
-              {m.badge && (
-                <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  {m.badge}
-                </span>
-              )}
-              <div className="size-9 rounded-xl bg-primary/10 text-primary grid place-items-center group-hover:scale-105 transition-transform">
-                <m.icon className="size-4" />
-              </div>
-              <h3 className="text-sm font-bold text-foreground">{m.name}</h3>
-              <p className="text-xs leading-relaxed text-muted-foreground">{m.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* 11: High-Converting Us vs Them Comparison (Guide Animation 11) */}
+      <UsVsThemSection />
 
       {/* Plans & Pricing Preview Banner (Points to dedicated /pricing page) */}
       <section className="border-t border-border/60 bg-muted/20 py-16 sm:py-20">
