@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicX - Dark Bento Grid Features</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <!-- GSAP 3 from cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #0f172a;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-hover: rgba(2, 132, 199, 0.35);
+      --brand-primary: #0284c7;
+      --brand-glow: rgba(2, 132, 199, 0.2);
+      --accent-green: #10b981;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.25rem;
+      overflow-x: hidden;
+    }
+
+    .section-container {
+      max-width: 1040px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(2, 132, 199, 0.28);
+      color: #38bdf8;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+    }
+
+    .badge-pulse {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 9999px;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: clamp(0.95rem, 1.8vw, 1.0625rem);
+      line-height: 1.6;
+    }
+
+    /* 2 Columns x 3 Rows CSS Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    .bento-tile {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      will-change: transform, opacity;
+    }
+
+    .bento-tile:hover {
+      border-color: var(--card-border-hover);
+      box-shadow: 0 18px 40px -12px var(--brand-glow);
+    }
+
+    .tile-5-full {
+      grid-column: span 2;
+    }
+
+    .tile-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #38bdf8;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tile-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.015em;
+      margin-bottom: 0.5rem;
+    }
+
+    .tile-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Tile 1: Typewriter Inner */
+    .typewriter-box {
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 1.1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      line-height: 1.6;
+      color: #38bdf8;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .cursor-caret {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #38bdf8;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 0.8s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Tile 2: Mini Bar Chart */
+    .chart-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.85rem;
+      height: 96px;
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 1rem 1.25rem 0.6rem;
+    }
+    .chart-bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .chart-bar {
+      width: 100%;
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+      border-radius: 6px 6px 2px 2px;
+      transform-origin: bottom center;
+      transform: scaleY(0);
+      will-change: transform;
+    }
+    .chart-label {
+      font-size: 0.6875rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* Tile 3: Integration Dots */
+    .dots-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 1.1rem 1.4rem;
+      gap: 0.75rem;
+    }
+    .integration-dot {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transform: scale(0.6);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
+    /* Tile 4: Overlapping Avatars */
+    .avatars-container {
+      display: flex;
+      align-items: center;
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 1rem 1.25rem;
+      gap: 1.25rem;
+    }
+    .avatar-stack {
+      display: flex;
+      align-items: center;
+    }
+    .avatar-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid #0f172a;
+      margin-left: -12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.8125rem;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transform: scale(0.6);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    .avatar-circle:first-child { margin-left: 0; }
+    .avatar-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .avatar-count {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .avatar-sub {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    /* Tile 5: Green Shield Tile */
+    .shield-tile-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+    .shield-info {
+      flex: 1;
+      min-width: 260px;
+    }
+    .shield-icon-wrap {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1.5px solid rgba(16, 185, 129, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-green);
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.25);
+      transform: scale(0.6);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    .shield-icon-wrap svg {
+      width: 48px;
+      height: 48px;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .tile-5-full {
+        grid-column: span 1;
+      }
+      .bento-tile {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="section-container">
+    <!-- Header -->
+    <div class="section-header">
+      <div class="badge">
+        <span class="badge-pulse"></span>
+        <span>Next-Gen Practice Architecture</span>
+      </div>
+      <h2 class="section-title">Everything Indian Clinics Need to Scale</h2>
+      <p class="section-desc">
+        From automated WhatsApp patient queues to 0% commission UPI collections, ClinicX powers every clinical interaction with surgical precision.
+      </p>
+    </div>
+
+    <!-- 2x3 Bento Grid with 28px rounded tiles -->
+    <div class="bento-grid js-bento-grid">
+      <!-- Tile 1: [FEATURE 1] AI WhatsApp Receptionist with Typewriter -->
+      <div class="bento-tile js-tile" data-from="top-left">
+        <div>
+          <div class="tile-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Feature 01</span>
+          </div>
+          <h3 class="tile-title">AI WhatsApp Receptionist</h3>
+          <p class="tile-desc">Answers patient calls, schedules OPD slots, and sends location maps 24/7 in Hindi & English.</p>
+        </div>
+        <div class="typewriter-box">
+          <span class="typewriter-text js-typewriter-target"></span>
+          <span class="cursor-caret"></span>
+        </div>
+      </div>
+
+      <!-- Tile 2: [FEATURE 2] OPD Queue Velocity with Mini Bar Chart -->
+      <div class="bento-tile js-tile" data-from="top-right">
+        <div>
+          <div class="tile-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>Feature 02</span>
+          </div>
+          <h3 class="tile-title">Live OPD Token Velocity</h3>
+          <p class="tile-desc">Smart waiting room TV display with real-time token announcements and estimated wait times.</p>
+        </div>
+        <div class="chart-container">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar js-bar" style="height: 45%;"></div>
+            <span class="chart-label">9 AM</span>
+          </div>
+          <div class="chart-bar-wrap">
+            <div class="chart-bar js-bar" style="height: 85%;"></div>
+            <span class="chart-label">11 AM</span>
+          </div>
+          <div class="chart-bar-wrap">
+            <div class="chart-bar js-bar" style="height: 35%;"></div>
+            <span class="chart-label">2 PM</span>
+          </div>
+          <div class="chart-bar-wrap">
+            <div class="chart-bar js-bar" style="height: 95%;"></div>
+            <span class="chart-label">6 PM</span>
+          </div>
+          <div class="chart-bar-wrap">
+            <div class="chart-bar js-bar" style="height: 60%;"></div>
+            <span class="chart-label">8 PM</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tile 3: [FEATURE 3] Direct UPI with Coloured Integration Dots -->
+      <div class="bento-tile js-tile" data-from="left">
+        <div>
+          <div class="tile-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>Feature 03</span>
+          </div>
+          <h3 class="tile-title">Direct UPI & Zero Commission</h3>
+          <p class="tile-desc">Patients pay fees directly to clinic bank accounts. Zero aggregator cuts, instant QR receipts.</p>
+        </div>
+        <div class="dots-container">
+          <div class="integration-dot js-dot" style="background: #0070ba;" title="UPI">UPI</div>
+          <div class="integration-dot js-dot" style="background: #5f259f;" title="PhonePe">Pe</div>
+          <div class="integration-dot js-dot" style="background: #00b9f1;" title="Paytm">Pay</div>
+          <div class="integration-dot js-dot" style="background: #25d366;" title="WhatsApp Pay">WA</div>
+          <div class="integration-dot js-dot" style="background: #ea4335;" title="GPay">GP</div>
+        </div>
+      </div>
+
+      <!-- Tile 4: [FEATURE 4] Multi-Doctor Roster with Overlapping Avatars -->
+      <div class="bento-tile js-tile" data-from="right">
+        <div>
+          <div class="tile-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Feature 04</span>
+          </div>
+          <h3 class="tile-title">Multi-Doctor & Polyclinic Roster</h3>
+          <p class="tile-desc">Manage visiting consultants, specialized OPD timings, and role-based staff permissions.</p>
+        </div>
+        <div class="avatars-container">
+          <div class="avatar-stack">
+            <div class="avatar-circle js-avatar" style="background: #0284c7;">DR</div>
+            <div class="avatar-circle js-avatar" style="background: #10b981;">DA</div>
+            <div class="avatar-circle js-avatar" style="background: #8b5cf6;">DV</div>
+            <div class="avatar-circle js-avatar" style="background: #f59e0b;">DS</div>
+          </div>
+          <div class="avatar-info">
+            <span class="avatar-count">180+ Doctors</span>
+            <span class="avatar-sub">Active on ClinicX</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tile 5: [FEATURE 5] ABDM Medical Vault (Spans both columns) with Green Shield -->
+      <div class="bento-tile tile-5-full js-tile" data-from="bottom">
+        <div class="shield-tile-inner">
+          <div class="shield-info">
+            <div class="tile-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Feature 05 &bull; Enterprise Compliance</span>
+            </div>
+            <h3 class="tile-title" style="font-size: 1.6rem;">ABDM & HIPAA-Compliant Medical Records Vault</h3>
+            <p class="tile-desc" style="margin-bottom: 0;">
+              End-to-end 256-bit encrypted digital prescriptions, diagnostic lab reports, and Ayushman Bharat Digital Mission (ABHA ID) integration with zero cloud data leaks.
+            </p>
+          </div>
+          <div class="shield-icon-wrap js-shield">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const tiles = document.querySelectorAll('.js-tile');
+      const typewriterTarget = document.querySelector('.js-typewriter-target');
+      const bars = document.querySelectorAll('.js-bar');
+      const dots = document.querySelectorAll('.js-dot');
+      const avatars = document.querySelectorAll('.js-avatar');
+      const shield = document.querySelector('.js-shield');
+
+      if (prefersReducedMotion || typeof gsap === 'undefined') {
+        tiles.forEach(t => { t.style.opacity = '1'; t.style.transform = 'none'; });
+        if (typewriterTarget) typewriterTarget.textContent = "Namaste! Dr. Sharma's clinic: Token #14 confirmed for 5:30 PM.";
+        bars.forEach(b => { b.style.transform = 'scaleY(1)'; });
+        dots.forEach(d => { d.style.opacity = '1'; d.style.transform = 'scale(1)'; });
+        avatars.forEach(a => { a.style.opacity = '1'; a.style.transform = 'scale(1)'; });
+        if (shield) { shield.style.opacity = '1'; shield.style.transform = 'scale(1)'; }
+        return;
+      }
+
+      // Set initial directional offsets, rotated +-10 deg, scaled 0.8
+      tiles.forEach((tile) => {
+        const dir = tile.getAttribute('data-from');
+        let x = 0, y = 0, rot = 0;
+        if (dir === 'top-left') { x = -100; y = -70; rot = -10; }
+        else if (dir === 'top-right') { x = 100; y = -70; rot = 10; }
+        else if (dir === 'left') { x = -100; y = 40; rot = 10; }
+        else if (dir === 'right') { x = 100; y = 40; rot = -10; }
+        else if (dir === 'bottom') { x = 0; y = 90; rot = 0; }
+
+        gsap.set(tile, {
+          opacity: 0,
+          x: x,
+          y: y,
+          rotation: rot,
+          scale: 0.8,
+        });
+      });
+
+      // Main Bento Fly-in Timeline
+      const masterTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.js-bento-grid',
+          start: 'top 82%',
+          once: true,
+        }
+      });
+
+      // Snap each tile in place with back.out(1.5), staggered 0.16s
+      masterTl.to(tiles, {
+        opacity: 1,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: 'back.out(1.5)',
+        stagger: 0.16,
+        onComplete: startInnerAnimations,
+      });
+
+      // Start each tile's inner animation AFTER it lands
+      function startInnerAnimations() {
+        // 1. Typewriter Animation
+        const textToType = "Namaste! Dr. Sharma's clinic: Token #14 confirmed for 5:30 PM.";
+        let charIdx = 0;
+        function typeChar() {
+          if (charIdx < textToType.length) {
+            typewriterTarget.textContent += textToType.charAt(charIdx);
+            charIdx++;
+            setTimeout(typeChar, 35);
+          }
+        }
+        typeChar();
+
+        // 2. Mini Bar Chart Rise Up
+        gsap.to(bars, {
+          scaleY: 1,
+          duration: 0.65,
+          ease: 'power3.out',
+          stagger: 0.08,
+        });
+
+        // 3. Coloured Integration Dots Pop In
+        gsap.to(dots, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.5,
+          ease: 'back.out(2)',
+          stagger: 0.08,
+        });
+
+        // 4. Overlapping Avatars Stagger Pop
+        gsap.to(avatars, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.5,
+          ease: 'back.out(1.8)',
+          stagger: 0.09,
+        });
+
+        // 5. Green Shield Icon Glow Pulse
+        gsap.to(shield, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.6,
+          ease: 'back.out(1.6)',
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicX - How It Works Wavy Path Animation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- GSAP 3 from cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-dark: #090e1a;
+      --brand-color: #0284c7;
+      --brand-glow: rgba(2, 132, 199, 0.4);
+      --accent-green: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --card-bg: #0f172a;
+      --border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.25rem;
+      overflow-x: hidden;
+    }
+
+    .section-container {
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+      color: #38bdf8;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+    .section-sub {
+      color: var(--text-muted);
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Desktop Horizontal Steps Container */
+    .steps-container {
+      position: relative;
+      width: 100%;
+      max-width: 860px;
+      margin: 2rem auto 1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    /* SVG Wavy Path Behind Nodes (Desktop) */
+    .svg-path-layer {
+      position: absolute;
+      top: 32px;
+      left: 10%;
+      width: 80%;
+      height: 80px;
+      pointer-events: none;
+      z-index: 1;
+      overflow: visible;
+    }
+
+    .step-item {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 240px;
+      text-align: center;
+    }
+
+    /* Step Circle Node */
+    .step-node {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2px solid #334155;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 1.25rem;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .step-node.completed {
+      background: var(--brand-color);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 25px var(--brand-glow);
+    }
+
+    .check-icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    .check-icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #ffffff;
+      stroke-width: 3;
+    }
+
+    .step-num-label {
+      transition: opacity 0.3s ease;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Final Message Pill Badge */
+    .final-pill-wrap {
+      margin-top: 1rem;
+    }
+    .final-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1.5px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+      padding: 0.75rem 1.75rem;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 1rem;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+      opacity: 0;
+      transform: translateY(20px) scale(0.92);
+    }
+    .pill-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Mobile Layout */
+    @media (max-width: 768px) {
+      .steps-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 2.5rem;
+      }
+      .svg-path-layer {
+        display: none;
+      }
+      .vertical-line-layer {
+        position: absolute;
+        top: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3px;
+        height: calc(100% - 64px);
+        background: #1e293b;
+        z-index: 1;
+      }
+      .vertical-line-progress {
+        width: 100%;
+        height: 0%;
+        background: var(--brand-color);
+        box-shadow: 0 0 12px var(--brand-glow);
+      }
+    }
+    @media (min-width: 769px) {
+      .vertical-line-layer {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="section-container">
+    <div>
+      <div class="badge">
+        <span>Instant 3-Step Setup</span>
+      </div>
+      <h2 class="section-title">How ClinicX Automates Your Practice</h2>
+      <p class="section-sub">
+        Zero software installation or bulky servers required. Your clinic is active and ready in under 5 minutes.
+      </p>
+    </div>
+
+    <!-- Steps & Wavy Path -->
+    <div class="steps-container js-steps-container">
+      <!-- Desktop Horizontal Wavy SVG Path (connects 3 nodes) -->
+      <svg class="svg-path-layer" viewBox="0 0 700 80" fill="none">
+        <!-- Inactive background line -->
+        <path
+          d="M 20 40 Q 180 5, 350 40 T 680 40"
+          stroke="rgba(255, 255, 255, 0.12)"
+          stroke-width="4"
+          stroke-linecap="round"
+        />
+        <!-- Active Drawing Line -->
+        <path
+          id="wavy-path-active"
+          d="M 20 40 Q 180 5, 350 40 T 680 40"
+          stroke="#0284c7"
+          stroke-width="4"
+          stroke-linecap="round"
+          style="filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.6));"
+        />
+      </svg>
+
+      <!-- Mobile Vertical Line -->
+      <div class="vertical-line-layer">
+        <div class="vertical-line-progress js-vertical-progress"></div>
+      </div>
+
+      <!-- [STEP 1] -->
+      <div class="step-item">
+        <div class="step-node js-node" id="node-1">
+          <span class="step-num-label">1</span>
+          <div class="check-icon">
+            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+        <h3 class="step-title">Connect Clinic WhatsApp</h3>
+        <p class="step-desc">Link your official clinic phone number with 1-click QR scan in 60 seconds.</p>
+      </div>
+
+      <!-- [STEP 2] -->
+      <div class="step-item">
+        <div class="step-node js-node" id="node-2">
+          <span class="step-num-label">2</span>
+          <div class="check-icon">
+            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+        <h3 class="step-title">Automate OPD Queue & Tokens</h3>
+        <p class="step-desc">AI schedules patient slots and displays real-time tokens on your waiting room TV.</p>
+      </div>
+
+      <!-- [STEP 3] -->
+      <div class="step-item">
+        <div class="step-node js-node" id="node-3">
+          <span class="step-num-label">3</span>
+          <div class="check-icon">
+            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+        <h3 class="step-title">Collect Direct UPI Fees</h3>
+        <p class="step-desc">Patients scan & pay directly to your clinic bank account with 0% platform cuts.</p>
+      </div>
+    </div>
+
+    <!-- [FINAL MESSAGE] Pill Badge -->
+    <div class="final-pill-wrap">
+      <div class="final-pill js-final-pill">
+        <span class="pill-dot"></span>
+        <span>Your Clinic Runs Autonomously 24/7</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const path = document.getElementById('wavy-path-active');
+      const nodes = [
+        document.getElementById('node-1'),
+        document.getElementById('node-2'),
+        document.getElementById('node-3')
+      ];
+      const finalPill = document.querySelector('.js-final-pill');
+      const verticalProgress = document.querySelector('.js-vertical-progress');
+
+      if (prefersReducedMotion || typeof gsap === 'undefined') {
+        nodes.forEach(node => {
+          node.classList.add('completed');
+          node.querySelector('.check-icon').style.opacity = '1';
+          node.querySelector('.check-icon').style.transform = 'scale(1)';
+          node.querySelector('.step-num-label').style.opacity = '0';
+        });
+        if (finalPill) {
+          finalPill.style.opacity = '1';
+          finalPill.style.transform = 'none';
+        }
+        if (verticalProgress) verticalProgress.style.height = '100%';
+        return;
+      }
+
+      // Get total length of SVG path
+      const pathLength = path.getTotalLength();
+      gsap.set(path, {
+        strokeDasharray: pathLength,
+        strokeDashoffset: pathLength,
+      });
+
+      function activateNode(nodeIndex) {
+        const node = nodes[nodeIndex];
+        if (!node) return;
+        node.classList.add('completed');
+        const checkIcon = node.querySelector('.check-icon');
+        const numLabel = node.querySelector('.step-num-label');
+
+        gsap.to(numLabel, { opacity: 0, duration: 0.15 });
+        gsap.fromTo(node, { scale: 0.85 }, { scale: 1, duration: 0.45, ease: 'back.out(2)' });
+        gsap.to(checkIcon, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' });
+      }
+
+      // Timeline
+      const isMobile = window.innerWidth <= 768;
+      const masterTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.js-steps-container',
+          start: 'top 80%',
+          once: true,
+        }
+      });
+
+      if (!isMobile) {
+        // Animate horizontal wavy path over 2 seconds (ease: power1.inOut)
+        masterTl.to(path, {
+          strokeDashoffset: 0,
+          duration: 2.0,
+          ease: 'power1.inOut',
+          onUpdate: function() {
+            const progress = this.progress();
+            if (progress >= 0.05 && !nodes[0].classList.contains('completed')) {
+              activateNode(0);
+            }
+            if (progress >= 0.50 && !nodes[1].classList.contains('completed')) {
+              activateNode(1);
+            }
+            if (progress >= 0.95 && !nodes[2].classList.contains('completed')) {
+              activateNode(2);
+            }
+          }
+        })
+        // Pop in final message pill
+        .to(finalPill, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          ease: 'back.out(1.5)',
+        }, '-=0.1');
+      } else {
+        // Mobile vertical line progress
+        masterTl.to(verticalProgress, {
+          height: '100%',
+          duration: 2.0,
+          ease: 'power1.inOut',
+          onUpdate: function() {
+            const p = this.progress();
+            if (p >= 0.1 && !nodes[0].classList.contains('completed')) activateNode(0);
+            if (p >= 0.5 && !nodes[1].classList.contains('completed')) activateNode(1);
+            if (p >= 0.95 && !nodes[2].classList.contains('completed')) activateNode(2);
+          }
+        })
+        .to(finalPill, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          ease: 'back.out(1.5)',
+        }, '-=0.1');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicX - Rolling Odometer Pricing Section</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet" />
+  <!-- GSAP 3 from cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --brand-primary: #0284c7;
+      --brand-dark: #0369a1;
+      --brand-light: #e0f2fe;
+      --bg-page: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --digit-height: 48px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.25rem;
+    }
+
+    .pricing-wrapper {
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(2, 132, 199, 0.1);
+      border: 1px solid rgba(2, 132, 199, 0.25);
+      color: var(--brand-primary);
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Monthly/Yearly Toggle with Sliding Dark Knob */
+    .toggle-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin: 0.5rem auto 1rem;
+    }
+
+    .toggle-label {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+    .toggle-label.active {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .toggle-track {
+      width: 64px;
+      height: 36px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      padding: 4px;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .toggle-knob {
+      width: 28px;
+      height: 28px;
+      background: #0f172a;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      will-change: transform;
+    }
+
+    .discount-badge {
+      background: #e0f2fe;
+      border: 1px solid rgba(2, 132, 199, 0.35);
+      color: var(--brand-primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transform: scale(0.6);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
+    /* 3 Plan Cards Grid */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      align-items: stretch;
+      text-align: left;
+    }
+
+    .plan-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 28px;
+      padding: 2.25rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    .plan-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Plan 2: Highlighted Dark Card */
+    .plan-card.highlighted {
+      background: #0f172a;
+      border: 1.5px solid rgba(2, 132, 199, 0.5);
+      color: #f8fafc;
+      box-shadow: 0 20px 45px -10px rgba(2, 132, 199, 0.25);
+    }
+    .plan-card.highlighted .plan-desc {
+      color: #94a3b8;
+    }
+    .plan-card.highlighted .feature-text {
+      color: #cbd5e1;
+    }
+    .plan-card.highlighted .price-period {
+      color: #94a3b8;
+    }
+    .plan-card.highlighted .popular-tag {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--brand-primary);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.3rem 0.9rem;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    }
+
+    .plan-name {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      margin-bottom: 0.4rem;
+    }
+    .plan-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ODOMETER PRICE ROW */
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      margin-bottom: 1.75rem;
+      font-family: 'JetBrains Mono', 'Inter', monospace;
+    }
+    .price-currency {
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+    .price-odometer {
+      display: inline-flex;
+      align-items: center;
+      height: var(--digit-height);
+      overflow: hidden;
+    }
+    .odometer-digit-col {
+      display: flex;
+      flex-direction: column;
+      width: 24px;
+      height: calc(var(--digit-height) * 10);
+      transform: translateY(0);
+      will-change: transform;
+    }
+    .odometer-num {
+      height: var(--digit-height);
+      line-height: var(--digit-height);
+      font-size: 2.25rem;
+      font-weight: 900;
+      text-align: center;
+    }
+    .price-comma {
+      font-size: 2.25rem;
+      font-weight: 900;
+      line-height: var(--digit-height);
+      height: var(--digit-height);
+    }
+    .price-period {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-left: 0.3rem;
+    }
+
+    /* 3 Feature Lines per card */
+    .features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-bottom: 2rem;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      font-size: 0.875rem;
+    }
+    .feature-check {
+      width: 18px;
+      height: 18px;
+      color: #10b981;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .feature-text {
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    /* Buttons */
+    .plan-btn {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+    }
+    .btn-light {
+      background: #f1f5f9;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+    .btn-light:hover {
+      background: #e2e8f0;
+    }
+    .btn-primary {
+      background: var(--brand-primary);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+    }
+    .btn-primary:hover {
+      background: var(--brand-dark);
+    }
+
+    @media (max-width: 900px) {
+      .plans-grid {
+        grid-template-columns: 1fr;
+      }
+      .plan-card.highlighted {
+        order: -1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="pricing-wrapper">
+    <!-- Header -->
+    <div>
+      <div class="badge">
+        <span>Transparent Doctor Pricing</span>
+      </div>
+      <h2 class="section-title">Zero Platform Cuts. Keep 100% of OPD Fees.</h2>
+      <p class="section-desc">
+        No hidden patient aggregator commissions. Simple, flat clinic subscription with a 14-day free doctor trial.
+      </p>
+    </div>
+
+    <!-- Monthly / Yearly Toggle with Sliding Dark Knob -->
+    <div class="toggle-container">
+      <span class="toggle-label js-lbl-monthly active">Monthly</span>
+      <div class="toggle-track js-toggle-track">
+        <div class="toggle-knob js-toggle-knob"></div>
+      </div>
+      <span class="toggle-label js-lbl-yearly">Yearly</span>
+      <div class="discount-badge js-discount-badge">
+        <span>Save 33%</span>
+      </div>
+    </div>
+
+    <!-- 3 Plan Cards Grid -->
+    <div class="plans-grid">
+      <!-- [PLAN 1] Solo Practice -->
+      <div class="plan-card">
+        <div>
+          <h3 class="plan-name">Solo OPD Practice</h3>
+          <p class="plan-desc">Perfect for single-doctor clinics looking to eliminate reception chaos.</p>
+          
+          <div class="price-row">
+            <span class="price-currency">&#8377;</span>
+            <div class="price-odometer js-odometer" data-plan="1">
+              <!-- Rendered via JS -->
+            </div>
+            <span class="price-period">/mo</span>
+          </div>
+
+          <ul class="features-list">
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">24/7 WhatsApp Appointment Bot in Hindi & English</span>
+            </li>
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Live OPD Token Queue with SMS / WhatsApp alerts</span>
+            </li>
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Direct 0% UPI QR collections settling to doctor bank</span>
+            </li>
+          </ul>
+        </div>
+
+        <button type="button" class="plan-btn btn-light">Start 14-Day Free Trial</button>
+      </div>
+
+      <!-- [PLAN 2] Smart Practice (Highlighted Dark) -->
+      <div class="plan-card highlighted">
+        <div class="popular-tag">Most Popular for Clinics</div>
+        <div>
+          <h3 class="plan-name">Smart Polyclinic</h3>
+          <p class="plan-desc">For busy multi-doctor practices and multi-chair dental clinics.</p>
+          
+          <div class="price-row">
+            <span class="price-currency">&#8377;</span>
+            <div class="price-odometer js-odometer" data-plan="2">
+              <!-- Rendered via JS -->
+            </div>
+            <span class="price-period">/mo</span>
+          </div>
+
+          <ul class="features-list">
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Multi-Doctor OPD & Staff Permissions (Up to 5 doctors)</span>
+            </li>
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Smart Waiting Room TV Display with audio announcements</span>
+            </li>
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Automated 5-Star Google Review Bot & local SEO website</span>
+            </li>
+          </ul>
+        </div>
+
+        <button type="button" class="plan-btn btn-primary">Start 14-Day Free Trial</button>
+      </div>
+
+      <!-- [PLAN 3] Hospital Network -->
+      <div class="plan-card">
+        <div>
+          <h3 class="plan-name">Hospital Network</h3>
+          <p class="plan-desc">For hospitals, multi-specialty centers, and nursing homes.</p>
+          
+          <div class="price-row">
+            <span class="price-currency">&#8377;</span>
+            <div class="price-odometer js-odometer" data-plan="3">
+              <!-- Rendered via JS -->
+            </div>
+            <span class="price-period">/mo</span>
+          </div>
+
+          <ul class="features-list">
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Unlimited Doctors, Reception Desks, & OPD Departments</span>
+            </li>
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">ABDM (ABHA) Digital Health Records & Pharmacy/Lab modules</span>
+            </li>
+            <li class="feature-item">
+              <svg class="feature-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span class="feature-text">Dedicated Account Manager, 99.9% SLA & Custom Domain</span>
+            </li>
+          </ul>
+        </div>
+
+        <button type="button" class="plan-btn btn-light">Contact Enterprise Team</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const DIGIT_HEIGHT = 48; // px
+
+      // Prices: Monthly [M1, M2, M3], Yearly [Y1, Y2, Y3]
+      const PRICES = {
+        monthly: {
+          plan1: '1499',
+          plan2: '2999',
+          plan3: '5999',
+        },
+        yearly: {
+          plan1: '999',
+          plan2: '1999',
+          plan3: '4499',
+        }
+      };
+
+      let isYearly = false;
+      const toggleTrack = document.querySelector('.js-toggle-track');
+      const toggleKnob = document.querySelector('.js-toggle-knob');
+      const lblMonthly = document.querySelector('.js-lbl-monthly');
+      const lblYearly = document.querySelector('.js-lbl-yearly');
+      const discountBadge = document.querySelector('.js-discount-badge');
+
+      // Build Odometer Columns for a given price string
+      function buildOdometerHTML(priceStr) {
+        let html = '';
+        for (let i = 0; i < priceStr.length; i++) {
+          const char = priceStr.charAt(i);
+          if (char >= '0' && char <= '9') {
+            const targetDigit = parseInt(char, 10);
+            html += `
+              <div class="odometer-digit-col js-digit-col" data-digit="${targetDigit}">
+                ${[0,1,2,3,4,5,6,7,8,9].map(n => `<div class="odometer-num">${n}</div>`).join('')}
+              </div>
+            `;
+          } else if (char === ',') {
+            html += `<span class="price-comma">,</span>`;
+          }
+        }
+        return html;
+      }
+
+      // Initialize odometers
+      const odometers = document.querySelectorAll('.js-odometer');
+      odometers.forEach((odo) => {
+        const planKey = 'plan' + odo.getAttribute('data-plan');
+        const price = PRICES.monthly[planKey];
+        odo.innerHTML = buildOdometerHTML(price);
+        // Set initial positions
+        const cols = odo.querySelectorAll('.js-digit-col');
+        cols.forEach(col => {
+          const d = parseInt(col.getAttribute('data-digit'), 10);
+          col.style.transform = `translateY(-${d * DIGIT_HEIGHT}px)`;
+        });
+      });
+
+      function updatePricing(yearly) {
+        isYearly = yearly;
+        const mode = isYearly ? 'yearly' : 'monthly';
+
+        // Animate Knob
+        gsap.to(toggleKnob, {
+          x: isYearly ? 28 : 0,
+          duration: 0.35,
+          ease: 'power2.inOut',
+        });
+
+        // Update labels
+        if (isYearly) {
+          lblMonthly.classList.remove('active');
+          lblYearly.classList.add('active');
+          gsap.to(discountBadge, {
+            opacity: 1,
+            scale: 1,
+            duration: 0.4,
+            ease: 'back.out(2)',
+          });
+        } else {
+          lblYearly.classList.remove('active');
+          lblMonthly.classList.add('active');
+          gsap.to(discountBadge, {
+            opacity: 0,
+            scale: 0.6,
+            duration: 0.3,
+            ease: 'power2.in',
+          });
+        }
+
+        // Roll columns for each plan with GSAP 3 (power3.inOut, 1s, 0.06s stagger)
+        odometers.forEach((odo) => {
+          const planKey = 'plan' + odo.getAttribute('data-plan');
+          const targetPriceStr = PRICES[mode][planKey];
+
+          // Rebuild DOM if string length changed, otherwise animate existing cols
+          odo.innerHTML = buildOdometerHTML(targetPriceStr);
+          const cols = odo.querySelectorAll('.js-digit-col');
+
+          // Start from previous or offset
+          cols.forEach((col, idx) => {
+            const targetDigit = parseInt(col.getAttribute('data-digit'), 10);
+            const targetY = -targetDigit * DIGIT_HEIGHT;
+            const startY = isYearly ? targetY + DIGIT_HEIGHT * 2 : targetY - DIGIT_HEIGHT * 2;
+            
+            gsap.fromTo(col,
+              { y: startY },
+              {
+                y: targetY,
+                duration: 1.0,
+                ease: 'power3.inOut',
+                delay: idx * 0.06,
+              }
+            );
+          });
+        });
+      }
+
+      toggleTrack.addEventListener('click', () => {
+        updatePricing(!isYearly);
+      });
+      lblMonthly.addEventListener('click', () => {
+        if (isYearly) updatePricing(false);
+      });
+      lblYearly.addEventListener('click', () => {
+        if (!isYearly) updatePricing(true);
+      });
+    });
+  </script>
+</body>
+</html>
