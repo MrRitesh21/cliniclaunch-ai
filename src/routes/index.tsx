@@ -47,7 +47,13 @@ import { resolveVariants, getVariantComponent } from "@/components/site/registry
 import { DEFAULT_SECTION_ORDER, type SectionKey, type SiteClinic } from "@/components/site/types";
 import { LeadCapture } from "@/components/clinic/lead-capture";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
-import { createFileRoute, Link, redirect, useNavigate, type ErrorComponentProps } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
@@ -55,7 +61,6 @@ import { LeadCaptureDialog } from "@/components/landing/LeadCaptureDialog";
 import { LeadCaptureSection } from "@/components/landing/LeadCaptureSection";
 import {
   WordRotator,
-  LiveActivityPing,
   ProcessDrawSection,
   BeforeAfterSlider,
   UsVsThemSection,
@@ -64,6 +69,7 @@ import {
   LiveClinicSocialProof,
   StackedDeckTestimonials,
 } from "@/components/landing/LandingMotion";
+import { HeroProductDemo } from "@/components/landing/HeroProductDemo";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -154,7 +160,9 @@ export const Route = createFileRoute("/")({
     <div className="min-h-screen grid place-items-center text-center px-4">
       <div>
         <h1 className="font-display text-2xl font-bold">Something went wrong</h1>
-        <p className="text-muted-foreground mt-2 text-sm">We could not load this page. Please try again.</p>
+        <p className="text-muted-foreground mt-2 text-sm">
+          We could not load this page. Please try again.
+        </p>
       </div>
     </div>
   ),
@@ -290,28 +298,38 @@ const SPECIALTIES = [
 const BEFORE_AFTER = [
   {
     challenge: "Lost phone calls & receptionist overload",
-    before: "Receptionist busy picking up phone calls for clinic timings, fees, and appointment slots while checking in patients.",
-    after: "24/7 WhatsApp assistant automatically shows doctor's available slots, confirms bookings, and sends Google Maps location.",
+    before:
+      "Receptionist busy picking up phone calls for clinic timings, fees, and appointment slots while checking in patients.",
+    after:
+      "24/7 WhatsApp assistant automatically shows doctor's available slots, confirms bookings, and sends Google Maps location.",
   },
   {
     challenge: "Chaotic waiting rooms & patient frustration",
-    before: "Patients constantly ask front desk 'Mera number kab aayega?', leading to arguments and crowded waiting lobbies.",
-    after: "Live OPD Token Queue on reception TV & patient phone shows real-time token status and estimated wait time.",
+    before:
+      "Patients constantly ask front desk 'Mera number kab aayega?', leading to arguments and crowded waiting lobbies.",
+    after:
+      "Live OPD Token Queue on reception TV & patient phone shows real-time token status and estimated wait time.",
   },
   {
     challenge: "Handwritten prescriptions & lost paper records",
-    before: "Handwritten notes with unreadable handwriting. Patients lose paper slips and doctors have zero past medical history.",
-    after: "Digital Rx printed with your official letterhead or sent on WhatsApp in 30 seconds. Complete history searchable by mobile number.",
+    before:
+      "Handwritten notes with unreadable handwriting. Patients lose paper slips and doctors have zero past medical history.",
+    after:
+      "Digital Rx printed with your official letterhead or sent on WhatsApp in 30 seconds. Complete history searchable by mobile number.",
   },
   {
     challenge: "Day-end cash mismatches & untracked payments",
-    before: "Rough paper notebook calculations. Cash doesn't match reception drawer, leading to evening stress and revenue leakage.",
-    after: "Automated daily cash book, dynamic UPI QR collection at reception, and 1-click GST invoices with auto P&L reporting.",
+    before:
+      "Rough paper notebook calculations. Cash doesn't match reception drawer, leading to evening stress and revenue leakage.",
+    after:
+      "Automated daily cash book, dynamic UPI QR collection at reception, and 1-click GST invoices with auto P&L reporting.",
   },
   {
     challenge: "Zero online presence & aggregator commissions",
-    before: "Paying ₹200–₹400 commission per patient to big corporate aggregator apps with no control over patient data.",
-    after: "Own branded clinic website (e.g. drsharma.in) ranking on Google with direct booking and 0% commission.",
+    before:
+      "Paying ₹200–₹400 commission per patient to big corporate aggregator apps with no control over patient data.",
+    after:
+      "Own branded clinic website (e.g. drsharma.in) ranking on Google with direct booking and 0% commission.",
   },
 ];
 
@@ -345,10 +363,10 @@ const FAQS = [
 function Landing() {
   const { clinic } = Route.useLoaderData();
   const navigate = useNavigate();
-  const isStandalone = typeof window !== "undefined" && (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true);
   const [checkingAuth, setCheckingAuth] = useState(() => hasCachedSession() && isStandalone);
 
   useEffect(() => {
@@ -357,16 +375,19 @@ function Landing() {
     if (hasCachedSession()) {
       navigate({ to: "/dashboard", replace: true });
     }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return;
-      if (session) {
-        navigate({ to: "/dashboard", replace: true });
-      } else {
-        setCheckingAuth(false);
-      }
-    }).catch(() => {
-      if (active) setCheckingAuth(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (!active) return;
+        if (session) {
+          navigate({ to: "/dashboard", replace: true });
+        } else {
+          setCheckingAuth(false);
+        }
+      })
+      .catch(() => {
+        if (active) setCheckingAuth(false);
+      });
     return () => {
       active = false;
     };
@@ -383,7 +404,6 @@ function Landing() {
 }
 
 function LandingContent() {
-  const [activeTab, setActiveTab] = useState<"queue" | "whatsapp" | "rx" | "finance">("queue");
   const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   return (
@@ -417,7 +437,9 @@ function LandingContent() {
 
               {/* Benefit-Driven Subheadline */}
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 font-normal">
-                ClinicX brings your appointments, 24/7 WhatsApp reminders, live OPD token queue, digital prescriptions, and billing into one intuitive platform — so your practice runs smoothly without reception chaos.
+                ClinicX brings your appointments, 24/7 WhatsApp reminders, live OPD token queue,
+                digital prescriptions, and billing into one intuitive platform — so your practice
+                runs smoothly without reception chaos.
               </p>
 
               {/* CTA Button Group with Clear Dominance */}
@@ -445,13 +467,16 @@ function LandingContent() {
               {/* Friction-reducing Micro-Copy */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-medium pt-0.5">
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> 14-Day Free Trial
+                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> 14-Day Free
+                  Trial
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> No Credit Card Required
+                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> No Credit
+                  Card Required
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> Ready in 2 Minutes
+                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> Ready in 2
+                  Minutes
                 </span>
               </div>
 
@@ -489,280 +514,9 @@ function LandingContent() {
               </div>
             </div>
 
-            {/* Right Column: Prominent Above-the-Fold Interactive Live Workflow Preview */}
+            {/* Right Column: animated clinic-site workspace demo */}
             <div className="lg:col-span-6 relative">
-              {/* Floating Social Proof Activity Ping */}
-              <div className="absolute -top-3.5 right-2 sm:right-6 z-20 pointer-events-auto">
-                <LiveActivityPing />
-              </div>
-
-              <div className="rounded-2xl sm:rounded-3xl border border-border/90 bg-card p-2 sm:p-2.5 shadow-xl shadow-primary/5 text-left">
-                {/* Window Frame Header */}
-                <div className="rounded-xl border border-border/70 bg-background overflow-hidden">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-3.5 py-2.5 bg-muted/30">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <span className="size-2 rounded-full bg-rose-400/80" />
-                        <span className="size-2 rounded-full bg-amber-400/80" />
-                        <span className="size-2 rounded-full bg-emerald-400/80" />
-                      </div>
-                      <span className="font-mono text-[11px] text-muted-foreground hidden sm:inline ml-1 font-medium">
-                        ClinicX Live OPD Portal
-                      </span>
-                    </div>
-
-                    {/* Workflow Tabs */}
-                    <div className="flex items-center gap-1 bg-surface p-0.5 rounded-lg border border-border/60 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("queue")}
-                        className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                          activeTab === "queue"
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        OPD Queue
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("whatsapp")}
-                        className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                          activeTab === "whatsapp"
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        WhatsApp
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("rx")}
-                        className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                          activeTab === "rx"
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Digital Rx
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("finance")}
-                        className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                          activeTab === "finance"
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Billing
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tab 1: OPD Queue & Live Display */}
-                  {activeTab === "queue" && (
-                    <div className="p-3.5 sm:p-4 space-y-3.5">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">In Room</p>
-                          <p className="text-lg font-bold font-display text-primary mt-0.5">Token #14</p>
-                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">Suresh Patel</p>
-                        </div>
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Next</p>
-                          <p className="text-lg font-bold font-display text-foreground mt-0.5">Token #15</p>
-                          <p className="text-[10px] text-muted-foreground truncate">Meera V. (~6m)</p>
-                        </div>
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Waiting</p>
-                          <p className="text-lg font-bold font-display text-foreground mt-0.5">4 Patients</p>
-                          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Avg: 12 min</p>
-                        </div>
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Seen Today</p>
-                          <p className="text-lg font-bold font-display text-foreground mt-0.5">28 Consults</p>
-                          <p className="text-[10px] text-muted-foreground">Morning shift</p>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-border/70 bg-card p-3 divide-y divide-border/60">
-                        <div className="flex items-center justify-between pb-2 text-xs font-semibold text-muted-foreground">
-                          <span className="text-[11px] uppercase tracking-wider">Live OPD Token List</span>
-                          <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[11px]">
-                            <Tv className="size-3.5" /> Waiting Room TV Synced
-                          </span>
-                        </div>
-                        <div className="py-2 flex items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded font-mono font-bold text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">#14</span>
-                            <span className="font-medium text-foreground">Suresh Patel</span>
-                            <span className="text-muted-foreground text-[11px] hidden sm:inline">(General Follow-up)</span>
-                          </div>
-                          <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">IN CONSULTATION</span>
-                        </div>
-                        <div className="py-2 flex items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded font-mono font-semibold text-xs bg-muted text-foreground">#15</span>
-                            <span className="font-medium text-foreground">Meera Verma</span>
-                            <span className="text-muted-foreground text-[11px] hidden sm:inline">(Fever & Throat Check)</span>
-                          </div>
-                          <span className="text-[11px] text-muted-foreground">Waiting ~6 min</span>
-                        </div>
-                        <div className="py-2 flex items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded font-mono font-semibold text-xs bg-muted text-foreground">#16</span>
-                            <span className="font-medium text-foreground">Amit Trivedi</span>
-                            <span className="text-muted-foreground text-[11px] hidden sm:inline">(Blood Sugar Report)</span>
-                          </div>
-                          <span className="text-[11px] text-muted-foreground">Waiting ~18 min</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tab 2: WhatsApp Bot Demo */}
-                  {activeTab === "whatsapp" && (
-                    <div className="p-3.5 sm:p-4">
-                      <div className="max-w-md mx-auto rounded-xl border border-border/80 bg-card p-3 shadow-xs space-y-2.5 text-xs">
-                        <div className="flex items-center gap-2 border-b border-border/60 pb-2">
-                          <div className="size-7 rounded-full bg-emerald-500/15 grid place-items-center text-emerald-600 font-bold shrink-0">
-                            <MessageSquare className="size-3.5" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground text-xs">Dr. Rajesh Sharma Clinic</p>
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">● WhatsApp Assistant Online (24/7)</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2 pt-0.5">
-                          <div className="flex justify-start">
-                            <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-muted px-3 py-1.5 text-foreground text-[11px]">
-                              Namaste Doctor, kya kal shaam ka slot mil sakta hai?
-                            </div>
-                          </div>
-                          <div className="flex justify-end">
-                            <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-emerald-600/15 text-foreground px-3 py-2 text-[11px] space-y-1">
-                              <p>Namaste! Kal Dr. Sharma ke available slots:</p>
-                              <p className="font-semibold text-emerald-700 dark:text-emerald-400">1. 05:30 PM • 2. 06:15 PM • 3. 07:00 PM</p>
-                              <p className="text-[10px] text-muted-foreground">Kripya slot number reply karein.</p>
-                            </div>
-                          </div>
-                          <div className="flex justify-start">
-                            <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-muted px-3 py-1.5 text-foreground text-[11px]">
-                              Option 2 (06:15 PM) confirm kar dijiye.
-                            </div>
-                          </div>
-                          <div className="flex justify-end">
-                            <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-emerald-600/15 text-foreground px-3 py-2 text-[11px] space-y-1">
-                              <p className="font-bold text-emerald-700 dark:text-emerald-400">✅ Appointment Confirmed!</p>
-                              <p>Token #18 • Tue, 06:15 PM • Fee: ₹500</p>
-                              <p className="text-[10px] text-muted-foreground">📍 Sharma Clinic, Hazratganj (Location pinned)</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tab 3: Digital Prescription (Rx) */}
-                  {activeTab === "rx" && (
-                    <div className="p-3.5 sm:p-4">
-                      <div className="max-w-lg mx-auto rounded-xl border border-border/80 bg-card p-3 shadow-xs text-xs space-y-2.5 font-sans">
-                        <div className="border-b border-border/60 pb-2 flex justify-between items-start">
-                          <div>
-                            <h4 className="font-bold text-xs sm:text-sm text-foreground">DR. RAJESH SHARMA, MD</h4>
-                            <p className="text-[10px] text-muted-foreground">Reg No: MCI-48291 • Consultant Physician</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">Rx #2026-1042</span>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">11 Oct 2026</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-1.5 py-1 border-b border-border/60 text-[11px]">
-                          <div><span className="text-muted-foreground">Patient:</span> <strong>Rohan Gupta</strong></div>
-                          <div><span className="text-muted-foreground">Age:</span> 34Y / M</div>
-                          <div><span className="text-muted-foreground">Vitals:</span> BP 120/80</div>
-                        </div>
-                        <div className="space-y-1.5 py-0.5">
-                          <p className="font-bold text-[11px] text-primary flex items-center gap-1">
-                            <FileText className="size-3" /> MEDICINES (Rx)
-                          </p>
-                          <div className="space-y-1 text-[11px]">
-                            <div className="flex justify-between items-center bg-muted/40 p-1.5 rounded-lg">
-                              <div>
-                                <p className="font-medium">1. Tab. Augmentin 625mg</p>
-                                <p className="text-[10px] text-muted-foreground">1 tab subah aur shaam (1-0-1)</p>
-                              </div>
-                              <span className="font-mono text-[10px] text-muted-foreground">5 Days</span>
-                            </div>
-                            <div className="flex justify-between items-center bg-muted/40 p-1.5 rounded-lg">
-                              <div>
-                                <p className="font-medium">2. Tab. Pan-D</p>
-                                <p className="text-[10px] text-muted-foreground">1 tab khali pet (1-0-0)</p>
-                              </div>
-                              <span className="font-mono text-[10px] text-muted-foreground">5 Days</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                          <span className="text-[10px] text-muted-foreground">Follow up in 5 days</span>
-                          <div className="flex items-center gap-1.5">
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 px-2.5">
-                              <Printer className="size-3" /> Print Rx
-                            </Button>
-                            <Button size="sm" className="h-7 text-[10px] gap-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white">
-                              <MessageSquare className="size-3" /> WhatsApp Rx
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tab 4: Cash Book & Daily Finance */}
-                  {activeTab === "finance" && (
-                    <div className="p-3.5 sm:p-4 space-y-3">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Today's OPD</p>
-                          <p className="text-lg font-bold font-display text-emerald-600 dark:text-emerald-400 mt-0.5">₹14,500</p>
-                          <p className="text-[10px] text-muted-foreground">29 consults</p>
-                        </div>
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">UPI / QR</p>
-                          <p className="text-lg font-bold font-display text-foreground mt-0.5">₹11,000</p>
-                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Direct Bank</p>
-                        </div>
-                        <div className="p-2.5 rounded-lg border border-border/70 bg-card">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Cash</p>
-                          <p className="text-lg font-bold font-display text-foreground mt-0.5">₹3,500</p>
-                          <p className="text-[10px] text-muted-foreground">In Drawer</p>
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-border/70 bg-card p-2.5 divide-y divide-border/60 text-xs">
-                        <div className="flex items-center justify-between pb-1.5 font-semibold text-muted-foreground text-[11px]">
-                          <span className="uppercase tracking-wider">Recent Transactions</span>
-                          <span className="text-primary font-medium">GST Ready</span>
-                        </div>
-                        <div className="py-1.5 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-foreground">OPD Consult — Rohan Gupta</p>
-                            <p className="text-[10px] text-muted-foreground">11:42 AM • UPI (GPay)</p>
-                          </div>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">+₹500</span>
-                        </div>
-                        <div className="py-1.5 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-foreground">Medicine Dispensing — Anita Rao</p>
-                            <p className="text-[10px] text-muted-foreground">11:15 AM • Cash</p>
-                          </div>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">+₹420</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <HeroProductDemo />
             </div>
           </div>
         </div>
@@ -815,11 +569,15 @@ function LandingContent() {
             Simple, Transparent Plans with Zero Hidden Commissions
           </h2>
           <p className="text-xs sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Every plan includes a 14-day full-access free trial, free domain mapping, zero commission on patient fees, and free staff onboarding.
+            Every plan includes a 14-day full-access free trial, free domain mapping, zero
+            commission on patient fees, and free staff onboarding.
           </p>
           <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/pricing">
-              <Button size="lg" className="rounded-xl font-bold text-xs sm:text-sm px-7 h-12 gap-2 shadow-md">
+              <Button
+                size="lg"
+                className="rounded-xl font-bold text-xs sm:text-sm px-7 h-12 gap-2 shadow-md"
+              >
                 Explore Plans & Pricing <ArrowRight className="size-4" />
               </Button>
             </Link>
@@ -846,7 +604,8 @@ function LandingContent() {
             Medical Grade Security & DPDP Act 2023 Compliant
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            We understand the sanctity of doctor-patient confidentiality. Your clinical data is guarded by multi-layer encryption.
+            We understand the sanctity of doctor-patient confidentiality. Your clinical data is
+            guarded by multi-layer encryption.
           </p>
         </div>
 
@@ -855,21 +614,24 @@ function LandingContent() {
             <Lock className="size-5 text-primary" />
             <h4 className="font-bold text-sm text-foreground">100% Indian Data Residency</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              All electronic health records, prescriptions, and patient details are hosted on Indian servers (AWS/Supabase Mumbai region).
+              All electronic health records, prescriptions, and patient details are hosted on Indian
+              servers (AWS/Supabase Mumbai region).
             </p>
           </div>
           <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
             <Award className="size-5 text-emerald-600" />
             <h4 className="font-bold text-sm text-foreground">Zero Vendor Lock-in</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              You own your clinical data. Export your entire patient list, appointment history, and accounts to Excel/PDF anytime in 1 click.
+              You own your clinical data. Export your entire patient list, appointment history, and
+              accounts to Excel/PDF anytime in 1 click.
             </p>
           </div>
           <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
             <Headphones className="size-5 text-blue-600" />
             <h4 className="font-bold text-sm text-foreground">Dedicated Doctor Support</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Direct WhatsApp support helpline and phone assistance. If your clinic faces any issue, our engineering team resolves it same-day.
+              Direct WhatsApp support helpline and phone assistance. If your clinic faces any issue,
+              our engineering team resolves it same-day.
             </p>
           </div>
         </div>
@@ -893,7 +655,9 @@ function LandingContent() {
                   {f.q}
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
-                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+                  {f.a}
+                </p>
               </details>
             ))}
           </div>
@@ -909,11 +673,15 @@ function LandingContent() {
           Ready to Modernize Your Clinic?
         </h2>
         <p className="text-xs sm:text-base text-muted-foreground max-w-xl mx-auto">
-          Take your first online booking and set up your OPD queue today. Setup takes under 5 minutes with zero upfront fees.
+          Take your first online booking and set up your OPD queue today. Setup takes under 5
+          minutes with zero upfront fees.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <Link to="/signup" className="w-full sm:w-auto">
-            <Button size="lg" className="h-12 w-full sm:w-auto px-8 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/20">
+            <Button
+              size="lg"
+              className="h-12 w-full sm:w-auto px-8 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/20"
+            >
               Start 14-Day Free Trial <ArrowRight className="size-4" />
             </Button>
           </Link>
@@ -939,7 +707,10 @@ function LandingContent() {
           <Sparkles className="size-3.5 text-amber-500" /> Book Demo
         </Button>
         <Link to="/signup" className="flex-1">
-          <Button size="sm" className="w-full h-10 text-xs font-bold gap-1 bg-primary text-primary-foreground shadow-sm">
+          <Button
+            size="sm"
+            className="w-full h-10 text-xs font-bold gap-1 bg-primary text-primary-foreground shadow-sm"
+          >
             Free Trial <ArrowRight className="size-3.5" />
           </Button>
         </Link>

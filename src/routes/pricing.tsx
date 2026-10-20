@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState, Fragment } from "react";
+import { PricingOdometer, SavingsBadge } from "@/components/marketing/PricingOdometer";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -167,6 +168,18 @@ const DEFAULT_FALLBACK_PLANS = [
   },
 ];
 
+const getAnnualSavingsPercent = (monthlyPrice: number, yearlyTotal: number) => {
+  if (
+    !Number.isFinite(monthlyPrice) ||
+    monthlyPrice <= 0 ||
+    !Number.isFinite(yearlyTotal) ||
+    yearlyTotal <= 0
+  ) {
+    return 0;
+  }
+  return Math.max(0, Math.round((1 - yearlyTotal / (monthlyPrice * 12)) * 100));
+};
+
 const pricingFaqs = [
   {
     q: "Do you take any commission on patient consultation fees?",
@@ -255,12 +268,23 @@ function PricingPage() {
 
   const plansToDisplay =
     remotePlans && remotePlans.length > 0 ? remotePlans : DEFAULT_FALLBACK_PLANS;
+  const hasFeaturedPlan = plansToDisplay.some((plan: any) => plan.is_popular);
+  const featuredPlan =
+    plansToDisplay.find((plan: any) => plan.is_popular) ??
+    plansToDisplay[1] ??
+    plansToDisplay[0];
+  const annualSavings = featuredPlan
+    ? getAnnualSavingsPercent(
+        Number(featuredPlan.monthly_price),
+        Number(featuredPlan.discounted_yearly_price ?? featuredPlan.yearly_price),
+      )
+    : 0;
 
   return (
     <MarketingShell>
       <div className="relative">
         {/* Header Hero */}
-        <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20 py-16 sm:py-24">
+        <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20 pt-14 pb-8 sm:py-24">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-[0.25] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_70%_50%_at_50%_0%,black,transparent)]"
@@ -283,97 +307,152 @@ function PricingPage() {
               Every plan costs less than the fee of 2-3 consultations per month. Includes a 14-day full free trial, free onboarding training, and zero patient booking commissions.
             </p>
 
-            {/* Monthly / Annual Toggle */}
-            <div className="pt-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface p-1 text-xs shadow-xs">
-              <button
-                type="button"
-                onClick={() => setYearly(false)}
-                className={`rounded-full px-5 py-2 font-medium transition cursor-pointer ${
-                  !yearly
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+            {/* Balanced billing selector: equal-width targets prevent mobile overflow. */}
+            <div className="flex w-full justify-center pt-5">
+              <div
+                role="group"
+                aria-label="Billing period"
+                className="relative grid w-full max-w-[360px] grid-cols-2 rounded-full border border-border/70 bg-muted/40 p-1 shadow-sm"
               >
-                Monthly Billing
-              </button>
-              <button
-                type="button"
-                onClick={() => setYearly(true)}
-                className={`rounded-full px-5 py-2 font-medium transition flex items-center gap-1.5 cursor-pointer ${
-                  yearly
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Annual Billing{" "}
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                  Save 20%
-                </span>
-              </button>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-y-1 left-1 z-0 w-[calc(50%-0.25rem)] rounded-full bg-primary shadow-sm transition-transform duration-300 ease-out ${
+                    yearly ? "translate-x-full" : "translate-x-0"
+                  } motion-reduce:transition-none`}
+                />
+                <button
+                  type="button"
+                  aria-pressed={!yearly}
+                  onClick={() => setYearly(false)}
+                  className={`relative z-10 flex min-h-10 w-full items-center justify-center rounded-full px-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:text-xs ${
+                    !yearly
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Monthly Billing
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Annual billing${annualSavings > 0 ? `, save ${annualSavings} percent` : ""}`}
+                  aria-pressed={yearly}
+                  onClick={() => setYearly(true)}
+                  className={`relative z-10 flex min-h-10 w-full items-center justify-center gap-1 rounded-full px-1.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:gap-1.5 sm:px-2 sm:text-xs ${
+                    yearly
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span>
+                    <span className="sm:hidden">Annual</span>
+                    <span className="hidden sm:inline">Annual Billing</span>
+                  </span>
+                  {annualSavings > 0 && (
+                    <SavingsBadge
+                      percent={annualSavings}
+                      className={`px-1.5 text-[9px] ${yearly ? "bg-background/20 text-primary-foreground" : ""}`}
+                    />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Pricing Cards Grid */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <section className="mx-auto max-w-7xl px-4 pt-8 pb-12 sm:px-6 sm:py-20">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 items-stretch">
-            {plansToDisplay.map((p: any) => {
-              const listPrice = Number(yearly ? p.yearly_price : p.monthly_price);
-              const discounted = yearly ? p.discounted_yearly_price : p.discounted_monthly_price;
-              const price = discounted ?? listPrice;
-              const hasOffer = discounted != null && Number(discounted) < listPrice;
-              const offPct = hasOffer
-                ? Math.round(((listPrice - Number(discounted)) / listPrice) * 100)
-                : yearly
-                ? 20
+            {plansToDisplay.map((p: any, index: number) => {
+              const monthlyListPrice = Number(p.monthly_price ?? 0);
+              const annualListTotal = Number(p.yearly_price ?? 0);
+              const rawPrice = yearly
+                ? Number(p.discounted_yearly_price ?? annualListTotal)
+                : Number(p.discounted_monthly_price ?? monthlyListPrice);
+              const displayPrice = yearly ? Math.round(rawPrice / 12) : rawPrice;
+              const savingsPercent = yearly
+                ? getAnnualSavingsPercent(monthlyListPrice, rawPrice)
                 : 0;
+              const annualBill = rawPrice;
               const features = Array.isArray(p.features) ? (p.features as string[]) : [];
+              const featured = Boolean(p.is_popular) || (!hasFeaturedPlan && index === 1);
 
               return (
                 <Card
                   key={p.id}
-                  className={`flex flex-col justify-between rounded-2xl border p-5 sm:p-6 transition-all duration-200 ${
-                    p.is_popular
-                      ? "border-primary ring-2 ring-primary/25 bg-surface shadow-xl relative"
-                      : "border-border/80 bg-surface/80 hover:border-border"
+                  className={`h-full min-w-0 flex flex-col rounded-2xl border p-5 sm:p-6 transition-all duration-200 ${
+                    featured
+                      ? "relative border-foreground bg-foreground text-background shadow-xl ring-2 ring-primary/30"
+                      : "border-border/80 bg-card text-card-foreground hover:border-primary/40"
                   }`}
                 >
                   <div>
-                    {p.is_popular && (
-                      <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                    {featured && (
+                      <div
+                        className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${featured ? "border-background/20 bg-background/10 text-background" : "border-primary/20 bg-primary/10 text-primary"}`}
+                      >
                         <Sparkles className="size-3 text-amber-500" /> Recommended for OPDs
                       </div>
                     )}
-                    <h3 className="font-display text-lg font-bold text-foreground">{p.name}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground min-h-[32px]">{p.tagline}</p>
+                    <h3
+                      className={`font-display text-lg font-bold ${featured ? "text-background" : "text-foreground"}`}
+                    >
+                      {p.name}
+                    </h3>
+                    <p
+                      className={`mt-1 min-h-[32px] text-xs ${featured ? "text-background/70" : "text-muted-foreground"}`}
+                    >
+                      {p.tagline}
+                    </p>
 
-                    <div className="mt-5 border-t border-border/50 pt-5">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground tabular-nums">
-                          ₹{Number(price).toLocaleString("en-IN")}
+                    <div
+                      className={`mt-5 border-t pt-5 ${featured ? "border-background/20" : "border-border/50"}`}
+                    >
+                      <div className="flex min-w-0 items-baseline gap-1">
+                        <span
+                          className={`min-w-0 font-display text-3xl font-extrabold sm:text-4xl ${featured ? "text-background" : "text-foreground"}`}
+                        >
+                          <PricingOdometer value={displayPrice} />
                         </span>
-                        <span className="text-xs text-muted-foreground font-normal">
-                          /{yearly ? "year" : "month"}
+                        <span
+                          className={`shrink-0 text-xs font-normal ${featured ? "text-background/70" : "text-muted-foreground"}`}
+                        >
+                          /mo
                         </span>
                       </div>
                       {yearly && (
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-                          Billed annually (includes 2 months free)
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <p
+                            className={`text-[11px] font-medium ${featured ? "text-background/70" : "text-muted-foreground"}`}
+                          >
+                            Billed {new Intl.NumberFormat("en-IN").format(annualBill)} annually
+                          </p>
+                          {savingsPercent > 0 && <SavingsBadge percent={savingsPercent} />}
+                        </div>
+                      )}
+                      {!yearly && p.discounted_monthly_price != null && (
+                        <p
+                          className={`mt-1 text-[11px] font-medium ${featured ? "text-background/70" : "text-muted-foreground"}`}
+                        >
+                          Billed monthly
                         </p>
                       )}
                     </div>
 
-                    <div className="mt-6 border-t border-border/50 pt-5">
-                      <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-3 font-semibold">
+                    <div
+                      className={`mt-6 border-t pt-5 ${featured ? "border-background/20" : "border-border/50"}`}
+                    >
+                      <p
+                        className={`mb-3 text-[11px] font-mono font-semibold uppercase tracking-wider ${featured ? "text-background/70" : "text-muted-foreground"}`}
+                      >
                         Included Features:
                       </p>
                       <ul className="space-y-2.5">
-                        {features.map((f: string) => (
+                        {features.slice(0, 3).map((f: string) => (
                           <li
                             key={f}
-                            className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground"
+                            className={`flex items-start gap-2 text-xs leading-relaxed ${featured ? "text-background/80" : "text-muted-foreground"}`}
                           >
-                            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                             <span>{f}</span>
                           </li>
                         ))}
@@ -381,21 +460,21 @@ function PricingPage() {
                     </div>
                   </div>
 
-                  <div className="mt-8 border-t border-border/50 pt-5 space-y-2">
-                    <Link to="/signup" className="w-full block">
+                  <div
+                    className={`mt-auto border-t pt-5 ${featured ? "border-background/20" : "border-border/50"} space-y-2`}
+                  >
+                    <Link to="/signup" className="block w-full">
                       <Button
                         size="lg"
-                        variant={p.is_popular ? "default" : "outline"}
-                        className={`w-full rounded-xl font-bold text-xs h-11 ${
-                          p.is_popular
-                            ? "shadow-md shadow-primary/20 hover:shadow-primary/30"
-                            : "bg-surface"
-                        }`}
+                        variant={featured ? "default" : "outline"}
+                        className="h-11 w-full rounded-xl text-xs font-bold"
                       >
                         Start 14-Day Free Trial
                       </Button>
                     </Link>
-                    <p className="text-[10px] text-center text-muted-foreground">
+                    <p
+                      className={`text-center text-[10px] ${featured ? "text-background/70" : "text-muted-foreground"}`}
+                    >
                       No credit card required
                     </p>
                   </div>
@@ -607,4 +686,3 @@ function renderTableCell(val: boolean | string) {
   }
   return <span className="font-medium text-foreground">{val}</span>;
 }
-
