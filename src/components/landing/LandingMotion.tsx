@@ -287,35 +287,48 @@ export function LiveActivityPing() {
 const PROCESS_DRAW_STEPS = [
   {
     step: "01",
-    title: "Set up your clinic profile",
-    desc: "Add your clinic name, specialty, consultation hours, fee, and preferred brand color.",
-    tag: "Your practice, your brand",
+    title: "Fill in your clinical profile",
+    desc: "Add your clinic name, specialty, consulting hours, fee, and brand color.",
+    tag: "5-minute setup",
   },
   {
     step: "02",
-    title: "Publish your booking page",
-    desc: "Share a mobile-friendly clinic website where patients can view details and request appointments.",
-    tag: "A clear path to booking",
+    title: "Publish your site and domain",
+    desc: "Launch a mobile-friendly booking page on a ClinicX domain or connect your own.",
+    tag: "Your clinic, online",
   },
   {
     step: "03",
-    title: "Automate patient follow-ups",
-    desc: "Coordinate appointment confirmations, WhatsApp reminders, prescriptions, and clinic records in one workflow.",
+    title: "Automate WhatsApp and EHR",
+    desc: "Confirm bookings, send reminders, manage prescriptions, and keep records together.",
     tag: "Less manual follow-up",
   },
 ];
 
-export function ProcessDrawSection() {
+interface ProcessDrawSectionProps {
+  compact?: boolean;
+  activeStep?: number;
+  onStepSelect?: (step: number) => void;
+}
+
+export function ProcessDrawSection({
+  compact = false,
+  activeStep,
+  onStepSelect,
+}: ProcessDrawSectionProps) {
   const [containerRef, isVisible] = useIntersectionOnce(0.2);
   const reducedMotion = useReducedMotion();
   const flowRef = useRef<HTMLDivElement | null>(null);
+  const connectorSvgRef = useRef<SVGSVGElement | null>(null);
+  const connectorGeometryRef = useRef({ d: "", viewBox: "" });
   const guidePathRef = useRef<SVGPathElement | null>(null);
   const progressPathRef = useRef<SVGPathElement | null>(null);
   const nodeRefs = useRef<Array<HTMLDivElement | null>>([]);
   const numberRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const checkRefs = useRef<Array<SVGSVGElement | null>>([]);
   const finalMessageRef = useRef<HTMLDivElement | null>(null);
-  const [connector, setConnector] = useState({ d: "", viewBox: "0 0 1 1" });
+  const [connectorRevision, setConnectorRevision] = useState(0);
+  const [completed, setCompleted] = useState<boolean[]>(() => PROCESS_DRAW_STEPS.map(() => false));
 
   const steps = PROCESS_DRAW_STEPS;
 
@@ -346,7 +359,7 @@ export function ProcessDrawSection() {
           y: rect.top - rootRect.top + rect.height / 2,
         };
       });
-      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+      const isMobile = compact || window.matchMedia("(max-width: 767px)").matches;
       let d = `M ${points[0].x} ${points[0].y}`;
       for (let i = 0; i < points.length - 1; i += 1) {
         const from = points[i];
@@ -362,9 +375,13 @@ export function ProcessDrawSection() {
         }
       }
       const viewBox = `0 0 ${Math.max(1, Math.ceil(rootRect.width))} ${Math.max(1, Math.ceil(rootRect.height))}`;
-      setConnector((current) =>
-        current.d === d && current.viewBox === viewBox ? current : { d, viewBox },
-      );
+      const geometry = connectorGeometryRef.current;
+      if (geometry.d === d && geometry.viewBox === viewBox) return;
+      connectorGeometryRef.current = { d, viewBox };
+      connectorSvgRef.current?.setAttribute("viewBox", viewBox);
+      guidePathRef.current?.setAttribute("d", d);
+      progressPathRef.current?.setAttribute("d", d);
+      setConnectorRevision((revision) => revision + 1);
     };
 
     measureConnector();
@@ -376,11 +393,11 @@ export function ProcessDrawSection() {
       observer.disconnect();
       window.removeEventListener("resize", measureConnector);
     };
-  }, [steps.length]);
+  }, [compact, steps.length]);
 
   useEffect(() => {
     const path = progressPathRef.current;
-    if (!path || !connector.d) return;
+    if (!path || connectorRevision === 0) return;
     const length = path.getTotalLength();
     if (!Number.isFinite(length) || length <= 0) return;
     const nodes = nodeRefs.current.slice(0, steps.length);
@@ -390,6 +407,9 @@ export function ProcessDrawSection() {
 
     const reset = () => {
       nodes.forEach((node) => setNodeComplete(node, false));
+      setCompleted((current) =>
+        current.every((value) => !value) ? current : steps.map(() => false),
+      );
       gsap.set(numbers.filter(Boolean), { autoAlpha: 1, scale: 1 });
       gsap.set(checks.filter(Boolean), { autoAlpha: 0, scale: 0.45, transformOrigin: "50% 50%" });
       if (pill) gsap.set(pill, { autoAlpha: 0, y: 8, scale: 0.96 });
@@ -401,6 +421,7 @@ export function ProcessDrawSection() {
 
     if (reducedMotion) {
       nodes.forEach((node) => setNodeComplete(node, true));
+      setCompleted((current) => (current.every(Boolean) ? current : steps.map(() => true)));
       gsap.set(numbers.filter(Boolean), { autoAlpha: 0, scale: 0.7 });
       gsap.set(checks.filter(Boolean), { autoAlpha: 1, scale: 1 });
       gsap.set(path, { strokeDashoffset: 0 });
@@ -415,7 +436,18 @@ export function ProcessDrawSection() {
     timeline.to(path, { strokeDashoffset: 0, duration: 2, ease: "power1.inOut" }, 0);
     steps.forEach((_, index) => {
       const at = index === 0 ? 0.04 : 1.88 * (index / (steps.length - 1));
-      timeline.call(() => setNodeComplete(nodes[index], true), [], at);
+      timeline.call(
+        () => {
+          setNodeComplete(nodes[index], true);
+          setCompleted((current) =>
+            current[index]
+              ? current
+              : current.map((value, nodeIndex) => value || nodeIndex === index),
+          );
+        },
+        [],
+        at,
+      );
       timeline.to(
         numbers[index],
         { autoAlpha: 0, scale: 0.7, duration: 0.18, ease: "power1.out" },
@@ -433,7 +465,7 @@ export function ProcessDrawSection() {
         pill,
         { autoAlpha: 0, y: 8, scale: 0.96 },
         { autoAlpha: 1, y: 0, scale: 1, duration: 0.32, ease: "back.out(1.4)" },
-        1.78,
+        2.2,
       );
     }
 
@@ -441,37 +473,51 @@ export function ProcessDrawSection() {
       timeline.kill();
       reset();
     };
-  }, [connector, isVisible, reducedMotion, steps]);
+  }, [connectorRevision, isVisible, reducedMotion, steps]);
 
   return (
-    <section className="relative overflow-hidden border-b border-border/60 bg-muted/15 px-4 py-20 sm:px-6 sm:py-28">
-      <div ref={containerRef} className="mx-auto max-w-6xl space-y-12 text-center sm:space-y-14">
-        <div className="mx-auto max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5" aria-hidden="true" />
-            <span>The 3-step ClinicX workflow</span>
+    <section
+      aria-label={compact ? "Three-step ClinicX workflow" : undefined}
+      className={
+        compact
+          ? "relative overflow-hidden bg-transparent p-0"
+          : "relative overflow-hidden border-b border-border/60 bg-muted/15 px-4 py-20 sm:px-6 sm:py-28"
+      }
+    >
+      <div
+        ref={containerRef}
+        className={
+          compact ? "space-y-4 text-left" : "mx-auto max-w-6xl space-y-12 text-center sm:space-y-14"
+        }
+      >
+        {!compact && (
+          <div className="mx-auto max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
+              <Sparkles className="size-3.5" aria-hidden="true" />
+              <span>The 3-step ClinicX workflow</span>
+            </div>
+            <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
+              How ClinicX modernizes your practice
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+              From your clinic profile to a connected patient experience, follow a clear three-step
+              path.
+            </p>
           </div>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
-            How ClinicX modernizes your practice
-          </h2>
-          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-            From your clinic profile to a connected patient experience, follow a clear three-step
-            path.
-          </p>
-        </div>
+        )}
 
         <div ref={flowRef} className="relative">
           <svg
             aria-hidden="true"
             focusable="false"
-            viewBox={connector.viewBox}
+            ref={connectorSvgRef}
+            viewBox="0 0 1 1"
             preserveAspectRatio="none"
             data-testid="process-flow-connector"
             className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
           >
             <path
               ref={guidePathRef}
-              d={connector.d}
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -480,7 +526,6 @@ export function ProcessDrawSection() {
             />
             <path
               ref={progressPathRef}
-              d={connector.d}
               fill="none"
               stroke="currentColor"
               strokeWidth="3"
@@ -489,46 +534,75 @@ export function ProcessDrawSection() {
             />
           </svg>
 
-          <ol className="relative z-10 grid grid-cols-1 gap-4 text-left md:grid-cols-3 md:gap-6">
-            {steps.map((item, index) => (
-              <li
-                key={item.step}
-                className="flex min-w-0 items-start gap-3 md:flex-col md:items-center md:gap-4"
-              >
-                <div
-                  ref={(node) => {
-                    nodeRefs.current[index] = node;
-                  }}
-                  aria-hidden="true"
-                  data-testid={`process-step-node-${index + 1}`}
-                  className="relative z-10 mt-3 grid size-12 shrink-0 place-items-center rounded-full border border-border bg-muted font-display text-sm font-bold text-muted-foreground shadow-sm"
-                >
-                  <span
+          <ol
+            aria-label={compact ? "ClinicX setup steps" : undefined}
+            className={`relative z-10 grid grid-cols-1 text-left ${compact ? "gap-2.5 md:grid-cols-1 md:gap-2.5" : "gap-4 md:grid-cols-3 md:gap-6"}`}
+          >
+            {steps.map((item, index) => {
+              const stepContent = (
+                <>
+                  <div
                     ref={(node) => {
-                      numberRefs.current[index] = node;
+                      nodeRefs.current[index] = node;
                     }}
+                    aria-hidden="true"
+                    data-testid={`process-step-node-${index + 1}`}
+                    className={`relative z-10 mt-3 grid size-12 shrink-0 place-items-center rounded-full border font-display text-sm font-bold shadow-sm transition-colors ${completed[index] ? "border-primary bg-primary text-primary-foreground shadow-primary/20" : "border-border bg-muted text-muted-foreground"}`}
                   >
-                    {item.step}
-                  </span>
-                  <Check
-                    ref={(node) => {
-                      checkRefs.current[index] = node;
-                    }}
-                    className="absolute size-5 opacity-0"
-                    strokeWidth={3}
-                  />
-                </div>
-                <div className="min-w-0 flex-1 rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors hover:border-primary/40 md:mt-0 md:w-full md:flex-none md:p-6">
-                  <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
-                    {item.tag}
-                  </span>
-                  <h3 className="mt-3 font-display text-base font-bold text-foreground sm:text-lg">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
-                </div>
-              </li>
-            ))}
+                    <span
+                      ref={(node) => {
+                        numberRefs.current[index] = node;
+                      }}
+                    >
+                      {item.step}
+                    </span>
+                    <Check
+                      ref={(node) => {
+                        checkRefs.current[index] = node;
+                      }}
+                      className="absolute size-5 opacity-0"
+                      strokeWidth={3}
+                    />
+                  </div>
+                  <div
+                    className={`min-w-0 flex-1 rounded-2xl border bg-card shadow-sm transition-colors ${compact ? "p-4" : "p-5 md:mt-0 md:w-full md:flex-none md:p-6"} ${activeStep === index + 1 ? "border-primary/50 bg-primary/[0.03]" : "border-border/80 hover:border-primary/40"}`}
+                  >
+                    <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+                      {item.tag}
+                    </span>
+                    <h3 className="mt-3 font-display text-base font-bold text-foreground sm:text-lg">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {item.desc}
+                    </p>
+                  </div>
+                </>
+              );
+
+              return (
+                <li key={item.step} className="min-w-0">
+                  {onStepSelect ? (
+                    <button
+                      type="button"
+                      onClick={() => onStepSelect(index + 1)}
+                      aria-current={activeStep === index + 1 ? "step" : undefined}
+                      aria-controls="how-step-preview"
+                      aria-label={`${item.title}. ${item.desc}${completed[index] ? " Step complete." : ""}`}
+                      className={`flex w-full min-w-0 items-start text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${compact ? "gap-3 rounded-2xl" : "gap-3 md:flex-col md:items-center md:gap-4"}`}
+                    >
+                      {stepContent}
+                    </button>
+                  ) : (
+                    <div
+                      className={`flex min-w-0 items-start ${compact ? "gap-3" : "gap-3 md:flex-col md:items-center md:gap-4"}`}
+                    >
+                      {stepContent}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
 

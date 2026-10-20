@@ -1,21 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { ProcessDrawSection } from "@/components/landing/LandingMotion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowRight,
-  Sparkles,
-  User,
-  Globe,
-  MessageSquare,
-  Check,
-  Phone,
-  ShieldCheck,
-  CheckCircle2,
-} from "lucide-react";
+import { ArrowRight, Sparkles, Phone } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/how-it-works")({
@@ -43,27 +33,6 @@ function HowPage() {
   const [selectedColor, setSelectedColor] = useState("blue");
   const [fee, setFee] = useState("800");
 
-  const steps = [
-    {
-      n: 1,
-      icon: User,
-      title: "1. Fill in your clinical profile",
-      body: "Input your clinic name, medical specialty, consulting hours, and fee structure. Select a primary brand color theme.",
-    },
-    {
-      n: 2,
-      icon: Globe,
-      title: "2. Publish your site & domain",
-      body: "Your mobile-friendly website goes live immediately at your-name.digiwil.com — or link your custom domain (e.g. drjenkins.com).",
-    },
-    {
-      n: 3,
-      icon: MessageSquare,
-      title: "3. Automate WhatsApp & EHR",
-      body: "Patients book slots online. ClinicX automatically confirms, dispatches WhatsApp reminders, processes payments, and manages EHR journals.",
-    },
-  ];
-
   return (
     <MarketingShell>
       <section className="py-16 md:py-24 relative overflow-hidden bg-background">
@@ -85,45 +54,18 @@ function HowPage() {
 
           {/* Interactive Step Sandbox */}
           <div className="grid lg:grid-cols-12 gap-8 items-center bg-card border border-border/80 rounded-3xl p-6 sm:p-10 shadow-xl">
-            {/* Left side: step selector buttons */}
-            <div className="lg:col-span-5 space-y-3">
-              {steps.map((s) => {
-                const isActive = activeStep === s.n;
-                return (
-                  <button
-                    key={s.n}
-                    onClick={() => setActiveStep(s.n)}
-                    className={`w-full text-left p-5 rounded-2xl border transition-all flex gap-4 ${
-                      isActive
-                        ? "bg-primary/5 border-primary shadow-md shadow-primary/5 scale-[1.02]"
-                        : "bg-transparent border-transparent hover:bg-muted/40"
-                    }`}
-                  >
-                    <div
-                      className={`size-10 rounded-xl grid place-items-center shrink-0 font-bold ${
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <s.icon className="size-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2">
-                        {s.title}
-                        {isActive && <Sparkles className="size-3.5 text-amber-500 animate-pulse" />}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                        {s.body}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
+            {/* Connected, scroll-animated steps. Selecting a step updates the live preview. */}
+            <div className="lg:col-span-5">
+              <ProcessDrawSection compact activeStep={activeStep} onStepSelect={setActiveStep} />
             </div>
 
             {/* Right side: dynamic live preview */}
-            <div className="lg:col-span-7 bg-muted/30 border rounded-3xl p-6 sm:p-8 min-h-[380px] flex items-center justify-center relative overflow-hidden">
+            <div
+              id="how-step-preview"
+              role="region"
+              aria-label="Interactive ClinicX step preview"
+              className="lg:col-span-7 relative flex min-h-[380px] items-center justify-center overflow-hidden rounded-3xl border border-border bg-muted/30 p-6 sm:p-8"
+            >
               {activeStep === 1 && (
                 <div className="w-full max-w-sm bg-card border rounded-2xl p-5 shadow-lg space-y-4 animate-in slide-in-from-right duration-300">
                   <div className="flex items-center justify-between border-b pb-3">
@@ -136,8 +78,11 @@ function HowPage() {
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Clinic / Doctor Name</Label>
+                      <Label htmlFor="clinic-name" className="text-xs text-muted-foreground">
+                        Clinic / Doctor Name
+                      </Label>
                       <Input
+                        id="clinic-name"
                         value={clinicName}
                         onChange={(e) => setClinicName(e.target.value)}
                         className="h-9 text-xs font-semibold"
@@ -145,12 +90,15 @@ function HowPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-xs text-muted-foreground">Consultation Fee</Label>
+                        <Label htmlFor="consultation-fee" className="text-xs text-muted-foreground">
+                          Consultation Fee
+                        </Label>
                         <div className="relative">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                             ₹
                           </span>
                           <Input
+                            id="consultation-fee"
                             value={fee}
                             onChange={(e) => setFee(e.target.value)}
                             className="pl-6 h-9 text-xs font-mono font-bold"
@@ -163,6 +111,9 @@ function HowPage() {
                           {["blue", "emerald", "rose"].map((c) => (
                             <button
                               key={c}
+                              type="button"
+                              aria-label={`Use ${c} brand color`}
+                              aria-pressed={selectedColor === c}
                               onClick={() => setSelectedColor(c)}
                               className={`size-6 rounded-full border-2 transition-all ${
                                 c === "blue"
