@@ -8,6 +8,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type RefObject,
 } from "react";
 import { gsap } from "gsap";
 import {
@@ -15,13 +16,19 @@ import {
   Building2,
   CalendarDays,
   Check,
+  Clock,
   CreditCard,
+  IndianRupee,
   LayoutDashboard,
+  ListOrdered,
   MessageCircle,
   Pause,
   Play,
   Plus,
+  Search,
   Sparkles,
+  Stethoscope,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -38,6 +45,73 @@ type DemoProject = {
   icon: LucideIcon;
   tone: "blue" | "emerald";
 };
+
+type DashboardSection =
+  | "Overview"
+  | "Appointments"
+  | "OPD Queue & Consult"
+  | "Patients"
+  | "Website"
+  | "WhatsApp"
+  | "Finance";
+
+type DemoAppointment = {
+  id: string;
+  time: string;
+  patient: string;
+  initials: string;
+  ageGender: string;
+  visit: string;
+  room: string;
+  vitals?: string;
+  status: "Confirmed" | "Waiting" | "Pending";
+};
+
+const DASHBOARD_NAV_ITEMS: { label: DashboardSection; icon: LucideIcon; badge?: string }[] = [
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "Appointments", icon: CalendarDays, badge: "8" },
+  { label: "OPD Queue & Consult", icon: Stethoscope, badge: "3" },
+  { label: "Patients", icon: Users },
+  { label: "Website", icon: Building2 },
+  { label: "WhatsApp", icon: MessageCircle, badge: "1" },
+  { label: "Finance", icon: CreditCard },
+];
+
+const SAMPLE_APPOINTMENTS: DemoAppointment[] = [
+  {
+    id: "sample-appointment-1",
+    time: "09:30 AM",
+    patient: "Aarav Mehta",
+    initials: "AM",
+    ageGender: "42M",
+    visit: "General consultation",
+    room: "Room 1",
+    vitals: "BP 120/80",
+    status: "Confirmed",
+  },
+  {
+    id: "sample-appointment-2",
+    time: "10:15 AM",
+    patient: "Neha Verma",
+    initials: "NV",
+    ageGender: "29F",
+    visit: "Follow-up visit",
+    room: "Room 2",
+    vitals: "BP 118/76",
+    status: "Waiting",
+  },
+  {
+    id: "sample-appointment-3",
+    time: "10:45 AM",
+    patient: "Kabir Sethi",
+    initials: "KS",
+    ageGender: "36M",
+    visit: "General consultation",
+    room: "Room 1",
+    vitals: "BP 124/82",
+    status: "Pending",
+  },
+];
 
 const STARTER_PROJECTS: DemoProject[] = [
   {
@@ -70,6 +144,123 @@ function getTargetPoint(target: HTMLElement | null, root: HTMLElement | null, of
   };
 }
 
+function DemoMetric({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  badge,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  detail: string;
+  badge?: string;
+}) {
+  return (
+    <article className="min-w-0 rounded-xl border border-border/70 bg-background p-2.5 shadow-sm sm:p-3">
+      <div className="flex items-start justify-between gap-1.5">
+        <p className="truncate text-[9px] font-medium text-muted-foreground sm:text-[10px]">
+          {label}
+        </p>
+        <span className="grid size-5 place-items-center rounded-md bg-primary/10 text-primary">
+          <Icon className="size-3 shrink-0" aria-hidden="true" />
+        </span>
+      </div>
+      <div className="mt-1 flex items-baseline justify-between gap-1">
+        <p className="text-base font-bold leading-none text-foreground sm:text-lg">{value}</p>
+        {badge && (
+          <span className="truncate rounded bg-muted/80 px-1 py-0.5 text-[8px] font-semibold text-muted-foreground">
+            {badge}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 truncate text-[8px] leading-tight text-muted-foreground sm:text-[9px]">
+        {detail}
+      </p>
+    </article>
+  );
+}
+
+function DemoStatus({ label }: { label: string }) {
+  const normalized = label.toLowerCase();
+  const colorClass =
+    normalized === "confirmed" || normalized === "paid" || normalized === "published"
+      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      : normalized.includes("waiting") || normalized === "in progress"
+        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        : normalized === "unread"
+          ? "bg-primary/10 text-primary"
+          : "bg-muted text-muted-foreground";
+
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[8px] font-semibold ${colorClass}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function SampleAppointmentRows({
+  compact = false,
+  selectedId,
+  onSelect,
+  firstRowRef,
+}: {
+  compact?: boolean;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  firstRowRef?: RefObject<HTMLButtonElement | null>;
+}) {
+  return (
+    <div className="space-y-1.5">
+      {SAMPLE_APPOINTMENTS.map((appointment, index) => (
+        <button
+          key={appointment.id}
+          ref={index === 0 ? firstRowRef : undefined}
+          type="button"
+          data-testid={index === 0 ? "demo-appointment-row" : undefined}
+          aria-pressed={selectedId === appointment.id}
+          onClick={() => onSelect(appointment.id)}
+          className={`grid w-full min-w-0 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors ${
+            selectedId === appointment.id
+              ? "border-primary/40 bg-primary/5"
+              : "border-transparent bg-muted/30 hover:border-border hover:bg-muted/50"
+          }`}
+        >
+          <span className="text-[8px] font-semibold tabular-nums text-muted-foreground sm:text-[9px]">
+            {appointment.time}
+          </span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
+              {appointment.initials}
+            </span>
+            <span className="min-w-0">
+              <span className="flex items-center gap-1.5">
+                <span className="truncate text-[9px] font-semibold text-foreground sm:text-[10px]">
+                  {appointment.patient}
+                </span>
+                <span className="text-[7.5px] text-muted-foreground">{appointment.ageGender}</span>
+              </span>
+              {!compact ? (
+                <span className="block truncate text-[8px] text-muted-foreground">
+                  {appointment.visit} • {appointment.room}
+                </span>
+              ) : (
+                <span className="block truncate text-[7.5px] text-muted-foreground">
+                  {appointment.room}
+                </span>
+              )}
+            </span>
+          </span>
+          <DemoStatus label={appointment.status} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function HeroProductDemo() {
   const reducedMotion = useReducedMotion();
   const dialogTitleId = `clinic-site-dialog-${useId().replace(/:/g, "")}`;
@@ -77,6 +268,9 @@ export function HeroProductDemo() {
   const ctaRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const createRef = useRef<HTMLButtonElement>(null);
+  const navButtonRefs = useRef<Partial<Record<DashboardSection, HTMLButtonElement | null>>>({});
+  const appointmentSpotRef = useRef<HTMLButtonElement>(null);
+  const queueSpotRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const newProjectRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<SVGSVGElement>(null);
@@ -89,7 +283,8 @@ export function HeroProductDemo() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [createdProject, setCreatedProject] = useState<DemoProject | null>(null);
-  const [activeNav, setActiveNav] = useState("Clinic sites");
+  const [activeNav, setActiveNav] = useState<DashboardSection>("Overview");
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(true);
 
   const stopAutoplay = useCallback(() => {
@@ -210,6 +405,8 @@ export function HeroProductDemo() {
     setDraftName("");
     setIsDialogOpen(false);
     setCreatedProject(null);
+    setActiveNav("Overview");
+    setSelectedAppointmentId(null);
     if (modalRef.current)
       gsap.set(modalRef.current, { display: "none", autoAlpha: 0, scale: 0.98 });
     if (newProjectRef.current)
@@ -222,10 +419,9 @@ export function HeroProductDemo() {
     const cursor = cursorRef.current;
     const ripple = rippleRef.current;
     const modal = modalRef.current;
-    const newProject = newProjectRef.current;
     const prefersReducedMotion =
       reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!root || !cursor || !ripple || !modal || !newProject || prefersReducedMotion) {
+    if (!root || !cursor || !ripple || !modal || prefersReducedMotion) {
       if (cursor) gsap.set(cursor, { autoAlpha: 0 });
       if (ripple) gsap.set(ripple, { autoAlpha: 0 });
       if (modal) gsap.set(modal, { display: "none", autoAlpha: 0 });
@@ -242,6 +438,32 @@ export function HeroProductDemo() {
       repeatRefresh: true,
       onRepeat: resetDemo,
     });
+    const navTarget = (section: DashboardSection) => navButtonRefs.current[section] ?? null;
+    const moveCursor = (getTarget: () => HTMLElement | null, duration: number) =>
+      timeline.to(cursor, {
+        x: () => pointFor(getTarget(), 2).x,
+        y: () => pointFor(getTarget(), 1).y,
+        duration,
+        ease: "power2.inOut",
+      });
+    const clickTarget = (getTarget: () => HTMLElement | null, action: () => void) => {
+      timeline.fromTo(
+        ripple,
+        {
+          x: () => pointFor(getTarget(), 18).x,
+          y: () => pointFor(getTarget(), 18).y,
+          autoAlpha: 0.85,
+          scale: 0.25,
+        },
+        { autoAlpha: 0, scale: 1.7, duration: 0.38, ease: "power2.out" },
+        ">",
+      );
+      timeline.call(() => {
+        automatedActionRef.current = true;
+        action();
+        automatedActionRef.current = false;
+      });
+    };
 
     timeline.call(resetDemo, [], 0);
     timeline.set(
@@ -255,39 +477,39 @@ export function HeroProductDemo() {
     );
     timeline.set(ripple, { autoAlpha: 0, scale: 0.25 }, 0);
     timeline.to(cursor, { autoAlpha: 1, duration: 0.16 }, 0.08);
-    timeline.to(
-      cursor,
-      {
-        x: () => pointFor(ctaRef.current, 2).x,
-        y: () => pointFor(ctaRef.current, 1).y,
-        duration: 0.82,
-        ease: "power2.inOut",
-      },
-      0.22,
+    moveCursor(() => navTarget("Appointments"), 0.52);
+    clickTarget(
+      () => navTarget("Appointments"),
+      () => navTarget("Appointments")?.click(),
     );
-    timeline.fromTo(
-      ripple,
-      {
-        x: () => pointFor(ctaRef.current, 18).x,
-        y: () => pointFor(ctaRef.current, 18).y,
-        autoAlpha: 0.85,
-        scale: 0.25,
-      },
-      { autoAlpha: 0, scale: 1.7, duration: 0.38, ease: "power2.out" },
-      ">",
+    timeline.to({}, { duration: 0.28 });
+    moveCursor(() => appointmentSpotRef.current, 0.42);
+    clickTarget(
+      () => appointmentSpotRef.current,
+      () => appointmentSpotRef.current?.click(),
     );
-    timeline.call(() => {
-      automatedActionRef.current = true;
-      ctaRef.current?.click();
-      automatedActionRef.current = false;
-    });
+    timeline.to({}, { duration: 0.22 });
+    moveCursor(() => navTarget("OPD Queue & Consult"), 0.46);
+    clickTarget(
+      () => navTarget("OPD Queue & Consult"),
+      () => navTarget("OPD Queue & Consult")?.click(),
+    );
+    timeline.to({}, { duration: 0.28 });
+    moveCursor(() => queueSpotRef.current, 0.38);
+    timeline.to({}, { duration: 0.22 });
+    moveCursor(() => navTarget("Website"), 0.46);
+    clickTarget(
+      () => navTarget("Website"),
+      () => navTarget("Website")?.click(),
+    );
+    timeline.to({}, { duration: 0.28 });
+    moveCursor(() => ctaRef.current, 0.46);
+    clickTarget(
+      () => ctaRef.current,
+      () => ctaRef.current?.click(),
+    );
     timeline.to({}, { duration: 0.3 });
-    timeline.to(cursor, {
-      x: () => pointFor(inputRef.current, 2).x,
-      y: () => pointFor(inputRef.current, 1).y,
-      duration: 0.5,
-      ease: "power2.inOut",
-    });
+    moveCursor(() => inputRef.current, 0.5);
     timeline.call(() => {
       typing.value = 0;
       setDraftName("");
@@ -301,34 +523,21 @@ export function HeroProductDemo() {
       ease: "none",
       onUpdate: () => setDraftName(DEMO_PROJECT_NAME.slice(0, Math.floor(typing.value))),
     });
-    timeline.to(cursor, {
-      x: () => pointFor(createRef.current, 2).x,
-      y: () => pointFor(createRef.current, 1).y,
-      duration: 0.52,
-      ease: "power2.inOut",
-    });
-    timeline.fromTo(
-      ripple,
-      {
-        x: () => pointFor(createRef.current, 18).x,
-        y: () => pointFor(createRef.current, 18).y,
-        autoAlpha: 0.85,
-        scale: 0.25,
-      },
-      { autoAlpha: 0, scale: 1.7, duration: 0.38, ease: "power2.out" },
-      ">",
+    moveCursor(() => createRef.current, 0.52);
+    clickTarget(
+      () => createRef.current,
+      () => createRef.current?.click(),
     );
-    timeline.call(() => {
-      automatedActionRef.current = true;
-      createRef.current?.click();
-      automatedActionRef.current = false;
-    });
     timeline.to({}, { duration: 0.14 });
-    timeline.fromTo(
-      newProject,
-      { display: "grid", autoAlpha: 0, scale: 0.82, y: 12 },
-      { autoAlpha: 1, scale: 1, y: 0, duration: 0.58, ease: "back.out(1.7)" },
-    );
+    timeline.call(() => {
+      const newProject = newProjectRef.current;
+      if (!newProject) return;
+      gsap.fromTo(
+        newProject,
+        { display: "grid", autoAlpha: 0, scale: 0.82, y: 12 },
+        { autoAlpha: 1, scale: 1, y: 0, duration: 0.58, ease: "back.out(1.7)" },
+      );
+    });
     timeline.to(cursor, { autoAlpha: 0, duration: 0.18 }, "<+0.12");
 
     timelineRef.current = timeline;
@@ -391,13 +600,15 @@ export function HeroProductDemo() {
     }
   };
 
-  const navItems = [
-    { label: "Overview", icon: LayoutDashboard },
-    { label: "Clinic sites", icon: Building2 },
-    { label: "Appointments", icon: CalendarDays },
-    { label: "WhatsApp", icon: MessageCircle },
-    { label: "Billing", icon: CreditCard },
-  ];
+  const activePageDescription: Record<DashboardSection, string> = {
+    Overview: "Today's clinic operations at a glance",
+    Appointments: "Manage today's patient schedule",
+    "OPD Queue & Consult": "Track walk-ins and consultation flow",
+    Patients: "A sample patient directory",
+    Website: "Manage your clinic website",
+    WhatsApp: "Patient conversations and reminders",
+    Finance: "Collections and payment status",
+  };
 
   const visibleProjects = createdProject ? [...STARTER_PROJECTS, createdProject] : STARTER_PROJECTS;
 
@@ -422,34 +633,49 @@ export function HeroProductDemo() {
           className="flex w-12 shrink-0 flex-col border-r border-border/70 bg-muted/20 px-1.5 py-3 sm:w-14 sm:px-2 lg:w-36 lg:px-3"
           aria-label="Demo workspace navigation"
         >
-          <div className="mb-5 flex items-center justify-center gap-2 lg:justify-start">
+          <div className="mb-4 flex items-center justify-center gap-2 lg:justify-start">
             <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <Sparkles className="size-4" aria-hidden="true" />
             </span>
-            <span className="hidden text-sm font-bold tracking-tight text-foreground lg:inline">
-              ClinicX
-            </span>
+            <div className="hidden min-w-0 lg:block">
+              <span className="block text-sm font-bold tracking-tight text-foreground">
+                ClinicX
+              </span>
+              <span className="block truncate text-[8px] font-medium text-muted-foreground">
+                City Care Clinic
+              </span>
+            </div>
           </div>
           <p className="mb-2 hidden px-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:block">
             Workspace
           </p>
           <nav className="space-y-1" aria-label="Workspace pages">
-            {navItems.map(({ label, icon: Icon }) => (
+            {DASHBOARD_NAV_ITEMS.map(({ label, icon: Icon, badge }) => (
               <button
                 key={label}
+                ref={(element) => {
+                  navButtonRefs.current[label] = element;
+                }}
                 type="button"
                 aria-current={activeNav === label ? "page" : undefined}
                 aria-label={label}
                 title={label}
-                onClick={() => setActiveNav(label)}
-                className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-xl px-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-start lg:px-2 ${
+                onClick={(event) => handleUserClick(event, () => setActiveNav(label))}
+                className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-xl px-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-between lg:px-2 ${
                   activeNav === label
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
-                <span className="hidden truncate lg:inline">{label}</span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Icon className="size-4 shrink-0" aria-hidden="true" />
+                  <span className="hidden truncate lg:inline">{label}</span>
+                </div>
+                {badge && (
+                  <span className="hidden size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[8px] font-bold text-primary lg:inline-flex">
+                    {badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -464,76 +690,476 @@ export function HeroProductDemo() {
         <div className="min-w-0 flex-1">
           <div className="flex min-h-14 items-center justify-between gap-2 border-b border-border/70 px-3 sm:px-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-sm font-bold text-foreground sm:text-base">
-                  Clinic sites
-                </span>
-                <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[9px] font-medium text-muted-foreground sm:inline-flex">
-                  Demo
-                </span>
-              </div>
+              <h2 className="truncate text-sm font-bold text-foreground sm:text-base">
+                {activeNav}
+              </h2>
               <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
-                Build a simple home for your practice
+                {activePageDescription[activeNav]}
               </p>
             </div>
-            <Button
-              ref={ctaRef}
-              type="button"
-              size="sm"
-              onClick={(event) => handleUserClick(event, openDialog)}
-              className="h-9 shrink-0 gap-1.5 rounded-xl px-2.5 text-[11px] font-semibold shadow-sm sm:px-3 sm:text-xs"
-              aria-haspopup="dialog"
-              aria-expanded={isDialogOpen}
-              data-testid="create-site-trigger"
-            >
-              <Plus className="size-3.5" aria-hidden="true" />
-              <span>New site</span>
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1 text-[10px] text-muted-foreground md:flex">
+                <Search className="size-3 text-muted-foreground" aria-hidden="true" />
+                <span>Search patients, MRN...</span>
+                <kbd className="rounded border border-border/60 bg-background px-1 text-[8px] font-mono">⌘K</kbd>
+              </div>
+              <span className="hidden items-center gap-1.5 rounded-full border border-border/70 bg-background px-2 py-1 text-[9px] font-medium text-muted-foreground sm:inline-flex">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+                Practice Active
+              </span>
+              {activeNav === "Website" && (
+                <Button
+                  ref={ctaRef}
+                  type="button"
+                  size="sm"
+                  onClick={(event) => handleUserClick(event, openDialog)}
+                  className="h-9 shrink-0 gap-1.5 rounded-xl px-2.5 text-[11px] font-semibold shadow-sm sm:px-3 sm:text-xs"
+                  aria-haspopup="dialog"
+                  aria-expanded={isDialogOpen}
+                  data-testid="create-site-trigger"
+                >
+                  <Plus className="size-3.5" aria-hidden="true" />
+                  <span>New site</span>
+                </Button>
+              )}
+            </div>
           </div>
 
-          <section className="min-w-0 px-3 py-3 sm:px-4 sm:py-4" aria-label="Clinic sites preview">
-            <div className="mb-3 flex items-end justify-between gap-2">
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground">Your workspace</p>
-                <h3 className="text-sm font-bold text-foreground sm:text-base">Clinic projects</h3>
-              </div>
-              <span className="rounded-full border border-border/70 bg-background px-2 py-1 text-[9px] text-muted-foreground">
-                {visibleProjects.length} samples
-              </span>
-            </div>
+          <section
+            className="min-w-0 space-y-3 px-3 py-3 sm:px-4 sm:py-4"
+            aria-label={`${activeNav} dashboard preview`}
+            aria-live="polite"
+          >
+            {activeNav === "Overview" && (
+              <div data-testid="demo-view-overview" className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-gradient-to-r from-card via-card to-primary/5 p-2.5 sm:p-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+                      <span className="truncate text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[9px]">
+                        City Care Clinic • OPD Active
+                      </span>
+                    </div>
+                    <p className="truncate text-xs font-bold text-foreground sm:text-sm">
+                      Good morning, <span className="text-primary">Dr. Sarah</span>
+                    </p>
+                  </div>
+                  <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+                    <span className="rounded-lg border border-border/70 bg-background px-2 py-1 text-[8px] font-medium text-muted-foreground">
+                      Cardiology Outpatient
+                    </span>
+                  </div>
+                </div>
 
-            <div
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
-              aria-live="polite"
-              aria-relevant="additions"
-            >
-              {STARTER_PROJECTS.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-              <div
-                ref={newProjectRef}
-                className="min-w-0"
-                style={{
-                  display: createdProject ? "grid" : "none",
-                  opacity: reducedMotion && createdProject ? 1 : 0,
-                  transform:
-                    reducedMotion && createdProject ? "none" : "scale(.84) translateY(10px)",
-                  visibility: reducedMotion ? (createdProject ? "visible" : "hidden") : undefined,
-                }}
-                aria-hidden={!createdProject}
-              >
-                {createdProject && <ProjectCard project={createdProject} isNew />}
+                <div className="grid grid-cols-2 gap-2 sm:gap-2.5 xl:grid-cols-4">
+                  <DemoMetric
+                    icon={CalendarDays}
+                    label="Today's appointments"
+                    value="08"
+                    detail="5 confirmed · 3 pending"
+                    badge="8 total"
+                  />
+                  <DemoMetric
+                    icon={Clock}
+                    label="Waiting room"
+                    value="03"
+                    detail="Avg wait: 12m"
+                    badge="Live"
+                  />
+                  <DemoMetric
+                    icon={Users}
+                    label="Patients today"
+                    value="06"
+                    detail="4 seen · sample"
+                    badge="+15%"
+                  />
+                  <DemoMetric
+                    icon={IndianRupee}
+                    label="Today's collections"
+                    value="₹4,500"
+                    detail="₹3,000 online · sample"
+                    badge="Paid"
+                  />
+                </div>
+                <div className="grid gap-2.5 xl:grid-cols-[1.45fr_0.85fr]">
+                  <div className="min-w-0 rounded-xl border border-border/70 bg-background p-2.5 sm:p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-[11px] font-bold text-foreground sm:text-xs">
+                          Today's schedule
+                        </h3>
+                        <p className="text-[8px] text-muted-foreground">
+                          Appointments · sample data
+                        </p>
+                      </div>
+                      <span className="text-[8px] font-medium text-primary">View schedule</span>
+                    </div>
+                    <SampleAppointmentRows
+                      compact
+                      selectedId={selectedAppointmentId}
+                      onSelect={setSelectedAppointmentId}
+                    />
+                  </div>
+                  <div className="min-w-0 rounded-xl border border-border/70 bg-background p-2.5 sm:p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-[11px] font-bold text-foreground sm:text-xs">
+                          OPD queue
+                        </h3>
+                        <p className="text-[8px] text-muted-foreground">Next patients</p>
+                      </div>
+                      <Stethoscope className="size-3.5 text-primary" aria-hidden="true" />
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        ["#12", "Aarav M.", "Waiting"],
+                        ["#13", "Neha V.", "In progress"],
+                      ].map(([token, name, status]) => (
+                        <div
+                          key={token}
+                          className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 px-2 py-1.5"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="text-[8px] font-bold text-primary">{token}</span>
+                            <span className="truncate text-[9px] font-medium text-foreground">
+                              {name}
+                            </span>
+                          </span>
+                          <DemoStatus label={status} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
-              <p className="text-[9px] leading-relaxed text-muted-foreground">
-                Sample workspace — no clinic data is connected.
+            )}
+
+            {activeNav === "Appointments" && (
+              <div data-testid="demo-view-appointments" className="space-y-2.5">
+                <div className="flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[9px] font-medium text-muted-foreground">
+                      Today · sample data
+                    </p>
+                    <h3 className="text-sm font-bold text-foreground sm:text-base">
+                      Patient feed & schedule
+                    </h3>
+                  </div>
+                  <span className="rounded-lg border border-border/70 bg-background px-2 py-1 text-[8px] text-muted-foreground">
+                    8 bookings
+                  </span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background p-2.5 sm:p-3">
+                  <div className="mb-2 grid grid-cols-[44px_minmax(0,1fr)_auto] gap-2 border-b border-border/60 px-2 pb-2 text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span>Time</span>
+                    <span>Patient & visit</span>
+                    <span>Status</span>
+                  </div>
+                  <SampleAppointmentRows
+                    selectedId={selectedAppointmentId}
+                    onSelect={setSelectedAppointmentId}
+                    firstRowRef={appointmentSpotRef}
+                  />
+                </div>
+                <p className="text-[8px] text-muted-foreground">
+                  Names and appointment details shown here are illustrative only.
+                </p>
+              </div>
+            )}
+
+            {activeNav === "OPD Queue & Consult" && (
+              <div data-testid="demo-view-queue" className="space-y-2.5">
+                <div className="grid gap-2.5 xl:grid-cols-[0.9fr_1.1fr]">
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[9px] font-semibold uppercase tracking-wide text-primary">
+                        Now serving · OPD Token
+                      </p>
+                      <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[7.5px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        In room
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-end justify-between gap-2">
+                      <div>
+                        <p className="text-3xl font-bold leading-none text-foreground">#12</p>
+                        <p className="mt-1 text-[10px] font-semibold text-foreground">Aarav Mehta (42M)</p>
+                        <p className="text-[8px] text-muted-foreground">General consultation · Room 1</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="block rounded-lg bg-background px-2 py-1 text-[8px] font-medium text-primary shadow-xs">
+                          BP 120/80 · SpO2 98%
+                        </span>
+                        <span className="mt-1 block text-[7.5px] text-muted-foreground">
+                          Vitals recorded ✓
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    ref={queueSpotRef}
+                    data-testid="demo-queue-focus"
+                    className="rounded-xl border border-border/70 bg-background p-2.5 sm:p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-[11px] font-bold text-foreground sm:text-xs">
+                          Waiting queue
+                        </h3>
+                        <p className="text-[8px] text-muted-foreground">Average wait: 12 mins</p>
+                      </div>
+                      <DemoStatus label="3 waiting" />
+                    </div>
+                    <div className="space-y-1.5">
+                      {[
+                        ["#13", "Neha Verma (29F)", "12 min", "BP 118/76"],
+                        ["#14", "Kabir Sethi (36M)", "18 min", "BP 124/82"],
+                        ["#15", "Isha Rao (31F)", "New", "Triage next"],
+                      ].map(([token, patient, wait, vitals]) => (
+                        <div
+                          key={token}
+                          className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-muted/30 px-2 py-1.5"
+                        >
+                          <span className="text-[8px] font-bold text-primary">{token}</span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-[9px] font-medium text-foreground">
+                              {patient}
+                            </span>
+                            <span className="block text-[7.5px] text-muted-foreground">
+                              {vitals}
+                            </span>
+                          </span>
+                          <span className="text-[8px] font-medium text-muted-foreground">{wait}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[8px] text-muted-foreground">
+                  Queue names and wait times are sample content, not live clinic data.
+                </p>
+              </div>
+            )}
+
+            {activeNav === "Patients" && (
+              <div data-testid="demo-view-patients" className="space-y-2.5">
+                <div className="flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[9px] font-medium text-muted-foreground">Sample directory</p>
+                    <h3 className="text-sm font-bold text-foreground sm:text-base">
+                      Recent patients
+                    </h3>
+                  </div>
+                  <span className="rounded-lg border border-border/70 bg-background px-2 py-1 text-[8px] text-muted-foreground">
+                    248 sample records
+                  </span>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                  {[
+                    ["AM", "Aarav Mehta", "PX-1048", "Today", "Active"],
+                    ["NV", "Neha Verma", "PX-1047", "Today", "Active"],
+                    ["KS", "Kabir Sethi", "PX-1046", "Yesterday", "Follow-up"],
+                    ["IR", "Isha Rao", "PX-1045", "Oct 16", "Active"],
+                  ].map(([initials, patient, id, lastVisit, status]) => (
+                    <div
+                      key={id}
+                      className="grid grid-cols-[minmax(0,1fr)_60px_auto] items-center gap-2 border-b border-border/50 px-2.5 py-2 last:border-0 sm:grid-cols-[minmax(0,1.4fr)_70px_75px_auto]"
+                    >
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
+                          {initials}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[9px] font-semibold text-foreground">
+                            {patient}
+                          </span>
+                          <span className="block text-[8px] text-muted-foreground">{id}</span>
+                        </span>
+                      </span>
+                      <span className="text-[8px] text-muted-foreground">{lastVisit}</span>
+                      <DemoStatus label={status} />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[8px] text-muted-foreground">
+                  All patient records are synthetic sample data.
+                </p>
+              </div>
+            )}
+
+            {activeNav === "Website" && (
+              <div data-testid="demo-view-website" className="space-y-2.5">
+                <div className="mb-1 flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[9px] font-medium text-muted-foreground">Website Builder</p>
+                    <h3 className="text-sm font-bold text-foreground sm:text-base">
+                      Clinic websites
+                    </h3>
+                  </div>
+                  <span className="rounded-full border border-border/70 bg-background px-2 py-1 text-[9px] text-muted-foreground">
+                    {visibleProjects.length} sample sites
+                  </span>
+                </div>
+                <div
+                  className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                >
+                  {STARTER_PROJECTS.map((project) => (
+                    <ProjectCard key={project.id} project={project} />
+                  ))}
+                  <div
+                    ref={newProjectRef}
+                    className="min-w-0"
+                    style={{
+                      display: createdProject ? "grid" : "none",
+                      opacity: reducedMotion && createdProject ? 1 : 0,
+                      transform:
+                        reducedMotion && createdProject ? "none" : "scale(.84) translateY(10px)",
+                      visibility: reducedMotion
+                        ? createdProject
+                          ? "visible"
+                          : "hidden"
+                        : undefined,
+                    }}
+                    aria-hidden={!createdProject}
+                  >
+                    {createdProject && <ProjectCard project={createdProject} isNew />}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeNav === "WhatsApp" && (
+              <div data-testid="demo-view-whatsapp" className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background p-2.5">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                      <MessageCircle className="size-4" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[10px] font-bold text-foreground">
+                        WhatsApp inbox
+                      </span>
+                      <span className="block truncate text-[8px] text-muted-foreground">
+                        Conversation preview · sample data
+                      </span>
+                    </span>
+                  </span>
+                  <DemoStatus label="Demo mode" />
+                </div>
+                <div className="grid gap-2.5 sm:grid-cols-[0.85fr_1.15fr]">
+                  <div className="rounded-xl border border-border/70 bg-background p-2">
+                    {[
+                      ["NV", "Neha Verma", "Appointment reminder", "Unread"],
+                      ["AM", "Aarav Mehta", "Thanks, confirmed", "Today"],
+                      ["KS", "Kabir Sethi", "Clinic hours?", "Today"],
+                    ].map(([initials, patient, message, status]) => (
+                      <div
+                        key={patient}
+                        className="flex items-center gap-2 border-b border-border/50 px-1 py-2 last:border-0"
+                      >
+                        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[8px] font-bold text-foreground">
+                          {initials}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[9px] font-semibold text-foreground">
+                            {patient}
+                          </span>
+                          <span className="block truncate text-[8px] text-muted-foreground">
+                            {message}
+                          </span>
+                        </span>
+                        <span className="text-[7px] text-muted-foreground">{status}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex min-h-32 flex-col rounded-xl border border-border/70 bg-muted/20 p-2.5">
+                    <p className="border-b border-border/60 pb-2 text-[9px] font-semibold text-foreground">
+                      Neha Verma · sample conversation
+                    </p>
+                    <div className="my-auto space-y-1.5 py-2">
+                      <p className="ml-auto max-w-[85%] rounded-xl rounded-br-sm bg-primary/10 px-2 py-1.5 text-[8px] leading-relaxed text-foreground">
+                        Your appointment is scheduled for 10:15 AM.
+                      </p>
+                      <p className="max-w-[70%] rounded-xl rounded-bl-sm border border-border/70 bg-background px-2 py-1.5 text-[8px] text-foreground">
+                        Thank you, I’ll be there.
+                      </p>
+                    </div>
+                    <p className="rounded-lg border border-dashed border-border px-2 py-1.5 text-[8px] text-muted-foreground">
+                      Sample messages · no WhatsApp account connected
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeNav === "Finance" && (
+              <div data-testid="demo-view-finance" className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <DemoMetric
+                    icon={IndianRupee}
+                    label="Collected today"
+                    value="₹4,500"
+                    detail="Sample total"
+                  />
+                  <DemoMetric
+                    icon={CreditCard}
+                    label="Pending invoices"
+                    value="02"
+                    detail="Sample count"
+                  />
+                  <DemoMetric
+                    icon={Check}
+                    label="Paid this week"
+                    value="₹18,000"
+                    detail="Sample total"
+                  />
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background p-2.5 sm:p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h3 className="text-[11px] font-bold text-foreground sm:text-xs">
+                      Recent payments
+                    </h3>
+                    <span className="text-[8px] text-muted-foreground">Illustrative records</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {[
+                      ["Aarav Mehta", "General consultation", "₹1,500", "Paid"],
+                      ["Neha Verma", "Follow-up visit", "₹1,500", "Pending"],
+                      ["Kabir Sethi", "General consultation", "₹1,500", "Paid"],
+                    ].map(([patient, visit, amount, status]) => (
+                      <div
+                        key={patient}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-muted/30 px-2 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-[9px] font-semibold text-foreground">
+                            {patient}
+                          </span>
+                          <span className="block truncate text-[8px] text-muted-foreground">
+                            {visit}
+                          </span>
+                        </span>
+                        <span className="text-[9px] font-semibold tabular-nums text-foreground">
+                          {amount}
+                        </span>
+                        <DemoStatus label={status} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+              <p className="text-[8px] leading-relaxed text-muted-foreground sm:text-[9px]">
+                Preview uses sample data only — no clinic data is connected.
               </p>
               {!reducedMotion && timelineRef.current && (
                 <button
                   type="button"
                   onClick={togglePlayback}
-                  aria-label={isPaused ? "Resume the product demo" : "Pause the product demo"}
+                  aria-label={isPaused ? "Resume the dashboard tour" : "Pause the dashboard tour"}
                   aria-pressed={isPaused}
                   disabled={!timelineRef.current}
                   data-demo-playback
@@ -544,7 +1170,7 @@ export function HeroProductDemo() {
                   ) : (
                     <Pause className="size-3" aria-hidden="true" />
                   )}
-                  <span>{isPaused ? "Resume" : "Pause"}</span>
+                  <span>{isPaused ? "Resume tour" : "Pause tour"}</span>
                 </button>
               )}
             </div>
@@ -667,20 +1293,31 @@ function ProjectCard({ project, isNew = false }: { project: DemoProject; isNew?:
       className={`min-w-0 overflow-hidden rounded-xl border bg-background shadow-sm ${isNew ? "border-primary/40 ring-1 ring-primary/15" : "border-border/70"}`}
     >
       <div
-        className={`relative flex h-20 items-center justify-center overflow-hidden border-b border-border/60 ${isBlue ? "bg-primary/5" : "bg-emerald-500/5"}`}
+        className={`relative h-20 overflow-hidden border-b border-border/60 p-2 ${isBlue ? "bg-primary/5" : "bg-emerald-500/5"}`}
       >
-        <div className="absolute inset-x-4 top-3 h-2 rounded-full bg-background/90" />
-        <div className="absolute inset-x-4 top-7 flex gap-2">
+        <div className="h-full overflow-hidden rounded-lg border border-border/60 bg-background px-2.5 py-1.5 shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/50 pb-1">
+            <span className="flex min-w-0 items-center gap-1 text-[7px] font-bold text-foreground">
+              <span
+                className={`grid size-3.5 place-items-center rounded ${isBlue ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}
+              >
+                <Icon className="size-2.5" aria-hidden="true" />
+              </span>
+              Sample Clinic
+            </span>
+            <span className="text-[6px] font-medium text-muted-foreground">MENU</span>
+          </div>
+          <p className="mt-1 text-[5px] font-semibold uppercase tracking-[0.16em] text-primary">
+            {isBlue ? "Care for your family" : "Online appointments"}
+          </p>
+          <p className="mt-0.5 truncate text-[8px] font-bold leading-tight text-foreground">
+            {isBlue ? "Healthcare, made personal" : "Book a clinic visit"}
+          </p>
           <span
-            className={`grid size-8 place-items-center rounded-lg ${isBlue ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}
+            className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-[5px] font-semibold ${isBlue ? "bg-primary text-primary-foreground" : "bg-emerald-600 text-white"}`}
           >
-            <Icon className="size-4" aria-hidden="true" />
+            Book a visit
           </span>
-          <span className="mt-1.5 h-2 w-1/2 rounded-full bg-foreground/10" />
-        </div>
-        <div className="absolute inset-x-4 bottom-3 flex gap-1.5">
-          <span className="h-1.5 w-1/3 rounded-full bg-foreground/10" />
-          <span className="h-1.5 w-1/4 rounded-full bg-foreground/5" />
         </div>
         {isNew && (
           <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[8px] font-semibold text-primary-foreground">
