@@ -148,22 +148,22 @@ export function WordRotator({
 
   return (
     <div
-      className="inline-flex flex-col items-center lg:items-start gap-2.5 select-none py-1.5 w-full sm:w-auto"
+      className="inline-flex flex-col items-center lg:items-start gap-2 select-none py-1 max-w-full"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Main phrase: On mobile stacks cleanly as Pattern 02; on sm+ screens lines up in one bold hero row */}
-      <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
+      {/* Main phrase: wraps gracefully on smaller/medium screens so it never overflows or overlaps */}
+      <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-2.5 text-lg sm:text-2xl xl:text-3xl font-extrabold tracking-tight text-foreground leading-tight max-w-full">
         <span className="text-muted-foreground font-bold shrink-0">{leadText}</span>
 
-        {/* Fixed-height pill with bold centered animated word */}
-        <div className="relative h-12 sm:h-14 px-5 sm:px-6 rounded-2xl border-2 border-primary/40 bg-primary/10 overflow-hidden inline-flex items-center justify-center min-w-[230px] sm:min-w-[290px] shadow-sm shrink-0">
+        {/* Responsive pill with adaptive width & text size */}
+        <div className="relative h-11 sm:h-13 px-4 sm:px-5 rounded-2xl border-2 border-primary/40 bg-primary/10 overflow-hidden inline-flex items-center justify-center min-w-[190px] sm:min-w-[220px] md:min-w-[250px] shadow-xs shrink-0">
           {words.map((word, i) => {
             const isActive = i === currentIndex;
             return (
               <span
                 key={i}
-                className={`absolute inset-0 flex items-center justify-center text-primary font-black text-lg sm:text-2xl lg:text-3xl whitespace-nowrap tracking-tight transition-all duration-500 ease-out ${
+                className={`absolute inset-0 flex items-center justify-center text-primary font-black text-base sm:text-xl xl:text-2xl whitespace-nowrap tracking-tight transition-all duration-500 ease-out ${
                   isActive
                     ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
                     : i < currentIndex || (currentIndex === 0 && i === words.length - 1)
@@ -177,11 +177,15 @@ export function WordRotator({
           })}
         </div>
 
-        {suffixText && <span className="text-foreground font-bold shrink-0">{suffixText}</span>}
+        {suffixText && (
+          <span className="text-foreground font-bold whitespace-normal">
+            {suffixText}
+          </span>
+        )}
       </div>
 
-      {/* Progress indicators under pill (MadeToScale Guide Animation 02) */}
-      <div className="flex items-center gap-1.5 pt-0.5 sm:self-center lg:self-start sm:pl-32 lg:pl-32">
+      {/* Progress indicators under pill */}
+      <div className="flex items-center gap-1.5 pt-0.5 justify-center lg:justify-start">
         {words.map((_, i) => (
           <button
             key={i}
@@ -1150,14 +1154,14 @@ export function HeroWordSplit({
   return (
     <h1
       ref={containerRef}
-      className={`font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.12] sm:leading-[1.1] ${className}`}
+      className={`font-display text-2xl sm:text-4xl md:text-5xl lg:text-[2.5rem] xl:text-5xl font-extrabold tracking-tight text-foreground leading-[1.14] sm:leading-[1.1] ${className}`}
     >
       {words.map((word, i) => {
         const isBrandWord = word.toLowerCase().includes("patient");
         return (
           <span
             key={i}
-            className={`hero-word-token inline-block mr-[0.26em] last:mr-0 ${
+            className={`hero-word-token inline-block mr-[0.24em] last:mr-0 ${
               isBrandWord ? "text-primary drop-shadow-[0_2px_14px_rgba(2,132,199,0.25)]" : ""
             }`}
           >

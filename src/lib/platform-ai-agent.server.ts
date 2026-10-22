@@ -158,14 +158,47 @@ export async function generatePlatformAiReply(opts: {
   const clinicName = opts.lead?.clinic_name || "aapke clinic";
   const city = opts.lead?.city || "";
   const specialty = opts.lead?.specialty || "practice";
+  const textLower = opts.incomingText.toLowerCase();
+
+  // Pattern detection: Does doctor request a custom website, demo link, or sample?
+  const isDemoOrWebsiteRequest =
+    /(?:website|web\s*site|site|demo|deme|daemo|link|bhejo|dikhao|sample|test|personalize|custom|bana ke|ready|kaisa dikh|kya meri)/i.test(
+      textLower
+    );
+
+  // Auto-generate complete clinic website on-the-fly if doctor requested it and not yet created
+  if (isDemoOrWebsiteRequest && opts.lead?.id) {
+    if (!opts.lead.custom_demo_url || opts.lead.custom_demo_url.includes("/c/demo?")) {
+      try {
+        const { setupCompleteClinicFromLeadImpl } = await import("./crm.server");
+        const setupRes = await setupCompleteClinicFromLeadImpl({
+          leadId: opts.lead.id,
+          doctorName: name,
+          clinicName: opts.lead.clinic_name || undefined,
+          specialty: opts.lead.specialty || undefined,
+          city: opts.lead.city || undefined,
+          phone: opts.senderPhone || undefined,
+        });
+        if (setupRes?.url) {
+          opts.lead.custom_demo_url = setupRes.url;
+        }
+      } catch (err) {
+        console.warn("[Platform AI Agent] Auto-setup clinic website warning:", err);
+      }
+    }
+  }
 
   const config = await getPlatformAiConfig();
-  const demoUrl = buildDemoUrl({
-    doctorName: name,
-    clinicName,
-    city,
-    specialty,
-  });
+  const demoUrl =
+    opts.lead?.custom_demo_url ||
+    buildDemoUrl({
+      doctorName: name,
+      clinicName,
+      city,
+      specialty,
+    });
+
+  const isCustomSiteLive = demoUrl.includes("/c/") && !demoUrl.includes("/c/demo?");
 
   // Extract recent conversation history so the AI has 100% full conversational memory
   const historyTurns: string[] = [];
@@ -187,15 +220,23 @@ Key context about this doctor & clinic:
 - Clinic Name: ${clinicName}
 - Specialty: ${specialty}
 - City: ${city || "India"}
-- Personalized Interactive Demo URL: ${demoUrl}
+- LIVE CUSTOM CLINIC WEBSITE URL: ${demoUrl}
+- Website Live Status: ${isCustomSiteLive ? "100% LIVE and active for their clinic" : "Personalized preview"}
 - Pricing & Offer: ${config.pricing_info}
 
 SALES INSTRUCTIONS:
 - You are Ritesh, founder of ClinicX.
 - Speak in natural, respectful, conversational Hinglish.
-- If the doctor says "Accha hai" or positive words: enthusiastically thank them, ask if they checked the demo link, and offer to activate 14 days free trial on their live clinic WhatsApp.
-- If the doctor asks for a personalized demo (or typos like "deme"): clarify excitedly that the demo is ALREADY prepared specifically for ${clinicName}, share the link (${demoUrl}), explain 3 steps to test, and encourage them to open it.
-- If they ask about price: state ₹999/month, 14 days free trial, no card needed.
+- If the doctor says "Accha hai" or positive words: enthusiastically thank them, ask if they checked their custom website (${demoUrl}), and offer to activate 14 days free trial on their live clinic WhatsApp.
+- If the doctor asks for a personalized demo, website link, or asks "kya meri clinic ki website ban sakti hai":
+  Clarify excitedly that their custom website and WhatsApp booking portal is ALREADY LIVE and ready specifically for ${clinicName}!
+  Share the EXACT link (${demoUrl}).
+  Explain 3 steps to test:
+  1️⃣ Branded OPD website & specialty services (${specialty})
+  2️⃣ 24/7 WhatsApp AI receptionist button for patients to book instant slots
+  3️⃣ Live Walk-in QR Token Counter (${isCustomSiteLive ? `${demoUrl}/walkin` : `${demoUrl}&app=walkin`})
+  Encourage them to open the link right now.
+- If they ask about price: state ₹999/month, 14 days free trial, zero setup fee.
 - If they ask about features/apps: highlight 24/7 AI Receptionist, Digital Rx, and QR Queue Counter.
 - NEVER sound like a customer support bot ("Aapka message padhkar khushi hui", "Main aapki kya madad kar sakta hoon"). Sound like a passionate founder!`;
 
@@ -219,23 +260,19 @@ Reply as Ritesh (Founder, ClinicX) following the consultative sales playbook:`;
   }
 
   // High-converting fallback matrix (handles typos like "deme", "priec", and Hindi variations)
-  const textLower = opts.incomingText.toLowerCase();
 
-  // Pattern 1: Demo / Personalized Demo inquiry (catches "deme", "demo", "link", "dikhao", "bhejo", "personalize")
-  const isDemoRequest =
-    /(?:demo|deme|daemo|link|bhejo|dikhao|sample|test|personalize|custom|bana ke)/i.test(textLower);
-
-  if (isDemoRequest) {
+  // Pattern 1: Demo / Website inquiry (catches "deme", "demo", "website", "link", "dikhao", "bhejo", "personalize")
+  if (isDemoOrWebsiteRequest) {
     return `Arre bilkul Dr. ${name} sir! 🙏
-Ji maine specially aapke ${clinicName} ke liye hi personalized live interactive demo ready kiya hai:
+Maine specially aapke clinic *${clinicName}* ke liye complete live custom website & WhatsApp booking portal ready kar diya hai:
 👉 ${demoUrl}
 
 Sir is link ko open karke aap test kar sakte hain:
-1️⃣ Patient banke live OPD appointment book karke dekhein
-2️⃣ Instant WhatsApp confirmation aur Token number milega
-3️⃣ Digital E-Prescription aur Doctor OPD counter ka live workflow
+1️⃣ Aapka branded OPD website & specialty services (${specialty})
+2️⃣ Patient direct WhatsApp se slot book kar sakta hai (zero receptionist dependency)
+3️⃣ Live Walk-in QR Token Counter (${isCustomSiteLive ? `${demoUrl}/walkin` : `${demoUrl}&app=walkin`})
 
-Aap 1 minute nikaal kar check kijiye sir. Agar pasand aaye toh batayein, 5 min me aapke clinic ka live WhatsApp connect karwa dunga!`;
+Aap 1 minute nikaal kar check kijiye sir. Kaisa laga aapko website design aur booking flow?`;
   }
 
   // Pattern 2: Positive feedback / Compliment ("Accha hai", "Badhiya", "Nice", "Good", "Ok", "Theek hai")

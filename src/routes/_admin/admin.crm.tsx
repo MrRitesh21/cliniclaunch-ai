@@ -65,6 +65,7 @@ import {
   Upload,
   FileSpreadsheet,
   Download,
+  Globe,
 } from "lucide-react";
 import {
   listCrmLeads,
@@ -79,6 +80,7 @@ import {
   triggerLeadOutreach,
   reconcileCrmLeads,
   mergeCrmLeads,
+  setupCompleteClinicWebsite,
   type crmLeadStageEnum,
 } from "@/lib/crm.functions";
 import { getAdminWhatsappStatus } from "@/lib/baileys.functions";
@@ -132,12 +134,14 @@ export function AdminCrmPage() {
   const triggerOutreachFn = useServerFn(triggerLeadOutreach);
   const reconcileFn = useServerFn(reconcileCrmLeads);
   const mergeFn = useServerFn(mergeCrmLeads);
+  const setupClinicFn = useServerFn(setupCompleteClinicWebsite);
 
   // Filters state
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [isReconciling, setIsReconciling] = useState(false);
   const [mergingLeadId, setMergingLeadId] = useState<string | null>(null);
+  const [settingUpLeadId, setSettingUpLeadId] = useState<string | null>(null);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -187,6 +191,7 @@ export function AdminCrmPage() {
     specialty: "General Physician",
     notes: "",
     deal_value: 999,
+    auto_setup_clinic: true,
   });
   const [isAddingLead, setIsAddingLead] = useState(false);
 
@@ -487,10 +492,11 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
   };
 
   // Tone switch inside pitch modal - INSTANT 0ms
-  const handleToneChange = (newTone: typeof pitchTone) => {
+  const handleToneChange = (newTone: typeof pitchTone, overrideDemoUrl?: string) => {
     setPitchTone(newTone);
     if (!activeLead) return;
     const demoUrl =
+      overrideDemoUrl ||
       activeDemoUrl ||
       activeLead.custom_demo_url ||
       getClientDemoUrl(
@@ -499,6 +505,9 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
         activeLead.specialty,
         activeLead.city
       );
+    if (overrideDemoUrl) {
+      setActiveDemoUrl(overrideDemoUrl);
+    }
     const instantPitch = getInstantFounderPitch({
       doctorName: activeLead.name,
       clinicName: activeLead.clinic_name,
@@ -509,6 +518,40 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
     });
     setGeneratedMessage(instantPitch);
     setIsGeneratingPitch(false);
+  };
+
+  // ⚡ 1-Click Complete Clinic Website & Workspace Setup Mutation
+  const setupClinicMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      return setupClinicFn({ data: { leadId } });
+    },
+    onSuccess: (res) => {
+      toast.success("🎉 Complete Clinic & Website Setup Live!", {
+        description: `Live website generated at /c/${res.slug}`,
+        action: {
+          label: "Open Website",
+          onClick: () => window.open(res.url, "_blank"),
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-stats"] });
+      if (activeLead && activeLead.id === res.leadId) {
+        setActiveDemoUrl(res.url);
+        setActiveLead({ ...activeLead, custom_demo_url: res.url });
+        handleToneChange(pitchTone, res.url);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(`Setup failed: ${err.message || "Failed to setup clinic"}`);
+    },
+    onSettled: () => {
+      setSettingUpLeadId(null);
+    },
+  });
+
+  const handleOneClickClinicSetup = (lead: CrmLead) => {
+    setSettingUpLeadId(lead.id);
+    setupClinicMutation.mutate(lead.id);
   };
 
   // Edit lead modal actions
@@ -647,9 +690,14 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
           notes: newLead.notes.trim() || undefined,
           deal_value: Number(newLead.deal_value) || 999,
           source: "admin_manual",
+          auto_setup_clinic: newLead.auto_setup_clinic,
         },
       });
-      toast.success("New doctor lead added to CRM!");
+      if (newLead.auto_setup_clinic) {
+        toast.success("New doctor lead added & complete clinic website generated!");
+      } else {
+        toast.success("New doctor lead added to CRM!");
+      }
       setIsAddModalOpen(false);
       setNewLead({
         name: "",
@@ -659,6 +707,7 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
         specialty: "General Physician",
         notes: "",
         deal_value: 999,
+        auto_setup_clinic: true,
       });
       queryClient.invalidateQueries({ queryKey: ["admin-crm-leads"] });
       queryClient.invalidateQueries({ queryKey: ["admin-crm-stats"] });
@@ -901,6 +950,32 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                             <Building2 className="size-3" /> {lead.clinic_name || "Independent Clinic"}
                           </p>
+                          {lead.custom_demo_url && !lead.custom_demo_url.includes("/c/demo?") && lead.custom_demo_url.includes("/c/") ? (
+                            <div className="flex items-center gap-1 mt-1">
+                              <a
+                                href={lead.custom_demo_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-semibold border border-emerald-500/25 transition-colors"
+                                title="View Live Published Clinic Website"
+                              >
+                                <Globe className="size-2.5 text-emerald-600" />
+                                <span>Live Website</span>
+                                <ExternalLink className="size-2.5 opacity-70" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(lead.custom_demo_url!);
+                                  toast.success("Website URL copied to clipboard!");
+                                }}
+                                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground text-[10px]"
+                                title="Copy Website Link"
+                              >
+                                <Copy className="size-2.5" />
+                              </button>
+                            </div>
+                          ) : null}
                           {lead.has_replied && lead.last_reply_message && (
                             <p
                               className="text-[10px] text-emerald-600 dark:text-emerald-400 italic truncate max-w-[200px]"
@@ -1035,6 +1110,38 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                               <Zap className="size-3 text-amber-500" />
                             )}
                             <span className="hidden md:inline">{lead.followup_count === 0 ? "⚡ Pitch" : "⚡ Drip"}</span>
+                          </Button>
+                        )}
+
+                        {/* 1-Click Clinic & Website Setup / View Live Website */}
+                        {lead.custom_demo_url && !lead.custom_demo_url.includes("/c/demo?") && lead.custom_demo_url.includes("/c/") ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            asChild
+                            className="h-8 rounded-xl text-xs px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1 font-semibold"
+                            title="Open Live Published Clinic Website"
+                          >
+                            <a href={lead.custom_demo_url} target="_blank" rel="noreferrer">
+                              <Globe className="size-3 text-emerald-600" />
+                              <span className="hidden sm:inline">Website</span>
+                            </a>
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={settingUpLeadId === lead.id}
+                            onClick={() => handleOneClickClinicSetup(lead)}
+                            className="h-8 rounded-xl text-xs px-2 text-violet-600 dark:text-violet-400 border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/15 gap-1 font-semibold shadow-2xs"
+                            title="1-Click Complete Clinic Setup (Org, Published Website, Modules & Doctor Profile)"
+                          >
+                            {settingUpLeadId === lead.id ? (
+                              <Loader2 className="size-3 animate-spin text-violet-600" />
+                            ) : (
+                              <Zap className="size-3 text-violet-600 fill-violet-600/30" />
+                            )}
+                            <span className="hidden sm:inline">1-Click Setup</span>
                           </Button>
                         )}
 
@@ -1201,14 +1308,43 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
           {activeDemoUrl && (
             <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between gap-3 text-xs w-full min-w-0">
               <div className="min-w-0 flex-1 overflow-hidden">
-                <span className="font-semibold text-primary block">Doctor's Personalized Demo URL:</span>
-                <span className="text-[11px] text-muted-foreground truncate block">{activeDemoUrl}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-primary block">
+                    {activeLead?.custom_demo_url && !activeLead.custom_demo_url.includes("/c/demo?") && activeLead.custom_demo_url.includes("/c/")
+                      ? "Doctor's Live Clinic Website:"
+                      : "Doctor's Personalized Demo URL:"}
+                  </span>
+                  {activeLead?.custom_demo_url && !activeLead.custom_demo_url.includes("/c/demo?") && activeLead.custom_demo_url.includes("/c/") ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] py-0 px-1.5 font-bold">
+                      Live /c/{activeLead.custom_demo_url.split("/c/")[1]?.split("?")[0]}
+                    </Badge>
+                  ) : null}
+                </div>
+                <span className="text-[11px] text-muted-foreground truncate block mt-0.5">{activeDemoUrl}</span>
               </div>
-              <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0">
-                <a href={activeDemoUrl} target="_blank" rel="noreferrer">
-                  Test Demo <ExternalLink className="size-3 ml-1" />
-                </a>
-              </Button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeLead && (!activeLead.custom_demo_url || activeLead.custom_demo_url.includes("/c/demo?")) && (
+                  <Button
+                    size="sm"
+                    disabled={settingUpLeadId === activeLead.id}
+                    onClick={() => handleOneClickClinicSetup(activeLead)}
+                    className="h-7 text-xs rounded-lg bg-violet-600 hover:bg-violet-700 text-white gap-1 font-semibold"
+                    title="Generate complete live clinic website for this doctor in 1 click"
+                  >
+                    {settingUpLeadId === activeLead.id ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Zap className="size-3" />
+                    )}
+                    <span>1-Click Setup Clinic</span>
+                  </Button>
+                )}
+                <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0">
+                  <a href={activeDemoUrl} target="_blank" rel="noreferrer">
+                    Test Demo <ExternalLink className="size-3 ml-1" />
+                  </a>
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1336,6 +1472,24 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
               />
             </div>
 
+            <div className="p-3 rounded-xl border border-violet-500/25 bg-violet-500/5 space-y-1.5">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-foreground select-none">
+                <input
+                  type="checkbox"
+                  checked={newLead.auto_setup_clinic ?? true}
+                  onChange={(e) => setNewLead({ ...newLead, auto_setup_clinic: e.target.checked })}
+                  className="rounded border-violet-500 text-violet-600 focus:ring-violet-500 size-4"
+                />
+                <span className="flex items-center gap-1 text-violet-700 dark:text-violet-300 font-bold">
+                  <Zap className="size-3.5 text-violet-600" />
+                  ⚡ 1-Click Complete Clinic Website Setup
+                </span>
+              </label>
+              <p className="text-[11px] text-muted-foreground pl-6 leading-relaxed">
+                Immediately provisions organization, published website (<code className="text-[10px]">/c/dr-name</code>), doctor record, specialty services, and 14-day Growth trial.
+              </p>
+            </div>
+
             <DialogFooter className="pt-2">
               <Button
                 type="button"
@@ -1378,6 +1532,56 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
           </DialogHeader>
 
           <form onSubmit={handleSaveEdit} className="space-y-3.5">
+            {editingLead?.custom_demo_url && !editingLead.custom_demo_url.includes("/c/demo?") && editingLead.custom_demo_url.includes("/c/") ? (
+              <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between gap-2 text-xs">
+                <div className="min-w-0">
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                    <Globe className="size-3.5 text-emerald-600" />
+                    Live Clinic Website Active
+                  </span>
+                  <a
+                    href={editingLead.custom_demo_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-muted-foreground hover:underline truncate block"
+                  >
+                    {editingLead.custom_demo_url}
+                  </a>
+                </div>
+                <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0">
+                  <a href={editingLead.custom_demo_url} target="_blank" rel="noreferrer">
+                    Visit Website <ExternalLink className="size-3 ml-1" />
+                  </a>
+                </Button>
+              </div>
+            ) : editingLead ? (
+              <div className="p-3 rounded-xl border border-violet-500/25 bg-violet-500/5 flex items-center justify-between gap-2 text-xs">
+                <div>
+                  <span className="font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1">
+                    <Zap className="size-3.5 text-violet-600" />
+                    No Live Website Yet
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Generate complete clinic website with 1 click.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={settingUpLeadId === editingLead.id}
+                  onClick={() => handleOneClickClinicSetup(editingLead)}
+                  className="h-7 text-xs rounded-lg bg-violet-600 hover:bg-violet-700 text-white gap-1 font-semibold shrink-0"
+                >
+                  {settingUpLeadId === editingLead.id ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Zap className="size-3" />
+                  )}
+                  <span>1-Click Setup</span>
+                </Button>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Doctor Name *</Label>

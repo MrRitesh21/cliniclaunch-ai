@@ -133,6 +133,7 @@ const STARTER_PROJECTS: DemoProject[] = [
 ];
 
 const DEMO_PROJECT_NAME = "My clinic website";
+const DEMO_BOOKING_PATIENT_NAME = "Pooja Sharma (34F)";
 
 function getTargetPoint(target: HTMLElement | null, root: HTMLElement | null, offset = 0) {
   if (!target || !root) return { x: 0, y: 0 };
@@ -204,59 +205,89 @@ function DemoStatus({ label }: { label: string }) {
 
 function SampleAppointmentRows({
   compact = false,
+  appointments,
   selectedId,
   onSelect,
   firstRowRef,
+  newlyBookedId,
+  newRowRef,
 }: {
   compact?: boolean;
+  appointments: DemoAppointment[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   firstRowRef?: RefObject<HTMLButtonElement | null>;
+  newlyBookedId?: string | null;
+  newRowRef?: RefObject<HTMLButtonElement | null>;
 }) {
   return (
     <div className="space-y-1.5">
-      {SAMPLE_APPOINTMENTS.map((appointment, index) => (
-        <button
-          key={appointment.id}
-          ref={index === 0 ? firstRowRef : undefined}
-          type="button"
-          data-testid={index === 0 ? "demo-appointment-row" : undefined}
-          aria-pressed={selectedId === appointment.id}
-          onClick={() => onSelect(appointment.id)}
-          className={`grid w-full min-w-0 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors ${
-            selectedId === appointment.id
-              ? "border-primary/40 bg-primary/5"
-              : "border-transparent bg-muted/30 hover:border-border hover:bg-muted/50"
-          }`}
-        >
-          <span className="text-[8px] font-semibold tabular-nums text-muted-foreground sm:text-[9px]">
-            {appointment.time}
-          </span>
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
-              {appointment.initials}
+      {appointments.map((appointment, index) => {
+        const isNewlyBooked = appointment.id === newlyBookedId;
+        const rowRef = isNewlyBooked ? newRowRef : index === 0 ? firstRowRef : undefined;
+
+        return (
+          <button
+            key={appointment.id}
+            ref={rowRef}
+            type="button"
+            data-testid={
+              isNewlyBooked
+                ? "demo-newly-booked-appointment"
+                : index === 0
+                  ? "demo-appointment-row"
+                  : undefined
+            }
+            aria-pressed={selectedId === appointment.id}
+            onClick={() => onSelect(appointment.id)}
+            className={`grid w-full min-w-0 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-all ${
+              selectedId === appointment.id
+                ? "border-primary/40 bg-primary/5"
+                : isNewlyBooked
+                  ? "border-emerald-500/40 bg-emerald-500/10 shadow-xs ring-1 ring-emerald-500/20"
+                  : "border-transparent bg-muted/30 hover:border-border hover:bg-muted/50"
+            }`}
+          >
+            <span className="text-[8px] font-semibold tabular-nums text-muted-foreground sm:text-[9px]">
+              {appointment.time}
             </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-1.5">
-                <span className="truncate text-[9px] font-semibold text-foreground sm:text-[10px]">
-                  {appointment.patient}
-                </span>
-                <span className="text-[7.5px] text-muted-foreground">{appointment.ageGender}</span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span
+                className={`grid size-6 shrink-0 place-items-center rounded-full text-[8px] font-bold ${
+                  isNewlyBooked
+                    ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                    : "bg-primary/10 text-primary"
+                }`}
+              >
+                {appointment.initials}
               </span>
-              {!compact ? (
-                <span className="block truncate text-[8px] text-muted-foreground">
-                  {appointment.visit} • {appointment.room}
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate text-[9px] font-semibold text-foreground sm:text-[10px]">
+                    {appointment.patient}
+                  </span>
+                  <span className="text-[7.5px] text-muted-foreground">{appointment.ageGender}</span>
+                  {isNewlyBooked && (
+                    <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[6.5px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                      Just booked
+                    </span>
+                  )}
                 </span>
-              ) : (
-                <span className="block truncate text-[7.5px] text-muted-foreground">
-                  {appointment.room}
-                </span>
-              )}
+                {!compact ? (
+                  <span className="block truncate text-[8px] text-muted-foreground">
+                    {appointment.visit} • {appointment.room}
+                  </span>
+                ) : (
+                  <span className="block truncate text-[7.5px] text-muted-foreground">
+                    {appointment.room}
+                  </span>
+                )}
+              </span>
             </span>
-          </span>
-          <DemoStatus label={appointment.status} />
-        </button>
-      ))}
+            <DemoStatus label={appointment.status} />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -264,10 +295,16 @@ function SampleAppointmentRows({
 export function HeroProductDemo() {
   const reducedMotion = useReducedMotion();
   const dialogTitleId = `clinic-site-dialog-${useId().replace(/:/g, "")}`;
+  const bookingDialogTitleId = `clinic-booking-dialog-${useId().replace(/:/g, "")}`;
   const rootRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLButtonElement>(null);
+  const bookAppointmentBtnRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const createRef = useRef<HTMLButtonElement>(null);
+  const bookingInputRef = useRef<HTMLInputElement>(null);
+  const bookingSubmitRef = useRef<HTMLButtonElement>(null);
+  const bookingModalRef = useRef<HTMLDivElement>(null);
+  const newRowRef = useRef<HTMLButtonElement>(null);
   const navButtonRefs = useRef<Partial<Record<DashboardSection, HTMLButtonElement | null>>>({});
   const appointmentSpotRef = useRef<HTMLButtonElement>(null);
   const queueSpotRef = useRef<HTMLDivElement>(null);
@@ -283,6 +320,10 @@ export function HeroProductDemo() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [createdProject, setCreatedProject] = useState<DemoProject | null>(null);
+  const [appointments, setAppointments] = useState<DemoAppointment[]>(SAMPLE_APPOINTMENTS);
+  const [newlyBookedId, setNewlyBookedId] = useState<string | null>(null);
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  const [bookingPatientName, setBookingPatientName] = useState("");
   const [activeNav, setActiveNav] = useState<DashboardSection>("Overview");
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(true);
@@ -345,23 +386,44 @@ export function HeroProductDemo() {
       const isAutoplayAction = autoplayRunningRef.current && automatedActionRef.current;
       if (event.nativeEvent.isTrusted && !automatedActionRef.current && autoplayRunningRef.current)
         stopAutoplay();
-      const title = inputRef.current?.value.trim() || DEMO_PROJECT_NAME;
-      setCreatedProject({
-        id: `clinic-site-${Date.now()}`,
-        title,
-        detail: "Your clinic site is ready to customize",
-        status: "New sample project",
-        icon: Building2,
-        tone: "blue",
-      });
+      const rawInput = inputRef.current?.value.trim() || DEMO_BOOKING_PATIENT_NAME;
+      const nameMatch = rawInput.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+      const patientName = nameMatch?.[1]?.trim() || "Pooja Sharma";
+      const ageGender = nameMatch?.[2]?.trim() || "34F";
+      const initials =
+        patientName
+          .split(" ")
+          .map((part) => part[0])
+          .filter(Boolean)
+          .slice(0, 2)
+          .join("")
+          .toUpperCase() || "PS";
+
+      const newApt: DemoAppointment = {
+        id: `appointment-booking-${Date.now()}`,
+        time: "11:30 AM",
+        patient: patientName,
+        initials,
+        ageGender,
+        visit: "Cardiology consultation",
+        room: "Room 1",
+        vitals: "BP 120/80",
+        status: "Confirmed",
+      };
+
+      setAppointments((prev) => [newApt, ...prev.filter((a) => a.id !== newApt.id)]);
+      setNewlyBookedId(newApt.id);
+      setSelectedAppointmentId(newApt.id);
+      setActiveNav("Appointments");
+
       if (!isAutoplayAction && !reducedMotion) {
         requestAnimationFrame(() => {
-          const card = newProjectRef.current;
-          if (card)
+          const row = newRowRef.current ?? appointmentSpotRef.current;
+          if (row)
             gsap.fromTo(
-              card,
-              { autoAlpha: 0, scale: 0.84, y: 12 },
-              { autoAlpha: 1, scale: 1, y: 0, duration: 0.58, ease: "back.out(1.7)" },
+              row,
+              { autoAlpha: 0, scale: 0.92, y: -8 },
+              { autoAlpha: 1, scale: 1, y: 0, duration: 0.45, ease: "back.out(1.5)" },
             );
         });
       }
@@ -395,6 +457,108 @@ export function HeroProductDemo() {
     }
   };
 
+  const openBookingDialog = useCallback(() => {
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setBookingPatientName("");
+    setIsBookingDialogOpen(true);
+    if (bookingModalRef.current) {
+      gsap.set(bookingModalRef.current, { display: "grid", autoAlpha: 0, scale: 0.97 });
+      gsap.to(bookingModalRef.current, {
+        autoAlpha: 1,
+        scale: 1,
+        duration: reducedMotion ? 0 : 0.22,
+        ease: "power2.out",
+      });
+    }
+    automatedActionRef.current = true;
+    bookingInputRef.current?.focus({ preventScroll: true });
+    automatedActionRef.current = false;
+  }, [reducedMotion]);
+
+  const closeBookingDialog = useCallback(
+    (restoreFocus = true) => {
+      setIsBookingDialogOpen(false);
+      const modal = bookingModalRef.current;
+      const hide = () => {
+        if (modal) gsap.set(modal, { display: "none", autoAlpha: 0, scale: 0.98 });
+        if (restoreFocus) {
+          const target = previousFocusRef.current ?? bookAppointmentBtnRef.current;
+          target?.focus({ preventScroll: true });
+        }
+      };
+      if (modal && !reducedMotion) {
+        gsap.to(modal, {
+          autoAlpha: 0,
+          scale: 0.98,
+          duration: 0.16,
+          ease: "power1.in",
+          onComplete: hide,
+        });
+      } else {
+        hide();
+      }
+    },
+    [reducedMotion],
+  );
+
+  const handleBookingSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (event.nativeEvent.isTrusted && !automatedActionRef.current && autoplayRunningRef.current)
+        stopAutoplay();
+      const rawInput = bookingInputRef.current?.value.trim() || DEMO_BOOKING_PATIENT_NAME;
+      const nameMatch = rawInput.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+      const patientName = nameMatch?.[1]?.trim() || "Pooja Sharma";
+      const ageGender = nameMatch?.[2]?.trim() || "34F";
+      const initials =
+        patientName
+          .split(" ")
+          .map((part) => part[0])
+          .filter(Boolean)
+          .slice(0, 2)
+          .join("")
+          .toUpperCase() || "PS";
+
+      const newApt: DemoAppointment = {
+        id: `appointment-booking-${Date.now()}`,
+        time: "11:30 AM",
+        patient: patientName,
+        initials,
+        ageGender,
+        visit: "Cardiology consultation",
+        room: "Room 1",
+        vitals: "BP 120/80",
+        status: "Confirmed",
+      };
+
+      setAppointments((prev) => [newApt, ...prev]);
+      setNewlyBookedId(newApt.id);
+      setSelectedAppointmentId(newApt.id);
+      closeBookingDialog();
+    },
+    [closeBookingDialog, stopAutoplay],
+  );
+
+  const handleBookingDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab" || !bookingModalRef.current) return;
+    const focusable = Array.from(
+      bookingModalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   const handleUserClick = (event: MouseEvent<HTMLButtonElement>, action: () => void) => {
     if (event.nativeEvent.isTrusted && !automatedActionRef.current && autoplayRunningRef.current)
       stopAutoplay();
@@ -405,10 +569,16 @@ export function HeroProductDemo() {
     setDraftName("");
     setIsDialogOpen(false);
     setCreatedProject(null);
+    setAppointments(SAMPLE_APPOINTMENTS);
+    setNewlyBookedId(null);
+    setIsBookingDialogOpen(false);
+    setBookingPatientName("");
     setActiveNav("Overview");
     setSelectedAppointmentId(null);
     if (modalRef.current)
       gsap.set(modalRef.current, { display: "none", autoAlpha: 0, scale: 0.98 });
+    if (bookingModalRef.current)
+      gsap.set(bookingModalRef.current, { display: "none", autoAlpha: 0, scale: 0.98 });
     if (newProjectRef.current)
       gsap.set(newProjectRef.current, { display: "none", autoAlpha: 0, scale: 0.84, y: 10 });
     if (rippleRef.current) gsap.set(rippleRef.current, { autoAlpha: 0, scale: 0.25 });
@@ -419,18 +589,21 @@ export function HeroProductDemo() {
     const cursor = cursorRef.current;
     const ripple = rippleRef.current;
     const modal = modalRef.current;
+    const bookingModal = bookingModalRef.current;
     const prefersReducedMotion =
       reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!root || !cursor || !ripple || !modal || prefersReducedMotion) {
       if (cursor) gsap.set(cursor, { autoAlpha: 0 });
       if (ripple) gsap.set(ripple, { autoAlpha: 0 });
       if (modal) gsap.set(modal, { display: "none", autoAlpha: 0 });
+      if (bookingModal) gsap.set(bookingModal, { display: "none", autoAlpha: 0 });
       return;
     }
 
     const pointFor = (target: HTMLElement | null, offset = 0) =>
       getTargetPoint(target, root, offset);
     const typing = { value: 0 };
+    const bookingTyping = { value: 0 };
     const timeline = gsap.timeline({
       paused: true,
       repeat: -1,
@@ -483,33 +656,17 @@ export function HeroProductDemo() {
       () => navTarget("Appointments")?.click(),
     );
     timeline.to({}, { duration: 0.28 });
-    moveCursor(() => appointmentSpotRef.current, 0.42);
-    clickTarget(
-      () => appointmentSpotRef.current,
-      () => appointmentSpotRef.current?.click(),
-    );
-    timeline.to({}, { duration: 0.22 });
-    moveCursor(() => navTarget("OPD Queue & Consult"), 0.46);
-    clickTarget(
-      () => navTarget("OPD Queue & Consult"),
-      () => navTarget("OPD Queue & Consult")?.click(),
-    );
-    timeline.to({}, { duration: 0.28 });
-    moveCursor(() => queueSpotRef.current, 0.38);
-    timeline.to({}, { duration: 0.22 });
-    moveCursor(() => navTarget("Website"), 0.46);
-    clickTarget(
-      () => navTarget("Website"),
-      () => navTarget("Website")?.click(),
-    );
-    timeline.to({}, { duration: 0.28 });
+
+    // 1. Click "+ Book Appointment" action button
     moveCursor(() => ctaRef.current, 0.46);
     clickTarget(
       () => ctaRef.current,
       () => ctaRef.current?.click(),
     );
     timeline.to({}, { duration: 0.3 });
-    moveCursor(() => inputRef.current, 0.5);
+
+    // 2. Type patient name inside "Book an Appointment" modal
+    moveCursor(() => inputRef.current, 0.48);
     timeline.call(() => {
       typing.value = 0;
       setDraftName("");
@@ -518,27 +675,66 @@ export function HeroProductDemo() {
       automatedActionRef.current = false;
     });
     timeline.to(typing, {
-      value: DEMO_PROJECT_NAME.length,
-      duration: 0.86,
+      value: DEMO_BOOKING_PATIENT_NAME.length,
+      duration: 0.82,
       ease: "none",
-      onUpdate: () => setDraftName(DEMO_PROJECT_NAME.slice(0, Math.floor(typing.value))),
+      onUpdate: () => setDraftName(DEMO_BOOKING_PATIENT_NAME.slice(0, Math.floor(typing.value))),
     });
-    moveCursor(() => createRef.current, 0.52);
+    timeline.to({}, { duration: 0.16 });
+
+    // 3. Click "Book Appointment" submit button
+    moveCursor(() => createRef.current, 0.48);
     clickTarget(
       () => createRef.current,
       () => createRef.current?.click(),
     );
-    timeline.to({}, { duration: 0.14 });
+    timeline.to({}, { duration: 0.24 });
+
+    // 4. Animate newly booked appointment row at top of schedule
     timeline.call(() => {
-      const newProject = newProjectRef.current;
-      if (!newProject) return;
+      const newRow = newRowRef.current ?? appointmentSpotRef.current;
+      if (!newRow) return;
       gsap.fromTo(
-        newProject,
-        { display: "grid", autoAlpha: 0, scale: 0.82, y: 12 },
-        { autoAlpha: 1, scale: 1, y: 0, duration: 0.58, ease: "back.out(1.7)" },
+        newRow,
+        { autoAlpha: 0, scale: 0.94, y: -6 },
+        { autoAlpha: 1, scale: 1, y: 0, duration: 0.42, ease: "back.out(1.5)" },
       );
     });
-    timeline.to(cursor, { autoAlpha: 0, duration: 0.18 }, "<+0.12");
+    timeline.to({}, { duration: 0.32 });
+
+    // 5. Select newly booked row to inspect details
+    moveCursor(() => newRowRef.current ?? appointmentSpotRef.current, 0.38);
+    clickTarget(
+      () => newRowRef.current ?? appointmentSpotRef.current,
+      () => (newRowRef.current ?? appointmentSpotRef.current)?.click(),
+    );
+    timeline.to({}, { duration: 0.26 });
+
+    // 6. View live OPD Queue
+    moveCursor(() => navTarget("OPD Queue & Consult"), 0.46);
+    clickTarget(
+      () => navTarget("OPD Queue & Consult"),
+      () => navTarget("OPD Queue & Consult")?.click(),
+    );
+    timeline.to({}, { duration: 0.3 });
+    moveCursor(() => queueSpotRef.current, 0.38);
+    timeline.to({}, { duration: 0.24 });
+
+    // 7. View live WhatsApp reminders
+    moveCursor(() => navTarget("WhatsApp"), 0.46);
+    clickTarget(
+      () => navTarget("WhatsApp"),
+      () => navTarget("WhatsApp")?.click(),
+    );
+    timeline.to({}, { duration: 0.35 });
+
+    // 8. Return to Overview
+    moveCursor(() => navTarget("Overview"), 0.46);
+    clickTarget(
+      () => navTarget("Overview"),
+      () => navTarget("Overview")?.click(),
+    );
+    timeline.to(cursor, { autoAlpha: 0, duration: 0.18 }, "<+0.16");
 
     timelineRef.current = timeline;
     autoplayRunningRef.current = true;
@@ -587,6 +783,28 @@ export function HeroProductDemo() {
     return () => cancelAnimationFrame(frame);
   }, [isDialogOpen]);
 
+  useEffect(() => {
+    if (!isBookingDialogOpen) return;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      if (autoplayRunningRef.current) stopAutoplay();
+      closeBookingDialog();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [closeBookingDialog, isBookingDialogOpen, stopAutoplay]);
+
+  useEffect(() => {
+    if (!isBookingDialogOpen || !bookingInputRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      automatedActionRef.current = true;
+      bookingInputRef.current?.focus({ preventScroll: true });
+      automatedActionRef.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isBookingDialogOpen]);
+
   const togglePlayback = () => {
     const timeline = timelineRef.current;
     if (!timeline) return;
@@ -630,14 +848,14 @@ export function HeroProductDemo() {
     >
       <div className="flex min-h-[360px] sm:min-h-[410px]">
         <aside
-          className="flex w-12 shrink-0 flex-col border-r border-border/70 bg-muted/20 px-1.5 py-3 sm:w-14 sm:px-2 lg:w-36 lg:px-3"
+          className="flex w-12 shrink-0 flex-col border-r border-border/70 bg-muted/20 px-1.5 py-3 sm:w-14 sm:px-2 xl:w-36 xl:px-3"
           aria-label="Demo workspace navigation"
         >
-          <div className="mb-4 flex items-center justify-center gap-2 lg:justify-start">
+          <div className="mb-4 flex items-center justify-center gap-2 xl:justify-start">
             <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <Sparkles className="size-4" aria-hidden="true" />
             </span>
-            <div className="hidden min-w-0 lg:block">
+            <div className="hidden min-w-0 xl:block">
               <span className="block text-sm font-bold tracking-tight text-foreground">
                 ClinicX
               </span>
@@ -646,7 +864,7 @@ export function HeroProductDemo() {
               </span>
             </div>
           </div>
-          <p className="mb-2 hidden px-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:block">
+          <p className="mb-2 hidden px-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground xl:block">
             Workspace
           </p>
           <nav className="space-y-1" aria-label="Workspace pages">
@@ -661,7 +879,7 @@ export function HeroProductDemo() {
                 aria-label={label}
                 title={label}
                 onClick={(event) => handleUserClick(event, () => setActiveNav(label))}
-                className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-xl px-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-between lg:px-2 ${
+                className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-xl px-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary xl:justify-between xl:px-2 ${
                   activeNav === label
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -669,17 +887,17 @@ export function HeroProductDemo() {
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  <span className="hidden truncate lg:inline">{label}</span>
+                  <span className="hidden truncate xl:inline">{label}</span>
                 </div>
                 {badge && (
-                  <span className="hidden size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[8px] font-bold text-primary lg:inline-flex">
+                  <span className="hidden size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[8px] font-bold text-primary xl:inline-flex">
                     {badge}
                   </span>
                 )}
               </button>
             ))}
           </nav>
-          <div className="mt-auto hidden rounded-xl border border-border/70 bg-background p-2.5 lg:block">
+          <div className="mt-auto hidden rounded-xl border border-border/70 bg-background p-2.5 xl:block">
             <p className="text-[10px] font-semibold text-foreground">Sample workspace</p>
             <p className="mt-0.5 text-[9px] leading-relaxed text-muted-foreground">
               Preview content only
@@ -698,7 +916,7 @@ export function HeroProductDemo() {
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1 text-[10px] text-muted-foreground md:flex">
+              <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-2.5 py-1 text-[10px] text-muted-foreground 2xl:flex">
                 <Search className="size-3 text-muted-foreground" aria-hidden="true" />
                 <span>Search patients, MRN...</span>
                 <kbd className="rounded border border-border/60 bg-background px-1 text-[8px] font-mono">⌘K</kbd>
@@ -707,21 +925,19 @@ export function HeroProductDemo() {
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
                 Practice Active
               </span>
-              {activeNav === "Website" && (
-                <Button
-                  ref={ctaRef}
-                  type="button"
-                  size="sm"
-                  onClick={(event) => handleUserClick(event, openDialog)}
-                  className="h-9 shrink-0 gap-1.5 rounded-xl px-2.5 text-[11px] font-semibold shadow-sm sm:px-3 sm:text-xs"
-                  aria-haspopup="dialog"
-                  aria-expanded={isDialogOpen}
-                  data-testid="create-site-trigger"
-                >
-                  <Plus className="size-3.5" aria-hidden="true" />
-                  <span>New site</span>
-                </Button>
-              )}
+              <Button
+                ref={ctaRef}
+                type="button"
+                size="sm"
+                onClick={(event) => handleUserClick(event, openDialog)}
+                className="h-8 shrink-0 gap-1 rounded-xl px-2.5 text-[10px] sm:text-[11px] font-semibold shadow-xs sm:h-9 sm:px-3 sm:gap-1.5 bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer"
+                aria-haspopup="dialog"
+                aria-expanded={isDialogOpen}
+                data-testid="create-site-trigger"
+              >
+                <Plus className="size-3.5" aria-hidden="true" />
+                <span>Book Appointment</span>
+              </Button>
             </div>
           </div>
 
@@ -796,8 +1012,11 @@ export function HeroProductDemo() {
                     </div>
                     <SampleAppointmentRows
                       compact
+                      appointments={appointments}
                       selectedId={selectedAppointmentId}
                       onSelect={setSelectedAppointmentId}
+                      newlyBookedId={newlyBookedId}
+                      newRowRef={newRowRef}
                     />
                   </div>
                   <div className="min-w-0 rounded-xl border border-border/70 bg-background p-2.5 sm:p-3">
@@ -856,9 +1075,12 @@ export function HeroProductDemo() {
                     <span>Status</span>
                   </div>
                   <SampleAppointmentRows
+                    appointments={appointments}
                     selectedId={selectedAppointmentId}
                     onSelect={setSelectedAppointmentId}
                     firstRowRef={appointmentSpotRef}
+                    newlyBookedId={newlyBookedId}
+                    newRowRef={newRowRef}
                   />
                 </div>
                 <p className="text-[8px] text-muted-foreground">
@@ -1183,7 +1405,8 @@ export function HeroProductDemo() {
         role="dialog"
         aria-modal={isDialogOpen || undefined}
         aria-labelledby={dialogTitleId}
-        aria-hidden={!isDialogOpen}
+        aria-hidden={!isDialogOpen ? true : undefined}
+        inert={!isDialogOpen}
         onKeyDown={handleDialogKeyDown}
         onMouseDown={(event) => {
           if (
@@ -1199,18 +1422,18 @@ export function HeroProductDemo() {
       >
         <form
           onSubmit={handleCreate}
-          className="w-full max-w-[300px] rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-5"
+          className="w-full max-w-[320px] rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-5"
         >
-          <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="mb-3.5 flex items-start justify-between gap-3">
             <div>
               <span className="mb-2 inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Building2 className="size-4" aria-hidden="true" />
+                <CalendarDays className="size-4" aria-hidden="true" />
               </span>
               <h3 id={dialogTitleId} className="text-base font-bold text-foreground">
-                Create a clinic site
+                Book an Appointment
               </h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Start with a name. You can customize the details later.
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Fast OPD booking with instant WhatsApp token.
               </p>
             </div>
             <button
@@ -1222,29 +1445,44 @@ export function HeroProductDemo() {
               <X className="size-4" aria-hidden="true" />
             </button>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${dialogTitleId}-name`} className="text-xs font-semibold">
-              Site name
-            </Label>
-            <Input
-              ref={inputRef}
-              id={`${dialogTitleId}-name`}
-              value={draftName}
-              onChange={handleInputChange}
-              onFocus={() => {
-                if (!autoplayRunningRef.current && timelineRef.current) stopAutoplay();
-              }}
-              placeholder="e.g. My clinic website"
-              autoComplete="off"
-              className="h-10 text-sm"
-              data-testid="create-site-name"
-            />
+          <div className="space-y-2.5">
+            <div className="space-y-1.5">
+              <Label htmlFor={`${dialogTitleId}-name`} className="text-xs font-semibold">
+                Patient Name & Details
+              </Label>
+              <Input
+                ref={inputRef}
+                id={`${dialogTitleId}-name`}
+                value={draftName}
+                onChange={handleInputChange}
+                onFocus={() => {
+                  if (!autoplayRunningRef.current && timelineRef.current) stopAutoplay();
+                }}
+                placeholder="e.g. Pooja Sharma (34F)"
+                autoComplete="off"
+                className="h-9 text-xs"
+                data-testid="create-site-name"
+              />
+            </div>
+            <div className="rounded-lg border border-border/70 bg-muted/30 p-2 space-y-1 text-[10px]">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Slot: Today · 11:30 AM</span>
+                <span className="font-semibold text-foreground">Room 1</span>
+              </div>
+              <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="flex items-center gap-1">
+                  <Check className="size-3" /> WhatsApp reminder auto-send
+                </span>
+                <span>Token #16</span>
+              </div>
+            </div>
           </div>
           <div className="mt-4 flex justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
+              className="h-8 text-xs rounded-xl"
               onClick={(event) => handleUserClick(event, () => closeDialog())}
             >
               Cancel
@@ -1253,10 +1491,10 @@ export function HeroProductDemo() {
               ref={createRef}
               type="submit"
               size="sm"
-              className="gap-1.5"
+              className="h-8 text-xs rounded-xl gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
               data-testid="create-site-submit"
             >
-              <Plus className="size-3.5" aria-hidden="true" /> Create site
+              <Check className="size-3.5" aria-hidden="true" /> Book Appointment
             </Button>
           </div>
         </form>

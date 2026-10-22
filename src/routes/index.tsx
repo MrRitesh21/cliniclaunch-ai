@@ -411,9 +411,9 @@ function LandingContent() {
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center">
             {/* Left Column: Value Proposition, Dominant CTA & Trust */}
-            <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
+            <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-center lg:text-left min-w-0">
               {/* Product Audience Tag */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5">
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
@@ -425,14 +425,13 @@ function LandingContent() {
               {/* Main Headline with GSAP 3 Word Split Entrance (Pattern 01 / landing-hero.html) */}
               <HeroWordSplit
                 headline="Less Time on Admin. More Time for Patients."
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold"
               />
 
               {/* High-Impact Word Rotator (MadeToScale Guide Animation 02) */}
               <WordRotator
                 leadText="Eliminate"
                 words={["Reception Chaos", "Paper Registers", "Missed Calls", "Billing Stress"]}
-                suffixText="in your clinic practice"
+                suffixText="in your clinic"
               />
 
               {/* Benefit-Driven Subheadline */}
@@ -515,7 +514,7 @@ function LandingContent() {
             </div>
 
             {/* Right Column: animated clinic-site workspace demo */}
-            <div className="lg:col-span-6 relative">
+            <div className="lg:col-span-6 relative min-w-0 w-full">
               <HeroProductDemo />
             </div>
           </div>

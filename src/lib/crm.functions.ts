@@ -52,6 +52,7 @@ export const createCrmLead = createServerFn({ method: "POST" })
       deal_value: z.number().optional(),
       autonomous_enabled: z.boolean().optional(),
       trigger_outreach_now: z.boolean().optional(),
+      auto_setup_clinic: z.boolean().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -63,6 +64,29 @@ export const createCrmLead = createServerFn({ method: "POST" })
       });
     }
     return lead;
+  });
+
+/**
+ * ⚡ 1-Click Complete Clinic Website & Workspace Setup.
+ * Generates custom live website at /c/${slug}, installs all core modules,
+ * creates doctor, clinic, services, faqs, reviews, and updates CRM lead with live link.
+ */
+export const setupCompleteClinicWebsite = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      leadId: z.string(),
+      customSlug: z.string().optional(),
+      doctorName: z.string().optional(),
+      clinicName: z.string().optional(),
+      specialty: z.string().optional(),
+      city: z.string().optional(),
+      phone: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { setupCompleteClinicFromLeadImpl } = await import("./crm.server");
+    return setupCompleteClinicFromLeadImpl(data);
   });
 
 export const updateCrmLead = createServerFn({ method: "POST" })

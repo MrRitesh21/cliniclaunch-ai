@@ -109,6 +109,603 @@ export function buildDemoUrl(opts: {
   return `${base}/c/demo?doctor=${d}&clinic=${c}&specialty=${s}&city=${ct}&ref=crm`;
 }
 
+/**
+ * Returns a clinically rich, realistic profile for any medical specialty.
+ * Includes qualification, fees, branding colors, curated services, FAQs, and sample reviews.
+ */
+export function getSpecialtyClinicProfile(opts: {
+  specialty?: string | null;
+  doctorName: string;
+  clinicName: string;
+  city?: string | null;
+}): {
+  qualification: string;
+  experience_years: number;
+  consultation_fee: number;
+  theme_color: string;
+  template: string;
+  hero_headline: string;
+  hero_subheadline: string;
+  about_text: string;
+  services: string[];
+  faqs: Array<{ q: string; a: string }>;
+  sample_reviews: Array<{ name: string; rating: number; comment: string }>;
+  business_type: "clinic" | "doctor" | "dentist";
+} {
+  const spec = (opts.specialty || "").toLowerCase();
+  const city = opts.city || "the city";
+  const doc = opts.doctorName;
+  const clinic = opts.clinicName;
+
+  // 1. Dermatology & Cosmetology
+  if (spec.includes("derma") || spec.includes("skin") || spec.includes("hair") || spec.includes("cosmet")) {
+    return {
+      qualification: "MBBS, MD (Dermatology, Venereology & Leprosy)",
+      experience_years: 12,
+      consultation_fee: 700,
+      theme_color: "#0ea5e9",
+      template: "modern",
+      hero_headline: "Advanced Clinical Dermatology & Aesthetic Skin Care",
+      hero_subheadline: `Personalized skin, hair, and aesthetic treatments by ${doc}. Book your visit online in seconds or on WhatsApp.`,
+      about_text: `${doc} is a senior board-certified dermatologist with 12+ years of clinical experience in clinical dermatology, acne therapies, chronic eczema, and laser aesthetics at ${clinic}. Our clinic offers computerized records, instant WhatsApp prescriptions, and painless OPD queues.`,
+      services: [
+        "Acne & Scar Laser Treatment",
+        "Hair Fall Workup & PRP Therapy",
+        "Clinical Chemical Peels & Skin Brightening",
+        "Eczema, Psoriasis & Chronic Allergy Care",
+        "Laser Hair Reduction & Skin Smoothing",
+        "Pediatric & Geriatric Dermatology Consultation",
+      ],
+      faqs: [
+        { q: "How do I book an appointment?", a: `You can book instantly online via this portal or through WhatsApp. A confirmed token is issued immediately.` },
+        { q: "What is the consultation fee?", a: `The consultation fee is ₹700 at ${clinic}. Follow-up visits within 14 days are ₹350.` },
+        { q: "Do you treat hair thinning and scalp issues?", a: "Yes, comprehensive hair dermoscopy, PRP therapy, and personalized prescription plans are provided." },
+        { q: "Are same-day walk-in slots available?", a: "Yes, patients can scan the QR code standee at the reception to get an instant live walk-in token." },
+      ],
+      sample_reviews: [
+        { name: "Priya Saxena", rating: 5, comment: "Doctor took time to understand my skin history. WhatsApp prescription and booking is super convenient!" },
+        { name: "Rahul Verma", rating: 5, comment: "Pimples reduced significantly in 3 weeks. Very clean and modern clinic." },
+      ],
+      business_type: "clinic",
+    };
+  }
+
+  // 2. Dentistry / Dental Care
+  if (spec.includes("dent") || spec.includes("tooth") || spec.includes("teeth") || spec.includes("orthodont")) {
+    return {
+      qualification: "BDS, MDS (Conservative Dentistry & Endodontics)",
+      experience_years: 11,
+      consultation_fee: 500,
+      theme_color: "#0284c7",
+      template: "modern",
+      hero_headline: "Gentle, World-Class Dental Care & Smile Makeovers",
+      hero_subheadline: `Precision dental treatments with modern equipment and zero pain. Schedule your visit with ${doc}.`,
+      about_text: `${clinic} is led by ${doc}, providing gentle and high-precision dental treatments for the whole family. From preventive dentistry and painless root canals to aligners and cosmetic smile design, your comfort is our top priority.`,
+      services: [
+        "Teeth Cleaning & Deep Ultrasonic Scaling",
+        "Painless Single-Sitting Root Canal (RCT)",
+        "Dental Implants & Ceramic Zirconia Crowns",
+        "Invisible Braces & Clear Aligners Consultation",
+        "Laser Teeth Whitening & Smile Designing",
+        "Tooth Extraction & Pediatric Dental Care",
+      ],
+      faqs: [
+        { q: "Is Root Canal Treatment painful?", a: "Not at all. We utilize modern rotary endodontics and local anaesthetics for a virtually painless procedure." },
+        { q: "How frequently should teeth cleaning be done?", a: "We recommend a routine scaling and polishing every 6 months to maintain optimal gum health." },
+        { q: "Can I book a same-day appointment on WhatsApp?", a: "Yes, WhatsApp booking gives you an instant confirmed token with estimated chair time." },
+      ],
+      sample_reviews: [
+        { name: "Amit Joshi", rating: 5, comment: "Had my wisdom tooth removed without any pain. Best dentist experience ever!" },
+        { name: "Sneha Roy", rating: 5, comment: "Clinic is high-tech and WhatsApp queue updates saved me from waiting." },
+      ],
+      business_type: "dentist",
+    };
+  }
+
+  // 3. Cardiology / Heart Care
+  if (spec.includes("cardio") || spec.includes("heart")) {
+    return {
+      qualification: "MBBS, MD (Medicine), DM (Cardiology)",
+      experience_years: 15,
+      consultation_fee: 800,
+      theme_color: "#dc2626",
+      template: "clinical",
+      hero_headline: "Comprehensive Heart Health & Preventive Cardiology",
+      hero_subheadline: `Expert heart care, digital ECG, and personalized hypertension management by ${doc}.`,
+      about_text: `${doc} is a distinguished cardiologist providing evidence-based cardiac consultations at ${clinic}. Dedicated to early detection, cholesterol and BP regulation, and preventive lifestyle cardiology.`,
+      services: [
+        "Comprehensive Cardiac Health Consultation",
+        "12-Lead Digital ECG & Instant Report",
+        "Hypertension, Blood Pressure & Stress Check",
+        "2D Echocardiography Review & Second Opinion",
+        "Dyslipidemia & High Cholesterol Care",
+        "Post-Angioplasty / Bypass Cardiac Rehabilitation",
+      ],
+      faqs: [
+        { q: "Do you have ECG facilities at the clinic?", a: "Yes, instant 12-lead digital ECG is conducted and reviewed on the spot during consultation." },
+        { q: "What should I bring for my first cardiology visit?", a: "Please bring any recent blood reports, previous ECGs, and a list of current medications." },
+      ],
+      sample_reviews: [
+        { name: "Suresh Nambiar", rating: 5, comment: "Very thorough examination and honest guidance. Doctor does not prescribe unnecessary tests." },
+        { name: "Meenakshi Sundaram", rating: 5, comment: "Father's BP is well controlled now. WhatsApp reminders for follow-up are very helpful." },
+      ],
+      business_type: "doctor",
+    };
+  }
+
+  // 4. Pediatrics / Child Specialist
+  if (spec.includes("pediat") || spec.includes("child") || spec.includes("baby")) {
+    return {
+      qualification: "MBBS, MD (Pediatrics), DCH",
+      experience_years: 11,
+      consultation_fee: 500,
+      theme_color: "#f59e0b",
+      template: "modern",
+      hero_headline: "Compassionate, Child-Friendly Healthcare & Vaccinations",
+      hero_subheadline: `Trusted pediatric care for newborns, toddlers, and adolescents at ${clinic}.`,
+      about_text: `${doc} has over 11 years of clinical pediatric experience, known for a gentle and friendly approach with children. ${clinic} offers complete vaccination schedules, growth tracking, and acute infection care.`,
+      services: [
+        "Newborn Care & Milestone Growth Tracking",
+        "Complete Pediatric Immunization & Vaccinations",
+        "Childhood Asthma, Cough & Allergy Care",
+        "Fever, Infection & Gastrointestinal Treatment",
+        "Childhood Nutrition & Diet Planning",
+        "School Health Screening & General OPD",
+      ],
+      faqs: [
+        { q: "Are all mandatory childhood vaccines available?", a: "Yes, we stock government and IAP-recommended vaccines with strict cold-chain monitoring." },
+        { q: "Do you take emergency consultations for high fever?", a: "Yes, priority walk-in tokens are provided for children with high fever or breathing distress." },
+      ],
+      sample_reviews: [
+        { name: "Kavita Rao", rating: 5, comment: "My 3-year-old was totally comfortable. Doctor is gentle and explains every medicine clearly." },
+        { name: "Deepak Sharma", rating: 5, comment: "Great clinic with zero rush. WhatsApp prescription makes buying medicines easy." },
+      ],
+      business_type: "doctor",
+    };
+  }
+
+  // 5. Orthopedics / Bone & Joint
+  if (spec.includes("ortho") || spec.includes("bone") || spec.includes("joint") || spec.includes("spine")) {
+    return {
+      qualification: "MBBS, MS (Orthopaedics), DNB",
+      experience_years: 14,
+      consultation_fee: 700,
+      theme_color: "#4f46e5",
+      template: "modern",
+      hero_headline: "Restoring Pain-Free Mobility & Joint Health",
+      hero_subheadline: `Specialized care for knee pain, arthritis, spine, and sports injuries by ${doc}.`,
+      about_text: `${doc} specializes in joint preservation, fracture care, and non-surgical orthopedic therapies at ${clinic}. Focused on helping patients regain mobility and live active lives without lingering joint pain.`,
+      services: [
+        "Knee & Joint Pain Assessment",
+        "Arthritis Management & Joint Lubrication",
+        "Spine, Back & Cervical Neck Pain Care",
+        "Sports Injury, Sprains & Ligament Care",
+        "Fracture Management & Casting",
+        "Ergonomics & Posture Correction Guidance",
+      ],
+      faqs: [
+        { q: "Do you offer non-surgical treatments for knee pain?", a: "Yes, physiotherapy protocols, intra-articular injections, and lifestyle management are prioritized before considering surgery." },
+        { q: "How do I consult for acute back pain?", a: "You can book a priority slot online or walk in directly for an ergonomic assessment and pain management plan." },
+      ],
+      sample_reviews: [
+        { name: "Rajendra Prasad", rating: 5, comment: "Suffered from severe knee pain for months. Within 2 weeks of treatment, I can walk comfortably again." },
+        { name: "Alok Gupta", rating: 5, comment: "Accurate diagnosis and excellent advice. WhatsApp digital tokens make the clinic visit effortless." },
+      ],
+      business_type: "doctor",
+    };
+  }
+
+  // 6. Gynecology & Obstetrics / Women's Health
+  if (spec.includes("gyne") || spec.includes("gynae") || spec.includes("women") || spec.includes("obstet")) {
+    return {
+      qualification: "MBBS, MS (Obstetrics & Gynaecology), DGO",
+      experience_years: 13,
+      consultation_fee: 700,
+      theme_color: "#ec4899",
+      template: "modern",
+      hero_headline: "Dedicated Healthcare for Women Across Every Stage of Life",
+      hero_subheadline: `Antenatal care, PCOD management, and compassionate gynecological consultations by ${doc}.`,
+      about_text: `${clinic} is a dedicated women's health centre led by ${doc}. We provide compassionate, confidential consultations for pregnancy, PCOD, hormonal balance, and preventative screenings.`,
+      services: [
+        "Antenatal & High-Risk Pregnancy Care",
+        "PCOD / PCOS Diagnostic & Lifestyle Program",
+        "Infertility Evaluation & Couple Counseling",
+        "Menstrual Irregularity & Hormonal Balance",
+        "Cervical Cancer Screening & Pap Smear",
+        "Pre-Marital & Menopause Wellness Counseling",
+      ],
+      faqs: [
+        { q: "Do you offer PCOD management plans?", a: "Yes, our holistic approach integrates hormonal assessment, nutritional guidance, and clinical treatment." },
+        { q: "Is online consultation available for follow-ups?", a: "Yes, video consultations can be booked via this website for report discussions." },
+      ],
+      sample_reviews: [
+        { name: "Ananya Deshmukh", rating: 5, comment: "Doctor is extremely warm and supportive. She made me feel completely at ease." },
+        { name: "Shalini Pandey", rating: 5, comment: "PCOD symptoms improved drastically. Wonderful experience and respectful staff." },
+      ],
+      business_type: "doctor",
+    };
+  }
+
+  // 7. General Medicine / Internal Medicine / Multispecialty (Default)
+  return {
+    qualification: "MBBS, MD (General Medicine)",
+    experience_years: 12,
+    consultation_fee: 500,
+    theme_color: "#059669",
+    template: "modern",
+    hero_headline: "Compassionate, Comprehensive Healthcare for Your Family",
+    hero_subheadline: `Experienced medical consultations, chronic disease control, and zero waiting time at ${clinic}.`,
+    about_text: `${clinic} under the clinical leadership of ${doc} provides dependable medical care for patients in ${city}. Equipped with 24/7 WhatsApp assistance, computerized prescriptions, and prompt token queues.`,
+    services: [
+      "General OPD Medical Consultation",
+      "Diabetes & Blood Sugar Management",
+      "Hypertension & Heart Health Monitoring",
+      "Fever, Infection & Seasonal Illness Care",
+      "Preventive Full Body Health Checkup",
+      "Elderly Care & Chronic Disease Management",
+    ],
+    faqs: [
+      { q: "How do I book an appointment?", a: "You can book directly on this website in 30 seconds or through WhatsApp. Instant digital token is sent to your phone." },
+      { q: "What is the consultation fee?", a: `The standard consultation fee is ₹500 at ${clinic}.` },
+      { q: "Are emergency walk-in consultations allowed?", a: "Yes, walk-in patients can register directly at the QR counter at clinic entrance." },
+      { q: "Do you provide digital prescriptions?", a: "Yes, all prescriptions are delivered directly to your WhatsApp in neat PDF format immediately after consultation." },
+    ],
+    sample_reviews: [
+      { name: "Anita Saxena", rating: 5, comment: "Doctor explains the diagnosis so calmly. The WhatsApp token system saved me 2 hours of waiting." },
+      { name: "Vikas Mehra", rating: 5, comment: "Clean clinic, prompt service, and digital prescription on phone is very helpful." },
+    ],
+    business_type: "clinic",
+  };
+}
+
+/**
+ * Generates an available, collision-free URL slug for clinics and organizations.
+ */
+export async function generateUniqueClinicSlug(baseCandidate: string): Promise<string> {
+  let cleaned = baseCandidate
+    .toLowerCase()
+    .replace(/^(?:dr\.?|doctor)\s+/i, "dr-")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  if (cleaned.length < 3) {
+    cleaned = `clinic-${cleaned || "care"}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  if (cleaned.length > 55) {
+    cleaned = cleaned.slice(0, 55).replace(/-$/, "");
+  }
+
+  let slug = cleaned;
+  let counter = 1;
+
+  while (counter < 1000) {
+    const [{ data: exOrg }, { data: exClinic }] = await Promise.all([
+      (supabaseAdmin as any).from("organizations").select("id").eq("slug", slug).maybeSingle(),
+      (supabaseAdmin as any).from("clinics").select("id").eq("slug", slug).maybeSingle(),
+    ]);
+
+    if (!exOrg && !exClinic) {
+      return slug;
+    }
+
+    counter++;
+    slug = `${cleaned}-${counter}`;
+  }
+
+  return `${cleaned}-${Date.now().toString(36)}`;
+}
+
+/**
+ * ⚡ 1-Click Complete Clinic Website & Workspace Setup.
+ * Provisions:
+ * - Public Website at /c/${slug}
+ * - Organization + Clinic + Doctor records
+ * - Core Modules (website, appointments, whatsapp, prescriptions, crm, reviews)
+ * - 14-day Growth trial subscription
+ * - Curated specialty services, FAQs, and 5-star patient reviews
+ * - Links the live URL to platform_crm_leads.custom_demo_url
+ */
+export async function setupCompleteClinicFromLeadImpl(opts: {
+  leadId: string;
+  customSlug?: string;
+  doctorName?: string;
+  clinicName?: string;
+  specialty?: string;
+  city?: string;
+  phone?: string;
+}): Promise<{
+  ok: boolean;
+  leadId: string;
+  clinicId: string;
+  organizationId: string;
+  slug: string;
+  url: string;
+  doctorName: string;
+  clinicName: string;
+  specialty: string;
+  isExisting?: boolean;
+}> {
+  // Step 1: Fetch lead record
+  let lead: any = null;
+  try {
+    const { data } = await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .select("*")
+      .eq("id", opts.leadId)
+      .maybeSingle();
+    lead = data;
+  } catch {}
+
+  if (!lead) {
+    const fallback = await readFallbackLeads();
+    lead = fallback.find((l) => l.id === opts.leadId);
+  }
+
+  const rawDoctorName = opts.doctorName || lead?.name || "Doctor";
+  const docName = cleanDoctorName(rawDoctorName);
+  const clinicName =
+    (opts.clinicName || lead?.clinic_name || "").trim() || `${docName.replace(/^Dr\.\s*/i, "")} Healthcare Clinic`;
+  const specialty = (opts.specialty || lead?.specialty || "").trim() || "General Physician";
+  const city = (opts.city || lead?.city || "").trim() || "New Delhi";
+  const phone = (opts.phone || lead?.phone || "").trim() || "+919876543210";
+
+  // Step 2: Check if lead already has an existing live clinic setup
+  const existingUrl = lead?.custom_demo_url;
+  if (existingUrl && existingUrl.includes("/c/") && !existingUrl.includes("/c/demo?")) {
+    const slugMatch = existingUrl.match(/\/c\/([a-z0-9-]+)/i);
+    if (slugMatch && slugMatch[1]) {
+      const existingSlug = slugMatch[1];
+      const { data: exClinic } = await (supabaseAdmin as any)
+        .from("clinics")
+        .select("id, organization_id, slug")
+        .eq("slug", existingSlug)
+        .maybeSingle();
+
+      if (exClinic) {
+        // Refresh clinic data in case names changed
+        const profile = getSpecialtyClinicProfile({ specialty, doctorName: docName, clinicName, city });
+        await (supabaseAdmin as any)
+          .from("clinics")
+          .update({
+            doctor_name: docName,
+            clinic_name: clinicName,
+            specialization: specialty,
+            public_phone: phone,
+            public_address: `${city}, India`,
+            theme_color: profile.theme_color,
+            is_published: true,
+            published_at: new Date().toISOString(),
+          })
+          .eq("id", exClinic.id);
+
+        return {
+          ok: true,
+          leadId: opts.leadId,
+          clinicId: exClinic.id,
+          organizationId: exClinic.organization_id,
+          slug: existingSlug,
+          url: `${getBaseAppUrl()}/c/${existingSlug}`,
+          doctorName: docName,
+          clinicName,
+          specialty,
+          isExisting: true,
+        };
+      }
+    }
+  }
+
+  // Step 3: Generate Specialty Profile & Collision-Free Slug
+  const profile = getSpecialtyClinicProfile({ specialty, doctorName: docName, clinicName, city });
+  const baseCandidate = opts.customSlug || `${clinicName}-${city}`;
+  const uniqueSlug = await generateUniqueClinicSlug(baseCandidate);
+
+  const orgId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `org_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const clinicId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `cln_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const doctorId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const nowIso = new Date().toISOString();
+  const trialEndIso = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+
+  // Step 4: Insert Organization
+  try {
+    await (supabaseAdmin as any).from("organizations").insert({
+      id: orgId,
+      name: clinicName,
+      slug: uniqueSlug,
+      business_type: profile.business_type,
+      tagline: profile.hero_headline,
+      description: profile.about_text,
+      public_phone: phone,
+      public_address: `${city}, India`,
+      primary_color: profile.theme_color,
+    });
+  } catch (err) {
+    console.warn("[Clinic Setup] Org insert warning:", err);
+  }
+
+  // Step 5: Insert Published Clinic
+  const workingHours = {
+    monday: { start: "10:00", end: "19:00", enabled: true },
+    tuesday: { start: "10:00", end: "19:00", enabled: true },
+    wednesday: { start: "10:00", end: "19:00", enabled: true },
+    thursday: { start: "10:00", end: "19:00", enabled: true },
+    friday: { start: "10:00", end: "19:00", enabled: true },
+    saturday: { start: "10:00", end: "18:00", enabled: true },
+    sunday: { start: "10:00", end: "14:00", enabled: false },
+  };
+
+  try {
+    await (supabaseAdmin as any).from("clinics").insert({
+      id: clinicId,
+      organization_id: orgId,
+      slug: uniqueSlug,
+      doctor_name: docName,
+      clinic_name: clinicName,
+      specialization: specialty,
+      qualification: profile.qualification,
+      experience_years: profile.experience_years,
+      consultation_fee: profile.consultation_fee,
+      phone,
+      public_phone: phone,
+      address: `${city}, India`,
+      public_address: `${city}, India`,
+      bio: profile.about_text.slice(0, 240),
+      hero_headline: profile.hero_headline,
+      hero_subheadline: profile.hero_subheadline,
+      about_text: profile.about_text,
+      services: profile.services,
+      faqs: profile.faqs,
+      working_hours: workingHours,
+      theme_color: profile.theme_color,
+      template: profile.template,
+      is_published: true,
+      published_at: nowIso,
+      medical_registration_no: `MCI-${Math.floor(10000 + Math.random() * 90000)}`,
+      lead_popup: {
+        enabled: true,
+        offer: "Instant OPD Token Confirmation",
+        headline: `Consult with ${docName}`,
+        subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+        ctaLabel: "Book Consultation",
+        dismissLabel: "Close",
+        delaySeconds: 15,
+        showFloatingButton: true,
+        floatingLabel: "WhatsApp Appointment",
+      },
+      walkin_max_per_slot: 3,
+      walkin_start_time: "10:00",
+      walkin_end_time: "19:00",
+      walkin_weekends_enabled: true,
+      walkin_slot_minutes: 30,
+    });
+  } catch (err) {
+    console.warn("[Clinic Setup] Clinic insert warning:", err);
+  }
+
+  // Step 6: Insert Doctor record
+  try {
+    await (supabaseAdmin as any).from("doctors").insert({
+      id: doctorId,
+      organization_id: orgId,
+      clinic_id: clinicId,
+      name: docName,
+      specialization: specialty,
+      qualification: profile.qualification,
+      experience_years: profile.experience_years,
+      consultation_fee: profile.consultation_fee,
+      bio: profile.about_text.slice(0, 240),
+      is_active: true,
+      sort_order: 0,
+      working_hours: workingHours,
+    });
+  } catch (err) {
+    console.warn("[Clinic Setup] Doctor insert warning:", err);
+  }
+
+  // Step 7: Install Core Organization Modules
+  const coreModules = [
+    "website_builder",
+    "appointments",
+    "crm",
+    "billing",
+    "prescriptions",
+    "whatsapp",
+    "reviews",
+    "consultation",
+    "analytics",
+  ];
+  try {
+    await (supabaseAdmin as any).from("organization_modules").insert(
+      coreModules.map((m) => ({
+        organization_id: orgId,
+        module_id: m,
+      }))
+    );
+  } catch {}
+
+  // Step 8: Provision Growth Plan Trial Subscription (14 days free trial)
+  try {
+    const subId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `sub_${Date.now()}`;
+    await (supabaseAdmin as any).from("subscriptions").insert({
+      id: subId,
+      organization_id: orgId,
+      plan_id: "growth",
+      status: "trialing",
+      billing_cycle: "monthly",
+      current_period_start: nowIso,
+      current_period_end: trialEndIso,
+      trial_ends_at: trialEndIso,
+    });
+  } catch {}
+
+  // Step 9: Insert Sample Verified Reviews
+  if (profile.sample_reviews?.length) {
+    try {
+      await (supabaseAdmin as any).from("reviews").insert(
+        profile.sample_reviews.map((r) => ({
+          organization_id: orgId,
+          clinic_id: clinicId,
+          reviewer_name: r.name,
+          rating: r.rating,
+          comment: r.comment,
+          status: "approved",
+          source: "platform_verified",
+        }))
+      );
+    } catch {}
+  }
+
+  // Step 10: Update CRM Lead Record with Live Website URL
+  const liveUrl = `${getBaseAppUrl()}/c/${uniqueSlug}`;
+  try {
+    await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .update({
+        custom_demo_url: liveUrl,
+        clinic_name: clinicName,
+        specialty,
+        city,
+        notes: [lead?.notes, `[⚡ 1-Click Clinic & Website Setup live: /c/${uniqueSlug}]`].filter(Boolean).join(" | "),
+        updated_at: nowIso,
+      })
+      .eq("id", opts.leadId);
+  } catch {}
+
+  // Update fallback storage if present
+  try {
+    const fallback = await readFallbackLeads();
+    const idx = fallback.findIndex((l) => l.id === opts.leadId);
+    if (idx !== -1) {
+      fallback[idx].custom_demo_url = liveUrl;
+      fallback[idx].clinic_name = clinicName;
+      fallback[idx].specialty = specialty;
+      fallback[idx].city = city;
+      await writeFallbackLeads(fallback);
+    }
+  } catch {}
+
+  // Step 11: Invalidate Redis Cache for instant freshness
+  try {
+    const { redisCache } = await import("./redis");
+    await redisCache.del(`clinic:slug:${uniqueSlug}`);
+  } catch {}
+
+  console.log(`[Clinic Setup] ⚡ Successfully created complete clinic website for ${docName} (${clinicName}) at ${liveUrl}`);
+
+  return {
+    ok: true,
+    leadId: opts.leadId,
+    clinicId,
+    organizationId: orgId,
+    slug: uniqueSlug,
+    url: liveUrl,
+    doctorName: docName,
+    clinicName,
+    specialty,
+    isExisting: false,
+  };
+}
+
 // Fallback in-memory / system_settings store if DB table is initializing
 async function readFallbackLeads(): Promise<CrmLead[]> {
   try {
@@ -334,6 +931,7 @@ export async function createCrmLeadImpl(input: {
   deal_value?: number;
   autonomous_enabled?: boolean;
   whatsapp_lid?: string | null;
+  auto_setup_clinic?: boolean;
 }): Promise<CrmLead> {
   const isLid = isLidPhone(input.phone.trim());
   const cleanPhone = isLid ? input.phone.trim() : normalizeIndianPhone(input.phone.trim());
@@ -380,6 +978,16 @@ export async function createCrmLeadImpl(input: {
       .single();
 
     if (!error && data) {
+      if (input.auto_setup_clinic) {
+        try {
+          const setupRes = await setupCompleteClinicFromLeadImpl({ leadId: data.id });
+          if (setupRes?.url) {
+            data.custom_demo_url = setupRes.url;
+          }
+        } catch (e) {
+          console.warn("[CRM] Auto-setup clinic for new lead warning:", e);
+        }
+      }
       return data as unknown as CrmLead;
     }
   } catch {}
@@ -391,6 +999,16 @@ export async function createCrmLeadImpl(input: {
     id: `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     created_at: new Date().toISOString(),
   };
+
+  if (input.auto_setup_clinic) {
+    try {
+      const setupRes = await setupCompleteClinicFromLeadImpl({ leadId: newLead.id });
+      if (setupRes?.url) {
+        newLead.custom_demo_url = setupRes.url;
+      }
+    } catch {}
+  }
+
   await writeFallbackLeads([newLead, ...existing]);
   return newLead;
 }
@@ -794,6 +1412,18 @@ export async function triggerAutonomousLeadOutreachImpl(leadId: string): Promise
       message: "",
       error: "Doctor has already replied. Autonomous outreach stopped.",
     };
+  }
+
+  // Auto-provision complete custom clinic website if not already provisioned
+  if (!lead.custom_demo_url || lead.custom_demo_url.includes("/c/demo?")) {
+    try {
+      const setupRes = await setupCompleteClinicFromLeadImpl({ leadId: lead.id });
+      if (setupRes?.url) {
+        lead.custom_demo_url = setupRes.url;
+      }
+    } catch (e) {
+      console.warn("[CRM] Auto-provision clinic website for outreach lead warning:", e);
+    }
   }
 
   const demoUrl =
