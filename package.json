@@ -18,7 +18,8 @@
     "check:auth-guards": "node scripts/check-auth-guards.mjs",
     "format": "prettier --write .",
     "doctor": "npx react-doctor@latest",
-    "check:secret-config": "node --test scripts/test-clinicx-secret-config.cjs"
+    "check:secret-config": "node --test scripts/test-clinicx-secret-config.cjs",
+    "test:oneclick-setup": "node --test scripts/test-clinicx-oneclick-clinic-setup.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
