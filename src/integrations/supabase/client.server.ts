@@ -30,7 +30,7 @@ function createSupabaseAdminClient() {
   const SUPABASE_URL =
     process.env.SUPABASE_URL ||
     process.env.VITE_SUPABASE_URL ||
-    "https://urcwyuvrwlmzxdsbecns.supabase.co";
+    "https://nqbtiyohphfnqyijefhx.supabase.co";
 
   const SUPABASE_SERVICE_ROLE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -38,7 +38,7 @@ function createSupabaseAdminClient() {
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    "sb_publishable_HxLMZ8O_mpwjoUtESdjNvw_wg3IYWOb";
+    "sb_publishable_3313JpakfO3UyATOB-L74w_tB9ud_2Z";
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
