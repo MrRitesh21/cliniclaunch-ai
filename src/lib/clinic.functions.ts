@@ -87,7 +87,16 @@ export async function requirePublishedClinic(sb: Awaited<ReturnType<typeof admin
   const { data: clinic, error } = await sb.from("clinics")
     .select("id, organization_id")
     .eq("id", clinicId).eq("is_published", true).is("suspended_at", null).maybeSingle();
-  if (error || !clinic) throw new Error("This clinic is not available for public requests.");
+  if (error || !clinic) {
+    try {
+      const { getDynamicClinicById } = await import("./crm.server");
+      const dyn = getDynamicClinicById(clinicId);
+      if (dyn) {
+        return { id: dyn.id, organization_id: dyn.organization_id || "dyn-org" };
+      }
+    } catch {}
+    throw new Error("This clinic is not available for public requests.");
+  }
   return clinic;
 }
 
@@ -194,6 +203,15 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
           { patient_name: "Vikas Mehra", rating: 5, comment: "Zero waiting time at clinic. Best experience in town.", created_at: new Date().toISOString() },
         ],
       };
+    }
+    try {
+      const { resolveDynamicClinicWebsite } = await import("./crm.server");
+      const dynamicClinic = await resolveDynamicClinicWebsite(slug);
+      if (dynamicClinic) {
+        return dynamicClinic;
+      }
+    } catch (dynamicErr) {
+      console.error("[fetchClinicData] Dynamic resolution error for slug:", slug, dynamicErr);
     }
     return null;
   }
@@ -424,14 +442,20 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
       .from("clinics")
       .select("id, slug, doctor_name, specialization, qualification, clinic_name, bio, public_phone, phone, public_email, email, public_address, address, avatar_url, logo_url, gallery, custom_domain, working_hours, consultation_fee")
       .eq("slug", data.slug)
-      .maybeSingle();
-    if (!clinic) return { faqJsonLd: null, physicianJsonLd: null, localBusinessJsonLd: null };
+    let targetClinic: any = clinic;
+    if (!targetClinic) {
+      try {
+        const { resolveDynamicClinicWebsite } = await import("./crm.server");
+        targetClinic = await resolveDynamicClinicWebsite(data.slug);
+      } catch {}
+    }
+    if (!targetClinic) return { faqJsonLd: null, physicianJsonLd: null, localBusinessJsonLd: null };
 
     // Latest published FAQ
     const { data: faqRow } = await sb
       .from("seo_ai_content")
       .select("payload")
-      .eq("clinic_id", clinic.id)
+      .eq("clinic_id", targetClinic.id)
       .eq("kind", "faq")
       .eq("published", true)
       .order("created_at", { ascending: false })
@@ -440,20 +464,20 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
 
     const faqJsonLd = (faqRow?.payload as any)?.jsonLd ?? null;
 
-    const phone = clinic.public_phone || clinic.phone || null;
-    const email = clinic.public_email || clinic.email || null;
-    const address = clinic.public_address || clinic.address || null;
-    const image = clinic.avatar_url || clinic.logo_url ||
-      (Array.isArray(clinic.gallery) ? (clinic.gallery as string[])[0] : undefined) || null;
+    const phone = targetClinic.public_phone || targetClinic.phone || null;
+    const email = targetClinic.public_email || targetClinic.email || null;
+    const address = targetClinic.public_address || targetClinic.address || null;
+    const image = targetClinic.avatar_url || targetClinic.logo_url ||
+      (Array.isArray(targetClinic.gallery) ? (targetClinic.gallery as string[])[0] : undefined) || null;
 
-    const url = clinic.custom_domain
-      ? `https://${clinic.custom_domain}`
-      : `/c/${clinic.slug}`;
+    const url = targetClinic.custom_domain
+      ? `https://${targetClinic.custom_domain}`
+      : `/c/${targetClinic.slug}`;
 
     // Structure the address fields for PostalAddress schema
     let addressObject: any = undefined;
-    if (address) {
-      const parts = address.split(",").map((s) => s.trim());
+    if (address && typeof address === "string") {
+      const parts = address.split(",").map((s: string) => s.trim());
       const street = parts.slice(0, -2).join(", ") || address;
       const city = parts[parts.length - 2] || undefined;
       const region = parts[parts.length - 1] || undefined;
@@ -469,9 +493,9 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     // Structure the opening hours for OpeningHoursSpecification schema
     let openingHours: any[] | undefined = undefined;
     try {
-      const wh = typeof clinic.working_hours === "string" 
-        ? JSON.parse(clinic.working_hours) 
-        : (clinic.working_hours as any);
+      const wh = typeof targetClinic.working_hours === "string" 
+        ? JSON.parse(targetClinic.working_hours) 
+        : (targetClinic.working_hours as any);
       if (wh && typeof wh === "object" && wh.start && wh.end && Array.isArray(wh.days)) {
         const dayMap: Record<number, string> = {
           1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 0: "Sunday"
@@ -493,31 +517,31 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     const localBusinessJsonLd: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": "MedicalBusiness",
-      name: clinic.clinic_name,
-      description: clinic.bio || undefined,
+      name: targetClinic.clinic_name,
+      description: targetClinic.bio || undefined,
       url,
       telephone: phone || undefined,
       email: email || undefined,
       image: image || undefined,
       address: addressObject || undefined,
-      priceRange: clinic.consultation_fee ? `₹${clinic.consultation_fee}` : undefined,
-      medicalSpecialty: clinic.specialization || undefined,
+      priceRange: targetClinic.consultation_fee ? `₹${targetClinic.consultation_fee}` : undefined,
+      medicalSpecialty: targetClinic.specialization || undefined,
       openingHoursSpecification: openingHours || undefined,
     };
 
     const physicianJsonLd: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": "Physician",
-      name: clinic.doctor_name,
-      medicalSpecialty: clinic.specialization || undefined,
-      description: clinic.bio || undefined,
+      name: targetClinic.doctor_name,
+      medicalSpecialty: targetClinic.specialization || undefined,
+      description: targetClinic.bio || undefined,
       image: image || undefined,
-      hasCredential: clinic.qualification || undefined,
-      worksFor: { "@type": "MedicalBusiness", name: clinic.clinic_name },
+      hasCredential: targetClinic.qualification || undefined,
+      worksFor: { "@type": "MedicalBusiness", name: targetClinic.clinic_name },
       telephone: phone || undefined,
       url,
       address: addressObject || undefined,
-      knowsAbout: clinic.specialization || undefined,
+      knowsAbout: targetClinic.specialization || undefined,
     };
 
     // Strip undefined keys, then JSON-stringify server-side to keep return types serializable.

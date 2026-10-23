@@ -326,7 +326,165 @@ export function getSpecialtyClinicProfile(opts: {
     };
   }
 
-  // 7. General Medicine / Internal Medicine / Multispecialty (Default)
+  // 7. Naturopathy, Ayurveda & Holistic Wellness
+  if (
+    spec.includes("naturopath") ||
+    spec.includes("ayurved") ||
+    spec.includes("holistic") ||
+    spec.includes("wellness") ||
+    clinic.toLowerCase().includes("naturopath") ||
+    clinic.toLowerCase().includes("ayurved") ||
+    clinic.toLowerCase().includes("holistic")
+  ) {
+    return {
+      qualification: "BNYS / BAMS, MD (Naturopathy & Holistic Medicine)",
+      experience_years: 13,
+      consultation_fee: 600,
+      theme_color: "#0d9488",
+      template: "modern",
+      hero_headline: "Natural Healing, Detox Therapies & Holistic Health",
+      hero_subheadline: `Restore vitality, balance, and chronic pain relief naturally under the expert guidance of ${doc} at ${clinic}.`,
+      about_text: `${clinic} is a dedicated holistic health and naturopathy sanctuary led by ${doc}. We specialize in drugless natural therapies, personalized clinical nutrition, herbal detox, acupressure, and chronic lifestyle disorder reversal in ${city}.`,
+      services: [
+        "Naturopathic Clinical Evaluation & Consultation",
+        "Herbal Detoxification & Panchakarma Therapies",
+        "Acupressure & Reflexology Healing Sessions",
+        "Dietary & Nutritional Lifestyle Reversal Plan",
+        "Chronic Arthritis & Sciatica Natural Care",
+        "Stress, Insomnia & Anxiety Relaxation Therapy",
+      ],
+      faqs: [
+        { q: "What conditions can be treated with naturopathy?", a: "Naturopathy successfully manages chronic arthritis, digestive issues, obesity, hypertension, stress, migraine, and skin allergies without medicines." },
+        { q: "How do I book a consultation?", a: "Book online directly through this portal or via WhatsApp. An instant confirmed appointment token is generated." },
+        { q: "Do you offer customized diet charts?", a: "Yes, every patient receives a personalized therapeutic diet and daily routine plan tailored to their constitution." },
+      ],
+      sample_reviews: [
+        { name: "Sunil Rastogi", rating: 5, comment: "Relieved my 4-year knee pain naturally without painkillers. Doctor's approach is deeply caring." },
+        { name: "Pooja Trivedi", rating: 5, comment: "Amazing natural therapy center! WhatsApp booking is so simple and staff is extremely courteous." },
+      ],
+      business_type: "clinic",
+    };
+  }
+
+  // 8. Speech, Hearing & ENT Care
+  if (
+    spec.includes("hearing") ||
+    spec.includes("speech") ||
+    spec.includes("ear") ||
+    spec.includes("ent") ||
+    clinic.toLowerCase().includes("speech") ||
+    clinic.toLowerCase().includes("hearing") ||
+    clinic.toLowerCase().includes("ear") ||
+    clinic.toLowerCase().includes("ent")
+  ) {
+    return {
+      qualification: "MBBS, MS (ENT), MASLP (Audiology & Speech)",
+      experience_years: 14,
+      consultation_fee: 700,
+      theme_color: "#6366f1",
+      template: "modern",
+      hero_headline: "Advanced Speech, Hearing Care & Audiological Rehabilitation",
+      hero_subheadline: `State-of-the-art digital hearing assessments, digital hearing aids, and pediatric speech therapy by ${doc}.`,
+      about_text: `${clinic} is an advanced audiology and speech therapy centre in ${city} headed by ${doc}. We provide comprehensive hearing evaluations (PTA, Tympanometry), high-end digital hearing aid trials, stuttering/voice therapy, and cochlear rehabilitation.`,
+      services: [
+        "Pure Tone Audiometry (PTA) & Hearing Test",
+        "Pediatric & Adult Speech Language Therapy",
+        "Digital Hearing Aid Fitting & Free Trial",
+        "Tinnitus & Vertigo Diagnostic Workup",
+        "Stammering & Voice Disorder Therapy",
+        "Ear Examination & Micro-Suction Wax Cleaning",
+      ],
+      faqs: [
+        { q: "How do I test my hearing?", a: "You can book a soundproof audiometry hearing test online. Full evaluation takes 25-30 minutes with instant results." },
+        { q: "Can we try different hearing aids before purchasing?", a: "Yes, we provide live trials of latest invisible and rechargeable digital hearing aid models." },
+        { q: "Is speech therapy helpful for toddlers?", a: "Yes, our specialized pediatric speech therapists work with delayed speech, autism, and stammering with proven milestones." },
+      ],
+      sample_reviews: [
+        { name: "Kunal Agarwal", rating: 5, comment: "My father got his digital hearing aid fitted here. The clarity is life-changing. Great service!" },
+        { name: "Neha Srivastava", rating: 5, comment: "Speech therapy helped my 4-year-old speak in full sentences. Very thankful to the doctor and team." },
+      ],
+      business_type: "clinic",
+    };
+  }
+
+  // 9. Pathology & Diagnostic Center
+  if (
+    spec.includes("diag") ||
+    spec.includes("pathol") ||
+    spec.includes("lab") ||
+    spec.includes("test") ||
+    clinic.toLowerCase().includes("diagnostic") ||
+    clinic.toLowerCase().includes("pathology") ||
+    clinic.toLowerCase().includes("lab")
+  ) {
+    return {
+      qualification: "MBBS, MD (Pathology & Lab Medicine)",
+      experience_years: 12,
+      consultation_fee: 400,
+      theme_color: "#0891b2",
+      template: "modern",
+      hero_headline: "Accurate Diagnostic Testing & Rapid Lab Reports",
+      hero_subheadline: `Fully automated pathology, biochemistry, and hormone testing at ${clinic}. Instant PDF reports on WhatsApp.`,
+      about_text: `${clinic} is an advanced computerized diagnostic and pathology laboratory in ${city} guided by ${doc}. We adhere to strict NABL quality standards to deliver accurate, reliable test results within hours.`,
+      services: [
+        "Complete Hemogram & CBC Analysis",
+        "Diabetes Blood Sugar & HbA1c Profile",
+        "Thyroid (T3, T4, TSH) & Hormone Screening",
+        "Lipid & Comprehensive Cardiac Risk Profile",
+        "Liver & Kidney Function Test (LFT/KFT)",
+        "Home Sample Collection & Instant WhatsApp Report",
+      ],
+      faqs: [
+        { q: "When will I get my test reports?", a: "Most routine pathology and blood test reports are delivered on WhatsApp within 3 to 6 hours." },
+        { q: "Is fasting required for blood tests?", a: "Fasting of 10-12 hours is recommended for lipid profiles and fasting blood sugar. Water is permitted." },
+        { q: "Can I book home sample collection?", a: "Yes, you can schedule a home phlebotomy collection directly on this site or on WhatsApp." },
+      ],
+      sample_reviews: [
+        { name: "Arun Saxena", rating: 5, comment: "Sample collection was on time, painless, and got my PDF report on WhatsApp in 4 hours." },
+        { name: "Geeta Kashyap", rating: 5, comment: "Very professional lab. Transparent pricing and clear reports with doctor's interpretation." },
+      ],
+      business_type: "clinic",
+    };
+  }
+
+  // 10. Polyclinic & Multispecialty Care
+  if (
+    spec.includes("poly") ||
+    spec.includes("multispecial") ||
+    clinic.toLowerCase().includes("poly") ||
+    clinic.toLowerCase().includes("multispecial")
+  ) {
+    return {
+      qualification: "MBBS, MD (Family Medicine & OPD)",
+      experience_years: 14,
+      consultation_fee: 500,
+      theme_color: "#059669",
+      template: "modern",
+      hero_headline: "Comprehensive Multispecialty Care & Family Health Services",
+      hero_subheadline: `Multi-doctor OPD consultations, diagnostics, and instant WhatsApp booking at ${clinic}.`,
+      about_text: `${clinic} is a trusted multispecialty polyclinic in ${city} offering comprehensive outpatient care under the leadership of ${doc}. We combine expert consultations, computerized records, and seamless WhatsApp appointments under one roof.`,
+      services: [
+        "Multispecialty OPD Consultation",
+        "Routine Health Checkups & Preventive Care",
+        "Diabetes, BP & Chronic Disease Care",
+        "Clinical Pathology & Diagnostic Review",
+        "Pediatric & Geriatric Family Medicine",
+        "Emergency First Aid & Walk-in Triage",
+      ],
+      faqs: [
+        { q: "What specialties are available at the polyclinic?", a: "We offer general physician consultations, pediatrics, diabetes care, preventive health screenings, and diagnostics." },
+        { q: "How do I book an appointment?", a: `You can book instantly online via this portal or on WhatsApp. A confirmed token is issued immediately.` },
+        { q: "Are walk-in patients accepted?", a: "Yes, you can register via our QR standee at the reception for an immediate OPD token." },
+      ],
+      sample_reviews: [
+        { name: "Mohammad Irfan", rating: 5, comment: "Excellent polyclinic with fast OPD service. Doctor is very attentive." },
+        { name: "Pooja Verma", rating: 5, comment: "Clean clinic, great doctors, and WhatsApp booking makes everything so quick." },
+      ],
+      business_type: "clinic",
+    };
+  }
+
+  // 11. General Medicine / Internal Medicine (Default)
   return {
     qualification: "MBBS, MD (General Medicine)",
     experience_years: 12,
@@ -396,6 +554,335 @@ export async function generateUniqueClinicSlug(baseCandidate: string): Promise<s
   return `${cleaned}-${Date.now().toString(36)}`;
 }
 
+export const MEMORY_CLINIC_CACHE = new Map<string, any>();
+
+export function getDynamicClinicById(id: string): any | null {
+  for (const clinic of MEMORY_CLINIC_CACHE.values()) {
+    if (clinic.id === id) return clinic;
+  }
+  return null;
+}
+
+export function safeRandomUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function extractCleanCity(rawCity?: string | null): string {
+  if (!rawCity) return "Lucknow";
+  const str = rawCity.trim();
+  const knownCities = [
+    "jankipuram", "lucknow", "delhi", "new delhi", "noida", "gurgaon", "gurugram",
+    "mumbai", "bangalore", "bengaluru", "hyderabad", "pune", "chennai", "kolkata",
+    "ahmedabad", "jaipur", "chandigarh", "indore", "bhopal", "patna", "kanpur", "varanasi", "agra"
+  ];
+  const lower = str.toLowerCase();
+  for (const city of knownCities) {
+    if (lower.includes(city)) {
+      return city.charAt(0).toUpperCase() + city.slice(1);
+    }
+  }
+  const parts = str.split(/[,\-\/]/).map((p) => p.trim()).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (last && last.length < 20) return last;
+  return str.slice(0, 18);
+}
+
+export function parseClinicSlugToDetails(slug: string): {
+  doctorName: string;
+  clinicName: string;
+  specialty: string;
+  city: string;
+} {
+  const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const parts = cleanSlug.split("-").filter(Boolean);
+
+  const knownCities = [
+    "jankipuram", "lucknow", "delhi", "mumbai", "noida", "gurgaon", "bangalore",
+    "bengaluru", "hyderabad", "pune", "chennai", "kolkata", "ahmedabad", "jaipur",
+    "chandigarh", "indore", "bhopal", "patna", "kanpur", "varanasi", "agra"
+  ];
+  let detectedCity = "Lucknow";
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (knownCities.includes(parts[i])) {
+      detectedCity = parts[i].charAt(0).toUpperCase() + parts[i].slice(1);
+      break;
+    }
+  }
+
+  let detectedSpecialty = "General Physician & Family Medicine";
+  if (cleanSlug.includes("naturopath") || cleanSlug.includes("ayurved")) {
+    detectedSpecialty = "Naturopathy & Holistic Wellness";
+  } else if (cleanSlug.includes("hearing") || cleanSlug.includes("speech") || cleanSlug.includes("ear") || cleanSlug.includes("ent")) {
+    detectedSpecialty = "Speech, Hearing & ENT Care";
+  } else if (cleanSlug.includes("diag") || cleanSlug.includes("pathol") || cleanSlug.includes("lab")) {
+    detectedSpecialty = "Pathology & Diagnostic Healthcare";
+  } else if (cleanSlug.includes("poly") || cleanSlug.includes("multispecial")) {
+    detectedSpecialty = "Polyclinic & Multispecialty Care";
+  } else if (cleanSlug.includes("derma") || cleanSlug.includes("skin") || cleanSlug.includes("cosmet")) {
+    detectedSpecialty = "Dermatology & Aesthetic Skin Care";
+  } else if (cleanSlug.includes("dent") || cleanSlug.includes("tooth")) {
+    detectedSpecialty = "Advanced Dental Care & Orthodontics";
+  } else if (cleanSlug.includes("cardio") || cleanSlug.includes("heart")) {
+    detectedSpecialty = "Cardiology & Preventive Heart Care";
+  } else if (cleanSlug.includes("ortho") || cleanSlug.includes("bone")) {
+    detectedSpecialty = "Orthopedics & Joint Care";
+  } else if (cleanSlug.includes("pediat") || cleanSlug.includes("child")) {
+    detectedSpecialty = "Pediatrics & Child Care";
+  }
+
+  const addressNoise = new Set(["h", "d", "98", "sector", "i", "ii", "iii", "main", "rd", "sec", "opp", "near", "colony"]);
+  const meaningfulParts = parts.filter((p) => !addressNoise.has(p) && !knownCities.includes(p));
+
+  const clinicWords = meaningfulParts.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+  let clinicName = clinicWords.join(" ");
+  if (!clinicName || clinicName.length < 3) {
+    clinicName = parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  }
+  if (!/clinic|hospital|care|health|center|diagnostic/i.test(clinicName)) {
+    clinicName = `${clinicName} Clinic`;
+  }
+
+  let docFirstWord = meaningfulParts[0] ? meaningfulParts[0].charAt(0).toUpperCase() + meaningfulParts[0].slice(1) : "Partner";
+  let doctorName =
+    docFirstWord.toLowerCase() === "dr" && meaningfulParts[1]
+      ? `Dr. ${meaningfulParts[1].charAt(0).toUpperCase() + meaningfulParts[1].slice(1)}`
+      : `Dr. ${docFirstWord}`;
+
+  return { doctorName, clinicName, specialty: detectedSpecialty, city: detectedCity };
+}
+
+export async function resolveDynamicClinicWebsite(slug: string): Promise<any | null> {
+  if (!slug || slug === "demo" || slug === "demo-clinic") return null;
+
+  // 1. Check in-memory cache
+  if (MEMORY_CLINIC_CACHE.has(slug)) {
+    return MEMORY_CLINIC_CACHE.get(slug);
+  }
+
+  // 2. Check Redis cache
+  try {
+    const { redisCache } = await import("./redis");
+    const cached = await redisCache.get<any>(`clinic:slug:${slug}`);
+    if (cached && typeof cached === "object" && cached.slug === slug) {
+      MEMORY_CLINIC_CACHE.set(slug, cached);
+      return cached;
+    }
+  } catch {}
+
+  // 3. Match against CRM leads
+  let matchedLead: CrmLead | undefined;
+  try {
+    const leads = await listCrmLeadsImpl({ limit: 1000 });
+    matchedLead = leads.find((l) => {
+      if (l.custom_demo_url && l.custom_demo_url.includes(`/c/${slug}`)) return true;
+      const cleanName = (l.name || "").toLowerCase().replace(/^dr\.?\s*/i, "").replace(/[^a-z0-9]/g, "");
+      const cleanClinic = (l.clinic_name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (cleanClinic && cleanClinic.length >= 4 && cleanSlug.includes(cleanClinic.slice(0, 14))) return true;
+      if (cleanName && cleanName.length >= 4 && cleanSlug.includes(cleanName.slice(0, 10))) return true;
+      return false;
+    });
+  } catch {}
+
+  let docName = "Doctor";
+  let clinicName = "Excellence Healthcare Clinic";
+  let specialty = "General Physician";
+  let city = "Lucknow";
+  let phone = "+919876543210";
+
+  if (matchedLead) {
+    docName = cleanDoctorName(matchedLead.name);
+    clinicName = (matchedLead.clinic_name || `${docName.replace(/^Dr\.\s*/i, "")} Clinic`).trim();
+    specialty = (matchedLead.specialty || "General Physician").trim();
+    city = (matchedLead.city || "Lucknow").trim();
+    phone = (matchedLead.phone || "+919876543210").trim();
+  } else {
+    const parsed = parseClinicSlugToDetails(slug);
+    docName = parsed.doctorName;
+    clinicName = parsed.clinicName;
+    specialty = parsed.specialty;
+    city = parsed.city;
+  }
+
+  const profile = getSpecialtyClinicProfile({ specialty, doctorName: docName, clinicName, city });
+  const clinicId = safeRandomUuid();
+  const orgId = safeRandomUuid();
+  const doctorId = safeRandomUuid();
+  const nowIso = new Date().toISOString();
+
+  const workingHours = {
+    monday: { start: "10:00", end: "19:00", enabled: true },
+    tuesday: { start: "10:00", end: "19:00", enabled: true },
+    wednesday: { start: "10:00", end: "19:00", enabled: true },
+    thursday: { start: "10:00", end: "19:00", enabled: true },
+    friday: { start: "10:00", end: "19:00", enabled: true },
+    saturday: { start: "10:00", end: "18:00", enabled: true },
+    sunday: { start: "10:00", end: "14:00", enabled: false },
+  };
+
+  const dynamicClinic = {
+    id: clinicId,
+    organization_id: orgId,
+    slug,
+    doctor_name: docName,
+    clinic_name: clinicName,
+    specialization: specialty,
+    qualification: profile.qualification,
+    experience_years: profile.experience_years,
+    consultation_fee: profile.consultation_fee,
+    phone,
+    public_phone: phone,
+    email: `contact@${slug.slice(0, 24).replace(/-+$/, "")}.in`,
+    public_email: `contact@${slug.slice(0, 24).replace(/-+$/, "")}.in`,
+    address: `${city}, India`,
+    public_address: `${city}, India`,
+    bio: profile.about_text.slice(0, 280),
+    hero_headline: profile.hero_headline,
+    hero_subheadline: profile.hero_subheadline,
+    about_text: profile.about_text,
+    services: profile.services.map((s: any) =>
+      typeof s === "string"
+        ? { name: s, price: profile.consultation_fee, duration: 15, description: s }
+        : s
+    ),
+    gallery: [],
+    avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    logo_url: null,
+    theme_color: profile.theme_color,
+    template: profile.template || "modern",
+    section_variants: {},
+    section_order: [],
+    section_hidden: [],
+    section_content: {},
+    seo_config: {},
+    walkin_max_per_slot: 3,
+    walkin_start_time: "10:00",
+    walkin_end_time: "19:00",
+    walkin_weekends_enabled: true,
+    walkin_slot_minutes: 30,
+    is_published: true,
+    published_at: nowIso,
+    updated_at: nowIso,
+    medical_registration_no: `MCI-${Math.floor(10000 + Math.random() * 90000)}`,
+    lead_popup: {
+      enabled: true,
+      offer: "Instant OPD Token Confirmation",
+      headline: `Consult with ${docName}`,
+      subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+      ctaLabel: "Book Consultation",
+      dismissLabel: "Close",
+      delaySeconds: 12,
+      showFloatingButton: true,
+      floatingLabel: "WhatsApp Appointment",
+    },
+    installed_modules: ["website_builder", "appointments", "crm", "whatsapp", "prescriptions", "reviews"],
+    active_doctors: [
+      {
+        id: doctorId,
+        name: docName,
+        specialization: specialty,
+        qualification: profile.qualification,
+        consultation_fee: profile.consultation_fee,
+        avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        bio: profile.about_text.slice(0, 240),
+        experience_years: profile.experience_years,
+        is_active: true,
+        sort_order: 0,
+        working_hours: workingHours,
+      },
+    ],
+    db_reviews: profile.sample_reviews.map((r: any) => ({
+      reviewer_name: r.name,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: nowIso,
+    })),
+  };
+
+  MEMORY_CLINIC_CACHE.set(slug, dynamicClinic);
+  try {
+    const { redisCache } = await import("./redis");
+    await redisCache.set(`clinic:slug:${slug}`, dynamicClinic, 86400 * 30);
+  } catch {}
+
+  // Asynchronously attempt to persist to Supabase Postgres
+  void (async () => {
+    try {
+      await (supabaseAdmin as any).from("organizations").insert({
+        id: orgId,
+        name: clinicName,
+        slug,
+        business_type: profile.business_type,
+        tagline: profile.hero_headline,
+        description: profile.about_text,
+        public_phone: phone,
+        public_address: `${city}, India`,
+        primary_color: profile.theme_color,
+      });
+
+      await (supabaseAdmin as any).from("clinics").insert({
+        id: clinicId,
+        organization_id: orgId,
+        slug,
+        doctor_name: docName,
+        clinic_name: clinicName,
+        specialization: specialty,
+        qualification: profile.qualification,
+        experience_years: profile.experience_years,
+        consultation_fee: profile.consultation_fee,
+        phone,
+        public_phone: phone,
+        address: `${city}, India`,
+        public_address: `${city}, India`,
+        bio: profile.about_text.slice(0, 240),
+        hero_headline: profile.hero_headline,
+        hero_subheadline: profile.hero_subheadline,
+        about_text: profile.about_text,
+        services: profile.services,
+        faqs: profile.faqs,
+        working_hours: workingHours,
+        theme_color: profile.theme_color,
+        template: profile.template,
+        is_published: true,
+        published_at: nowIso,
+        medical_registration_no: dynamicClinic.medical_registration_no,
+        lead_popup: dynamicClinic.lead_popup,
+        walkin_max_per_slot: 3,
+        walkin_start_time: "10:00",
+        walkin_end_time: "19:00",
+        walkin_weekends_enabled: true,
+        walkin_slot_minutes: 30,
+      });
+
+      await (supabaseAdmin as any).from("doctors").insert({
+        id: doctorId,
+        organization_id: orgId,
+        clinic_id: clinicId,
+        name: docName,
+        specialization: specialty,
+        qualification: profile.qualification,
+        experience_years: profile.experience_years,
+        consultation_fee: profile.consultation_fee,
+        bio: profile.about_text.slice(0, 240),
+        is_active: true,
+        sort_order: 0,
+        working_hours: workingHours,
+      });
+    } catch {}
+  })();
+
+  return dynamicClinic;
+}
+
 /**
  * ⚡ 1-Click Complete Clinic Website & Workspace Setup.
  * Provisions:
@@ -447,7 +934,9 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   const clinicName =
     (opts.clinicName || lead?.clinic_name || "").trim() || `${docName.replace(/^Dr\.\s*/i, "")} Healthcare Clinic`;
   const specialty = (opts.specialty || lead?.specialty || "").trim() || "General Physician";
-  const city = (opts.city || lead?.city || "").trim() || "New Delhi";
+  const rawCity = (opts.city || lead?.city || "").trim();
+  const city = rawCity || "Lucknow";
+  const cleanCity = extractCleanCity(city);
   const phone = (opts.phone || lead?.phone || "").trim() || "+919876543210";
 
   // Step 2: Check if lead already has an existing live clinic setup
@@ -497,12 +986,12 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
 
   // Step 3: Generate Specialty Profile & Collision-Free Slug
   const profile = getSpecialtyClinicProfile({ specialty, doctorName: docName, clinicName, city });
-  const baseCandidate = opts.customSlug || `${clinicName}-${city}`;
+  const baseCandidate = opts.customSlug || `${clinicName}-${cleanCity}`;
   const uniqueSlug = await generateUniqueClinicSlug(baseCandidate);
 
-  const orgId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `org_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const clinicId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `cln_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const doctorId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const orgId = safeRandomUuid();
+  const clinicId = safeRandomUuid();
+  const doctorId = safeRandomUuid();
   const nowIso = new Date().toISOString();
   const trialEndIso = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
 
@@ -684,10 +1173,90 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     }
   } catch {}
 
-  // Step 11: Invalidate Redis Cache for instant freshness
+  // Step 11: Cache Clinic Website in Memory & Redis for Instant 100% Availability
+  const fullClinicObject = {
+    id: clinicId,
+    organization_id: orgId,
+    slug: uniqueSlug,
+    doctor_name: docName,
+    clinic_name: clinicName,
+    specialization: specialty,
+    qualification: profile.qualification,
+    experience_years: profile.experience_years,
+    consultation_fee: profile.consultation_fee,
+    phone,
+    public_phone: phone,
+    email: `contact@${uniqueSlug.slice(0, 24).replace(/-+$/, "")}.in`,
+    public_email: `contact@${uniqueSlug.slice(0, 24).replace(/-+$/, "")}.in`,
+    address: `${city}, India`,
+    public_address: `${city}, India`,
+    bio: profile.about_text.slice(0, 280),
+    hero_headline: profile.hero_headline,
+    hero_subheadline: profile.hero_subheadline,
+    about_text: profile.about_text,
+    services: profile.services.map((s: any) =>
+      typeof s === "string"
+        ? { name: s, price: profile.consultation_fee, duration: 15, description: s }
+        : s
+    ),
+    gallery: [],
+    avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    logo_url: null,
+    theme_color: profile.theme_color,
+    template: profile.template || "modern",
+    section_variants: {},
+    section_order: [],
+    section_hidden: [],
+    section_content: {},
+    seo_config: {},
+    walkin_max_per_slot: 3,
+    walkin_start_time: "10:00",
+    walkin_end_time: "19:00",
+    walkin_weekends_enabled: true,
+    walkin_slot_minutes: 30,
+    is_published: true,
+    published_at: nowIso,
+    updated_at: nowIso,
+    medical_registration_no: `MCI-${Math.floor(10000 + Math.random() * 90000)}`,
+    lead_popup: {
+      enabled: true,
+      offer: "Instant OPD Token Confirmation",
+      headline: `Consult with ${docName}`,
+      subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+      ctaLabel: "Book Consultation",
+      dismissLabel: "Close",
+      delaySeconds: 12,
+      showFloatingButton: true,
+      floatingLabel: "WhatsApp Appointment",
+    },
+    installed_modules: ["website_builder", "appointments", "crm", "whatsapp", "prescriptions", "reviews"],
+    active_doctors: [
+      {
+        id: doctorId,
+        name: docName,
+        specialization: specialty,
+        qualification: profile.qualification,
+        consultation_fee: profile.consultation_fee,
+        avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        bio: profile.about_text.slice(0, 240),
+        experience_years: profile.experience_years,
+        is_active: true,
+        sort_order: 0,
+        working_hours: workingHours,
+      },
+    ],
+    db_reviews: profile.sample_reviews.map((r: any) => ({
+      reviewer_name: r.name,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: nowIso,
+    })),
+  };
+
+  MEMORY_CLINIC_CACHE.set(uniqueSlug, fullClinicObject);
   try {
     const { redisCache } = await import("./redis");
-    await redisCache.del(`clinic:slug:${uniqueSlug}`);
+    await redisCache.set(`clinic:slug:${uniqueSlug}`, fullClinicObject, 86400 * 30);
   } catch {}
 
   console.log(`[Clinic Setup] ⚡ Successfully created complete clinic website for ${docName} (${clinicName}) at ${liveUrl}`);
