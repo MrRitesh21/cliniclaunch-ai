@@ -66,7 +66,12 @@ import {
   FileSpreadsheet,
   Download,
   Globe,
+  Palette,
+  Eye,
+  Sliders,
+  LayoutTemplate,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   listCrmLeads,
   getCrmStats,
@@ -81,11 +86,85 @@ import {
   reconcileCrmLeads,
   mergeCrmLeads,
   setupCompleteClinicWebsite,
+  getClinicWebsiteConfig,
+  updateClinicWebsiteConfig,
   type crmLeadStageEnum,
 } from "@/lib/crm.functions";
 import { getAdminWhatsappStatus } from "@/lib/baileys.functions";
 import { PlatformAiAgentCard } from "@/components/admin/PlatformAiAgentCard";
 import { getInstantFounderPitch, getClientDemoUrl, isLidPhone, type PitchToneKey } from "@/lib/crm.shared";
+
+const THEME_COLOR_PRESETS = [
+  { name: "Emerald Medical", hex: "#059669" },
+  { name: "Clinical Blue", hex: "#2563eb" },
+  { name: "Cyan Health", hex: "#0891b2" },
+  { name: "Royal Purple", hex: "#7c3aed" },
+  { name: "Deep Indigo", hex: "#4f46e5" },
+  { name: "Care Rose", hex: "#e11d48" },
+  { name: "Ayur Amber", hex: "#d97706" },
+  { name: "Executive Slate", hex: "#0f172a" },
+  { name: "Teal Modern", hex: "#0d9488" },
+  { name: "Ruby Crimson", hex: "#dc2626" },
+];
+
+const TEMPLATE_PRESETS = [
+  {
+    id: "modern",
+    name: "Modern Floating Clinic",
+    description: "Floating pill navbar, clean cards, hero trust badge.",
+    swatch: "linear-gradient(135deg, #a7f3d0 0%, #10b981 100%)",
+    badge: "Most Popular",
+  },
+  {
+    id: "classic",
+    name: "Classic Clinical Trust",
+    description: "Trustworthy hospital-grade layout, clean service cards.",
+    swatch: "linear-gradient(135deg, #dbeafe 0%, #2563eb 100%)",
+    badge: "Hospital Standard",
+  },
+  {
+    id: "warm",
+    name: "Warm & Family Practice",
+    description: "Centered, welcoming structure for family healthcare.",
+    swatch: "linear-gradient(135deg, #fde68a 0%, #d97706 100%)",
+    badge: "Family & Pedia",
+  },
+  {
+    id: "premium",
+    name: "Premium Concierge",
+    description: "Luxury dark aesthetic, high-end wellness & aesthetics.",
+    swatch: "linear-gradient(135deg, #1f2937 0%, #c9a84c 100%)",
+    badge: "VIP Wellness",
+  },
+  {
+    id: "editorial",
+    name: "Editorial Healthcare",
+    description: "Minimalist magazine style with large typography.",
+    swatch: "linear-gradient(135deg, #e2e8f0 0%, #475569 100%)",
+    badge: "Editorial",
+  },
+  {
+    id: "ayur_sattva",
+    name: "Ayurveda Sattva",
+    description: "Holistic, herbal harmony layout for natural healing.",
+    swatch: "linear-gradient(135deg, #dcfce7 0%, #16a34a 100%)",
+    badge: "Ayurveda & Yoga",
+  },
+  {
+    id: "dent_bright",
+    name: "Luminous Dental Studio",
+    description: "Crisp, radiant smile makeover & dental care layout.",
+    swatch: "linear-gradient(135deg, #cffafe 0%, #06b6d4 100%)",
+    badge: "Dental Specialty",
+  },
+  {
+    id: "ortho_motion",
+    name: "OrthoMotion & Spine",
+    description: "Dynamic layout for orthopedic, sports rehab & pain care.",
+    swatch: "linear-gradient(135deg, #ffedd5 0%, #ea580c 100%)",
+    badge: "Orthopedics",
+  },
+];
 
 export const Route = createFileRoute("/_admin/admin/crm")({
   component: AdminCrmPage,
@@ -135,6 +214,8 @@ export function AdminCrmPage() {
   const reconcileFn = useServerFn(reconcileCrmLeads);
   const mergeFn = useServerFn(mergeCrmLeads);
   const setupClinicFn = useServerFn(setupCompleteClinicWebsite);
+  const getWebsiteConfigFn = useServerFn(getClinicWebsiteConfig);
+  const updateWebsiteConfigFn = useServerFn(updateClinicWebsiteConfig);
 
   // Filters state
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -142,6 +223,64 @@ export function AdminCrmPage() {
   const [isReconciling, setIsReconciling] = useState(false);
   const [mergingLeadId, setMergingLeadId] = useState<string | null>(null);
   const [settingUpLeadId, setSettingUpLeadId] = useState<string | null>(null);
+
+  // Website Customizer State
+  const [customizingLead, setCustomizingLead] = useState<CrmLead | null>(null);
+  const [isWebsiteModalOpen, setIsWebsiteModalOpen] = useState(false);
+  const [websiteActiveTab, setWebsiteActiveTab] = useState<string>("theme");
+  const [isLoadingWebsiteConfig, setIsLoadingWebsiteConfig] = useState(false);
+  const [isSavingWebsiteConfig, setIsSavingWebsiteConfig] = useState(false);
+
+  const [websiteForm, setWebsiteForm] = useState<{
+    slug: string;
+    leadId?: string;
+    doctor_name: string;
+    clinic_name: string;
+    specialization: string;
+    qualification: string;
+    experience_years: number;
+    consultation_fee: number;
+    phone: string;
+    address: string;
+    theme_color: string;
+    template: string;
+    hero_headline: string;
+    hero_subheadline: string;
+    about_text: string;
+    services: Array<{ name: string; price: number; duration?: number; description?: string }>;
+    lead_popup: {
+      enabled: boolean;
+      offer: string;
+      headline: string;
+      subtext: string;
+      ctaLabel: string;
+      delaySeconds: number;
+    };
+  }>({
+    slug: "",
+    doctor_name: "",
+    clinic_name: "",
+    specialization: "",
+    qualification: "MBBS, MD",
+    experience_years: 10,
+    consultation_fee: 500,
+    phone: "",
+    address: "",
+    theme_color: "#059669",
+    template: "modern",
+    hero_headline: "",
+    hero_subheadline: "",
+    about_text: "",
+    services: [],
+    lead_popup: {
+      enabled: true,
+      offer: "Instant OPD Token Confirmation",
+      headline: "Consult with Doctor",
+      subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+      ctaLabel: "Book Consultation",
+      delaySeconds: 10,
+    },
+  });
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -552,6 +691,183 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
   const handleOneClickClinicSetup = (lead: CrmLead) => {
     setSettingUpLeadId(lead.id);
     setupClinicMutation.mutate(lead.id);
+  };
+
+  // Website Customizer Actions
+  const handleOpenWebsiteCustomizer = async (lead: CrmLead) => {
+    setCustomizingLead(lead);
+    setIsWebsiteModalOpen(true);
+    setIsLoadingWebsiteConfig(true);
+    setWebsiteActiveTab("theme");
+
+    let targetSlug = "";
+    if (lead.custom_demo_url && lead.custom_demo_url.includes("/c/")) {
+      targetSlug = lead.custom_demo_url.split("/c/")[1]?.split("?")[0] || "";
+    }
+    if (!targetSlug) {
+      const cleanName = (lead.clinic_name || lead.name || "clinic")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-");
+      const cleanCity = (lead.city || "city")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-");
+      targetSlug = `${cleanName}-${cleanCity}`.slice(0, 50).replace(/-+$/, "");
+    }
+
+    try {
+      const config = await getWebsiteConfigFn({ data: { slug: targetSlug, leadId: lead.id } });
+      if (config) {
+        setWebsiteForm({
+          slug: config.slug || targetSlug,
+          leadId: lead.id,
+          doctor_name: config.doctor_name || lead.name,
+          clinic_name: config.clinic_name || lead.clinic_name || `${lead.name} Clinic`,
+          specialization: config.specialization || lead.specialty || "General Physician",
+          qualification: config.qualification || "MBBS, MD",
+          experience_years: config.experience_years ?? 10,
+          consultation_fee: config.consultation_fee ?? 500,
+          phone: config.phone || lead.phone,
+          address: config.address || `${lead.city || "Lucknow"}, India`,
+          theme_color: config.theme_color || "#059669",
+          template: config.template || "modern",
+          hero_headline: config.hero_headline || "Compassionate, World-Class Healthcare for Your Family",
+          hero_subheadline: config.hero_subheadline || "Book instant appointments on WhatsApp or consult in-person with zero wait time.",
+          about_text: config.about_text || `${lead.clinic_name || lead.name} is a premier healthcare clinic committed to excellence and compassionate patient care.`,
+          services: Array.isArray(config.services) && config.services.length > 0
+            ? config.services.map((s: any) =>
+                typeof s === "string" ? { name: s, price: 500, duration: 15, description: s } : s
+              )
+            : [
+                { name: "General Consultation", price: 500, duration: 15, description: "Detailed clinical examination" },
+                { name: "Follow-up OPD Visit", price: 300, duration: 15, description: "Progress review and checkup" },
+              ],
+          lead_popup: config.lead_popup ? {
+            enabled: config.lead_popup.enabled !== false,
+            offer: config.lead_popup.offer || "Instant OPD Token Confirmation",
+            headline: config.lead_popup.headline || `Consult with ${lead.name}`,
+            subtext: config.lead_popup.subtext || "Leave your WhatsApp number to book your appointment slot immediately",
+            ctaLabel: config.lead_popup.ctaLabel || "Book Consultation",
+            delaySeconds: config.lead_popup.delaySeconds || 10,
+          } : {
+            enabled: true,
+            offer: "Instant OPD Token Confirmation",
+            headline: `Consult with ${lead.name}`,
+            subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+            ctaLabel: "Book Consultation",
+            delaySeconds: 10,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to load existing website config, using defaults:", e);
+      setWebsiteForm({
+        slug: targetSlug,
+        leadId: lead.id,
+        doctor_name: lead.name,
+        clinic_name: lead.clinic_name || `${lead.name} Clinic`,
+        specialization: lead.specialty || "General Physician",
+        qualification: "MBBS, MD",
+        experience_years: 10,
+        consultation_fee: 500,
+        phone: lead.phone,
+        address: `${lead.city || "Lucknow"}, India`,
+        theme_color: "#059669",
+        template: "modern",
+        hero_headline: "Compassionate, World-Class Healthcare for Your Family",
+        hero_subheadline: "Book instant appointments on WhatsApp or consult in-person with zero wait time.",
+        about_text: `${lead.clinic_name || lead.name} is a premier clinic committed to patient well-being and modern medical care.`,
+        services: [
+          { name: "Primary Consultation", price: 500, duration: 15, description: "Detailed medical evaluation" },
+          { name: "Follow-up Visit", price: 300, duration: 15, description: "Review and prescription refill" },
+        ],
+        lead_popup: {
+          enabled: true,
+          offer: "Instant OPD Token Confirmation",
+          headline: `Consult with ${lead.name}`,
+          subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+          ctaLabel: "Book Consultation",
+          delaySeconds: 10,
+        },
+      });
+    } finally {
+      setIsLoadingWebsiteConfig(false);
+    }
+  };
+
+  const handleSaveWebsiteConfig = async () => {
+    if (!websiteForm.slug) {
+      toast.error("Clinic slug is required");
+      return;
+    }
+    setIsSavingWebsiteConfig(true);
+    try {
+      const res = await updateWebsiteConfigFn({
+        data: {
+          slug: websiteForm.slug,
+          leadId: websiteForm.leadId,
+          doctor_name: websiteForm.doctor_name,
+          clinic_name: websiteForm.clinic_name,
+          specialization: websiteForm.specialization,
+          qualification: websiteForm.qualification,
+          experience_years: websiteForm.experience_years,
+          consultation_fee: websiteForm.consultation_fee,
+          phone: websiteForm.phone,
+          address: websiteForm.address,
+          theme_color: websiteForm.theme_color,
+          template: websiteForm.template,
+          hero_headline: websiteForm.hero_headline,
+          hero_subheadline: websiteForm.hero_subheadline,
+          about_text: websiteForm.about_text,
+          services: websiteForm.services,
+          lead_popup: websiteForm.lead_popup,
+        },
+      });
+
+      toast.success("🎉 Website Updated & Published Live!", {
+        description: `Theme, template & content published at /c/${websiteForm.slug}`,
+        action: {
+          label: "View Live",
+          onClick: () => window.open(res.url, "_blank"),
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-stats"] });
+      setIsWebsiteModalOpen(false);
+    } catch (err: any) {
+      toast.error(`Failed to update website: ${err.message || "Unknown error"}`);
+    } finally {
+      setIsSavingWebsiteConfig(false);
+    }
+  };
+
+  const handleAddWebsiteService = () => {
+    setWebsiteForm((prev) => ({
+      ...prev,
+      services: [
+        ...prev.services,
+        {
+          name: "Specialized Consultation",
+          price: prev.consultation_fee || 500,
+          duration: 15,
+          description: "Specialized clinical diagnosis and care",
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveWebsiteService = (index: number) => {
+    setWebsiteForm((prev) => ({
+      ...prev,
+      services: prev.services.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleUpdateWebsiteService = (index: number, field: string, val: any) => {
+    setWebsiteForm((prev) => {
+      const updated = [...prev.services];
+      updated[index] = { ...updated[index], [field]: val };
+      return { ...prev, services: updated };
+    });
   };
 
   // Edit lead modal actions
@@ -974,6 +1290,15 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                               >
                                 <Copy className="size-2.5" />
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenWebsiteCustomizer(lead)}
+                                className="p-1 rounded hover:bg-purple-500/15 text-purple-600 hover:text-purple-700 text-[10px] inline-flex items-center gap-0.5 font-semibold"
+                                title="Edit Website Theme & Template"
+                              >
+                                <Palette className="size-2.5" />
+                                <span>Design</span>
+                              </button>
                             </div>
                           ) : null}
                           {lead.has_replied && lead.last_reply_message && (
@@ -1115,34 +1440,58 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
 
                         {/* 1-Click Clinic & Website Setup / View Live Website */}
                         {lead.custom_demo_url && !lead.custom_demo_url.includes("/c/demo?") && lead.custom_demo_url.includes("/c/") ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                            className="h-8 rounded-xl text-xs px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1 font-semibold"
-                            title="Open Live Published Clinic Website"
-                          >
-                            <a href={lead.custom_demo_url} target="_blank" rel="noreferrer">
-                              <Globe className="size-3 text-emerald-600" />
-                              <span className="hidden sm:inline">Website</span>
-                            </a>
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              asChild
+                              className="h-8 rounded-xl text-xs px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1 font-semibold"
+                              title="Open Live Published Clinic Website"
+                            >
+                              <a href={lead.custom_demo_url} target="_blank" rel="noreferrer">
+                                <Globe className="size-3 text-emerald-600" />
+                                <span className="hidden sm:inline">Website</span>
+                              </a>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenWebsiteCustomizer(lead)}
+                              className="h-8 rounded-xl text-xs px-2 gap-1 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/30 font-semibold"
+                              title="Edit Website (Theme, Template, Copy & Services)"
+                            >
+                              <Palette className="size-3 text-purple-600" />
+                              <span className="hidden sm:inline">Theme</span>
+                            </Button>
+                          </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={settingUpLeadId === lead.id}
-                            onClick={() => handleOneClickClinicSetup(lead)}
-                            className="h-8 rounded-xl text-xs px-2 text-violet-600 dark:text-violet-400 border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/15 gap-1 font-semibold shadow-2xs"
-                            title="1-Click Complete Clinic Setup (Org, Published Website, Modules & Doctor Profile)"
-                          >
-                            {settingUpLeadId === lead.id ? (
-                              <Loader2 className="size-3 animate-spin text-violet-600" />
-                            ) : (
-                              <Zap className="size-3 text-violet-600 fill-violet-600/30" />
-                            )}
-                            <span className="hidden sm:inline">1-Click Setup</span>
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={settingUpLeadId === lead.id}
+                              onClick={() => handleOneClickClinicSetup(lead)}
+                              className="h-8 rounded-xl text-xs px-2 text-violet-600 dark:text-violet-400 border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/15 gap-1 font-semibold shadow-2xs"
+                              title="1-Click Complete Clinic Setup (Org, Published Website, Modules & Doctor Profile)"
+                            >
+                              {settingUpLeadId === lead.id ? (
+                                <Loader2 className="size-3 animate-spin text-violet-600" />
+                              ) : (
+                                <Zap className="size-3 text-violet-600 fill-violet-600/30" />
+                              )}
+                              <span className="hidden sm:inline">1-Click Setup</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenWebsiteCustomizer(lead)}
+                              className="h-8 rounded-xl text-xs px-2 gap-1 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/30 font-semibold"
+                              title="Customize Website (Theme, Template, Copy & Services)"
+                            >
+                              <Palette className="size-3 text-purple-600" />
+                              <span className="hidden sm:inline">Theme</span>
+                            </Button>
+                          </div>
                         )}
 
                         {/* 1. Instant AI Pitch Generator */}
@@ -1548,11 +1897,27 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                     {editingLead.custom_demo_url}
                   </a>
                 </div>
-                <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0">
-                  <a href={editingLead.custom_demo_url} target="_blank" rel="noreferrer">
-                    Visit Website <ExternalLink className="size-3 ml-1" />
-                  </a>
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      handleOpenWebsiteCustomizer(editingLead);
+                    }}
+                    className="h-7 text-xs rounded-lg shrink-0 gap-1 text-purple-600 border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/30 font-semibold"
+                    title="Customize Theme, Template, Headlines & Services"
+                  >
+                    <Palette className="size-3 text-purple-600" />
+                    <span>Customize Design</span>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0">
+                    <a href={editingLead.custom_demo_url} target="_blank" rel="noreferrer">
+                      Visit <ExternalLink className="size-3 ml-1" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             ) : editingLead ? (
               <div className="p-3 rounded-xl border border-violet-500/25 bg-violet-500/5 flex items-center justify-between gap-2 text-xs">
@@ -1908,6 +2273,591 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🎨 Website & Theme Customizer Dialog */}
+      <Dialog open={isWebsiteModalOpen} onOpenChange={setIsWebsiteModalOpen}>
+        <DialogContent className="w-[95vw] max-w-4xl p-0 rounded-2xl border-border bg-background overflow-hidden flex flex-col max-h-[92vh]">
+          {/* Header */}
+          <div className="p-5 pb-3 border-b bg-muted/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-8">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="size-8 rounded-xl grid place-items-center text-white shadow-sm shrink-0"
+                    style={{ backgroundColor: websiteForm.theme_color }}
+                  >
+                    <Palette className="size-4" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <span>Customize Website & Theme</span>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-mono">
+                        /c/{websiteForm.slug}
+                      </Badge>
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Edit theme color, layout template, hero copy, services, consultation fee and WhatsApp OPD popup.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/c/${websiteForm.slug}?tpl=${websiteForm.template}&tc=${encodeURIComponent(websiteForm.theme_color)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-xs font-semibold hover:bg-muted transition-colors shadow-2xs"
+                >
+                  <Eye className="size-3.5 text-primary" />
+                  <span>Live Preview</span>
+                  <ExternalLink className="size-3 opacity-60" />
+                </a>
+              </div>
+            </div>
+
+            {/* Navigation Tabs */}
+            <Tabs value={websiteActiveTab} onValueChange={setWebsiteActiveTab} className="mt-3">
+              <TabsList className="bg-background/80 p-1 border rounded-xl grid grid-cols-4 h-9">
+                <TabsTrigger value="theme" className="text-xs font-semibold gap-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Palette className="size-3.5" />
+                  <span>Theme & Template</span>
+                </TabsTrigger>
+                <TabsTrigger value="branding" className="text-xs font-semibold gap-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Sparkles className="size-3.5" />
+                  <span>Hero & Copy</span>
+                </TabsTrigger>
+                <TabsTrigger value="services" className="text-xs font-semibold gap-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Stethoscope className="size-3.5" />
+                  <span>Services & Fees</span>
+                </TabsTrigger>
+                <TabsTrigger value="popup" className="text-xs font-semibold gap-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <MessageSquare className="size-3.5" />
+                  <span>WhatsApp Popup</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Modal Body with Scroll */}
+          <div className="p-5 overflow-y-auto flex-1 space-y-5">
+            {isLoadingWebsiteConfig ? (
+              <div className="py-16 text-center space-y-3">
+                <Loader2 className="size-8 animate-spin mx-auto text-primary" />
+                <p className="text-sm font-medium text-muted-foreground">Loading website design configuration…</p>
+              </div>
+            ) : (
+              <>
+                {/* TAB 1: THEME & TEMPLATE */}
+                {websiteActiveTab === "theme" && (
+                  <div className="space-y-6">
+                    {/* Primary Theme Color */}
+                    <div className="space-y-3 p-4 rounded-xl border bg-card shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Palette className="size-3.5 text-primary" />
+                            Primary Theme Color
+                          </Label>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Sets the clinic brand color, navbar accents, CTA buttons, badges & highlights.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="size-7 rounded-lg border shadow-xs"
+                            style={{ backgroundColor: websiteForm.theme_color }}
+                          />
+                          <span className="font-mono text-xs font-bold uppercase">{websiteForm.theme_color}</span>
+                        </div>
+                      </div>
+
+                      {/* Color Palette Swatches */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                        {THEME_COLOR_PRESETS.map((preset) => {
+                          const isSelected = websiteForm.theme_color.toLowerCase() === preset.hex.toLowerCase();
+                          return (
+                            <button
+                              key={preset.hex}
+                              type="button"
+                              onClick={() => setWebsiteForm({ ...websiteForm, theme_color: preset.hex })}
+                              className={cn(
+                                "flex items-center gap-2 p-2 rounded-xl border text-left transition-all hover:scale-[1.02]",
+                                isSelected
+                                  ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary"
+                                  : "border-border hover:bg-muted/50"
+                              )}
+                            >
+                              <div
+                                className="size-5 rounded-full shrink-0 shadow-xs grid place-items-center"
+                                style={{ backgroundColor: preset.hex }}
+                              >
+                                {isSelected && <Check className="size-3 text-white stroke-[3]" />}
+                              </div>
+                              <span className="text-[11px] font-medium text-foreground truncate">{preset.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Color Input */}
+                      <div className="flex items-center gap-3 pt-2 border-t">
+                        <Label className="text-xs text-muted-foreground">Custom Hex Color:</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={websiteForm.theme_color}
+                            onChange={(e) => setWebsiteForm({ ...websiteForm, theme_color: e.target.value })}
+                            className="size-8 rounded-lg cursor-pointer border p-0.5 bg-background"
+                          />
+                          <Input
+                            value={websiteForm.theme_color}
+                            onChange={(e) => setWebsiteForm({ ...websiteForm, theme_color: e.target.value })}
+                            className="h-8 w-28 text-xs font-mono uppercase rounded-lg"
+                            placeholder="#059669"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Template Selection */}
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <LayoutTemplate className="size-3.5 text-primary" />
+                          Website Layout Template
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Select the layout architecture tailored to this doctor's clinical specialty.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {TEMPLATE_PRESETS.map((tpl) => {
+                          const isSelected = websiteForm.template === tpl.id;
+                          return (
+                            <div
+                              key={tpl.id}
+                              onClick={() => setWebsiteForm({ ...websiteForm, template: tpl.id })}
+                              className={cn(
+                                "p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md flex flex-col justify-between text-left relative overflow-hidden",
+                                isSelected
+                                  ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary"
+                                  : "border-border bg-card hover:border-primary/40"
+                              )}
+                            >
+                              <div className="space-y-2">
+                                <div
+                                  className="h-10 rounded-lg w-full shadow-xs flex items-center justify-end px-2"
+                                  style={{ background: tpl.swatch }}
+                                >
+                                  {isSelected && (
+                                    <div className="size-5 rounded-full bg-white text-primary grid place-items-center shadow-sm">
+                                      <Check className="size-3.5 stroke-[3]" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="flex items-center justify-between gap-1">
+                                    <h4 className="text-xs font-bold text-foreground">{tpl.name}</h4>
+                                  </div>
+                                  <Badge variant="outline" className="text-[9px] py-0 px-1 font-semibold mt-1">
+                                    {tpl.badge}
+                                  </Badge>
+                                  <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                                    {tpl.description}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: HERO & BRANDING COPY */}
+                {websiteActiveTab === "branding" && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Doctor Full Name</Label>
+                        <Input
+                          value={websiteForm.doctor_name}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, doctor_name: e.target.value })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="Dr. Ritesh Verma"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Clinic Name</Label>
+                        <Input
+                          value={websiteForm.clinic_name}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, clinic_name: e.target.value })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="City Care Center"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Specialization</Label>
+                        <Input
+                          value={websiteForm.specialization}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, specialization: e.target.value })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="General Physician"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Qualification</Label>
+                        <Input
+                          value={websiteForm.qualification}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, qualification: e.target.value })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="MBBS, MD (Medicine)"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Years of Experience</Label>
+                        <Input
+                          type="number"
+                          value={websiteForm.experience_years}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, experience_years: Number(e.target.value) || 0 })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="12"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Hero Section Headline</Label>
+                      <Input
+                        value={websiteForm.hero_headline}
+                        onChange={(e) => setWebsiteForm({ ...websiteForm, hero_headline: e.target.value })}
+                        className="h-9 text-xs rounded-xl font-medium"
+                        placeholder="Compassionate, World-Class Healthcare for Your Family"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Hero Section Subheadline</Label>
+                      <Textarea
+                        rows={2}
+                        value={websiteForm.hero_subheadline}
+                        onChange={(e) => setWebsiteForm({ ...websiteForm, hero_subheadline: e.target.value })}
+                        className="text-xs rounded-xl"
+                        placeholder="Book instant appointments on WhatsApp or consult in-person with zero wait time."
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">About Doctor & Clinic Story</Label>
+                      <Textarea
+                        rows={3}
+                        value={websiteForm.about_text}
+                        onChange={(e) => setWebsiteForm({ ...websiteForm, about_text: e.target.value })}
+                        className="text-xs rounded-xl"
+                        placeholder="Provide detailed clinical experience, background, hospital affiliations and mission."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Public WhatsApp Phone</Label>
+                        <Input
+                          value={websiteForm.phone}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, phone: e.target.value })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="+919876543210"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Clinic Address / Location</Label>
+                        <Input
+                          value={websiteForm.address}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, address: e.target.value })}
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="Jankipuram, Lucknow, India"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: SERVICES & FEES */}
+                {websiteActiveTab === "services" && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-xs font-bold text-foreground">Standard OPD Consultation Fee</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Base price displayed on the hero banner and primary booking slots.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold text-muted-foreground">₹</span>
+                        <Input
+                          type="number"
+                          value={websiteForm.consultation_fee}
+                          onChange={(e) => setWebsiteForm({ ...websiteForm, consultation_fee: Number(e.target.value) || 0 })}
+                          className="h-9 w-28 text-xs font-bold rounded-xl"
+                          placeholder="500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs font-bold text-foreground">Medical Treatments & Procedures</Label>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Add or customize clinical services listed on the published website.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleAddWebsiteService}
+                          className="h-7 text-xs rounded-lg gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                        >
+                          <Plus className="size-3" />
+                          <span>Add Treatment</span>
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        {websiteForm.services.map((svc, idx) => (
+                          <div key={idx} className="p-3 rounded-xl border bg-card flex flex-col sm:flex-row items-start sm:items-center gap-2.5 shadow-2xs">
+                            <div className="flex-1 w-full sm:w-auto space-y-1">
+                              <Input
+                                value={svc.name}
+                                onChange={(e) => handleUpdateWebsiteService(idx, "name", e.target.value)}
+                                className="h-8 text-xs font-semibold rounded-lg"
+                                placeholder="Service Name (e.g. ECG Screening)"
+                              />
+                              <Input
+                                value={svc.description || ""}
+                                onChange={(e) => handleUpdateWebsiteService(idx, "description", e.target.value)}
+                                className="h-7 text-[11px] text-muted-foreground rounded-lg"
+                                placeholder="Brief description (e.g. Instant 12-lead cardiac report)"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs font-bold text-muted-foreground">₹</span>
+                                <Input
+                                  type="number"
+                                  value={svc.price}
+                                  onChange={(e) => handleUpdateWebsiteService(idx, "price", Number(e.target.value) || 0)}
+                                  className="h-8 w-20 text-xs font-bold rounded-lg"
+                                  placeholder="500"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  value={svc.duration || 15}
+                                  onChange={(e) => handleUpdateWebsiteService(idx, "duration", Number(e.target.value) || 15)}
+                                  className="h-8 w-16 text-xs text-center rounded-lg"
+                                  placeholder="15"
+                                />
+                                <span className="text-[10px] text-muted-foreground">mins</span>
+                              </div>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleRemoveWebsiteService(idx)}
+                                className="size-8 rounded-lg text-muted-foreground hover:text-destructive shrink-0"
+                                title="Remove Service"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 4: WHATSAPP LEAD POPUP */}
+                {websiteActiveTab === "popup" && (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl border bg-card flex items-center justify-between gap-3 shadow-2xs">
+                      <div>
+                        <Label className="text-xs font-bold text-foreground">Interactive WhatsApp OPD Popup</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Shows high-converting appointment booking popup to visitors after a brief delay.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={websiteForm.lead_popup.enabled}
+                        onCheckedChange={(checked) =>
+                          setWebsiteForm({
+                            ...websiteForm,
+                            lead_popup: { ...websiteForm.lead_popup, enabled: checked },
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className={cn("space-y-3.5 transition-opacity", !websiteForm.lead_popup.enabled && "opacity-40 pointer-events-none")}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold">Offer / Headline Tag</Label>
+                          <Input
+                            value={websiteForm.lead_popup.offer || ""}
+                            onChange={(e) =>
+                              setWebsiteForm({
+                                ...websiteForm,
+                                lead_popup: { ...websiteForm.lead_popup, offer: e.target.value },
+                              })
+                            }
+                            className="h-9 text-xs rounded-xl"
+                            placeholder="Instant OPD Token Confirmation"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold">Popup Delay (Seconds)</Label>
+                          <Select
+                            value={String(websiteForm.lead_popup.delaySeconds || 10)}
+                            onValueChange={(val) =>
+                              setWebsiteForm({
+                                ...websiteForm,
+                                lead_popup: { ...websiteForm.lead_popup, delaySeconds: Number(val) },
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9 text-xs rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5 Seconds (Fast)</SelectItem>
+                              <SelectItem value="10">10 Seconds (Recommended)</SelectItem>
+                              <SelectItem value="15">15 Seconds (Gentle)</SelectItem>
+                              <SelectItem value="30">30 Seconds</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Popup Main Heading</Label>
+                        <Input
+                          value={websiteForm.lead_popup.headline || ""}
+                          onChange={(e) =>
+                            setWebsiteForm({
+                              ...websiteForm,
+                              lead_popup: { ...websiteForm.lead_popup, headline: e.target.value },
+                            })
+                          }
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="Consult with Dr. Doctor"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Popup Subtext Message</Label>
+                        <Textarea
+                          rows={2}
+                          value={websiteForm.lead_popup.subtext || ""}
+                          onChange={(e) =>
+                            setWebsiteForm({
+                              ...websiteForm,
+                              lead_popup: { ...websiteForm.lead_popup, subtext: e.target.value },
+                            })
+                          }
+                          className="text-xs rounded-xl"
+                          placeholder="Leave your WhatsApp number to book your appointment slot immediately"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Action Button Text</Label>
+                        <Input
+                          value={websiteForm.lead_popup.ctaLabel || ""}
+                          onChange={(e) =>
+                            setWebsiteForm({
+                              ...websiteForm,
+                              lead_popup: { ...websiteForm.lead_popup, ctaLabel: e.target.value },
+                            })
+                          }
+                          className="h-9 text-xs rounded-xl"
+                          placeholder="Book Consultation"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground w-full sm:w-auto">
+              <Globe className="size-3.5 text-emerald-600 shrink-0" />
+              <span className="truncate">Public Live URL: <strong>/c/{websiteForm.slug}</strong></span>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                asChild
+                className="h-9 rounded-xl text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+              >
+                <a
+                  href={`/c/${websiteForm.slug}?tpl=${websiteForm.template}&tc=${encodeURIComponent(websiteForm.theme_color)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Eye className="size-3.5" />
+                  <span>Preview</span>
+                  <ExternalLink className="size-3 ml-0.5 opacity-60" />
+                </a>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsWebsiteModalOpen(false)}
+                className="h-9 rounded-xl text-xs"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                disabled={isSavingWebsiteConfig || isLoadingWebsiteConfig}
+                onClick={handleSaveWebsiteConfig}
+                className="h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground gap-1.5 shadow-sm"
+              >
+                {isSavingWebsiteConfig ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Publishing Live…</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-3.5" />
+                    <span>Save & Publish Live</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

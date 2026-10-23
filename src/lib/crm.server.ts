@@ -1256,7 +1256,12 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   MEMORY_CLINIC_CACHE.set(uniqueSlug, fullClinicObject);
   try {
     const { redisCache } = await import("./redis");
-    await redisCache.set(`clinic:slug:${uniqueSlug}`, fullClinicObject, 86400 * 30);
+    if (typeof (redisCache as any)?.del === "function") {
+      await (redisCache as any).del(`clinic:slug:${uniqueSlug}`);
+    }
+    if (typeof (redisCache as any)?.set === "function") {
+      await (redisCache as any).set(`clinic:slug:${uniqueSlug}`, fullClinicObject, 86400 * 30);
+    }
   } catch {}
 
   console.log(`[Clinic Setup] ⚡ Successfully created complete clinic website for ${docName} (${clinicName}) at ${liveUrl}`);
@@ -2166,5 +2171,243 @@ export async function runAutonomousOutreachBatchImpl(): Promise<{
     sentCount,
     skippedCount,
     errors,
+  };
+}
+
+export async function getClinicWebsiteConfigImpl(opts: { slug: string; leadId?: string }): Promise<any> {
+  const { slug } = opts;
+  if (!slug) throw new Error("Clinic slug is required");
+
+  // 1. Check in-memory cache
+  if (MEMORY_CLINIC_CACHE.has(slug)) {
+    return MEMORY_CLINIC_CACHE.get(slug);
+  }
+
+  // 2. Check Redis cache
+  try {
+    const { redisCache } = await import("./redis");
+    const cached = await redisCache.get<any>(`clinic:slug:${slug}`);
+    if (cached && typeof cached === "object" && cached.slug === slug) {
+      MEMORY_CLINIC_CACHE.set(slug, cached);
+      return cached;
+    }
+  } catch {}
+
+  // 3. Check Supabase DB
+  try {
+    const { data: clinic } = await (supabaseAdmin as any)
+      .from("clinics")
+      .select("id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no, lead_popup")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (clinic) {
+      MEMORY_CLINIC_CACHE.set(slug, clinic);
+      return clinic;
+    }
+  } catch (err) {
+    console.warn("[getClinicWebsiteConfigImpl] DB lookup error:", err);
+  }
+
+  // 4. Resolve dynamically
+  const dynamicClinic = await resolveDynamicClinicWebsite(slug);
+  if (dynamicClinic) {
+    return dynamicClinic;
+  }
+
+  throw new Error(`Clinic not found for slug: ${slug}`);
+}
+
+export type UpdateClinicWebsiteInput = {
+  slug: string;
+  leadId?: string;
+  doctor_name?: string;
+  clinic_name?: string;
+  specialization?: string;
+  qualification?: string;
+  experience_years?: number;
+  consultation_fee?: number;
+  phone?: string;
+  address?: string;
+  theme_color?: string;
+  template?: string;
+  hero_headline?: string;
+  hero_subheadline?: string;
+  about_text?: string;
+  services?: Array<{
+    name: string;
+    price: number;
+    duration?: number;
+    description?: string;
+  }>;
+  lead_popup?: {
+    enabled: boolean;
+    offer?: string;
+    headline?: string;
+    subtext?: string;
+    ctaLabel?: string;
+    delaySeconds?: number;
+    showFloatingButton?: boolean;
+    floatingLabel?: string;
+  };
+};
+
+export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteInput): Promise<any> {
+  const { slug } = input;
+  if (!slug) throw new Error("Clinic slug is required");
+
+  // Get current state
+  let current: any = null;
+  try {
+    current = await getClinicWebsiteConfigImpl({ slug, leadId: input.leadId });
+  } catch {
+    current = await resolveDynamicClinicWebsite(slug);
+  }
+
+  if (!current) {
+    throw new Error(`Unable to resolve clinic website for slug: ${slug}`);
+  }
+
+  const nowIso = new Date().toISOString();
+  const docName = input.doctor_name !== undefined ? cleanDoctorName(input.doctor_name) : current.doctor_name;
+  const clinicName = input.clinic_name !== undefined ? input.clinic_name.trim() : current.clinic_name;
+  const specialization = input.specialization !== undefined ? input.specialization.trim() : current.specialization;
+  const qualification = input.qualification !== undefined ? input.qualification.trim() : current.qualification;
+  const experience_years = input.experience_years !== undefined ? Number(input.experience_years) : current.experience_years;
+  const consultation_fee = input.consultation_fee !== undefined ? Number(input.consultation_fee) : current.consultation_fee;
+  const phone = input.phone !== undefined ? input.phone.trim() : current.phone;
+  const address = input.address !== undefined ? input.address.trim() : current.address;
+  const theme_color = input.theme_color !== undefined ? input.theme_color.trim() : (current.theme_color || "#059669");
+  const template = input.template !== undefined ? input.template.trim() : (current.template || "modern");
+  const hero_headline = input.hero_headline !== undefined ? input.hero_headline.trim() : current.hero_headline;
+  const hero_subheadline = input.hero_subheadline !== undefined ? input.hero_subheadline.trim() : current.hero_subheadline;
+  const about_text = input.about_text !== undefined ? input.about_text.trim() : current.about_text;
+  const services = input.services !== undefined ? input.services : current.services;
+  const lead_popup = input.lead_popup !== undefined ? input.lead_popup : current.lead_popup;
+
+  const mergedClinic = {
+    ...current,
+    doctor_name: docName,
+    clinic_name: clinicName,
+    specialization,
+    qualification,
+    experience_years,
+    consultation_fee,
+    phone,
+    public_phone: phone,
+    address,
+    public_address: address,
+    theme_color,
+    template,
+    hero_headline,
+    hero_subheadline,
+    about_text,
+    services,
+    lead_popup,
+    updated_at: nowIso,
+    is_published: true,
+  };
+
+  // 1. Update in-memory cache immediately
+  MEMORY_CLINIC_CACHE.set(slug, mergedClinic);
+
+  // 2. Update Redis cache with 30-day TTL
+  try {
+    const { redisCache } = await import("./redis");
+    await redisCache.set(`clinic:slug:${slug}`, mergedClinic, 86400 * 30);
+  } catch {}
+
+  // 3. Persist to Postgres database
+  try {
+    const { data: existing } = await (supabaseAdmin as any)
+      .from("clinics")
+      .select("id, organization_id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await (supabaseAdmin as any)
+        .from("clinics")
+        .update({
+          doctor_name: docName,
+          clinic_name: clinicName,
+          specialization,
+          qualification,
+          experience_years,
+          consultation_fee,
+          phone,
+          public_phone: phone,
+          address,
+          public_address: address,
+          theme_color,
+          template,
+          hero_headline,
+          hero_subheadline,
+          about_text,
+          services,
+          lead_popup,
+          updated_at: nowIso,
+          is_published: true,
+        })
+        .eq("id", existing.id);
+
+      if (existing.organization_id) {
+        await (supabaseAdmin as any)
+          .from("organizations")
+          .update({
+            name: clinicName,
+            primary_color: theme_color,
+            tagline: hero_headline,
+            description: about_text,
+            public_phone: phone,
+            public_address: address,
+          })
+          .eq("id", existing.organization_id);
+      }
+    } else {
+      // If row didn't exist in Postgres, insert organization and clinic
+      const orgId = current.organization_id || safeRandomUuid();
+      const clinicId = current.id || safeRandomUuid();
+      await (supabaseAdmin as any).from("organizations").insert({
+        id: orgId,
+        name: clinicName,
+        slug,
+        primary_color: theme_color,
+        tagline: hero_headline,
+        description: about_text,
+        public_phone: phone,
+        public_address: address,
+      });
+      await (supabaseAdmin as any).from("clinics").insert({
+        ...mergedClinic,
+        id: clinicId,
+        organization_id: orgId,
+      });
+    }
+  } catch (err) {
+    console.warn("[updateClinicWebsiteConfigImpl] Postgres update warning:", err);
+  }
+
+  // 4. Update Lead Record if leadId is given
+  if (input.leadId) {
+    try {
+      await (supabaseAdmin as any)
+        .from("platform_crm_leads")
+        .update({
+          clinic_name: clinicName,
+          specialty: specialization,
+          phone,
+          updated_at: nowIso,
+        })
+        .eq("id", input.leadId);
+    } catch {}
+  }
+
+  const liveUrl = `${getBaseAppUrl()}/c/${slug}`;
+  return {
+    ok: true,
+    slug,
+    url: liveUrl,
+    clinic: mergedClinic,
   };
 }

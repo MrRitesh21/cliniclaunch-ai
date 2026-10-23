@@ -180,6 +180,8 @@ function loadCrmServer(behavior) {
           del: async (key) => {
             (behavior.redisDels = behavior.redisDels || []).push(key);
           },
+          set: async () => {},
+          get: async () => null,
         },
       };
     }

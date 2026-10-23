@@ -310,3 +310,71 @@ export const mergeCrmLeads = createServerFn({ method: "POST" })
     const { mergeCrmLeadsImpl } = await import("./crm.server");
     return mergeCrmLeadsImpl(data);
   });
+
+/**
+ * Admin: Fetch full website configuration for a doctor/clinic slug
+ */
+export const getClinicWebsiteConfig = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      slug: z.string(),
+      leadId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { getClinicWebsiteConfigImpl } = await import("./crm.server");
+    return getClinicWebsiteConfigImpl(data);
+  });
+
+/**
+ * Admin: Update website theme, template, content, services & lead popup
+ */
+export const updateClinicWebsiteConfig = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      slug: z.string(),
+      leadId: z.string().optional(),
+      doctor_name: z.string().optional(),
+      clinic_name: z.string().optional(),
+      specialization: z.string().optional(),
+      qualification: z.string().optional(),
+      experience_years: z.number().optional(),
+      consultation_fee: z.number().optional(),
+      phone: z.string().optional(),
+      address: z.string().optional(),
+      theme_color: z.string().optional(),
+      template: z.string().optional(),
+      hero_headline: z.string().optional(),
+      hero_subheadline: z.string().optional(),
+      about_text: z.string().optional(),
+      services: z
+        .array(
+          z.object({
+            name: z.string(),
+            price: z.number(),
+            duration: z.number().optional(),
+            description: z.string().optional(),
+          }),
+        )
+        .optional(),
+      lead_popup: z
+        .object({
+          enabled: z.boolean(),
+          offer: z.string().optional(),
+          headline: z.string().optional(),
+          subtext: z.string().optional(),
+          ctaLabel: z.string().optional(),
+          delaySeconds: z.number().optional(),
+          showFloatingButton: z.boolean().optional(),
+          floatingLabel: z.string().optional(),
+        })
+        .optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { updateClinicWebsiteConfigImpl } = await import("./crm.server");
+    return updateClinicWebsiteConfigImpl(data);
+  });
+
