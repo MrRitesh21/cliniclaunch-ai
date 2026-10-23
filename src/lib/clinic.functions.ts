@@ -88,13 +88,10 @@ export async function requirePublishedClinic(sb: Awaited<ReturnType<typeof admin
     .select("id, organization_id")
     .eq("id", clinicId).eq("is_published", true).is("suspended_at", null).maybeSingle();
   if (error || !clinic) {
-    try {
-      const { getDynamicClinicById } = await import("./crm.server");
-      const dyn = getDynamicClinicById(clinicId);
-      if (dyn) {
-        return { id: dyn.id, organization_id: dyn.organization_id || "dyn-org" };
-      }
-    } catch {}
+    // Never mint a synthetic organization for booking flows: public writes must
+    // only ever bind to a real, published clinic row. A missing row means the
+    // clinic was never actually provisioned — fail honestly so the 1-click
+    // setup's fail-closed verification surfaces the provisioning error instead.
     throw new Error("This clinic is not available for public requests.");
   }
   return clinic;

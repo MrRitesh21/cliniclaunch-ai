@@ -90,7 +90,32 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
 };
 
 export function strList(v: unknown): string[] {
-  return Array.isArray(v) ? (v as string[]).filter((x) => typeof x === "string") : [];
+  if (!v) return [];
+  if (typeof v === "string") {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) return strList(parsed);
+    } catch {
+      return v
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        if (typeof obj.name === "string" && obj.name.trim()) return obj.name.trim();
+        if (typeof obj.title === "string" && obj.title.trim()) return obj.title.trim();
+        if (typeof obj.label === "string" && obj.label.trim()) return obj.label.trim();
+        if (typeof obj.url === "string" && obj.url.trim()) return obj.url.trim();
+      }
+      return "";
+    })
+    .filter(Boolean);
 }
 
 export type VariantOption = {

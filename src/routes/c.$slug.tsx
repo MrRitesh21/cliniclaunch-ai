@@ -94,14 +94,34 @@ export const Route = createFileRoute("/c/$slug")({
       </div>
     </div>
   ),
-  errorComponent: (_props: ErrorComponentProps) => (
-    <div className="min-h-screen grid place-items-center text-center px-4">
-      <div>
-        <h1 className="font-display text-2xl">Couldn't load this clinic</h1>
-        <p className="text-muted-foreground mt-2 text-sm">We could not load this page. Please try again.</p>
+  errorComponent: ({ error, reset }: ErrorComponentProps) => {
+    if (typeof window !== "undefined") {
+      console.error("[ClinicLayout] Error loading clinic route:", error);
+    }
+    const errObj = error as any;
+    return (
+      <div className="min-h-screen grid place-items-center text-center px-4 bg-background">
+        <div className="max-w-md space-y-4">
+          <h1 className="font-display text-2xl font-bold">Couldn't load this clinic</h1>
+          <p className="text-muted-foreground text-sm">
+            {errObj?.message && errObj.message !== "Failed to fetch"
+              ? errObj.message
+              : "We could not load this clinic page. Please try again."}
+          </p>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <Button variant="default" size="sm" onClick={() => reset()}>
+              Try again
+            </Button>
+            <Link to="/">
+              <Button variant="outline" size="sm">
+                Go home
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
-    </div>
-  ),
+    );
+  },
 });
 
 function ClinicLayout() {

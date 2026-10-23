@@ -366,16 +366,52 @@ export function getSpecialtyClinicProfile(opts: {
     };
   }
 
-  // 8. Speech, Hearing & ENT Care
+  // 8. Physiotherapy & Physical Rehabilitation
+  if (
+    spec.includes("physio") ||
+    spec.includes("rehab") ||
+    clinic.toLowerCase().includes("physio") ||
+    clinic.toLowerCase().includes("rehab")
+  ) {
+    return {
+      qualification: "BPT, MPT (Orthopedics & Sports Physiotherapy)",
+      experience_years: 12,
+      consultation_fee: 500,
+      theme_color: "#0891b2",
+      template: "modern",
+      hero_headline: "Advanced Physiotherapy & Pain Rehabilitation",
+      hero_subheadline: `Personalized physical therapy, spine care, joint mobilization, and post-operative rehabilitation by ${doc} at ${clinic}.`,
+      about_text: `${clinic} is a specialized physiotherapy and pain rehabilitation clinic in ${city} headed by ${doc}. We provide evidence-based manual therapy, electrotherapy, spinal decompression, sports injury recovery, and stroke neuro-rehabilitation to restore mobility and help you live pain-free.`,
+      services: [
+        "Spine & Back Pain Physical Therapy",
+        "Knee & Joint Arthritis Rehabilitation",
+        "Post-Surgical Orthopedic Recovery",
+        "Sports Injury & Muscle Sprain Care",
+        "Paralysis & Neuro Rehabilitation",
+        "Ergonomic & Posture Correction Therapy",
+      ],
+      faqs: [
+        { q: "How many physiotherapy sessions will I need?", a: "Most acute pain conditions improve within 4 to 6 sessions. A customized recovery plan is created during your initial evaluation." },
+        { q: "What should I wear for physical therapy?", a: "Comfortable, loose-fitting clothing that allows easy movement of the affected joints is recommended." },
+        { q: "Is prior orthopedic doctor referral required?", a: "No prior referral is needed. You can consult directly with our physiotherapists for assessment and treatment." },
+      ],
+      sample_reviews: [
+        { name: "Suresh Chandra", rating: 5, comment: "I had severe cervical spondylosis pain. After 5 sessions of therapy, I am completely pain-free." },
+        { name: "Meenakshi Joshi", rating: 5, comment: "Very gentle and experienced therapist. Clean clinic and excellent attention to exercise form." },
+      ],
+      business_type: "clinic",
+    };
+  }
+
+  // 9. Speech, Hearing & ENT Care
   if (
     spec.includes("hearing") ||
     spec.includes("speech") ||
-    spec.includes("ear") ||
-    spec.includes("ent") ||
+    spec.includes("audiolog") ||
+    /\b(ent|ear)\b/i.test(spec) ||
     clinic.toLowerCase().includes("speech") ||
     clinic.toLowerCase().includes("hearing") ||
-    clinic.toLowerCase().includes("ear") ||
-    clinic.toLowerCase().includes("ent")
+    /\b(ent|ear)\b/i.test(clinic)
   ) {
     return {
       qualification: "MBBS, MS (ENT), MASLP (Audiology & Speech)",
@@ -619,9 +655,16 @@ export function parseClinicSlugToDetails(slug: string): {
   }
 
   let detectedSpecialty = "General Physician & Family Medicine";
-  if (cleanSlug.includes("naturopath") || cleanSlug.includes("ayurved")) {
+  if (cleanSlug.includes("physio") || cleanSlug.includes("rehab")) {
+    detectedSpecialty = "Physiotherapy & Rehabilitation Care";
+  } else if (cleanSlug.includes("naturopath") || cleanSlug.includes("ayurved")) {
     detectedSpecialty = "Naturopathy & Holistic Wellness";
-  } else if (cleanSlug.includes("hearing") || cleanSlug.includes("speech") || cleanSlug.includes("ear") || cleanSlug.includes("ent")) {
+  } else if (
+    cleanSlug.includes("hearing") ||
+    cleanSlug.includes("speech") ||
+    cleanSlug.includes("audiolog") ||
+    /(^|-)(ent|ear)($|-)/.test(cleanSlug)
+  ) {
     detectedSpecialty = "Speech, Hearing & ENT Care";
   } else if (cleanSlug.includes("diag") || cleanSlug.includes("pathol") || cleanSlug.includes("lab")) {
     detectedSpecialty = "Pathology & Diagnostic Healthcare";
@@ -633,10 +676,12 @@ export function parseClinicSlugToDetails(slug: string): {
     detectedSpecialty = "Advanced Dental Care & Orthodontics";
   } else if (cleanSlug.includes("cardio") || cleanSlug.includes("heart")) {
     detectedSpecialty = "Cardiology & Preventive Heart Care";
-  } else if (cleanSlug.includes("ortho") || cleanSlug.includes("bone")) {
+  } else if (cleanSlug.includes("ortho") || cleanSlug.includes("bone") || cleanSlug.includes("joint") || cleanSlug.includes("spine")) {
     detectedSpecialty = "Orthopedics & Joint Care";
   } else if (cleanSlug.includes("pediat") || cleanSlug.includes("child")) {
     detectedSpecialty = "Pediatrics & Child Care";
+  } else if (cleanSlug.includes("gyne") || cleanSlug.includes("gynae") || cleanSlug.includes("women")) {
+    detectedSpecialty = "Gynecology & Women's Health";
   }
 
   const addressNoise = new Set(["h", "d", "98", "sector", "i", "ii", "iii", "main", "rd", "sec", "opp", "near", "colony"]);
@@ -912,6 +957,7 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   clinicName: string;
   specialty: string;
   isExisting?: boolean;
+  warnings?: string[];
 }> {
   // Step 1: Fetch lead record
   let lead: any = null;
@@ -995,9 +1041,12 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   const nowIso = new Date().toISOString();
   const trialEndIso = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
 
-  // Step 4: Insert Organization
-  try {
-    await (supabaseAdmin as any).from("organizations").insert({
+  // Step 4: Insert Organization (FAIL-CLOSED: the clinic FK and every downstream
+  // row depends on this insert — a rejected org insert must abort the setup with
+  // the real database error instead of silently returning a broken URL).
+  const orgInsert = await (supabaseAdmin as any)
+    .from("organizations")
+    .insert({
       id: orgId,
       name: clinicName,
       slug: uniqueSlug,
@@ -1008,8 +1057,12 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
       public_address: `${city}, India`,
       primary_color: profile.theme_color,
     });
-  } catch (err) {
-    console.warn("[Clinic Setup] Org insert warning:", err);
+  if (orgInsert?.error) {
+    throw new Error(
+      `Clinic setup failed — organization insert rejected: ${orgInsert.error.message}` +
+        (orgInsert.error.details ? ` (${orgInsert.error.details})` : "") +
+        (orgInsert.error.hint ? ` — hint: ${orgInsert.error.hint}` : ""),
+    );
   }
 
   // Step 5: Insert Published Clinic
@@ -1023,8 +1076,7 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     sunday: { start: "10:00", end: "14:00", enabled: false },
   };
 
-  try {
-    await (supabaseAdmin as any).from("clinics").insert({
+  const clinicInsert = await (supabaseAdmin as any).from("clinics").insert({
       id: clinicId,
       organization_id: orgId,
       slug: uniqueSlug,
@@ -1067,13 +1119,45 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
       walkin_weekends_enabled: true,
       walkin_slot_minutes: 30,
     });
-  } catch (err) {
-    console.warn("[Clinic Setup] Clinic insert warning:", err);
+  if (clinicInsert?.error) {
+    throw new Error(
+      `Clinic setup failed — website insert rejected: ${clinicInsert.error.message}` +
+        (clinicInsert.error.details ? ` (${clinicInsert.error.details})` : "") +
+        (clinicInsert.error.hint ? ` — hint: ${clinicInsert.error.hint}` : ""),
+    );
   }
 
-  // Step 6: Insert Doctor record
+  // Step 6: Provision Growth Plan Trial Subscription (14 days free trial).
+  // Runs BEFORE doctor/modules/reviews so entitlement write-guards (when the
+  // clinicx entitlement migrations are applied) see an active 'trialing' state.
+  // Shape notes: access_source='free_trial' is what clinicx_effective_state
+  // checks; trial_started_at stays NULL so the 720-hour CHECK constraint passes
+  // while the 14-day product trial window is preserved exactly.
+  const setupWarnings: string[] = [];
   try {
-    await (supabaseAdmin as any).from("doctors").insert({
+    const subId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `sub_${Date.now()}`;
+    const subInsert = await (supabaseAdmin as any).from("subscriptions").insert({
+      id: subId,
+      organization_id: orgId,
+      plan_id: "growth",
+      status: "trialing",
+      access_source: "free_trial",
+      billing_cycle: "monthly",
+      current_period_start: nowIso,
+      current_period_end: trialEndIso,
+      trial_ends_at: trialEndIso,
+    });
+    if (subInsert?.error) {
+      setupWarnings.push(`subscription: ${subInsert.error.message}`);
+      console.warn("[Clinic Setup] Subscription insert warning:", subInsert.error.message);
+    }
+  } catch (err: any) {
+    setupWarnings.push(`subscription: ${err?.message || String(err)}`);
+  }
+
+  // Step 7: Insert Doctor record (non-critical — surfaced as a warning)
+  try {
+    const doctorInsert = await (supabaseAdmin as any).from("doctors").insert({
       id: doctorId,
       organization_id: orgId,
       clinic_id: clinicId,
@@ -1087,11 +1171,15 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
       sort_order: 0,
       working_hours: workingHours,
     });
-  } catch (err) {
-    console.warn("[Clinic Setup] Doctor insert warning:", err);
+    if (doctorInsert?.error) {
+      setupWarnings.push(`doctor: ${doctorInsert.error.message}`);
+      console.warn("[Clinic Setup] Doctor insert warning:", doctorInsert.error.message);
+    }
+  } catch (err: any) {
+    setupWarnings.push(`doctor: ${err?.message || String(err)}`);
   }
 
-  // Step 7: Install Core Organization Modules
+  // Step 8: Install Core Organization Modules (non-critical — surfaced as a warning)
   const coreModules = [
     "website_builder",
     "appointments",
@@ -1104,33 +1192,24 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     "analytics",
   ];
   try {
-    await (supabaseAdmin as any).from("organization_modules").insert(
+    const modulesInsert = await (supabaseAdmin as any).from("organization_modules").insert(
       coreModules.map((m) => ({
         organization_id: orgId,
         module_id: m,
-      }))
+      })),
     );
-  } catch {}
+    if (modulesInsert?.error) {
+      setupWarnings.push(`modules: ${modulesInsert.error.message}`);
+      console.warn("[Clinic Setup] Modules insert warning:", modulesInsert.error.message);
+    }
+  } catch (err: any) {
+    setupWarnings.push(`modules: ${err?.message || String(err)}`);
+  }
 
-  // Step 8: Provision Growth Plan Trial Subscription (14 days free trial)
-  try {
-    const subId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `sub_${Date.now()}`;
-    await (supabaseAdmin as any).from("subscriptions").insert({
-      id: subId,
-      organization_id: orgId,
-      plan_id: "growth",
-      status: "trialing",
-      billing_cycle: "monthly",
-      current_period_start: nowIso,
-      current_period_end: trialEndIso,
-      trial_ends_at: trialEndIso,
-    });
-  } catch {}
-
-  // Step 9: Insert Sample Verified Reviews
+  // Step 9: Insert Sample Verified Reviews (non-critical — surfaced as a warning)
   if (profile.sample_reviews?.length) {
     try {
-      await (supabaseAdmin as any).from("reviews").insert(
+      const reviewsInsert = await (supabaseAdmin as any).from("reviews").insert(
         profile.sample_reviews.map((r) => ({
           organization_id: orgId,
           clinic_id: clinicId,
@@ -1139,9 +1218,34 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
           comment: r.comment,
           status: "approved",
           source: "platform_verified",
-        }))
+        })),
       );
-    } catch {}
+      if (reviewsInsert?.error) {
+        setupWarnings.push(`reviews: ${reviewsInsert.error.message}`);
+        console.warn("[Clinic Setup] Reviews insert warning:", reviewsInsert.error.message);
+      }
+    } catch (err: any) {
+      setupWarnings.push(`reviews: ${err?.message || String(err)}`);
+    }
+  }
+
+  // Step 9.5: READ-BACK VERIFICATION (fail-closed).
+  // The public URL is only handed out if the clinic row is actually queryable —
+  // this makes silent insert failures impossible: any rejected write above now
+  // surfaces to the CRM toast / server logs instead of producing a 404 link.
+  const verify = await (supabaseAdmin as any)
+    .from("clinics")
+    .select("id, slug, is_published")
+    .eq("slug", uniqueSlug)
+    .maybeSingle();
+  if (verify?.error) {
+    throw new Error(`Clinic setup verification failed: ${verify.error.message}`);
+  }
+  if (!verify?.data) {
+    throw new Error(
+      `Clinic setup verification failed — the website row for /c/${uniqueSlug} was not found after insert` +
+        (setupWarnings.length ? ` (warnings: ${setupWarnings.join(" | ")})` : ""),
+    );
   }
 
   // Step 10: Update CRM Lead Record with Live Website URL
@@ -1264,7 +1368,10 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     }
   } catch {}
 
-  console.log(`[Clinic Setup] ⚡ Successfully created complete clinic website for ${docName} (${clinicName}) at ${liveUrl}`);
+  console.log(
+    `[Clinic Setup] ⚡ Verified live clinic website for ${docName} (${clinicName}) at ${liveUrl}` +
+      (setupWarnings.length ? ` — warnings: ${setupWarnings.join(" | ")}` : ""),
+  );
 
   return {
     ok: true,
@@ -1277,6 +1384,7 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     clinicName,
     specialty,
     isExisting: false,
+    warnings: setupWarnings,
   };
 }
 

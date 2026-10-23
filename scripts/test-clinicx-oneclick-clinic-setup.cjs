@@ -106,10 +106,27 @@ function makeSupabaseAdmin(resolve) {
  */
 function makeResolver(behavior) {
   return function resolve(state) {
-    if (state.op === "insert" || state.op === "upsert") {
+    if (state.op === 'insert' || state.op === 'upsert') {
       (behavior.inserts = behavior.inserts || []).push(state);
-      if (state.table === "platform_crm_leads") {
-        const row = { ...state.rows[0], id: behavior.nextLeadId || "lead-db-1" };
+      // Failure fixtures for the fail-closed contract tests
+      if (state.table === 'organizations' && behavior.failOrgInsert) {
+        return { data: null, error: { message: behavior.failOrgInsert, details: null, hint: null, code: '23502' } };
+      }
+      if (state.table === 'clinics' && behavior.failClinicInsert) {
+        return { data: null, error: { message: behavior.failClinicInsert, details: null, hint: null, code: '23503' } };
+      }
+      if (state.table === 'doctors' && behavior.failDoctorInsert) {
+        return { data: null, error: { message: behavior.failDoctorInsert, details: null, hint: null } };
+      }
+      // Echo clinic rows back so the post-insert read-back verification finds them
+      if (state.table === 'clinics') {
+        behavior.clinicsBySlug = behavior.clinicsBySlug || {};
+        for (const row of state.rows) {
+          if (row && row.slug) behavior.clinicsBySlug[row.slug] = row;
+        }
+      }
+      if (state.table === 'platform_crm_leads') {
+        const row = { ...state.rows[0], id: behavior.nextLeadId || 'lead-db-1' };
         behavior.leadsById = behavior.leadsById || {};
         behavior.leadsById[row.id] = row;
         return { data: row, error: null };
@@ -133,6 +150,9 @@ function makeResolver(behavior) {
     if (state.table === "clinics" || state.table === "organizations") {
       const slugFilter = state.filters.find((f) => f.t === "eq" && f.col === "slug");
       if (slugFilter) {
+        if (state.table === "clinics" && behavior.failReadback) {
+          return { data: null, error: null };
+        }
         if (
           state.table === "clinics" &&
           behavior.clinicsBySlug &&
@@ -440,13 +460,24 @@ test("1-click setup provisions the complete clinic workspace from a fresh lead",
     "modules bound to the new organization",
   );
 
-  // 14-day Growth trial
+  // 14-day Growth free trial, provisioned BEFORE doctor/modules/reviews so
+  // entitlement write-guards see a trialing organization, with the
+  // CHECK-compatible shape (access_source free_trial, no trial_started_at).
   const subInserts = insertCalls(sb, "subscriptions");
   assert.equal(subInserts.length, 1);
   const sub = subInserts[0].rows[0];
   assert.equal(sub.organization_id, res.organizationId);
   assert.equal(sub.plan_id, "growth");
   assert.equal(sub.status, "trialing");
+  assert.equal(sub.access_source, "free_trial", "trial must grant the free_trial entitlement state");
+  assert.equal(sub.trial_started_at, undefined, "no trial_started_at: 720-hour CHECK stays satisfied");
+  const orderOf = (table) => sb.calls.findIndex((c) => c.table === table && c.op === "insert");
+  assert.ok(
+    orderOf("subscriptions") < orderOf("doctors") &&
+      orderOf("subscriptions") < orderOf("organization_modules") &&
+      orderOf("subscriptions") < orderOf("reviews"),
+    "subscription must be provisioned before doctor/modules/reviews inserts",
+  );
   const trialDays =
     (new Date(sub.trial_ends_at).getTime() - new Date(sub.current_period_start).getTime()) /
     86400000;
@@ -454,6 +485,7 @@ test("1-click setup provisions the complete clinic workspace from a fresh lead",
     trialDays >= 13.9 && trialDays <= 14.1,
     `trial must be ~14 days (got ${trialDays.toFixed(2)})`,
   );
+  assert.equal(res.warnings.length, 0, "clean provisioning reports no warnings");
 
   // Verified reviews
   const reviewInserts = insertCalls(sb, "reviews");
@@ -526,6 +558,123 @@ test("1-click setup is idempotent — existing live site is refreshed, not dupli
     clinicUpdates[0].filters.some(
       (f) => f.t === "eq" && f.col === "id" && f.val === "cln-existing",
     ),
+  );
+});
+
+test("1-click setup throws the real database error when the organization insert is rejected", async () => {
+  // Regression for the production incident: the organizations AFTER INSERT
+  // trigger add_creator_as_owner used to raise a NOT NULL violation for
+  // service-role writes, which the old code swallowed while still returning a
+  // "live" URL that rendered as "Clinic not found".
+  const behavior = freshBehavior({
+    leadFixture: {
+      id: "lead-f1",
+      name: "Dr. Anil Arora",
+      phone: "+919876543210",
+      clinic_name: "Arora Heart Clinic",
+      city: "Jaipur",
+      specialty: "Cardiologist",
+      custom_demo_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    failOrgInsert: 'null value in column "user_id" of relation "organization_members" violates not-null constraint',
+  });
+  const { mod, sb } = loadCrmServer(behavior);
+
+  await assert.rejects(
+    () => mod.setupCompleteClinicFromLeadImpl({ leadId: "lead-f1" }),
+    /organization insert rejected.*user_id/,
+    "the trigger error must surface, not vanish",
+  );
+  // No clinic row, no lead updated with a broken URL
+  assert.equal(insertCalls(sb, "clinics").length, 0);
+  assert.equal(
+    updateCalls(sb, "platform_crm_leads").filter((u) => u.patch && u.patch.custom_demo_url).length,
+    0,
+    "the lead must not be updated with a URL when provisioning failed",
+  );
+});
+
+test("1-click setup throws when the website (clinics) insert is rejected", async () => {
+  const behavior = freshBehavior({
+    leadFixture: {
+      id: "lead-f2",
+      name: "Dr. Anil Arora",
+      phone: "+919876543210",
+      clinic_name: "Arora Heart Clinic",
+      city: "Jaipur",
+      specialty: "Cardiologist",
+      custom_demo_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    failClinicInsert: 'insert or update on table "clinics" violates foreign key constraint',
+  });
+  const { mod, sb } = loadCrmServer(behavior);
+
+  await assert.rejects(
+    () => mod.setupCompleteClinicFromLeadImpl({ leadId: "lead-f2" }),
+    /website insert rejected.*foreign key/,
+  );
+  assert.equal(
+    updateCalls(sb, "platform_crm_leads").filter((u) => u.patch && u.patch.custom_demo_url).length,
+    0,
+  );
+});
+
+test("1-click setup throws when the post-insert read-back cannot find the published website row", async () => {
+  const behavior = freshBehavior({
+    leadFixture: {
+      id: "lead-f3",
+      name: "Dr. Anil Arora",
+      phone: "+919876543210",
+      clinic_name: "Arora Heart Clinic",
+      city: "Jaipur",
+      specialty: "Cardiologist",
+      custom_demo_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    failReadback: true,
+  });
+  const { mod, sb } = loadCrmServer(behavior);
+
+  await assert.rejects(
+    () => mod.setupCompleteClinicFromLeadImpl({ leadId: "lead-f3" }),
+    /verification failed.*was not found after insert/,
+  );
+  assert.equal(
+    updateCalls(sb, "platform_crm_leads").filter((u) => u.patch && u.patch.custom_demo_url).length,
+    0,
+    "no URL may be handed out for an unverified website row",
+  );
+});
+
+test("non-critical provisioning failures are reported as warnings, not broken websites", async () => {
+  const behavior = freshBehavior({
+    leadFixture: {
+      id: "lead-f4",
+      name: "Dr. Anil Arora",
+      phone: "+919876543210",
+      clinic_name: "Arora Heart Clinic",
+      city: "Jaipur",
+      specialty: "Cardiologist",
+      custom_demo_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    failDoctorInsert: "Doctor limit reached",
+  });
+  const { mod } = loadCrmServer(behavior);
+
+  const res = await mod.setupCompleteClinicFromLeadImpl({ leadId: "lead-f4" });
+
+  assert.equal(res.ok, true);
+  assert.equal(res.url, `${APP_URL}/c/arora-heart-clinic-jaipur`);
+  assert.ok(
+    (res.warnings || []).some((w) => w.includes("doctor: Doctor limit reached")),
+    "the doctor warning must be surfaced in the result",
   );
 });
 
