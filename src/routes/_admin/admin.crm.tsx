@@ -896,7 +896,7 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
     }
     setIsSavingEdit(true);
     try {
-      await updateFn({
+      const updated = await updateFn({
         data: {
           id: editingLead.id,
           name: editForm.name.trim(),
@@ -910,10 +910,15 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
           status: editForm.status as any,
         },
       });
+      if (!updated) {
+        throw new Error("Lead update could not be saved to database");
+      }
       toast.success("Doctor lead details updated!");
       setIsEditModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["admin-crm-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-crm-stats"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-crm-leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-crm-stats"] }),
+      ]);
     } catch (err: any) {
       toast.error(err.message || "Failed to update lead");
     } finally {
@@ -2033,6 +2038,7 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                     <SelectItem value="demo_sent">Demo Sent</SelectItem>
                     <SelectItem value="followup_1">Follow-up 1</SelectItem>
                     <SelectItem value="followup_2">Follow-up 2</SelectItem>
+                    <SelectItem value="in_conversation">In Conversation 💬</SelectItem>
                     <SelectItem value="converted">Converted 🏆</SelectItem>
                     <SelectItem value="lost">Lost</SelectItem>
                   </SelectContent>

@@ -261,10 +261,19 @@ test("cleanDoctorName normalizes doctor names safely", () => {
   assert.equal(mod.cleanDoctorName("Anil Arora"), "Dr. Anil Arora");
   assert.equal(mod.cleanDoctorName("Dr. Anil Arora"), "Dr. Anil Arora");
   assert.equal(mod.cleanDoctorName("Dr Meera Rao"), "Dr Meera Rao");
+  assert.equal(mod.cleanDoctorName("dr. anil arora"), "Dr. anil arora");
   assert.equal(mod.cleanDoctorName("😀 Rahul"), "Dr. Rahul");
   assert.equal(mod.cleanDoctorName(""), "Dr. Partner");
   assert.equal(mod.cleanDoctorName("शिव सदा सहायते"), "Dr. Partner");
   assert.equal(mod.cleanDoctorName("महादेव कृपा"), "Dr. Partner");
+  assert.equal(
+    mod.cleanDoctorName("Ear to Brain Speech & Hearing Clinic"),
+    "Dr. Ear to Brain Speech & Hearing Clinic",
+  );
+  assert.equal(
+    mod.cleanDoctorName("Dr. Mohammad Arfeen Khan MBBS"),
+    "Dr. Mohammad Arfeen Khan MBBS",
+  );
 });
 
 test("normalizeIndianPhone and isLidPhone handle Indian + LID numbers", () => {

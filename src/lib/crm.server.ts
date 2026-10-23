@@ -65,20 +65,28 @@ export function cleanDoctorName(rawName?: string | null): string {
       /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
       "",
     )
+    .replace(/\s+/g, " ")
     .trim();
 
-  // Filter out status slogans, religious quotes, or non-name emojis/exclamations
+  // Filter out status slogans, religious quotes, or empty strings
   if (
     !clean ||
     clean.length < 2 ||
     clean.includes("सहायते") ||
-    clean.includes("महादेव") ||
-    clean.split(/\s+/).length > 4
+    clean.includes("महादेव")
   ) {
     return "Dr. Partner";
   }
 
-  return clean.startsWith("Dr.") || clean.startsWith("Dr ") ? clean : `Dr. ${clean}`;
+  if (/^dr[\.\s:]+/i.test(clean)) {
+    if (clean.startsWith("Dr.") || clean.startsWith("Dr ")) {
+      return clean;
+    }
+    const rest = clean.replace(/^dr[\.\s:]+/i, "").trim();
+    return rest.length > 0 ? `Dr. ${rest}` : "Dr. Partner";
+  }
+
+  return `Dr. ${clean}`;
 }
 
 export function normalizeIndianPhone(input: string): string {
@@ -2085,18 +2093,57 @@ export async function updateCrmLeadImpl(input: {
   if (input.next_followup_at !== undefined) updates.next_followup_at = input.next_followup_at;
   if (input.autonomous_enabled !== undefined) updates.autonomous_enabled = input.autonomous_enabled;
   if (input.whatsapp_lid !== undefined) updates.whatsapp_lid = input.whatsapp_lid;
-  if (input.last_reply_at !== undefined) updates.last_reply_at = input.last_reply_at;
-  if (input.last_reply_message !== undefined) updates.last_reply_message = input.last_reply_message;
-  if (input.next_followup_at !== undefined) updates.next_followup_at = input.next_followup_at;
-  if (input.autonomous_enabled !== undefined) updates.autonomous_enabled = input.autonomous_enabled;
 
-  if (input.name || input.clinic_name || input.specialty || input.city) {
+  // Retrieve existing lead to check current website link and details
+  let existingLead: any = null;
+  try {
+    const { data } = await (supabaseAdmin as any)
+      .from("platform_crm_leads")
+      .select("id, custom_demo_url, name, clinic_name, specialty, city")
+      .eq("id", input.id)
+      .maybeSingle();
+    existingLead = data;
+  } catch {}
+
+  const currentUrl = existingLead?.custom_demo_url;
+  const isLiveClinicUrl = currentUrl && currentUrl.includes("/c/") && !currentUrl.includes("/c/demo?");
+
+  if (!isLiveClinicUrl && (input.name || input.clinic_name || input.specialty || input.city)) {
     updates.custom_demo_url = buildDemoUrl({
-      doctorName: input.name,
-      clinicName: input.clinic_name,
-      specialty: input.specialty,
-      city: input.city,
+      doctorName: updates.name || existingLead?.name || input.name,
+      clinicName: updates.clinic_name !== undefined ? updates.clinic_name : existingLead?.clinic_name,
+      specialty: updates.specialty !== undefined ? updates.specialty : existingLead?.specialty,
+      city: updates.city !== undefined ? updates.city : existingLead?.city,
     });
+  }
+
+  // If lead already has a live website published, keep the clinic record in sync
+  if (isLiveClinicUrl && (updates.name || updates.clinic_name || updates.specialty || updates.phone)) {
+    const slugMatch = currentUrl.match(/\/c\/([a-z0-9-]+)/i);
+    if (slugMatch && slugMatch[1]) {
+      const slug = slugMatch[1];
+      try {
+        const clinicUpdates: Record<string, any> = { updated_at: updates.updated_at };
+        if (updates.name) clinicUpdates.doctor_name = updates.name;
+        if (updates.clinic_name) clinicUpdates.clinic_name = updates.clinic_name;
+        if (updates.specialty) clinicUpdates.specialization = updates.specialty;
+        if (updates.phone) {
+          clinicUpdates.phone = updates.phone;
+          clinicUpdates.public_phone = updates.phone;
+        }
+        await (supabaseAdmin as any)
+          .from("clinics")
+          .update(clinicUpdates)
+          .eq("slug", slug);
+
+        const cached = MEMORY_CLINIC_CACHE.get(slug);
+        if (cached) {
+          MEMORY_CLINIC_CACHE.set(slug, { ...cached, ...clinicUpdates });
+        }
+      } catch (err) {
+        console.warn("[CRM] Warning syncing clinic details:", err);
+      }
+    }
   }
 
   try {
@@ -2107,18 +2154,25 @@ export async function updateCrmLeadImpl(input: {
       .select()
       .maybeSingle();
 
-    if (!error && data) {
+    if (error) {
+      console.error("[CRM] Database error updating lead:", error);
+      throw new Error(`Failed to update doctor lead in database: ${error.message}`);
+    }
+
+    if (data) {
       return data as unknown as CrmLead;
     }
-  } catch {}
-
-  // Fallback update
-  const existing = await readFallbackLeads();
-  const idx = existing.findIndex((l) => l.id === input.id);
-  if (idx !== -1) {
-    existing[idx] = { ...existing[idx], ...updates };
-    await writeFallbackLeads(existing);
-    return existing[idx];
+  } catch (err: any) {
+    console.warn("[CRM] Postgres update error/fallback:", err?.message || err);
+    // Fallback update
+    const existing = await readFallbackLeads();
+    const idx = existing.findIndex((l) => l.id === input.id);
+    if (idx !== -1) {
+      existing[idx] = { ...existing[idx], ...updates };
+      await writeFallbackLeads(existing);
+      return existing[idx];
+    }
+    throw err;
   }
   return null;
 }
@@ -2893,22 +2947,27 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
     console.warn("[updateClinicWebsiteConfigImpl] Postgres update warning:", err);
   }
 
+  const liveUrl = `${getBaseAppUrl()}/c/${slug}`;
+
   // 4. Update Lead Record if leadId is given
   if (input.leadId) {
     try {
       await (supabaseAdmin as any)
         .from("platform_crm_leads")
         .update({
+          name: docName,
           clinic_name: clinicName,
           specialty: specialization,
           phone,
+          custom_demo_url: liveUrl,
           updated_at: nowIso,
         })
         .eq("id", input.leadId);
-    } catch {}
+    } catch (err) {
+      console.warn("[updateClinicWebsiteConfigImpl] Warning updating lead record:", err);
+    }
   }
 
-  const liveUrl = `${getBaseAppUrl()}/c/${slug}`;
   return {
     ok: true,
     slug,
