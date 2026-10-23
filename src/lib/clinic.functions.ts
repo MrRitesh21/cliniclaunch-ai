@@ -23,7 +23,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { serverEnv } from "./env.server";
 
 import { redisCache } from "./redis";
-import { publicPhoneSchema, publicNameSchema, publicTimestampSchema } from "./public-form-validation";
+import {
+  publicPhoneSchema,
+  publicNameSchema,
+  publicTimestampSchema,
+} from "./public-form-validation";
 
 /** Creates an anonymous (publishable-key) Supabase client for public booking operations. */
 function serverClient() {
@@ -47,7 +51,15 @@ async function scheduleWhatsAppAutomation(opts: {
   templateKey: "followup" | "review_request";
   scheduledFor: Date;
 }) {
-  const { sb, organizationId, appointmentId, patientName, patientPhone, templateKey, scheduledFor } = opts;
+  const {
+    sb,
+    organizationId,
+    appointmentId,
+    patientName,
+    patientPhone,
+    templateKey,
+    scheduledFor,
+  } = opts;
   const { data: existing } = await sb
     .from("whatsapp_logs")
     .select("id")
@@ -83,10 +95,17 @@ export async function adminClient() {
 /** Public writes use a service-role client: mirror public authority before any
  * patient reads/writes. Never infer publication from a caller-supplied clinic ID.
  */
-export async function requirePublishedClinic(sb: Awaited<ReturnType<typeof adminClient>>, clinicId: string) {
-  const { data: clinic, error } = await sb.from("clinics")
+export async function requirePublishedClinic(
+  sb: Awaited<ReturnType<typeof adminClient>>,
+  clinicId: string,
+) {
+  const { data: clinic, error } = await sb
+    .from("clinics")
     .select("id, organization_id")
-    .eq("id", clinicId).eq("is_published", true).is("suspended_at", null).maybeSingle();
+    .eq("id", clinicId)
+    .eq("is_published", true)
+    .is("suspended_at", null)
+    .maybeSingle();
   if (error || !clinic) {
     // Never mint a synthetic organization for booking flows: public writes must
     // only ever bind to a real, published clinic row. A missing row means the
@@ -97,9 +116,18 @@ export async function requirePublishedClinic(sb: Awaited<ReturnType<typeof admin
   return clinic;
 }
 
-async function requirePublicDoctor(sb: Awaited<ReturnType<typeof adminClient>>, clinicId: string, orgId: string | null, doctorId?: string | null) {
+async function requirePublicDoctor(
+  sb: Awaited<ReturnType<typeof adminClient>>,
+  clinicId: string,
+  orgId: string | null,
+  doctorId?: string | null,
+) {
   if (!doctorId) return null; // Legacy clinic-wide booking is supported.
-  let query = sb.from("doctors").select("id, working_hours").eq("id", doctorId).eq("is_active", true);
+  let query = sb
+    .from("doctors")
+    .select("id, working_hours")
+    .eq("id", doctorId)
+    .eq("is_active", true);
   // Existing public catalog is organization-wide (including branch doctors).
   // Legacy unlinked clinics must match the doctor's clinic exactly.
   query = orgId ? query.eq("organization_id", orgId) : query.eq("clinic_id", clinicId);
@@ -110,11 +138,13 @@ async function requirePublicDoctor(sb: Awaited<ReturnType<typeof adminClient>>, 
 
 export const getClinicBySlug = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
-    z.object({
-      slug: z.string().min(1).max(100),
-      preview_token: z.string().max(128).optional(),
-      allow_preview: z.boolean().optional(),
-    }).parse(input),
+    z
+      .object({
+        slug: z.string().min(1).max(100),
+        preview_token: z.string().max(128).optional(),
+        allow_preview: z.boolean().optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }) => {
     // Skip Redis cache for preview requests or template preview
@@ -131,7 +161,9 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
   // Project only public-safe columns. NEVER expose personal_phone / personal_email.
   const { data: clinic, error } = await sb
     .from("clinics")
-    .select("id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no, lead_popup")
+    .select(
+      "id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no, lead_popup",
+    )
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -155,10 +187,30 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
         consultation_fee: 500,
         bio: "Senior consultant with 12+ years clinical experience in managing chronic diseases, hypertension, diabetes, and family medicine.",
         services: [
-          { name: "General Consultation", price: 500, duration: 15, description: "Detailed clinical examination & diagnosis" },
-          { name: "ECG & Cardiac Screening", price: 750, duration: 20, description: "Instant 12-lead cardiac assessment" },
-          { name: "Diabetes & Sugar Management", price: 400, duration: 15, description: "Blood sugar review & medication plan" },
-          { name: "Follow-up OPD Visit", price: 300, duration: 15, description: "Progress check and Rx refill" },
+          {
+            name: "General Consultation",
+            price: 500,
+            duration: 15,
+            description: "Detailed clinical examination & diagnosis",
+          },
+          {
+            name: "ECG & Cardiac Screening",
+            price: 750,
+            duration: 20,
+            description: "Instant 12-lead cardiac assessment",
+          },
+          {
+            name: "Diabetes & Sugar Management",
+            price: 400,
+            duration: 15,
+            description: "Blood sugar review & medication plan",
+          },
+          {
+            name: "Follow-up OPD Visit",
+            price: 300,
+            duration: 15,
+            description: "Progress check and Rx refill",
+          },
         ],
         working_hours: {
           monday: { start: "10:00", end: "19:00", enabled: true },
@@ -169,13 +221,16 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
           saturday: { start: "10:00", end: "16:00", enabled: true },
           sunday: { start: "10:00", end: "13:00", enabled: false },
         },
-        avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        avatar_url:
+          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
         logo_url: null,
         gallery: [],
         theme_color: "#059669",
         hero_headline: "Compassionate, World-Class Healthcare for Your Family",
-        hero_subheadline: "Book instant appointments on WhatsApp or consult in-person with zero wait time.",
-        about_text: "City Health Care is a state-of-the-art modern clinic equipped with electronic prescriptions, 24/7 WhatsApp assistance, and rapid digital queueing.",
+        hero_subheadline:
+          "Book instant appointments on WhatsApp or consult in-person with zero wait time.",
+        about_text:
+          "City Health Care is a state-of-the-art modern clinic equipped with electronic prescriptions, 24/7 WhatsApp assistance, and rapid digital queueing.",
         custom_domain: null,
         template: "modern",
         section_variants: {},
@@ -196,8 +251,19 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
         installed_modules: ["whatsapp", "opd", "crm", "prescriptions"],
         active_doctors: [],
         db_reviews: [
-          { patient_name: "Anita Saxena", rating: 5, comment: "Doctor explains everything so patiently. WhatsApp appointment booking was super smooth!", created_at: new Date().toISOString() },
-          { patient_name: "Vikas Mehra", rating: 5, comment: "Zero waiting time at clinic. Best experience in town.", created_at: new Date().toISOString() },
+          {
+            patient_name: "Anita Saxena",
+            rating: 5,
+            comment:
+              "Doctor explains everything so patiently. WhatsApp appointment booking was super smooth!",
+            created_at: new Date().toISOString(),
+          },
+          {
+            patient_name: "Vikas Mehra",
+            rating: 5,
+            comment: "Zero waiting time at clinic. Best experience in town.",
+            created_at: new Date().toISOString(),
+          },
         ],
       };
     }
@@ -225,14 +291,18 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
   const doctorQuery = clinic.organization_id
     ? sb
         .from("doctors")
-        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order, is_active")
+        .select(
+          "id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order, is_active",
+        )
         .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
         .neq("is_active", false)
         .order("sort_order")
         .order("created_at")
     : sb
         .from("doctors")
-        .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order, is_active")
+        .select(
+          "id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order, is_active",
+        )
         .eq("clinic_id", clinic.id)
         .neq("is_active", false)
         .order("sort_order")
@@ -274,7 +344,9 @@ export const getClinicDoctors = createServerFn({ method: "POST" })
 
     const { data: doctors, error } = await sb
       .from("doctors")
-      .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order")
+      .select(
+        "id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, sort_order",
+      )
       .eq("organization_id", data.organization_id)
       .eq("is_active", true)
       .order("sort_order")
@@ -283,9 +355,6 @@ export const getClinicDoctors = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return doctors ?? [];
   });
-
-
-
 
 /**
  * Onboarding helper: returns an available organization slug derived from `base`,
@@ -299,7 +368,11 @@ export const resolveAvailableOrgSlug = createServerFn({ method: "GET" })
     let slug = data.base;
     let i = 1;
     while (i < 1000) {
-      const { data: ex } = await sb.from("organizations").select("id").eq("slug", slug).maybeSingle();
+      const { data: ex } = await sb
+        .from("organizations")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
       if (!ex) break;
       i++;
       slug = `${data.base}-${i}`;
@@ -340,22 +413,24 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
 
 export const submitPublicReview = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
-    z.object({
-      organization_id: z.string().uuid(),
-      clinic_id: z.string().uuid().nullable().optional(),
-      reviewer_name: z.string().trim().min(1).max(100),
-      reviewer_email: z.string().trim().email().max(200).or(z.literal("")).nullable().optional(),
-      reviewer_phone: z.string().trim().max(30).nullable().optional(),
-      rating: z.number().int().min(1).max(5),
-      comment: z.string().trim().max(2000).nullable().optional(),
-    }).parse(input)
+    z
+      .object({
+        organization_id: z.string().uuid(),
+        clinic_id: z.string().uuid().nullable().optional(),
+        reviewer_name: z.string().trim().min(1).max(100),
+        reviewer_email: z.string().trim().email().max(200).or(z.literal("")).nullable().optional(),
+        reviewer_phone: z.string().trim().max(30).nullable().optional(),
+        rating: z.number().int().min(1).max(5),
+        comment: z.string().trim().max(2000).nullable().optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }) => {
     const sb = await adminClient();
 
     // Check if reviewer phone matches an appointment for Verified Patient badge
     let isVerified = false;
-    let category = "general";
+    const category = "general";
     if (data.reviewer_phone) {
       const cleanPhone = data.reviewer_phone.replace(/[^\d]/g, "").slice(-10);
       if (cleanPhone.length === 10) {
@@ -393,7 +468,7 @@ export const submitPublicReview = createServerFn({ method: "POST" })
           patient_name: data.reviewer_name,
           patient_phone: data.reviewer_phone || "",
           template_key: "negative_feedback_alert",
-          message: `⚠️ URGENT RECOVERY ALERT: ${data.reviewer_name} submitted a ${data.rating}★ rating. Comment: "${data.comment || 'No comment'}". Call patient to resolve: ${data.reviewer_phone || 'N/A'}`,
+          message: `⚠️ URGENT RECOVERY ALERT: ${data.reviewer_name} submitted a ${data.rating}★ rating. Comment: "${data.comment || "No comment"}". Call patient to resolve: ${data.reviewer_phone || "N/A"}`,
           status: "pending",
         });
       } catch {}
@@ -410,17 +485,25 @@ export const submitPublicReview = createServerFn({ method: "POST" })
       if (clinicRow?.owner_id) {
         const { sendPushToUser } = await import("./web-push.server");
         const isUrgent = data.rating < 3;
-        await sendPushToUser(clinicRow.owner_id, {
-          title: isUrgent ? `⚠️ Urgent Feedback: ${data.rating}★ from ${data.reviewer_name}` : `⭐ New Review: ${data.rating}★ from ${data.reviewer_name}`,
-          body: data.comment ? `"${data.comment.slice(0, 80)}"` : `Patient submitted a ${data.rating}-star rating`,
-          icon: "/icon-512.png",
-          badge: "/icon-512.png",
-          url: "/dashboard/reviews",
-          tag: `review-${data.reviewer_name.slice(0, 10)}`,
-        }, {
-          category: "review",
-          inbox: true,
-        }).catch(() => {});
+        await sendPushToUser(
+          clinicRow.owner_id,
+          {
+            title: isUrgent
+              ? `⚠️ Urgent Feedback: ${data.rating}★ from ${data.reviewer_name}`
+              : `⭐ New Review: ${data.rating}★ from ${data.reviewer_name}`,
+            body: data.comment
+              ? `"${data.comment.slice(0, 80)}"`
+              : `Patient submitted a ${data.rating}-star rating`,
+            icon: "/icon-512.png",
+            badge: "/icon-512.png",
+            url: "/dashboard/reviews",
+            tag: `review-${data.reviewer_name.slice(0, 10)}`,
+          },
+          {
+            category: "review",
+            inbox: true,
+          },
+        ).catch(() => {});
       }
     } catch {}
 
@@ -437,8 +520,10 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     const sb = await adminClient();
     const { data: clinic } = await sb
       .from("clinics")
-      .select("id, slug, doctor_name, specialization, qualification, clinic_name, bio, public_phone, phone, public_email, email, public_address, address, avatar_url, logo_url, gallery, custom_domain, working_hours, consultation_fee")
-      .eq("slug", data.slug)
+      .select(
+        "id, slug, doctor_name, specialization, qualification, clinic_name, bio, public_phone, phone, public_email, email, public_address, address, avatar_url, logo_url, gallery, custom_domain, working_hours, consultation_fee",
+      )
+      .eq("slug", data.slug);
     let targetClinic: any = clinic;
     if (!targetClinic) {
       try {
@@ -464,8 +549,11 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     const phone = targetClinic.public_phone || targetClinic.phone || null;
     const email = targetClinic.public_email || targetClinic.email || null;
     const address = targetClinic.public_address || targetClinic.address || null;
-    const image = targetClinic.avatar_url || targetClinic.logo_url ||
-      (Array.isArray(targetClinic.gallery) ? (targetClinic.gallery as string[])[0] : undefined) || null;
+    const image =
+      targetClinic.avatar_url ||
+      targetClinic.logo_url ||
+      (Array.isArray(targetClinic.gallery) ? (targetClinic.gallery as string[])[0] : undefined) ||
+      null;
 
     const url = targetClinic.custom_domain
       ? `https://${targetClinic.custom_domain}`
@@ -490,21 +578,30 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     // Structure the opening hours for OpeningHoursSpecification schema
     let openingHours: any[] | undefined = undefined;
     try {
-      const wh = typeof targetClinic.working_hours === "string" 
-        ? JSON.parse(targetClinic.working_hours) 
-        : (targetClinic.working_hours as any);
+      const wh =
+        typeof targetClinic.working_hours === "string"
+          ? JSON.parse(targetClinic.working_hours)
+          : (targetClinic.working_hours as any);
       if (wh && typeof wh === "object" && wh.start && wh.end && Array.isArray(wh.days)) {
         const dayMap: Record<number, string> = {
-          1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 0: "Sunday"
+          1: "Monday",
+          2: "Tuesday",
+          3: "Wednesday",
+          4: "Thursday",
+          5: "Friday",
+          6: "Saturday",
+          0: "Sunday",
         };
         const days = wh.days.map((d: number) => dayMap[d]).filter(Boolean);
         if (days.length) {
-          openingHours = [{
-            "@type": "OpeningHoursSpecification",
-            dayOfWeek: days,
-            opens: wh.start,
-            closes: wh.end
-          }];
+          openingHours = [
+            {
+              "@type": "OpeningHoursSpecification",
+              dayOfWeek: days,
+              opens: wh.start,
+              closes: wh.end,
+            },
+          ];
         }
       }
     } catch (e) {
@@ -552,18 +649,17 @@ export const getClinicPublicSchema = createServerFn({ method: "GET" })
     };
   });
 
-
-
-
-
-
 export const getBookedSlots = createServerFn({ method: "GET" })
-  .validator((input: unknown) => z.object({
-    clinic_id: z.string().uuid(),
-    from: z.string(),
-    to: z.string(),
-    doctor_id: z.string().uuid().nullable().optional(),
-  }).parse(input))
+  .validator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        from: z.string(),
+        to: z.string(),
+        doctor_id: z.string().uuid().nullable().optional(),
+      })
+      .parse(input),
+  )
   .handler(async ({ data }) => {
     // Availability is the single hottest read on the public site. A 20s Redis
     // cache collapses thousands of concurrent viewers of the same clinic/day
@@ -625,7 +721,6 @@ export const createBooking = createServerFn({ method: "POST" })
     await enforcePolicy("booking_ip", `${data.clinic_id}:${await callerIp()}`);
     await enforcePolicy("booking_phone", `${data.clinic_id}:${data.patient_phone}`);
 
-
     const sb = await adminClient();
     const clinicRow = await requirePublishedClinic(sb, data.clinic_id);
     const orgId = clinicRow.organization_id ?? null;
@@ -649,7 +744,12 @@ export const createBooking = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (duplicateAppt) {
-      const timeStr = duplicateAppt.scheduled_at ? new Date(duplicateAppt.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "an unspecified time";
+      const timeStr = duplicateAppt.scheduled_at
+        ? new Date(duplicateAppt.scheduled_at).toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "an unspecified time";
       throw new Error(`An appointment already exists for this phone number today at ${timeStr}.`);
     }
 
@@ -657,26 +757,39 @@ export const createBooking = createServerFn({ method: "POST" })
     if (data.source === "walkin") {
       const { data: rules } = await sb
         .from("clinics")
-        .select("walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes")
+        .select(
+          "walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes",
+        )
         .eq("id", data.clinic_id)
         .maybeSingle();
       const r = rules as {
-        walkin_max_per_slot?: number; walkin_start_time?: string;
-        walkin_end_time?: string; walkin_weekends_enabled?: boolean;
+        walkin_max_per_slot?: number;
+        walkin_start_time?: string;
+        walkin_end_time?: string;
+        walkin_weekends_enabled?: boolean;
         walkin_slot_minutes?: number;
       } | null;
       if (r) {
         const at = new Date(data.scheduled_at);
-        const dayName = at.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", weekday: "short" });
+        const dayName = at.toLocaleDateString("en-US", {
+          timeZone: "Asia/Kolkata",
+          weekday: "short",
+        });
         if ((dayName === "Sat" || dayName === "Sun") && !r.walkin_weekends_enabled) {
           throw new Error("Walk-ins are not available on weekends.");
         }
         const timeStr = at.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour12: false });
         const [lh, lm] = timeStr.split(":").map(Number);
         const mins = lh * 60 + (lm || 0);
-        const toMins = (t?: string) => { if (!t) return 0; const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
+        const toMins = (t?: string) => {
+          if (!t) return 0;
+          const [h, m] = t.split(":").map(Number);
+          return h * 60 + (m || 0);
+        };
         if (mins < toMins(r.walkin_start_time) || mins >= toMins(r.walkin_end_time)) {
-          throw new Error(`Walk-ins only between ${r.walkin_start_time?.slice(0,5)} and ${r.walkin_end_time?.slice(0,5)}.`);
+          throw new Error(
+            `Walk-ins only between ${r.walkin_start_time?.slice(0, 5)} and ${r.walkin_end_time?.slice(0, 5)}.`,
+          );
         }
         const max = r.walkin_max_per_slot ?? 3;
         let cq = sb
@@ -720,7 +833,7 @@ export const createBooking = createServerFn({ method: "POST" })
         throw new Error(
           maxPatients > 1
             ? `This slot is fully booked (${maxPatients} of ${maxPatients} spots taken). Please choose another time.`
-            : "This time slot was just taken. Please pick another."
+            : "This time slot was just taken. Please pick another.",
         );
       }
     }
@@ -767,9 +880,13 @@ export const createBooking = createServerFn({ method: "POST" })
     // Queue Token Auto-Sync for today's offline/walk-in appointments
     try {
       if (orgId && (data.appointment_type === "offline" || data.source === "walkin")) {
-        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-        const apptDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(data.scheduled_at));
-        
+        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+          new Date(),
+        );
+        const apptDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+          new Date(data.scheduled_at),
+        );
+
         if (apptDateStr === todayStr) {
           const { data: maxToken } = await sb
             .from("queue_tokens")
@@ -790,7 +907,11 @@ export const createBooking = createServerFn({ method: "POST" })
             patient_phone: data.patient_phone,
             status: "waiting",
             priority: data.source === "walkin",
-            note: data.problem ? `${data.source === "walkin" ? "Walk-in" : "Appointment"}: ${data.problem.slice(0, 40)}` : data.source === "walkin" ? "QR Walk-in" : "Booked Appointment",
+            note: data.problem
+              ? `${data.source === "walkin" ? "Walk-in" : "Appointment"}: ${data.problem.slice(0, 40)}`
+              : data.source === "walkin"
+                ? "QR Walk-in"
+                : "Booked Appointment",
           });
         }
       }
@@ -823,11 +944,20 @@ export const createBooking = createServerFn({ method: "POST" })
           .select("personal_phone, phone, doctor_name, clinic_name")
           .eq("id", data.clinic_id)
           .maybeSingle();
-        const c = clinic as { personal_phone?: string | null; phone?: string | null; doctor_name?: string | null; clinic_name?: string | null } | null;
+        const c = clinic as {
+          personal_phone?: string | null;
+          phone?: string | null;
+          doctor_name?: string | null;
+          clinic_name?: string | null;
+        } | null;
         const doctorPhone = c?.personal_phone || c?.phone || null;
         const dt = new Date(data.scheduled_at);
         const date = dt.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
-        const time = dt.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
+        const time = dt.toLocaleTimeString("en-US", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
 
         const isWalkin = data.source === "walkin";
         const doctorTemplate = isWalkin ? "walkin_doctor_alert" : "appointment_alert";
@@ -837,7 +967,8 @@ export const createBooking = createServerFn({ method: "POST" })
         if (doctorPhone) {
           tasks.push(
             notifyClinicEvent({
-              sb, clinicId: data.clinic_id,
+              sb,
+              clinicId: data.clinic_id,
               templateKey: doctorTemplate,
               recipientPhone: doctorPhone,
               recipientName: c?.doctor_name ?? null,
@@ -845,18 +976,20 @@ export const createBooking = createServerFn({ method: "POST" })
               variables: {
                 patient_name: data.patient_name,
                 patient_phone: data.patient_phone,
-                date, time,
+                date,
+                time,
                 appointment_type: data.appointment_type,
                 problem: data.problem,
               },
-            }).catch(() => {})
+            }).catch(() => {}),
           );
         }
 
         if (isWalkin && data.patient_phone) {
           tasks.push(
             notifyClinicEvent({
-              sb, clinicId: data.clinic_id,
+              sb,
+              clinicId: data.clinic_id,
               templateKey: "walkin_confirmation",
               recipientPhone: data.patient_phone,
               recipientName: data.patient_name,
@@ -865,14 +998,16 @@ export const createBooking = createServerFn({ method: "POST" })
                 patient_name: data.patient_name,
                 clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
                 doctor_name: c?.doctor_name ?? "",
-                time, date,
+                time,
+                date,
               },
-            }).catch(() => {})
+            }).catch(() => {}),
           );
         } else if (data.patient_phone) {
           tasks.push(
             notifyClinicEvent({
-              sb, clinicId: data.clinic_id,
+              sb,
+              clinicId: data.clinic_id,
               templateKey: "appointment_received",
               recipientPhone: data.patient_phone,
               recipientName: data.patient_name,
@@ -881,9 +1016,10 @@ export const createBooking = createServerFn({ method: "POST" })
                 patient_name: data.patient_name,
                 clinic_name: c?.clinic_name ?? c?.doctor_name ?? "the clinic",
                 doctor_name: c?.doctor_name ?? "your doctor",
-                time, date,
+                time,
+                date,
               },
-            }).catch(() => {})
+            }).catch(() => {}),
           );
         }
 
@@ -895,27 +1031,38 @@ export const createBooking = createServerFn({ method: "POST" })
               .select("owner_id")
               .eq("id", data.clinic_id)
               .maybeSingle()
-              .then(async ({ data: clinicOwner }: { data: any }) => {
-                if (clinicOwner?.owner_id) {
-                  const { sendPushToUser } = await import("./web-push.server");
-                  await sendPushToUser(clinicOwner.owner_id, {
-                    title: isWalkin ? `🏥 Walk-in Check-in: ${data.patient_name}` : `📅 New Booking: ${data.patient_name}`,
-                    body: `${data.appointment_type === "online" ? "Video Consultation" : "In-Clinic"} · ${date} at ${time}${data.problem ? ` · ${data.problem.slice(0, 50)}` : ""}`,
-                    icon: "/icon-512.png",
-                    badge: "/icon-512.png",
-                    url: `/dashboard/appointments`,
-                    tag: `appt-${appt.id}`,
-                  }, {
-                    category: "booking",
-                    inbox: true,
-                  }).catch(() => {});
-                }
-              }, () => {})
+              .then(
+                async ({ data: clinicOwner }: { data: any }) => {
+                  if (clinicOwner?.owner_id) {
+                    const { sendPushToUser } = await import("./web-push.server");
+                    await sendPushToUser(
+                      clinicOwner.owner_id,
+                      {
+                        title: isWalkin
+                          ? `🏥 Walk-in Check-in: ${data.patient_name}`
+                          : `📅 New Booking: ${data.patient_name}`,
+                        body: `${data.appointment_type === "online" ? "Video Consultation" : "In-Clinic"} · ${date} at ${time}${data.problem ? ` · ${data.problem.slice(0, 50)}` : ""}`,
+                        icon: "/icon-512.png",
+                        badge: "/icon-512.png",
+                        url: `/dashboard/appointments`,
+                        tag: `appt-${appt.id}`,
+                      },
+                      {
+                        category: "booking",
+                        inbox: true,
+                      },
+                    ).catch(() => {});
+                  }
+                },
+                () => {},
+              ),
           );
         }
 
         await Promise.allSettled(tasks);
-      } catch { /* swallow */ }
+      } catch {
+        /* swallow */
+      }
     })();
 
     return appt;
@@ -934,7 +1081,9 @@ export const getConsultAppointment = createServerFn({ method: "GET" })
     const sb = await adminClient();
     const { data: appt, error } = await sb
       .from("appointments")
-      .select("id, patient_name, scheduled_at, clinics!appointments_clinic_id_fkey(doctor_name, clinic_name)")
+      .select(
+        "id, patient_name, scheduled_at, clinics!appointments_clinic_id_fkey(doctor_name, clinic_name)",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -943,23 +1092,32 @@ export const getConsultAppointment = createServerFn({ method: "GET" })
 
 export const updateAppointmentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({
-    id: z.string().uuid(),
-    status: z.enum([
-      "pending",
-      "confirmed",
-      "checked_in",
-      "waiting",
-      "serving",
-      "in_consultation",
-      "completed",
-      "cancelled",
-      "no_show",
-    ]),
-  }).parse(input))
+  .validator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum([
+          "pending",
+          "confirmed",
+          "checked_in",
+          "waiting",
+          "serving",
+          "in_consultation",
+          "completed",
+          "cancelled",
+          "no_show",
+        ]),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    const dbStatus = data.status === "in_consultation" ? "serving" : data.status === "checked_in" ? "waiting" : data.status;
+    const dbStatus =
+      data.status === "in_consultation"
+        ? "serving"
+        : data.status === "checked_in"
+          ? "waiting"
+          : data.status;
     const { data: appt, error } = await sb
       .from("appointments")
       .update({ status: dbStatus })
@@ -970,14 +1128,18 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
       // Un-cancelling into a slot that was rebooked in the meantime trips
       // appointments_slot_uq — the slot genuinely is taken.
       if (error.code === "23505") {
-        throw new Error("That slot has already been rebooked. Reschedule this appointment instead.");
+        throw new Error(
+          "That slot has already been rebooked. Reschedule this appointment instead.",
+        );
       }
       throw new Error(error.message);
     }
 
     // Auto-update queue token status when appointment changes
     try {
-      const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+      const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+        new Date(),
+      );
       if (data.status === "completed") {
         await sb
           .from("queue_tokens")
@@ -1007,25 +1169,30 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
           .eq("queue_date", todayStr)
           .eq("patient_name", appt.patient_name);
       }
-    } catch { /* best effort */ }
+    } catch {
+      /* best effort */
+    }
 
     const clinic = (appt as any).clinics;
     if (clinic) {
       const { notifyClinicEvent } = await import("./notify.server");
-      const scheduledAt = typeof appt.scheduled_at === "string" ? appt.scheduled_at : new Date().toISOString();
+      const scheduledAt =
+        typeof appt.scheduled_at === "string" ? appt.scheduled_at : new Date().toISOString();
       const when = new Date(scheduledAt);
       const date = when.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
-      const time = when.toLocaleTimeString("en-US", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
-      
+      const time = when.toLocaleTimeString("en-US", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
       let triggerKey: string | null = null;
       if (data.status === "confirmed") triggerKey = "appointment_confirmed";
 
       if (triggerKey && appt.patient_phone) {
         const origin = appOrigin();
-        const consultUrl = appt.appointment_type === "online"
-          ? `${origin}/consult/${appt.id}`
-          : "";
-        
+        const consultUrl = appt.appointment_type === "online" ? `${origin}/consult/${appt.id}` : "";
+
         const consultInfo = consultUrl
           ? `Join your video consultation here: ${consultUrl}\n\n`
           : "";
@@ -1040,7 +1207,8 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
           variables: {
             patient_name: appt.patient_name,
             doctor_name: clinic.doctor_name ?? "your doctor",
-            date, time,
+            date,
+            time,
             clinic_link: clinic.slug ? `${origin}/c/${clinic.slug}` : "",
             consult_info: consultInfo,
             consult_link: consultUrl,
@@ -1077,11 +1245,13 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 export const createAndInviteStaff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({
-      email: z.string().email(),
-      role: z.enum(["doctor", "staff", "admin", "owner"]),
-      fullName: z.string().min(1),
-    }).parse(input),
+    z
+      .object({
+        email: z.string().email(),
+        role: z.enum(["doctor", "staff", "admin", "owner"]),
+        fullName: z.string().min(1),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const userClient = context.supabase;
@@ -1121,7 +1291,6 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
     const { randomBytes } = await import("node:crypto");
     const tempPassword = "Temp@" + randomBytes(18).toString("base64url") + "9";
 
-
     // 4. Create user in Supabase Auth Admin
     let userId: string;
     let isNewUser = false;
@@ -1146,15 +1315,17 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
       ) {
         const { data: listData, error: listError } = await sb.auth.admin.listUsers({
           page: 1,
-          perPage: 1000
+          perPage: 1000,
         });
         if (listError) throw new Error(listError.message);
 
         const existingUser = listData.users.find(
-          (u: any) => u.email?.toLowerCase() === data.email.trim().toLowerCase()
+          (u: any) => u.email?.toLowerCase() === data.email.trim().toLowerCase(),
         );
         if (!existingUser) {
-          throw new Error(`User exists but could not be retrieved from list: ${createError.message}`);
+          throw new Error(
+            `User exists but could not be retrieved from list: ${createError.message}`,
+          );
         }
         userId = existingUser.id;
       } else {
@@ -1193,14 +1364,18 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
       inviteToken = (existingInvite as any).token;
     } else {
       // 6. Track invite history as pending
-      const { data: invRow, error: invErr } = await sb.from("organization_invites" as any).insert({
-        organization_id: orgId,
-        email: data.email.trim().toLowerCase(),
-        role: data.role,
-        invited_by: context.userId,
-        accepted_at: null,
-        expires_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
-      }).select("token").single();
+      const { data: invRow, error: invErr } = await sb
+        .from("organization_invites" as any)
+        .insert({
+          organization_id: orgId,
+          email: data.email.trim().toLowerCase(),
+          role: data.role,
+          invited_by: context.userId,
+          accepted_at: null,
+          expires_at: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+        })
+        .select("token")
+        .single();
 
       if (invErr || !invRow) {
         throw new Error(invErr?.message ?? "Failed to create organization invite");
@@ -1292,7 +1467,9 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
         console.error("Failed to send invitation email via Lovable Gateway:", emailErr);
       }
     } else {
-      console.warn("Neither RESEND_API_KEY nor LOVABLE_API_KEY are configured. Skipping email sending.");
+      console.warn(
+        "Neither RESEND_API_KEY nor LOVABLE_API_KEY are configured. Skipping email sending.",
+      );
     }
 
     return {
@@ -1300,7 +1477,6 @@ export const createAndInviteStaff = createServerFn({ method: "POST" })
       isNewUser,
       email: data.email.trim().toLowerCase(),
       tempPassword: isNewUser ? tempPassword : null,
-      token: inviteToken
+      token: inviteToken,
     };
   });
-

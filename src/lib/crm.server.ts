@@ -59,11 +59,11 @@ export function isLidPhone(input: string | null | undefined): boolean {
 
 export function cleanDoctorName(rawName?: string | null): string {
   if (!rawName) return "Dr. Partner";
-  let clean = rawName
+  const clean = rawName
     .replace(/^[!\s'"\-—~]+|[!\s'"\-—~]+$/g, "")
     .replace(
       /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
-      ""
+      "",
     )
     .trim();
 
@@ -138,7 +138,12 @@ export function getSpecialtyClinicProfile(opts: {
   const clinic = opts.clinicName;
 
   // 1. Dermatology & Cosmetology
-  if (spec.includes("derma") || spec.includes("skin") || spec.includes("hair") || spec.includes("cosmet")) {
+  if (
+    spec.includes("derma") ||
+    spec.includes("skin") ||
+    spec.includes("hair") ||
+    spec.includes("cosmet")
+  ) {
     return {
       qualification: "MBBS, MD (Dermatology, Venereology & Leprosy)",
       experience_years: 12,
@@ -157,21 +162,47 @@ export function getSpecialtyClinicProfile(opts: {
         "Pediatric & Geriatric Dermatology Consultation",
       ],
       faqs: [
-        { q: "How do I book an appointment?", a: `You can book instantly online via this portal or through WhatsApp. A confirmed token is issued immediately.` },
-        { q: "What is the consultation fee?", a: `The consultation fee is ₹700 at ${clinic}. Follow-up visits within 14 days are ₹350.` },
-        { q: "Do you treat hair thinning and scalp issues?", a: "Yes, comprehensive hair dermoscopy, PRP therapy, and personalized prescription plans are provided." },
-        { q: "Are same-day walk-in slots available?", a: "Yes, patients can scan the QR code standee at the reception to get an instant live walk-in token." },
+        {
+          q: "How do I book an appointment?",
+          a: `You can book instantly online via this portal or through WhatsApp. A confirmed token is issued immediately.`,
+        },
+        {
+          q: "What is the consultation fee?",
+          a: `The consultation fee is ₹700 at ${clinic}. Follow-up visits within 14 days are ₹350.`,
+        },
+        {
+          q: "Do you treat hair thinning and scalp issues?",
+          a: "Yes, comprehensive hair dermoscopy, PRP therapy, and personalized prescription plans are provided.",
+        },
+        {
+          q: "Are same-day walk-in slots available?",
+          a: "Yes, patients can scan the QR code standee at the reception to get an instant live walk-in token.",
+        },
       ],
       sample_reviews: [
-        { name: "Priya Saxena", rating: 5, comment: "Doctor took time to understand my skin history. WhatsApp prescription and booking is super convenient!" },
-        { name: "Rahul Verma", rating: 5, comment: "Pimples reduced significantly in 3 weeks. Very clean and modern clinic." },
+        {
+          name: "Priya Saxena",
+          rating: 5,
+          comment:
+            "Doctor took time to understand my skin history. WhatsApp prescription and booking is super convenient!",
+        },
+        {
+          name: "Rahul Verma",
+          rating: 5,
+          comment: "Pimples reduced significantly in 3 weeks. Very clean and modern clinic.",
+        },
       ],
       business_type: "clinic",
     };
   }
 
   // 2. Dentistry / Dental Care
-  if (spec.includes("dent") || spec.includes("tooth") || spec.includes("teeth") || spec.includes("orthodont")) {
+  if (
+    spec.includes("dent") ||
+    spec.includes("tooth") ||
+    spec.includes("teeth") ||
+    spec.includes("orthodont")
+  ) {
     return {
       qualification: "BDS, MDS (Conservative Dentistry & Endodontics)",
       experience_years: 11,
@@ -190,13 +221,30 @@ export function getSpecialtyClinicProfile(opts: {
         "Tooth Extraction & Pediatric Dental Care",
       ],
       faqs: [
-        { q: "Is Root Canal Treatment painful?", a: "Not at all. We utilize modern rotary endodontics and local anaesthetics for a virtually painless procedure." },
-        { q: "How frequently should teeth cleaning be done?", a: "We recommend a routine scaling and polishing every 6 months to maintain optimal gum health." },
-        { q: "Can I book a same-day appointment on WhatsApp?", a: "Yes, WhatsApp booking gives you an instant confirmed token with estimated chair time." },
+        {
+          q: "Is Root Canal Treatment painful?",
+          a: "Not at all. We utilize modern rotary endodontics and local anaesthetics for a virtually painless procedure.",
+        },
+        {
+          q: "How frequently should teeth cleaning be done?",
+          a: "We recommend a routine scaling and polishing every 6 months to maintain optimal gum health.",
+        },
+        {
+          q: "Can I book a same-day appointment on WhatsApp?",
+          a: "Yes, WhatsApp booking gives you an instant confirmed token with estimated chair time.",
+        },
       ],
       sample_reviews: [
-        { name: "Amit Joshi", rating: 5, comment: "Had my wisdom tooth removed without any pain. Best dentist experience ever!" },
-        { name: "Sneha Roy", rating: 5, comment: "Clinic is high-tech and WhatsApp queue updates saved me from waiting." },
+        {
+          name: "Amit Joshi",
+          rating: 5,
+          comment: "Had my wisdom tooth removed without any pain. Best dentist experience ever!",
+        },
+        {
+          name: "Sneha Roy",
+          rating: 5,
+          comment: "Clinic is high-tech and WhatsApp queue updates saved me from waiting.",
+        },
       ],
       business_type: "dentist",
     };
@@ -222,12 +270,28 @@ export function getSpecialtyClinicProfile(opts: {
         "Post-Angioplasty / Bypass Cardiac Rehabilitation",
       ],
       faqs: [
-        { q: "Do you have ECG facilities at the clinic?", a: "Yes, instant 12-lead digital ECG is conducted and reviewed on the spot during consultation." },
-        { q: "What should I bring for my first cardiology visit?", a: "Please bring any recent blood reports, previous ECGs, and a list of current medications." },
+        {
+          q: "Do you have ECG facilities at the clinic?",
+          a: "Yes, instant 12-lead digital ECG is conducted and reviewed on the spot during consultation.",
+        },
+        {
+          q: "What should I bring for my first cardiology visit?",
+          a: "Please bring any recent blood reports, previous ECGs, and a list of current medications.",
+        },
       ],
       sample_reviews: [
-        { name: "Suresh Nambiar", rating: 5, comment: "Very thorough examination and honest guidance. Doctor does not prescribe unnecessary tests." },
-        { name: "Meenakshi Sundaram", rating: 5, comment: "Father's BP is well controlled now. WhatsApp reminders for follow-up are very helpful." },
+        {
+          name: "Suresh Nambiar",
+          rating: 5,
+          comment:
+            "Very thorough examination and honest guidance. Doctor does not prescribe unnecessary tests.",
+        },
+        {
+          name: "Meenakshi Sundaram",
+          rating: 5,
+          comment:
+            "Father's BP is well controlled now. WhatsApp reminders for follow-up are very helpful.",
+        },
       ],
       business_type: "doctor",
     };
@@ -253,19 +317,40 @@ export function getSpecialtyClinicProfile(opts: {
         "School Health Screening & General OPD",
       ],
       faqs: [
-        { q: "Are all mandatory childhood vaccines available?", a: "Yes, we stock government and IAP-recommended vaccines with strict cold-chain monitoring." },
-        { q: "Do you take emergency consultations for high fever?", a: "Yes, priority walk-in tokens are provided for children with high fever or breathing distress." },
+        {
+          q: "Are all mandatory childhood vaccines available?",
+          a: "Yes, we stock government and IAP-recommended vaccines with strict cold-chain monitoring.",
+        },
+        {
+          q: "Do you take emergency consultations for high fever?",
+          a: "Yes, priority walk-in tokens are provided for children with high fever or breathing distress.",
+        },
       ],
       sample_reviews: [
-        { name: "Kavita Rao", rating: 5, comment: "My 3-year-old was totally comfortable. Doctor is gentle and explains every medicine clearly." },
-        { name: "Deepak Sharma", rating: 5, comment: "Great clinic with zero rush. WhatsApp prescription makes buying medicines easy." },
+        {
+          name: "Kavita Rao",
+          rating: 5,
+          comment:
+            "My 3-year-old was totally comfortable. Doctor is gentle and explains every medicine clearly.",
+        },
+        {
+          name: "Deepak Sharma",
+          rating: 5,
+          comment:
+            "Great clinic with zero rush. WhatsApp prescription makes buying medicines easy.",
+        },
       ],
       business_type: "doctor",
     };
   }
 
   // 5. Orthopedics / Bone & Joint
-  if (spec.includes("ortho") || spec.includes("bone") || spec.includes("joint") || spec.includes("spine")) {
+  if (
+    spec.includes("ortho") ||
+    spec.includes("bone") ||
+    spec.includes("joint") ||
+    spec.includes("spine")
+  ) {
     return {
       qualification: "MBBS, MS (Orthopaedics), DNB",
       experience_years: 14,
@@ -284,19 +369,40 @@ export function getSpecialtyClinicProfile(opts: {
         "Ergonomics & Posture Correction Guidance",
       ],
       faqs: [
-        { q: "Do you offer non-surgical treatments for knee pain?", a: "Yes, physiotherapy protocols, intra-articular injections, and lifestyle management are prioritized before considering surgery." },
-        { q: "How do I consult for acute back pain?", a: "You can book a priority slot online or walk in directly for an ergonomic assessment and pain management plan." },
+        {
+          q: "Do you offer non-surgical treatments for knee pain?",
+          a: "Yes, physiotherapy protocols, intra-articular injections, and lifestyle management are prioritized before considering surgery.",
+        },
+        {
+          q: "How do I consult for acute back pain?",
+          a: "You can book a priority slot online or walk in directly for an ergonomic assessment and pain management plan.",
+        },
       ],
       sample_reviews: [
-        { name: "Rajendra Prasad", rating: 5, comment: "Suffered from severe knee pain for months. Within 2 weeks of treatment, I can walk comfortably again." },
-        { name: "Alok Gupta", rating: 5, comment: "Accurate diagnosis and excellent advice. WhatsApp digital tokens make the clinic visit effortless." },
+        {
+          name: "Rajendra Prasad",
+          rating: 5,
+          comment:
+            "Suffered from severe knee pain for months. Within 2 weeks of treatment, I can walk comfortably again.",
+        },
+        {
+          name: "Alok Gupta",
+          rating: 5,
+          comment:
+            "Accurate diagnosis and excellent advice. WhatsApp digital tokens make the clinic visit effortless.",
+        },
       ],
       business_type: "doctor",
     };
   }
 
   // 6. Gynecology & Obstetrics / Women's Health
-  if (spec.includes("gyne") || spec.includes("gynae") || spec.includes("women") || spec.includes("obstet")) {
+  if (
+    spec.includes("gyne") ||
+    spec.includes("gynae") ||
+    spec.includes("women") ||
+    spec.includes("obstet")
+  ) {
     return {
       qualification: "MBBS, MS (Obstetrics & Gynaecology), DGO",
       experience_years: 13,
@@ -315,12 +421,26 @@ export function getSpecialtyClinicProfile(opts: {
         "Pre-Marital & Menopause Wellness Counseling",
       ],
       faqs: [
-        { q: "Do you offer PCOD management plans?", a: "Yes, our holistic approach integrates hormonal assessment, nutritional guidance, and clinical treatment." },
-        { q: "Is online consultation available for follow-ups?", a: "Yes, video consultations can be booked via this website for report discussions." },
+        {
+          q: "Do you offer PCOD management plans?",
+          a: "Yes, our holistic approach integrates hormonal assessment, nutritional guidance, and clinical treatment.",
+        },
+        {
+          q: "Is online consultation available for follow-ups?",
+          a: "Yes, video consultations can be booked via this website for report discussions.",
+        },
       ],
       sample_reviews: [
-        { name: "Ananya Deshmukh", rating: 5, comment: "Doctor is extremely warm and supportive. She made me feel completely at ease." },
-        { name: "Shalini Pandey", rating: 5, comment: "PCOD symptoms improved drastically. Wonderful experience and respectful staff." },
+        {
+          name: "Ananya Deshmukh",
+          rating: 5,
+          comment: "Doctor is extremely warm and supportive. She made me feel completely at ease.",
+        },
+        {
+          name: "Shalini Pandey",
+          rating: 5,
+          comment: "PCOD symptoms improved drastically. Wonderful experience and respectful staff.",
+        },
       ],
       business_type: "doctor",
     };
@@ -354,13 +474,32 @@ export function getSpecialtyClinicProfile(opts: {
         "Stress, Insomnia & Anxiety Relaxation Therapy",
       ],
       faqs: [
-        { q: "What conditions can be treated with naturopathy?", a: "Naturopathy successfully manages chronic arthritis, digestive issues, obesity, hypertension, stress, migraine, and skin allergies without medicines." },
-        { q: "How do I book a consultation?", a: "Book online directly through this portal or via WhatsApp. An instant confirmed appointment token is generated." },
-        { q: "Do you offer customized diet charts?", a: "Yes, every patient receives a personalized therapeutic diet and daily routine plan tailored to their constitution." },
+        {
+          q: "What conditions can be treated with naturopathy?",
+          a: "Naturopathy successfully manages chronic arthritis, digestive issues, obesity, hypertension, stress, migraine, and skin allergies without medicines.",
+        },
+        {
+          q: "How do I book a consultation?",
+          a: "Book online directly through this portal or via WhatsApp. An instant confirmed appointment token is generated.",
+        },
+        {
+          q: "Do you offer customized diet charts?",
+          a: "Yes, every patient receives a personalized therapeutic diet and daily routine plan tailored to their constitution.",
+        },
       ],
       sample_reviews: [
-        { name: "Sunil Rastogi", rating: 5, comment: "Relieved my 4-year knee pain naturally without painkillers. Doctor's approach is deeply caring." },
-        { name: "Pooja Trivedi", rating: 5, comment: "Amazing natural therapy center! WhatsApp booking is so simple and staff is extremely courteous." },
+        {
+          name: "Sunil Rastogi",
+          rating: 5,
+          comment:
+            "Relieved my 4-year knee pain naturally without painkillers. Doctor's approach is deeply caring.",
+        },
+        {
+          name: "Pooja Trivedi",
+          rating: 5,
+          comment:
+            "Amazing natural therapy center! WhatsApp booking is so simple and staff is extremely courteous.",
+        },
       ],
       business_type: "clinic",
     };
@@ -391,13 +530,32 @@ export function getSpecialtyClinicProfile(opts: {
         "Ergonomic & Posture Correction Therapy",
       ],
       faqs: [
-        { q: "How many physiotherapy sessions will I need?", a: "Most acute pain conditions improve within 4 to 6 sessions. A customized recovery plan is created during your initial evaluation." },
-        { q: "What should I wear for physical therapy?", a: "Comfortable, loose-fitting clothing that allows easy movement of the affected joints is recommended." },
-        { q: "Is prior orthopedic doctor referral required?", a: "No prior referral is needed. You can consult directly with our physiotherapists for assessment and treatment." },
+        {
+          q: "How many physiotherapy sessions will I need?",
+          a: "Most acute pain conditions improve within 4 to 6 sessions. A customized recovery plan is created during your initial evaluation.",
+        },
+        {
+          q: "What should I wear for physical therapy?",
+          a: "Comfortable, loose-fitting clothing that allows easy movement of the affected joints is recommended.",
+        },
+        {
+          q: "Is prior orthopedic doctor referral required?",
+          a: "No prior referral is needed. You can consult directly with our physiotherapists for assessment and treatment.",
+        },
       ],
       sample_reviews: [
-        { name: "Suresh Chandra", rating: 5, comment: "I had severe cervical spondylosis pain. After 5 sessions of therapy, I am completely pain-free." },
-        { name: "Meenakshi Joshi", rating: 5, comment: "Very gentle and experienced therapist. Clean clinic and excellent attention to exercise form." },
+        {
+          name: "Suresh Chandra",
+          rating: 5,
+          comment:
+            "I had severe cervical spondylosis pain. After 5 sessions of therapy, I am completely pain-free.",
+        },
+        {
+          name: "Meenakshi Joshi",
+          rating: 5,
+          comment:
+            "Very gentle and experienced therapist. Clean clinic and excellent attention to exercise form.",
+        },
       ],
       business_type: "clinic",
     };
@@ -431,13 +589,32 @@ export function getSpecialtyClinicProfile(opts: {
         "Ear Examination & Micro-Suction Wax Cleaning",
       ],
       faqs: [
-        { q: "How do I test my hearing?", a: "You can book a soundproof audiometry hearing test online. Full evaluation takes 25-30 minutes with instant results." },
-        { q: "Can we try different hearing aids before purchasing?", a: "Yes, we provide live trials of latest invisible and rechargeable digital hearing aid models." },
-        { q: "Is speech therapy helpful for toddlers?", a: "Yes, our specialized pediatric speech therapists work with delayed speech, autism, and stammering with proven milestones." },
+        {
+          q: "How do I test my hearing?",
+          a: "You can book a soundproof audiometry hearing test online. Full evaluation takes 25-30 minutes with instant results.",
+        },
+        {
+          q: "Can we try different hearing aids before purchasing?",
+          a: "Yes, we provide live trials of latest invisible and rechargeable digital hearing aid models.",
+        },
+        {
+          q: "Is speech therapy helpful for toddlers?",
+          a: "Yes, our specialized pediatric speech therapists work with delayed speech, autism, and stammering with proven milestones.",
+        },
       ],
       sample_reviews: [
-        { name: "Kunal Agarwal", rating: 5, comment: "My father got his digital hearing aid fitted here. The clarity is life-changing. Great service!" },
-        { name: "Neha Srivastava", rating: 5, comment: "Speech therapy helped my 4-year-old speak in full sentences. Very thankful to the doctor and team." },
+        {
+          name: "Kunal Agarwal",
+          rating: 5,
+          comment:
+            "My father got his digital hearing aid fitted here. The clarity is life-changing. Great service!",
+        },
+        {
+          name: "Neha Srivastava",
+          rating: 5,
+          comment:
+            "Speech therapy helped my 4-year-old speak in full sentences. Very thankful to the doctor and team.",
+        },
       ],
       business_type: "clinic",
     };
@@ -471,13 +648,32 @@ export function getSpecialtyClinicProfile(opts: {
         "Home Sample Collection & Instant WhatsApp Report",
       ],
       faqs: [
-        { q: "When will I get my test reports?", a: "Most routine pathology and blood test reports are delivered on WhatsApp within 3 to 6 hours." },
-        { q: "Is fasting required for blood tests?", a: "Fasting of 10-12 hours is recommended for lipid profiles and fasting blood sugar. Water is permitted." },
-        { q: "Can I book home sample collection?", a: "Yes, you can schedule a home phlebotomy collection directly on this site or on WhatsApp." },
+        {
+          q: "When will I get my test reports?",
+          a: "Most routine pathology and blood test reports are delivered on WhatsApp within 3 to 6 hours.",
+        },
+        {
+          q: "Is fasting required for blood tests?",
+          a: "Fasting of 10-12 hours is recommended for lipid profiles and fasting blood sugar. Water is permitted.",
+        },
+        {
+          q: "Can I book home sample collection?",
+          a: "Yes, you can schedule a home phlebotomy collection directly on this site or on WhatsApp.",
+        },
       ],
       sample_reviews: [
-        { name: "Arun Saxena", rating: 5, comment: "Sample collection was on time, painless, and got my PDF report on WhatsApp in 4 hours." },
-        { name: "Geeta Kashyap", rating: 5, comment: "Very professional lab. Transparent pricing and clear reports with doctor's interpretation." },
+        {
+          name: "Arun Saxena",
+          rating: 5,
+          comment:
+            "Sample collection was on time, painless, and got my PDF report on WhatsApp in 4 hours.",
+        },
+        {
+          name: "Geeta Kashyap",
+          rating: 5,
+          comment:
+            "Very professional lab. Transparent pricing and clear reports with doctor's interpretation.",
+        },
       ],
       business_type: "clinic",
     };
@@ -508,13 +704,30 @@ export function getSpecialtyClinicProfile(opts: {
         "Emergency First Aid & Walk-in Triage",
       ],
       faqs: [
-        { q: "What specialties are available at the polyclinic?", a: "We offer general physician consultations, pediatrics, diabetes care, preventive health screenings, and diagnostics." },
-        { q: "How do I book an appointment?", a: `You can book instantly online via this portal or on WhatsApp. A confirmed token is issued immediately.` },
-        { q: "Are walk-in patients accepted?", a: "Yes, you can register via our QR standee at the reception for an immediate OPD token." },
+        {
+          q: "What specialties are available at the polyclinic?",
+          a: "We offer general physician consultations, pediatrics, diabetes care, preventive health screenings, and diagnostics.",
+        },
+        {
+          q: "How do I book an appointment?",
+          a: `You can book instantly online via this portal or on WhatsApp. A confirmed token is issued immediately.`,
+        },
+        {
+          q: "Are walk-in patients accepted?",
+          a: "Yes, you can register via our QR standee at the reception for an immediate OPD token.",
+        },
       ],
       sample_reviews: [
-        { name: "Mohammad Irfan", rating: 5, comment: "Excellent polyclinic with fast OPD service. Doctor is very attentive." },
-        { name: "Pooja Verma", rating: 5, comment: "Clean clinic, great doctors, and WhatsApp booking makes everything so quick." },
+        {
+          name: "Mohammad Irfan",
+          rating: 5,
+          comment: "Excellent polyclinic with fast OPD service. Doctor is very attentive.",
+        },
+        {
+          name: "Pooja Verma",
+          rating: 5,
+          comment: "Clean clinic, great doctors, and WhatsApp booking makes everything so quick.",
+        },
       ],
       business_type: "clinic",
     };
@@ -539,14 +752,35 @@ export function getSpecialtyClinicProfile(opts: {
       "Elderly Care & Chronic Disease Management",
     ],
     faqs: [
-      { q: "How do I book an appointment?", a: "You can book directly on this website in 30 seconds or through WhatsApp. Instant digital token is sent to your phone." },
-      { q: "What is the consultation fee?", a: `The standard consultation fee is ₹500 at ${clinic}.` },
-      { q: "Are emergency walk-in consultations allowed?", a: "Yes, walk-in patients can register directly at the QR counter at clinic entrance." },
-      { q: "Do you provide digital prescriptions?", a: "Yes, all prescriptions are delivered directly to your WhatsApp in neat PDF format immediately after consultation." },
+      {
+        q: "How do I book an appointment?",
+        a: "You can book directly on this website in 30 seconds or through WhatsApp. Instant digital token is sent to your phone.",
+      },
+      {
+        q: "What is the consultation fee?",
+        a: `The standard consultation fee is ₹500 at ${clinic}.`,
+      },
+      {
+        q: "Are emergency walk-in consultations allowed?",
+        a: "Yes, walk-in patients can register directly at the QR counter at clinic entrance.",
+      },
+      {
+        q: "Do you provide digital prescriptions?",
+        a: "Yes, all prescriptions are delivered directly to your WhatsApp in neat PDF format immediately after consultation.",
+      },
     ],
     sample_reviews: [
-      { name: "Anita Saxena", rating: 5, comment: "Doctor explains the diagnosis so calmly. The WhatsApp token system saved me 2 hours of waiting." },
-      { name: "Vikas Mehra", rating: 5, comment: "Clean clinic, prompt service, and digital prescription on phone is very helpful." },
+      {
+        name: "Anita Saxena",
+        rating: 5,
+        comment:
+          "Doctor explains the diagnosis so calmly. The WhatsApp token system saved me 2 hours of waiting.",
+      },
+      {
+        name: "Vikas Mehra",
+        rating: 5,
+        comment: "Clean clinic, prompt service, and digital prescription on phone is very helpful.",
+      },
     ],
     business_type: "clinic",
   };
@@ -616,9 +850,29 @@ export function extractCleanCity(rawCity?: string | null): string {
   if (!rawCity) return "Lucknow";
   const str = rawCity.trim();
   const knownCities = [
-    "jankipuram", "lucknow", "delhi", "new delhi", "noida", "gurgaon", "gurugram",
-    "mumbai", "bangalore", "bengaluru", "hyderabad", "pune", "chennai", "kolkata",
-    "ahmedabad", "jaipur", "chandigarh", "indore", "bhopal", "patna", "kanpur", "varanasi", "agra"
+    "jankipuram",
+    "lucknow",
+    "delhi",
+    "new delhi",
+    "noida",
+    "gurgaon",
+    "gurugram",
+    "mumbai",
+    "bangalore",
+    "bengaluru",
+    "hyderabad",
+    "pune",
+    "chennai",
+    "kolkata",
+    "ahmedabad",
+    "jaipur",
+    "chandigarh",
+    "indore",
+    "bhopal",
+    "patna",
+    "kanpur",
+    "varanasi",
+    "agra",
   ];
   const lower = str.toLowerCase();
   for (const city of knownCities) {
@@ -626,7 +880,10 @@ export function extractCleanCity(rawCity?: string | null): string {
       return city.charAt(0).toUpperCase() + city.slice(1);
     }
   }
-  const parts = str.split(/[,\-\/]/).map((p) => p.trim()).filter(Boolean);
+  const parts = str
+    .split(/[,\-\/]/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const last = parts[parts.length - 1];
   if (last && last.length < 20) return last;
   return str.slice(0, 18);
@@ -642,9 +899,27 @@ export function parseClinicSlugToDetails(slug: string): {
   const parts = cleanSlug.split("-").filter(Boolean);
 
   const knownCities = [
-    "jankipuram", "lucknow", "delhi", "mumbai", "noida", "gurgaon", "bangalore",
-    "bengaluru", "hyderabad", "pune", "chennai", "kolkata", "ahmedabad", "jaipur",
-    "chandigarh", "indore", "bhopal", "patna", "kanpur", "varanasi", "agra"
+    "jankipuram",
+    "lucknow",
+    "delhi",
+    "mumbai",
+    "noida",
+    "gurgaon",
+    "bangalore",
+    "bengaluru",
+    "hyderabad",
+    "pune",
+    "chennai",
+    "kolkata",
+    "ahmedabad",
+    "jaipur",
+    "chandigarh",
+    "indore",
+    "bhopal",
+    "patna",
+    "kanpur",
+    "varanasi",
+    "agra",
   ];
   let detectedCity = "Lucknow";
   for (let i = parts.length - 1; i >= 0; i--) {
@@ -666,25 +941,56 @@ export function parseClinicSlugToDetails(slug: string): {
     /(^|-)(ent|ear)($|-)/.test(cleanSlug)
   ) {
     detectedSpecialty = "Speech, Hearing & ENT Care";
-  } else if (cleanSlug.includes("diag") || cleanSlug.includes("pathol") || cleanSlug.includes("lab")) {
+  } else if (
+    cleanSlug.includes("diag") ||
+    cleanSlug.includes("pathol") ||
+    cleanSlug.includes("lab")
+  ) {
     detectedSpecialty = "Pathology & Diagnostic Healthcare";
   } else if (cleanSlug.includes("poly") || cleanSlug.includes("multispecial")) {
     detectedSpecialty = "Polyclinic & Multispecialty Care";
-  } else if (cleanSlug.includes("derma") || cleanSlug.includes("skin") || cleanSlug.includes("cosmet")) {
+  } else if (
+    cleanSlug.includes("derma") ||
+    cleanSlug.includes("skin") ||
+    cleanSlug.includes("cosmet")
+  ) {
     detectedSpecialty = "Dermatology & Aesthetic Skin Care";
   } else if (cleanSlug.includes("dent") || cleanSlug.includes("tooth")) {
     detectedSpecialty = "Advanced Dental Care & Orthodontics";
   } else if (cleanSlug.includes("cardio") || cleanSlug.includes("heart")) {
     detectedSpecialty = "Cardiology & Preventive Heart Care";
-  } else if (cleanSlug.includes("ortho") || cleanSlug.includes("bone") || cleanSlug.includes("joint") || cleanSlug.includes("spine")) {
+  } else if (
+    cleanSlug.includes("ortho") ||
+    cleanSlug.includes("bone") ||
+    cleanSlug.includes("joint") ||
+    cleanSlug.includes("spine")
+  ) {
     detectedSpecialty = "Orthopedics & Joint Care";
   } else if (cleanSlug.includes("pediat") || cleanSlug.includes("child")) {
     detectedSpecialty = "Pediatrics & Child Care";
-  } else if (cleanSlug.includes("gyne") || cleanSlug.includes("gynae") || cleanSlug.includes("women")) {
+  } else if (
+    cleanSlug.includes("gyne") ||
+    cleanSlug.includes("gynae") ||
+    cleanSlug.includes("women")
+  ) {
     detectedSpecialty = "Gynecology & Women's Health";
   }
 
-  const addressNoise = new Set(["h", "d", "98", "sector", "i", "ii", "iii", "main", "rd", "sec", "opp", "near", "colony"]);
+  const addressNoise = new Set([
+    "h",
+    "d",
+    "98",
+    "sector",
+    "i",
+    "ii",
+    "iii",
+    "main",
+    "rd",
+    "sec",
+    "opp",
+    "near",
+    "colony",
+  ]);
   const meaningfulParts = parts.filter((p) => !addressNoise.has(p) && !knownCities.includes(p));
 
   const clinicWords = meaningfulParts.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
@@ -696,8 +1002,10 @@ export function parseClinicSlugToDetails(slug: string): {
     clinicName = `${clinicName} Clinic`;
   }
 
-  let docFirstWord = meaningfulParts[0] ? meaningfulParts[0].charAt(0).toUpperCase() + meaningfulParts[0].slice(1) : "Partner";
-  let doctorName =
+  const docFirstWord = meaningfulParts[0]
+    ? meaningfulParts[0].charAt(0).toUpperCase() + meaningfulParts[0].slice(1)
+    : "Partner";
+  const doctorName =
     docFirstWord.toLowerCase() === "dr" && meaningfulParts[1]
       ? `Dr. ${meaningfulParts[1].charAt(0).toUpperCase() + meaningfulParts[1].slice(1)}`
       : `Dr. ${docFirstWord}`;
@@ -729,11 +1037,16 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
     const leads = await listCrmLeadsImpl({ limit: 1000 });
     matchedLead = leads.find((l) => {
       if (l.custom_demo_url && l.custom_demo_url.includes(`/c/${slug}`)) return true;
-      const cleanName = (l.name || "").toLowerCase().replace(/^dr\.?\s*/i, "").replace(/[^a-z0-9]/g, "");
+      const cleanName = (l.name || "")
+        .toLowerCase()
+        .replace(/^dr\.?\s*/i, "")
+        .replace(/[^a-z0-9]/g, "");
       const cleanClinic = (l.clinic_name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
       const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (cleanClinic && cleanClinic.length >= 4 && cleanSlug.includes(cleanClinic.slice(0, 14))) return true;
-      if (cleanName && cleanName.length >= 4 && cleanSlug.includes(cleanName.slice(0, 10))) return true;
+      if (cleanClinic && cleanClinic.length >= 4 && cleanSlug.includes(cleanClinic.slice(0, 14)))
+        return true;
+      if (cleanName && cleanName.length >= 4 && cleanSlug.includes(cleanName.slice(0, 10)))
+        return true;
       return false;
     });
   } catch {}
@@ -797,10 +1110,11 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
     services: profile.services.map((s: any) =>
       typeof s === "string"
         ? { name: s, price: profile.consultation_fee, duration: 15, description: s }
-        : s
+        : s,
     ),
     gallery: [],
-    avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    avatar_url:
+      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
     logo_url: null,
     theme_color: profile.theme_color,
     template: profile.template || "modern",
@@ -829,7 +1143,14 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
       showFloatingButton: true,
       floatingLabel: "WhatsApp Appointment",
     },
-    installed_modules: ["website_builder", "appointments", "crm", "whatsapp", "prescriptions", "reviews"],
+    installed_modules: [
+      "website_builder",
+      "appointments",
+      "crm",
+      "whatsapp",
+      "prescriptions",
+      "reviews",
+    ],
     active_doctors: [
       {
         id: doctorId,
@@ -837,7 +1158,8 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
         specialization: specialty,
         qualification: profile.qualification,
         consultation_fee: profile.consultation_fee,
-        avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        avatar_url:
+          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
         bio: profile.about_text.slice(0, 240),
         experience_years: profile.experience_years,
         is_active: true,
@@ -978,7 +1300,8 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   const rawDoctorName = opts.doctorName || lead?.name || "Doctor";
   const docName = cleanDoctorName(rawDoctorName);
   const clinicName =
-    (opts.clinicName || lead?.clinic_name || "").trim() || `${docName.replace(/^Dr\.\s*/i, "")} Healthcare Clinic`;
+    (opts.clinicName || lead?.clinic_name || "").trim() ||
+    `${docName.replace(/^Dr\.\s*/i, "")} Healthcare Clinic`;
   const specialty = (opts.specialty || lead?.specialty || "").trim() || "General Physician";
   const rawCity = (opts.city || lead?.city || "").trim();
   const city = rawCity || "Lucknow";
@@ -999,7 +1322,12 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
 
       if (exClinic) {
         // Refresh clinic data in case names changed
-        const profile = getSpecialtyClinicProfile({ specialty, doctorName: docName, clinicName, city });
+        const profile = getSpecialtyClinicProfile({
+          specialty,
+          doctorName: docName,
+          clinicName,
+          city,
+        });
         await (supabaseAdmin as any)
           .from("clinics")
           .update({
@@ -1044,19 +1372,17 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   // Step 4: Insert Organization (FAIL-CLOSED: the clinic FK and every downstream
   // row depends on this insert — a rejected org insert must abort the setup with
   // the real database error instead of silently returning a broken URL).
-  const orgInsert = await (supabaseAdmin as any)
-    .from("organizations")
-    .insert({
-      id: orgId,
-      name: clinicName,
-      slug: uniqueSlug,
-      business_type: profile.business_type,
-      tagline: profile.hero_headline,
-      description: profile.about_text,
-      public_phone: phone,
-      public_address: `${city}, India`,
-      primary_color: profile.theme_color,
-    });
+  const orgInsert = await (supabaseAdmin as any).from("organizations").insert({
+    id: orgId,
+    name: clinicName,
+    slug: uniqueSlug,
+    business_type: profile.business_type,
+    tagline: profile.hero_headline,
+    description: profile.about_text,
+    public_phone: phone,
+    public_address: `${city}, India`,
+    primary_color: profile.theme_color,
+  });
   if (orgInsert?.error) {
     throw new Error(
       `Clinic setup failed — organization insert rejected: ${orgInsert.error.message}` +
@@ -1077,48 +1403,48 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   };
 
   const clinicInsert = await (supabaseAdmin as any).from("clinics").insert({
-      id: clinicId,
-      organization_id: orgId,
-      slug: uniqueSlug,
-      doctor_name: docName,
-      clinic_name: clinicName,
-      specialization: specialty,
-      qualification: profile.qualification,
-      experience_years: profile.experience_years,
-      consultation_fee: profile.consultation_fee,
-      phone,
-      public_phone: phone,
-      address: `${city}, India`,
-      public_address: `${city}, India`,
-      bio: profile.about_text.slice(0, 240),
-      hero_headline: profile.hero_headline,
-      hero_subheadline: profile.hero_subheadline,
-      about_text: profile.about_text,
-      services: profile.services,
-      faqs: profile.faqs,
-      working_hours: workingHours,
-      theme_color: profile.theme_color,
-      template: profile.template,
-      is_published: true,
-      published_at: nowIso,
-      medical_registration_no: `MCI-${Math.floor(10000 + Math.random() * 90000)}`,
-      lead_popup: {
-        enabled: true,
-        offer: "Instant OPD Token Confirmation",
-        headline: `Consult with ${docName}`,
-        subtext: "Leave your WhatsApp number to book your appointment slot immediately",
-        ctaLabel: "Book Consultation",
-        dismissLabel: "Close",
-        delaySeconds: 15,
-        showFloatingButton: true,
-        floatingLabel: "WhatsApp Appointment",
-      },
-      walkin_max_per_slot: 3,
-      walkin_start_time: "10:00",
-      walkin_end_time: "19:00",
-      walkin_weekends_enabled: true,
-      walkin_slot_minutes: 30,
-    });
+    id: clinicId,
+    organization_id: orgId,
+    slug: uniqueSlug,
+    doctor_name: docName,
+    clinic_name: clinicName,
+    specialization: specialty,
+    qualification: profile.qualification,
+    experience_years: profile.experience_years,
+    consultation_fee: profile.consultation_fee,
+    phone,
+    public_phone: phone,
+    address: `${city}, India`,
+    public_address: `${city}, India`,
+    bio: profile.about_text.slice(0, 240),
+    hero_headline: profile.hero_headline,
+    hero_subheadline: profile.hero_subheadline,
+    about_text: profile.about_text,
+    services: profile.services,
+    faqs: profile.faqs,
+    working_hours: workingHours,
+    theme_color: profile.theme_color,
+    template: profile.template,
+    is_published: true,
+    published_at: nowIso,
+    medical_registration_no: `MCI-${Math.floor(10000 + Math.random() * 90000)}`,
+    lead_popup: {
+      enabled: true,
+      offer: "Instant OPD Token Confirmation",
+      headline: `Consult with ${docName}`,
+      subtext: "Leave your WhatsApp number to book your appointment slot immediately",
+      ctaLabel: "Book Consultation",
+      dismissLabel: "Close",
+      delaySeconds: 15,
+      showFloatingButton: true,
+      floatingLabel: "WhatsApp Appointment",
+    },
+    walkin_max_per_slot: 3,
+    walkin_start_time: "10:00",
+    walkin_end_time: "19:00",
+    walkin_weekends_enabled: true,
+    walkin_slot_minutes: 30,
+  });
   if (clinicInsert?.error) {
     throw new Error(
       `Clinic setup failed — website insert rejected: ${clinicInsert.error.message}` +
@@ -1135,7 +1461,10 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
   // while the 14-day product trial window is preserved exactly.
   const setupWarnings: string[] = [];
   try {
-    const subId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `sub_${Date.now()}`;
+    const subId =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sub_${Date.now()}`;
     const subInsert = await (supabaseAdmin as any).from("subscriptions").insert({
       id: subId,
       organization_id: orgId,
@@ -1258,7 +1587,9 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
         clinic_name: clinicName,
         specialty,
         city,
-        notes: [lead?.notes, `[⚡ 1-Click Clinic & Website Setup live: /c/${uniqueSlug}]`].filter(Boolean).join(" | "),
+        notes: [lead?.notes, `[⚡ 1-Click Clinic & Website Setup live: /c/${uniqueSlug}]`]
+          .filter(Boolean)
+          .join(" | "),
         updated_at: nowIso,
       })
       .eq("id", opts.leadId);
@@ -1301,10 +1632,11 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     services: profile.services.map((s: any) =>
       typeof s === "string"
         ? { name: s, price: profile.consultation_fee, duration: 15, description: s }
-        : s
+        : s,
     ),
     gallery: [],
-    avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    avatar_url:
+      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
     logo_url: null,
     theme_color: profile.theme_color,
     template: profile.template || "modern",
@@ -1333,7 +1665,14 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
       showFloatingButton: true,
       floatingLabel: "WhatsApp Appointment",
     },
-    installed_modules: ["website_builder", "appointments", "crm", "whatsapp", "prescriptions", "reviews"],
+    installed_modules: [
+      "website_builder",
+      "appointments",
+      "crm",
+      "whatsapp",
+      "prescriptions",
+      "reviews",
+    ],
     active_doctors: [
       {
         id: doctorId,
@@ -1341,7 +1680,8 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
         specialization: specialty,
         qualification: profile.qualification,
         consultation_fee: profile.consultation_fee,
-        avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        avatar_url:
+          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
         bio: profile.about_text.slice(0, 240),
         experience_years: profile.experience_years,
         is_active: true,
@@ -1435,7 +1775,7 @@ export async function reconcileCrmLeadsImpl(): Promise<{ merged: number }> {
       (l) =>
         isLidPhone(l.phone) ||
         l.phone.includes("62152488562936") ||
-        l.name.includes("शिव सदा सहायते")
+        l.name.includes("शिव सदा सहायते"),
     );
 
     for (const lidLead of lidLeads) {
@@ -1448,7 +1788,7 @@ export async function reconcileCrmLeadsImpl(): Promise<{ merged: number }> {
           (l.phone.includes("7706047752") ||
             l.name.toLowerCase().includes("ritesh") ||
             l.clinic_name?.toLowerCase().includes("ritesh") ||
-            allLeads.length === 2) // If there are only 2 total leads, they are definitely the same test doctor!
+            allLeads.length === 2), // If there are only 2 total leads, they are definitely the same test doctor!
       );
 
       if (realLead) {
@@ -1457,9 +1797,12 @@ export async function reconcileCrmLeadsImpl(): Promise<{ merged: number }> {
           ? lidLead.phone
           : `${lidLead.phone.replace(/\D/g, "")}@lid`;
 
-        const properDoctorName = realLead.name.toLowerCase() === "ritesh"
-          ? "Dr. Ritesh"
-          : (realLead.name.startsWith("Dr.") ? realLead.name : `Dr. ${realLead.name}`);
+        const properDoctorName =
+          realLead.name.toLowerCase() === "ritesh"
+            ? "Dr. Ritesh"
+            : realLead.name.startsWith("Dr.")
+              ? realLead.name
+              : `Dr. ${realLead.name}`;
 
         // Update real lead with reply status, proper doctor name, and linked whatsapp_lid
         await (supabaseAdmin as any)
@@ -1470,7 +1813,8 @@ export async function reconcileCrmLeadsImpl(): Promise<{ merged: number }> {
             status: "in_conversation",
             whatsapp_lid: extractedLid,
             last_reply_at: lidLead.last_reply_at || lidLead.created_at || nowIso,
-            last_reply_message: lidLead.last_reply_message || lidLead.notes || "Inbounded via WhatsApp",
+            last_reply_message:
+              lidLead.last_reply_message || lidLead.notes || "Inbounded via WhatsApp",
             notes: [realLead.notes, lidLead.notes ? `[WhatsApp Inbound] ${lidLead.notes}` : null]
               .filter(Boolean)
               .join(" | "),
@@ -1479,12 +1823,11 @@ export async function reconcileCrmLeadsImpl(): Promise<{ merged: number }> {
           .eq("id", realLead.id);
 
         // Delete duplicate LID row
-        await (supabaseAdmin as any)
-          .from("platform_crm_leads")
-          .delete()
-          .eq("id", lidLead.id);
+        await (supabaseAdmin as any).from("platform_crm_leads").delete().eq("id", lidLead.id);
 
-        console.log(`[CRM] Successfully merged duplicate LID lead ${lidLead.id} into primary lead ${realLead.id}`);
+        console.log(
+          `[CRM] Successfully merged duplicate LID lead ${lidLead.id} into primary lead ${realLead.id}`,
+        );
         mergedCount++;
       }
     }
@@ -1518,7 +1861,10 @@ export async function mergeCrmLeadsImpl(opts: {
     const updates: Record<string, any> = {
       updated_at: nowIso,
       has_replied: primary.has_replied || secondary.has_replied || false,
-      status: primary.status === "in_conversation" || secondary.status === "in_conversation" ? "in_conversation" : primary.status,
+      status:
+        primary.status === "in_conversation" || secondary.status === "in_conversation"
+          ? "in_conversation"
+          : primary.status,
     };
 
     if (secondary.whatsapp_lid && !primary.whatsapp_lid) {
@@ -1527,7 +1873,11 @@ export async function mergeCrmLeadsImpl(opts: {
       updates.whatsapp_lid = secondary.phone;
     }
 
-    if (secondary.last_reply_at && (!primary.last_reply_at || new Date(secondary.last_reply_at) > new Date(primary.last_reply_at))) {
+    if (
+      secondary.last_reply_at &&
+      (!primary.last_reply_at ||
+        new Date(secondary.last_reply_at) > new Date(primary.last_reply_at))
+    ) {
       updates.last_reply_at = secondary.last_reply_at;
       updates.last_reply_message = secondary.last_reply_message;
     }
@@ -1573,7 +1923,9 @@ export async function listCrmLeadsImpl(opts?: {
     }
     if (opts?.search?.trim()) {
       const term = `%${opts.search.trim()}%`;
-      query = query.or(`name.ilike.${term},phone.ilike.${term},clinic_name.ilike.${term},city.ilike.${term},whatsapp_lid.ilike.${term}`);
+      query = query.or(
+        `name.ilike.${term},phone.ilike.${term},clinic_name.ilike.${term},city.ilike.${term},whatsapp_lid.ilike.${term}`,
+      );
     }
 
     const { data, error } = await query;
@@ -1714,14 +2066,18 @@ export async function updateCrmLeadImpl(input: {
   whatsapp_lid?: string | null;
 }): Promise<CrmLead | null> {
   const updates: Record<string, any> = { updated_at: new Date().toISOString() };
-  if (input.name !== undefined && input.name.trim()) updates.name = cleanDoctorName(input.name.trim());
-  if (input.phone !== undefined && input.phone.trim()) updates.phone = normalizeIndianPhone(input.phone.trim());
+  if (input.name !== undefined && input.name.trim())
+    updates.name = cleanDoctorName(input.name.trim());
+  if (input.phone !== undefined && input.phone.trim())
+    updates.phone = normalizeIndianPhone(input.phone.trim());
   if (input.email !== undefined) updates.email = input.email ? input.email.trim() : null;
   if (input.status) updates.status = input.status;
   if (input.notes !== undefined) updates.notes = input.notes ? input.notes.trim() : null;
   if (input.deal_value !== undefined) updates.deal_value = input.deal_value;
-  if (input.clinic_name !== undefined) updates.clinic_name = input.clinic_name ? input.clinic_name.trim() : null;
-  if (input.specialty !== undefined) updates.specialty = input.specialty ? input.specialty.trim() : null;
+  if (input.clinic_name !== undefined)
+    updates.clinic_name = input.clinic_name ? input.clinic_name.trim() : null;
+  if (input.specialty !== undefined)
+    updates.specialty = input.specialty ? input.specialty.trim() : null;
   if (input.city !== undefined) updates.city = input.city ? input.city.trim() : null;
   if (input.has_replied !== undefined) updates.has_replied = input.has_replied;
   if (input.last_reply_at !== undefined) updates.last_reply_at = input.last_reply_at;
@@ -1769,7 +2125,10 @@ export async function updateCrmLeadImpl(input: {
 
 export async function deleteCrmLeadImpl(id: string): Promise<boolean> {
   try {
-    await supabaseAdmin.from("platform_crm_leads" as any).delete().eq("id", id);
+    await supabaseAdmin
+      .from("platform_crm_leads" as any)
+      .delete()
+      .eq("id", id);
   } catch {}
   const existing = await readFallbackLeads();
   const filtered = existing.filter((l) => l.id !== id);
@@ -1794,7 +2153,9 @@ export async function getCrmStatsImpl(): Promise<{
   const newLeads = leads.filter((l) => l.status === "new").length;
   const outreachSent = leads.filter((l) => l.status === "outreach_sent").length;
   const demoSent = leads.filter((l) => l.status === "demo_sent").length;
-  const followupsActive = leads.filter((l) => l.status === "followup_1" || l.status === "followup_2").length;
+  const followupsActive = leads.filter(
+    (l) => l.status === "followup_1" || l.status === "followup_2",
+  ).length;
   const converted = leads.filter((l) => l.status === "converted").length;
   const conversionRate = totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0;
   const pipelineValue = leads
@@ -1931,12 +2292,25 @@ export function parseCrmCsv(csvText: string): Array<{
   const firstRow = rows[0].map((c) => c.toLowerCase().replace(/[^a-z0-9_]/g, ""));
   let nameIdx = firstRow.findIndex((c) => c.includes("name") || c.includes("doctor") || c === "dr");
   let phoneIdx = firstRow.findIndex(
-    (c) => c.includes("phone") || c.includes("mobile") || c.includes("contact") || c.includes("whatsapp") || c === "number"
+    (c) =>
+      c.includes("phone") ||
+      c.includes("mobile") ||
+      c.includes("contact") ||
+      c.includes("whatsapp") ||
+      c === "number",
   );
-  let clinicIdx = firstRow.findIndex((c) => c.includes("clinic") || c.includes("hospital") || c.includes("center"));
-  let specialtyIdx = firstRow.findIndex((c) => c.includes("special") || c.includes("dept") || c.includes("practice"));
-  let cityIdx = firstRow.findIndex((c) => c.includes("city") || c.includes("location") || c.includes("place"));
-  let notesIdx = firstRow.findIndex((c) => c.includes("note") || c.includes("remark") || c.includes("comment"));
+  let clinicIdx = firstRow.findIndex(
+    (c) => c.includes("clinic") || c.includes("hospital") || c.includes("center"),
+  );
+  let specialtyIdx = firstRow.findIndex(
+    (c) => c.includes("special") || c.includes("dept") || c.includes("practice"),
+  );
+  let cityIdx = firstRow.findIndex(
+    (c) => c.includes("city") || c.includes("location") || c.includes("place"),
+  );
+  let notesIdx = firstRow.findIndex(
+    (c) => c.includes("note") || c.includes("remark") || c.includes("comment"),
+  );
 
   let dataRows: string[][];
   if (phoneIdx !== -1 || nameIdx !== -1) {
@@ -1997,7 +2371,9 @@ export async function importCrmLeadsCsvImpl(input: {
     return {
       importedCount: 0,
       skippedCount: 0,
-      errors: ["No valid doctor leads found in CSV. Please ensure columns include Doctor Name and Phone number."],
+      errors: [
+        "No valid doctor leads found in CSV. Please ensure columns include Doctor Name and Phone number.",
+      ],
       leads: [],
     };
   }
@@ -2029,7 +2405,9 @@ export async function importCrmLeadsCsvImpl(input: {
     // Process one-by-one in background with human-like delays (8 to 15 seconds)
     // to strictly prevent WhatsApp ban / spam trigger
     (async () => {
-      console.log(`[CRM CSV] Starting paced autonomous outreach for ${createdLeads.length} leads...`);
+      console.log(
+        `[CRM CSV] Starting paced autonomous outreach for ${createdLeads.length} leads...`,
+      );
       for (let i = 0; i < createdLeads.length; i++) {
         const lead = createdLeads[i];
         try {
@@ -2282,7 +2660,10 @@ export async function runAutonomousOutreachBatchImpl(): Promise<{
   };
 }
 
-export async function getClinicWebsiteConfigImpl(opts: { slug: string; leadId?: string }): Promise<any> {
+export async function getClinicWebsiteConfigImpl(opts: {
+  slug: string;
+  leadId?: string;
+}): Promise<any> {
   const { slug } = opts;
   if (!slug) throw new Error("Clinic slug is required");
 
@@ -2305,7 +2686,9 @@ export async function getClinicWebsiteConfigImpl(opts: { slug: string; leadId?: 
   try {
     const { data: clinic } = await (supabaseAdmin as any)
       .from("clinics")
-      .select("id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no, lead_popup")
+      .select(
+        "id, organization_id, slug, doctor_name, specialization, qualification, experience_years, clinic_name, address, phone, email, public_phone, public_email, public_address, consultation_fee, bio, services, working_hours, avatar_url, logo_url, gallery, theme_color, hero_headline, hero_subheadline, about_text, custom_domain, template, section_variants, section_order, section_hidden, section_content, seo_config, walkin_max_per_slot, walkin_start_time, walkin_end_time, walkin_weekends_enabled, walkin_slot_minutes, is_published, published_at, updated_at, medical_registration_no, lead_popup",
+      )
       .eq("slug", slug)
       .maybeSingle();
 
@@ -2377,18 +2760,32 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
   }
 
   const nowIso = new Date().toISOString();
-  const docName = input.doctor_name !== undefined ? cleanDoctorName(input.doctor_name) : current.doctor_name;
-  const clinicName = input.clinic_name !== undefined ? input.clinic_name.trim() : current.clinic_name;
-  const specialization = input.specialization !== undefined ? input.specialization.trim() : current.specialization;
-  const qualification = input.qualification !== undefined ? input.qualification.trim() : current.qualification;
-  const experience_years = input.experience_years !== undefined ? Number(input.experience_years) : current.experience_years;
-  const consultation_fee = input.consultation_fee !== undefined ? Number(input.consultation_fee) : current.consultation_fee;
+  const docName =
+    input.doctor_name !== undefined ? cleanDoctorName(input.doctor_name) : current.doctor_name;
+  const clinicName =
+    input.clinic_name !== undefined ? input.clinic_name.trim() : current.clinic_name;
+  const specialization =
+    input.specialization !== undefined ? input.specialization.trim() : current.specialization;
+  const qualification =
+    input.qualification !== undefined ? input.qualification.trim() : current.qualification;
+  const experience_years =
+    input.experience_years !== undefined
+      ? Number(input.experience_years)
+      : current.experience_years;
+  const consultation_fee =
+    input.consultation_fee !== undefined
+      ? Number(input.consultation_fee)
+      : current.consultation_fee;
   const phone = input.phone !== undefined ? input.phone.trim() : current.phone;
   const address = input.address !== undefined ? input.address.trim() : current.address;
-  const theme_color = input.theme_color !== undefined ? input.theme_color.trim() : (current.theme_color || "#059669");
-  const template = input.template !== undefined ? input.template.trim() : (current.template || "modern");
-  const hero_headline = input.hero_headline !== undefined ? input.hero_headline.trim() : current.hero_headline;
-  const hero_subheadline = input.hero_subheadline !== undefined ? input.hero_subheadline.trim() : current.hero_subheadline;
+  const theme_color =
+    input.theme_color !== undefined ? input.theme_color.trim() : current.theme_color || "#059669";
+  const template =
+    input.template !== undefined ? input.template.trim() : current.template || "modern";
+  const hero_headline =
+    input.hero_headline !== undefined ? input.hero_headline.trim() : current.hero_headline;
+  const hero_subheadline =
+    input.hero_subheadline !== undefined ? input.hero_subheadline.trim() : current.hero_subheadline;
   const about_text = input.about_text !== undefined ? input.about_text.trim() : current.about_text;
   const services = input.services !== undefined ? input.services : current.services;
   const lead_popup = input.lead_popup !== undefined ? input.lead_popup : current.lead_popup;

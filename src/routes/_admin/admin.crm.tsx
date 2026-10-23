@@ -1735,15 +1735,15 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
 
       {/* Add New Doctor Lead Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="w-[95vw] max-w-[480px] p-5 sm:p-6 rounded-2xl border-border bg-background space-y-4">
-          <DialogHeader className="text-left space-y-1 pr-8">
+        <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] flex flex-col p-0 rounded-2xl border-border bg-background overflow-hidden shadow-2xl">
+          <DialogHeader className="p-5 sm:p-6 pb-3 text-left space-y-1 pr-10 shrink-0 border-b border-border/60 bg-muted/20">
             <DialogTitle className="text-lg font-bold text-foreground">Add New Doctor / Clinic Lead</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Add a lead to the CRM to start automated human outreach and demo delivery.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleAddLeadSubmit} className="space-y-3.5">
+          <form id="add-lead-form" onSubmit={handleAddLeadSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-3.5">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Doctor Name *</Label>
               <Input
@@ -1838,35 +1838,36 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                 Immediately provisions organization, published website (<code className="text-[10px]">/c/dr-name</code>), doctor record, specialty services, and 14-day Growth trial.
               </p>
             </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddModalOpen(false)}
-                className="h-9 rounded-xl text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isAddingLead}
-                className="h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground"
-              >
-                {isAddingLead ? <Loader2 className="size-3.5 animate-spin mr-1" /> : null}
-                Save Lead to CRM
-              </Button>
-            </DialogFooter>
           </form>
+
+          <DialogFooter className="p-4 sm:p-5 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddModalOpen(false)}
+              className="h-9 rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              form="add-lead-form"
+              type="submit"
+              size="sm"
+              disabled={isAddingLead}
+              className="h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground"
+            >
+              {isAddingLead ? <Loader2 className="size-3.5 animate-spin mr-1" /> : null}
+              Save Lead to CRM
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Doctor Lead Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="w-[95vw] max-w-[520px] p-5 sm:p-6 rounded-2xl border-border bg-background space-y-4">
-          <DialogHeader className="text-left space-y-1 pr-8">
+        <DialogContent className="w-[95vw] max-w-[580px] max-h-[90vh] flex flex-col p-0 rounded-2xl border-border bg-background overflow-hidden shadow-2xl">
+          <DialogHeader className="p-5 sm:p-6 pb-3 text-left space-y-1 pr-10 shrink-0 border-b border-border/60 bg-muted/20">
             <div className="flex items-center gap-2">
               <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                 <Edit3 className="size-4" />
@@ -1880,24 +1881,24 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveEdit} className="space-y-3.5">
+          <form id="edit-lead-form" onSubmit={handleSaveEdit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
             {editingLead?.custom_demo_url && !editingLead.custom_demo_url.includes("/c/demo?") && editingLead.custom_demo_url.includes("/c/") ? (
-              <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between gap-2 text-xs">
-                <div className="min-w-0">
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                    <Globe className="size-3.5 text-emerald-600" />
+              <div className="p-3 sm:p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                <div className="min-w-0 space-y-0.5">
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <Globe className="size-3.5 text-emerald-600 shrink-0" />
                     Live Clinic Website Active
                   </span>
                   <a
                     href={editingLead.custom_demo_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-muted-foreground hover:underline truncate block"
+                    className="text-[11px] text-muted-foreground hover:underline truncate block max-w-full font-mono"
                   >
                     {editingLead.custom_demo_url}
                   </a>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                   <Button
                     type="button"
                     size="sm"
@@ -1906,10 +1907,10 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                       setIsEditModalOpen(false);
                       handleOpenWebsiteCustomizer(editingLead);
                     }}
-                    className="h-7 text-xs rounded-lg shrink-0 gap-1 text-purple-600 border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/30 font-semibold"
+                    className="h-7 text-xs rounded-lg shrink-0 gap-1 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/30 font-semibold"
                     title="Customize Theme, Template, Headlines & Services"
                   >
-                    <Palette className="size-3 text-purple-600" />
+                    <Palette className="size-3 text-purple-600 dark:text-purple-400" />
                     <span>Customize Design</span>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0">
@@ -1920,10 +1921,10 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                 </div>
               </div>
             ) : editingLead ? (
-              <div className="p-3 rounded-xl border border-violet-500/25 bg-violet-500/5 flex items-center justify-between gap-2 text-xs">
+              <div className="p-3 sm:p-3.5 rounded-xl border border-violet-500/25 bg-violet-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                 <div>
-                  <span className="font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1">
-                    <Zap className="size-3.5 text-violet-600" />
+                  <span className="font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                    <Zap className="size-3.5 text-violet-600 shrink-0" />
                     No Live Website Yet
                   </span>
                   <p className="text-[11px] text-muted-foreground">
@@ -2073,28 +2074,29 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                 placeholder="Doctor preferences, best contact time, OPD volume, objections..."
               />
             </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditModalOpen(false)}
-                className="h-9 rounded-xl text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isSavingEdit}
-                className="h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground gap-1.5"
-              >
-                {isSavingEdit ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-                Save Changes
-              </Button>
-            </DialogFooter>
           </form>
+
+          <DialogFooter className="p-4 sm:p-5 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditModalOpen(false)}
+              className="h-9 rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              form="edit-lead-form"
+              type="submit"
+              size="sm"
+              disabled={isSavingEdit}
+              className="h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground gap-1.5 shadow-sm"
+            >
+              {isSavingEdit ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

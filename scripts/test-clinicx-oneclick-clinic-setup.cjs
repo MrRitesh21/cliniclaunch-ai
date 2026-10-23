@@ -106,27 +106,36 @@ function makeSupabaseAdmin(resolve) {
  */
 function makeResolver(behavior) {
   return function resolve(state) {
-    if (state.op === 'insert' || state.op === 'upsert') {
+    if (state.op === "insert" || state.op === "upsert") {
       (behavior.inserts = behavior.inserts || []).push(state);
       // Failure fixtures for the fail-closed contract tests
-      if (state.table === 'organizations' && behavior.failOrgInsert) {
-        return { data: null, error: { message: behavior.failOrgInsert, details: null, hint: null, code: '23502' } };
+      if (state.table === "organizations" && behavior.failOrgInsert) {
+        return {
+          data: null,
+          error: { message: behavior.failOrgInsert, details: null, hint: null, code: "23502" },
+        };
       }
-      if (state.table === 'clinics' && behavior.failClinicInsert) {
-        return { data: null, error: { message: behavior.failClinicInsert, details: null, hint: null, code: '23503' } };
+      if (state.table === "clinics" && behavior.failClinicInsert) {
+        return {
+          data: null,
+          error: { message: behavior.failClinicInsert, details: null, hint: null, code: "23503" },
+        };
       }
-      if (state.table === 'doctors' && behavior.failDoctorInsert) {
-        return { data: null, error: { message: behavior.failDoctorInsert, details: null, hint: null } };
+      if (state.table === "doctors" && behavior.failDoctorInsert) {
+        return {
+          data: null,
+          error: { message: behavior.failDoctorInsert, details: null, hint: null },
+        };
       }
       // Echo clinic rows back so the post-insert read-back verification finds them
-      if (state.table === 'clinics') {
+      if (state.table === "clinics") {
         behavior.clinicsBySlug = behavior.clinicsBySlug || {};
         for (const row of state.rows) {
           if (row && row.slug) behavior.clinicsBySlug[row.slug] = row;
         }
       }
-      if (state.table === 'platform_crm_leads') {
-        const row = { ...state.rows[0], id: behavior.nextLeadId || 'lead-db-1' };
+      if (state.table === "platform_crm_leads") {
+        const row = { ...state.rows[0], id: behavior.nextLeadId || "lead-db-1" };
         behavior.leadsById = behavior.leadsById || {};
         behavior.leadsById[row.id] = row;
         return { data: row, error: null };
@@ -469,8 +478,16 @@ test("1-click setup provisions the complete clinic workspace from a fresh lead",
   assert.equal(sub.organization_id, res.organizationId);
   assert.equal(sub.plan_id, "growth");
   assert.equal(sub.status, "trialing");
-  assert.equal(sub.access_source, "free_trial", "trial must grant the free_trial entitlement state");
-  assert.equal(sub.trial_started_at, undefined, "no trial_started_at: 720-hour CHECK stays satisfied");
+  assert.equal(
+    sub.access_source,
+    "free_trial",
+    "trial must grant the free_trial entitlement state",
+  );
+  assert.equal(
+    sub.trial_started_at,
+    undefined,
+    "no trial_started_at: 720-hour CHECK stays satisfied",
+  );
   const orderOf = (table) => sb.calls.findIndex((c) => c.table === table && c.op === "insert");
   assert.ok(
     orderOf("subscriptions") < orderOf("doctors") &&
@@ -578,7 +595,8 @@ test("1-click setup throws the real database error when the organization insert 
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
-    failOrgInsert: 'null value in column "user_id" of relation "organization_members" violates not-null constraint',
+    failOrgInsert:
+      'null value in column "user_id" of relation "organization_members" violates not-null constraint',
   });
   const { mod, sb } = loadCrmServer(behavior);
 
