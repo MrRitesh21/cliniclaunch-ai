@@ -45,6 +45,40 @@ message.
   (`has_replied` halt check).
 - Only public-safe clinic columns are exposed on the public site; personal
   phone/email are never rendered.
+- Booking/public-write flows (`requirePublishedClinic`) only ever bind to a real,
+  published clinic row — no synthetic organizations for appointment writes.
+
+## Fail-closed provisioning (2026-10-23 incident fix)
+
+**Incident:** every 1-click setup returned "Successfully created" + a live URL
+that rendered as *Clinic not found*. The row was never written.
+
+**Root cause (two layers):**
+1. **Database:** the `trg_add_creator_as_owner` trigger on `organizations`
+   inserted `organization_members(user_id = auth.uid())`. Platform provisioning
+   runs with the Supabase **service role**, where `auth.uid()` is NULL and
+   `organization_members.user_id` is NOT NULL — so **every** service-role
+   organization insert was rolled back, and the `clinics` insert then failed on
+   its foreign key. Signup flows (authenticated JWT) were unaffected, which is
+   why the dashboard always worked.
+2. **Application:** `setupCompleteClinicFromLeadImpl` never checked the
+   PostgREST `error` returned by each insert (supabase-js returns errors, it
+   does not throw), so both failures vanished and a URL was handed out anyway.
+
+**Fix:**
+- `supabase/migrations/20261023114300_clinicx_platform_provisioning.sql` —
+  `add_creator_as_owner()` now skips membership only for no-JWT (service-role)
+  writes. **This migration must be applied to the production database** (paste
+  in the Supabase SQL editor or run `supabase db push`).
+- The setup is now **fail-closed**: organization/website insert errors throw
+  with the real database message (the CRM toast shows it), a **read-back
+  verification** confirms the published row is queryable before the URL is
+  returned, the trial subscription is provisioned first with the
+  entitlement-compatible shape (`access_source='free_trial'`, 14-day
+  `trial_ends_at`, no `trial_started_at`), and non-critical failures
+  (doctor/modules/reviews/subscription) are returned as `warnings`.
+- `scripts/test-clinicx-oneclick-clinic-setup.cjs` pins all of this with 18
+  offline contracts, including regressions for each silent-failure mode.
 
 ## AI Outreach behaviour
 
