@@ -46,7 +46,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials, SkeletonRows } from "@/components/ui/skeleton-rows";
-import { WebsiteWidgetCard } from "@/components/website/WebsiteWidgetCard";
 import {
   Dialog,
   DialogContent,
@@ -90,7 +89,6 @@ function AppointmentsPage() {
 
   // Add Appointment form states
   const [addOpen, setAddOpen] = useState(false);
-  const [widgetOpen, setWidgetOpen] = useState(false);
   const [doctors, setDoctors] = useState<{ id: string; name: string }[]>([]);
   const [apptName, setApptName] = useState("");
   const [apptPhone, setApptPhone] = useState("");
@@ -449,15 +447,6 @@ function AppointmentsPage() {
             />
           </div>
           <Button
-            variant="outline"
-            onClick={() => setWidgetOpen(true)}
-            size="sm"
-            className="gap-1.5 h-9 px-3 text-xs font-semibold shadow-xs shrink-0 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20"
-          >
-            <Globe className="size-3.5" />
-            <span className="hidden sm:inline">Website</span> Widget
-          </Button>
-          <Button
             onClick={() => setAddOpen(true)}
             size="sm"
             className="gap-1.5 h-9 px-3 text-xs font-semibold shadow-xs shrink-0"
@@ -766,13 +755,7 @@ function AppointmentsPage() {
         </div>
       )}
 
-      {/* Website Booking Widget Generator Modal */}
-      <Dialog open={widgetOpen} onOpenChange={setWidgetOpen}>
-        <DialogContent className="w-full max-w-4xl p-2 sm:p-4 max-h-[92vh] overflow-y-auto">
-          <WebsiteWidgetCard clinic={clinic} onClose={() => setWidgetOpen(false)} />
-        </DialogContent>
-      </Dialog>
-
+      {/* Add Appointment Modal */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>

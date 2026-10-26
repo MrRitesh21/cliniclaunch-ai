@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronDown,
+  Code2,
 } from "lucide-react";
 
 type NavItem = {
@@ -35,6 +36,7 @@ const essentialItems: NavItem[] = [
   { id: "sections", label: "3. Edit content", icon: LayoutGrid },
   { id: "settings", label: "4. Contact & popup", icon: Settings },
   { id: "publish", label: "5. Go live", icon: Rocket },
+  { id: "widget", label: "Custom Website Widget", icon: Code2, badge: "NEW" },
 ];
 
 const advancedItems: NavItem[] = [

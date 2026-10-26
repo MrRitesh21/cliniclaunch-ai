@@ -15,7 +15,8 @@ export type WebsiteTab =
   | "integrations"
   | "publish"
   | "settings"
-  | "domain";
+  | "domain"
+  | "widget";
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
 

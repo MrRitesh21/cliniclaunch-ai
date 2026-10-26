@@ -38,6 +38,36 @@
           "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains"
         }
       ]
+    },
+    {
+      "source": "/c/(.*)/book",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *; base-uri 'self'; object-src 'none';"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/widget.js",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *; base-uri 'self'; object-src 'none';"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
     }
   ]
 }

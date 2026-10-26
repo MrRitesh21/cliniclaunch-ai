@@ -51,17 +51,27 @@ function mergeSecurityCsp(existing: string): string {
   return directives.join("; ") + ";";
 }
 
-function applySecurityHeaders(res: Response, durationMs = 0): Response {
+function applySecurityHeaders(res: Response, durationMs = 0, isEmbeddable = false): Response {
   const headers = new Headers(res.headers);
   headers.set("X-Content-Type-Options", "nosniff");
-  // Same-origin website-builder previews; no wildcard third-party tenants.
-  headers.set("X-Frame-Options", "SAMEORIGIN");
-  headers.set(
-    "Content-Security-Policy",
-    res.headers.get("Content-Security-Policy")
-      ? mergeSecurityCsp(res.headers.get("Content-Security-Policy")!)
-      : "frame-ancestors 'self'; base-uri 'self'; object-src 'none';",
-  );
+  if (isEmbeddable) {
+    // Custom website booking widget: allow embedding in external iframes
+    headers.delete("X-Frame-Options");
+    headers.set(
+      "Content-Security-Policy",
+      "frame-ancestors *; base-uri 'self'; object-src 'none';",
+    );
+    headers.set("Access-Control-Allow-Origin", "*");
+  } else {
+    // Same-origin website-builder previews; no wildcard third-party tenants.
+    headers.set("X-Frame-Options", "SAMEORIGIN");
+    headers.set(
+      "Content-Security-Policy",
+      res.headers.get("Content-Security-Policy")
+        ? mergeSecurityCsp(res.headers.get("Content-Security-Policy")!)
+        : "frame-ancestors 'self'; base-uri 'self'; object-src 'none';",
+    );
+  }
   headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   headers.set("X-XSS-Protection", "0");
   headers.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self)");
@@ -82,14 +92,21 @@ export default {
     const startTime = performance.now();
     let released = false;
     let release: (() => void) | null = null;
+    let isEmbeddable = false;
 
     try {
       const url = new URL(request.url);
+      isEmbeddable =
+        url.pathname.includes("/book") ||
+        url.searchParams.get("embed") === "true" ||
+        url.searchParams.get("embed") === "1" ||
+        url.pathname === "/widget.js";
+
       const scale = await import("./lib/scale.server");
       if (scale.isBlockedFilePath(url.pathname)) {
         return applySecurityHeaders(new Response("Not Found", {
           status: 404, headers: { "cache-control": "private, no-store" },
-        }));
+        }), 0, isEmbeddable);
       }
 
       // 1. Return favicon immediately to prevent browser 500 error logs
@@ -107,6 +124,7 @@ export default {
             },
           ),
           performance.now() - startTime,
+          isEmbeddable,
         );
       }
 
@@ -132,6 +150,7 @@ export default {
               },
             ),
             performance.now() - startTime,
+            isEmbeddable,
           );
         }
 
@@ -151,6 +170,7 @@ export default {
               },
             ),
             performance.now() - startTime,
+            isEmbeddable,
           );
         }
         release = scale.endRequest;
@@ -196,7 +216,7 @@ export default {
       }
       return applySecurityHeaders(new Response(normalized.body, {
         status: normalized.status, statusText: normalized.statusText, headers,
-      }), durationMs);
+      }), durationMs, isEmbeddable);
     } catch (error) {
       console.error(error);
       return applySecurityHeaders(
@@ -205,6 +225,7 @@ export default {
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
         }),
         performance.now() - startTime,
+        isEmbeddable,
       );
     } finally {
       if (release && !released) {

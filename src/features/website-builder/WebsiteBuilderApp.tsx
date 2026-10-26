@@ -17,6 +17,7 @@ import { IntegrationsView } from "./views/IntegrationsView";
 import { PublishView } from "./views/PublishView";
 import { SettingsView } from "./views/SettingsView";
 import { DomainView } from "./views/DomainView";
+import { WebsiteWidgetView } from "./views/WebsiteWidgetView";
 import { Loader2 } from "lucide-react";
 
 function WebsiteBuilderMainContent() {
@@ -53,6 +54,7 @@ function WebsiteBuilderMainContent() {
             {activeTab === "publish" && <PublishView />}
             {activeTab === "domain" && <DomainView />}
             {activeTab === "settings" && <SettingsView />}
+            {activeTab === "widget" && <WebsiteWidgetView />}
           </main>
 
           {showSplitPreview && (

@@ -51,9 +51,20 @@ type DoctorOption = {
 export const Route = createFileRoute("/c/$slug/book")({
   validateSearch: (
     s: Record<string, unknown>,
-  ): { embed?: string; source?: string } => ({
+  ): {
+    embed?: string;
+    source?: string;
+    title?: string;
+    subtitle?: string;
+    color?: string;
+    type?: string;
+  } => ({
     embed: typeof s.embed === "string" ? s.embed : undefined,
     source: typeof s.source === "string" ? s.source : undefined,
+    title: typeof s.title === "string" ? s.title : undefined,
+    subtitle: typeof s.subtitle === "string" ? s.subtitle : undefined,
+    color: typeof s.color === "string" ? s.color : undefined,
+    type: typeof s.type === "string" ? s.type : undefined,
   }),
   head: ({ params }) => {
     const breadcrumbSchema = {
@@ -218,6 +229,10 @@ function BookPage() {
   const search = Route.useSearch();
   const isEmbed = search?.embed === "true" || search?.embed === "1";
   const bookingSource = (search?.source as string) || (isEmbed ? "website_widget" : "booking");
+  const customTitle = search?.title;
+  const customSubtitle = search?.subtitle;
+  const customColor = search?.color;
+  const customType = search?.type; // "both" | "offline" | "online"
 
   const mods = Array.isArray((clinic as any).installed_modules)
     ? ((clinic as any).installed_modules as string[])
@@ -229,7 +244,8 @@ function BookPage() {
   const storageKey = `booking_draft_${clinic.slug}`;
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
-  const [appointmentType, setAppointmentType] = useState<"online" | "offline">("offline");
+  const initialApptType: "online" | "offline" = customType === "online" ? "online" : "offline";
+  const [appointmentType, setAppointmentType] = useState<"online" | "offline">(initialApptType);
 
   const selectedDoctor = useMemo(
     () => doctors.find((d) => d.id === selectedDoctorId) ?? null,
@@ -612,7 +628,17 @@ function BookPage() {
   if (confirmed) {
     const docForConfirm = selectedDoctor ?? (doctors.length === 1 ? doctors[0] : null);
     return (
-      <div className={`max-w-lg mx-auto px-4 ${isEmbed ? "py-6 sm:py-8" : "py-16 sm:py-20"} text-center`}>
+      <div
+        style={
+          customColor
+            ? ({
+                "--primary": customColor,
+                "--color-primary": customColor,
+              } as React.CSSProperties)
+            : undefined
+        }
+        className={`max-w-lg mx-auto px-4 ${isEmbed ? "py-6 sm:py-8" : "py-16 sm:py-20"} text-center`}
+      >
         <div className="size-20 mx-auto rounded-full bg-emerald-50 border-4 border-emerald-100 text-emerald-500 grid place-items-center">
           <CheckCircle2 className="size-10" />
         </div>
@@ -755,14 +781,28 @@ function BookPage() {
   const displayDoctor = selectedDoctor ?? (doctors.length === 1 ? doctors[0] : null);
 
   return (
-    <div className={`max-w-3xl mx-auto px-4 ${isEmbed ? "py-4 sm:py-6" : "py-8 sm:py-12"}`}>
+    <div
+      style={
+        customColor
+          ? ({
+              "--primary": customColor,
+              "--color-primary": customColor,
+            } as React.CSSProperties)
+          : undefined
+      }
+      className={`max-w-3xl mx-auto px-4 ${isEmbed ? "py-4 sm:py-6" : "py-8 sm:py-12"}`}
+    >
       {/* Header */}
       <div className="flex items-start gap-4">
         {displayDoctor && <DoctorAvatar doc={displayDoctor} size="md" />}
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl">Book an appointment</h1>
+          <h1 className="font-display text-2xl sm:text-3xl">
+            {customTitle || "Book an appointment"}
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            {displayDoctor ? (
+            {customSubtitle ? (
+              customSubtitle
+            ) : displayDoctor ? (
               <>
                 <span className="font-medium text-foreground">{displayDoctor.name}</span>
                 {displayDoctor.specialization && <span> · {displayDoctor.specialization}</span>}
@@ -894,7 +934,7 @@ function BookPage() {
         {currentKey === "schedule" && (
           <div className="space-y-4">
             {/* Appointment type pills */}
-            {consultOn && (
+            {consultOn && (!customType || customType === "both") && (
               <div className="flex gap-2 flex-wrap">
                 {(
                   [

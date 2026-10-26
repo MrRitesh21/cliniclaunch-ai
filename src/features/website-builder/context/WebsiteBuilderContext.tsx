@@ -135,7 +135,27 @@ export function WebsiteBuilderProvider({
   children: React.ReactNode;
 }) {
   const submitGscFn = useServerFn(submitClinicToGoogleServerFn);
-  const [activeTab, setActiveTab] = useState<WebsiteTab>("overview");
+  const [activeTab, setActiveTabState] = useState<WebsiteTab>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const tab = p.get("tab") as WebsiteTab;
+      if (tab) return tab;
+    }
+    return "overview";
+  });
+
+  const setActiveTab = React.useCallback((tab: WebsiteTab) => {
+    setActiveTabState(tab);
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("tab") !== tab) {
+        p.set("tab", tab);
+        const newUrl = `${window.location.pathname}?${p.toString()}`;
+        window.history.replaceState(null, "", newUrl);
+      }
+    }
+  }, []);
+
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
   const [selectedSectionKey, setSelectedSectionKey] = useState<SectionKey | null>(null);
   const [isFloatingAIOpen, setIsFloatingAIOpen] = useState(false);

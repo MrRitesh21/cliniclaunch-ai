@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Eye,
   ArrowRight,
+  Code2,
 } from "lucide-react";
 import { DoctorSteps } from "../components/DoctorSteps";
 
@@ -99,6 +100,36 @@ export function OverviewView() {
             <span>AI Polish</span>
           </Button>
         </div>
+      </div>
+
+      {/* Custom Website Widget Banner */}
+      <div className="p-4 rounded-2xl border border-blue-500/25 bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-teal-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <span className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
+            <Code2 className="size-4" />
+          </span>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-xs sm:text-sm font-bold text-foreground">
+                External Website Booking Widget
+              </h3>
+              <Badge variant="outline" className="border-blue-500/30 text-blue-700 dark:text-blue-300 bg-blue-500/10 text-[10px]">
+                WordPress / Wix / Webflow
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Doctor ki custom website me 1-click booking system integrate karein with full button &amp; form customization.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          onClick={() => setActiveTab("widget")}
+          className="rounded-xl h-8 text-xs font-semibold gap-1.5 shrink-0 bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+        >
+          <Code2 className="size-3.5" /> Customize &amp; Get Code
+        </Button>
       </div>
 
       {/* Unified 3-Score Pill Matrix */}
