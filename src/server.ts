@@ -100,7 +100,8 @@ export default {
         url.pathname.includes("/book") ||
         url.searchParams.get("embed") === "true" ||
         url.searchParams.get("embed") === "1" ||
-        url.pathname === "/widget.js";
+        url.pathname === "/widget.js" ||
+        url.pathname.startsWith("/api/public/");
 
       const scale = await import("./lib/scale.server");
       if (scale.isBlockedFilePath(url.pathname)) {

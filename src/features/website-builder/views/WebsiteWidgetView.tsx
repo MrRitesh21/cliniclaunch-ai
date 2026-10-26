@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,6 @@ import {
   ExternalLink,
   Code2,
   Sparkles,
-  Calendar,
   Layers,
   ArrowRight,
   ShieldCheck,
@@ -32,61 +32,50 @@ import {
   Palette,
   Laptop,
   Smartphone,
-  Stethoscope,
+  Calendar,
   Clock,
-  MessageCircle,
+  Send,
   Zap,
   Building2,
   Video,
   MousePointerClick,
   Monitor,
+  Terminal,
+  Database,
+  CheckCheck,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
-
-const COLOR_PRESETS = [
-  { name: "Emerald", hex: "#059669" },
-  { name: "Medical Blue", hex: "#2563eb" },
-  { name: "Teal", hex: "#0d9488" },
-  { name: "Indigo", hex: "#4f46e5" },
-  { name: "Purple", hex: "#7c3aed" },
-  { name: "Rose", hex: "#e11d48" },
-  { name: "Amber", hex: "#d97706" },
-  { name: "Dark Slate", hex: "#0f172a" },
-];
 
 export function WebsiteWidgetView() {
   const { clinic } = useWebsiteBuilder();
   const [copiedType, setCopiedType] = useState<string | null>(null);
 
-  // --- BUTTON CUSTOMIZATION STATE ---
+  // Form builder customization state
+  const [accentColor, setAccentColor] = useState(clinic?.theme_color || "#059669");
   const [buttonText, setButtonText] = useState("Book Appointment");
-  const [themeColor, setThemeColor] = useState(clinic?.theme_color || "#059669");
-  const [textColor, setTextColor] = useState("#ffffff");
-  const [position, setPosition] = useState<
-    "bottom-right" | "bottom-left" | "bottom-center" | "top-right" | "top-left"
-  >("bottom-right");
-  const [buttonSize, setButtonSize] = useState<"sm" | "md" | "lg">("md");
-  const [buttonRadius, setButtonRadius] = useState<"pill" | "rounded" | "soft" | "sharp">("pill");
-  const [iconType, setIconType] = useState<
-    "calendar" | "stethoscope" | "clock" | "message" | "sparkles" | "none"
-  >("calendar");
-  const [animation, setAnimation] = useState<"none" | "pulse" | "bounce" | "glow">("pulse");
+  const [formHeading, setFormHeading] = useState("Book an In-Clinic or Video Consultation");
+  const [formSubheading, setFormSubheading] = useState("Fill your details below. Our clinic will confirm your appointment shortly.");
+  const [includeEmail, setIncludeEmail] = useState(true);
+  const [includeDate, setIncludeDate] = useState(true);
+  const [includeProblem, setIncludeProblem] = useState(true);
+  const [includeType, setIncludeType] = useState(true);
+  const [redirectUrl, setRedirectUrl] = useState("");
+  const [formTheme, setFormTheme] = useState<"clean" | "minimal" | "modern">("modern");
 
-  // --- FORM / MODAL CUSTOMIZATION STATE ---
-  const [formTitle, setFormTitle] = useState(
-    clinic?.doctor_name ? `Book with ${clinic.doctor_name}` : "Book an Appointment"
-  );
-  const [formSubtitle, setFormSubtitle] = useState("Instant confirmation in 30 seconds");
-  const [formColor, setFormColor] = useState(clinic?.theme_color || "#059669");
-  const [apptType, setApptType] = useState<"both" | "offline" | "online">("both");
-  const [modalRadius, setModalRadius] = useState<
-    "24px" | "20px" | "16px" | "8px" | "0px"
-  >("20px");
-
-  // Preview Mode
-  const [previewTab, setPreviewTab] = useState<"button" | "modal">("button");
-  const [activeSnippetTab, setActiveSnippetTab] = useState<
-    "script" | "inline" | "custom_button" | "direct_link"
-  >("script");
+  // Live Test Form State
+  const [testName, setTestName] = useState("Ramesh Verma");
+  const [testPhone, setTestPhone] = useState("9876543210");
+  const [testEmail, setTestEmail] = useState("ramesh@example.com");
+  const [testDate, setTestDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split("T")[0];
+  });
+  const [testProblem, setTestProblem] = useState("General Health Consultation");
+  const [testType, setTestType] = useState<"offline" | "online">("offline");
+  const [testingSubmit, setTestingSubmit] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   const slug = clinic?.slug || "my-clinic";
 
@@ -98,74 +87,171 @@ export function WebsiteWidgetView() {
     return "https://clinics.digiwil.com";
   }, []);
 
-  // Compute live booking query parameters
-  const embedUrl = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("embed", "true");
-    params.set("source", "website_widget");
-    if (formTitle) params.set("title", formTitle);
-    if (formSubtitle) params.set("subtitle", formSubtitle);
-    if (formColor) params.set("color", formColor);
-    if (apptType && apptType !== "both") params.set("type", apptType);
-    return `${baseUrl}/c/${slug}/book?${params.toString()}`;
-  }, [baseUrl, slug, formTitle, formSubtitle, formColor, apptType]);
+  const apiEndpointUrl = `${baseUrl}/api/public/submit-booking`;
+  const actionWithClinicUrl = `${baseUrl}/api/public/submit-booking?clinic=${encodeURIComponent(slug)}`;
 
-  const directUrl = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("source", "website_widget");
-    if (formTitle) params.set("title", formTitle);
-    if (formSubtitle) params.set("subtitle", formSubtitle);
-    if (formColor) params.set("color", formColor);
-    if (apptType && apptType !== "both") params.set("type", apptType);
-    return `${baseUrl}/c/${slug}/book?${params.toString()}`;
-  }, [baseUrl, slug, formTitle, formSubtitle, formColor, apptType]);
+  // Pure HTML Form Snippet (NO IFRAME) - Fully styled and customizable
+  const pureHtmlFormSnippet = `<!-- ========================================================
+  ClinicX Custom Website Booking Form (NO IFRAME)
+  Paste this HTML into your website (WordPress, Webflow, Wix, or HTML).
+  It matches your own site's theme and submits directly to ClinicX!
+======================================================== -->
 
-  const scriptUrl = `${baseUrl}/widget.js`;
-
-  // Code Snippets with all active attributes
-  const popupScriptCode = `<!-- ClinicX Floating Appointment Widget -->
-<script
-  src="${scriptUrl}"
+<form 
+  id="clinicx-booking-form"
+  action="${apiEndpointUrl}" 
+  method="POST"
   data-clinic="${slug}"
-  data-text="${buttonText}"
-  data-color="${themeColor}"
-  data-text-color="${textColor}"
-  data-position="${position}"
-  data-size="${buttonSize}"
-  data-radius="${buttonRadius}"
-  data-icon="${iconType}"
-  data-animation="${animation}"
-  data-title="${formTitle}"
-  data-subtitle="${formSubtitle}"
-  data-form-color="${formColor}"
-  data-type="${apptType}"
-  async
-></script>`;
-
-  const inlineIframeCode = `<!-- ClinicX Inline Booking Calendar -->
-<div style="width: 100%; max-width: 720px; margin: 0 auto;">
-  <iframe
-    src="${embedUrl}"
-    width="100%"
-    height="780"
-    style="border: none; border-radius: ${modalRadius}; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.06);"
-    allow="payment; geolocation"
-    title="${formTitle}"
-  ></iframe>
-</div>`;
-
-  const customButtonCode = `<!-- Trigger ClinicX Widget from your custom button/menu -->
-<button
-  type="button"
-  onclick="ClinicXWidget.open()"
-  style="background-color: ${themeColor}; color: ${textColor}; padding: 12px 24px; border-radius: 9999px; font-weight: 600; border: none; cursor: pointer;"
+  ${redirectUrl ? `data-redirect="${redirectUrl}"` : ""}
+  style="max-width: 520px; width: 100%; margin: 0 auto; font-family: inherit; box-sizing: border-box;"
 >
-  ${buttonText}
-</button>
+  <!-- Hidden Clinic Identifier -->
+  <input type="hidden" name="clinic" value="${slug}" />
+  ${redirectUrl ? `<input type="hidden" name="redirect_url" value="${redirectUrl}" />` : ""}
 
-<!-- Also include the lightweight widget loader script -->
-<script src="${scriptUrl}" data-clinic="${slug}" data-mode="inline" async></script>`;
+  <div style="margin-bottom: 20px; text-align: left;">
+    <h3 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #0f172a;">
+      ${formHeading}
+    </h3>
+    <p style="margin: 0; font-size: 13px; color: #64748b;">
+      ${formSubheading}
+    </p>
+  </div>
 
+  <!-- Patient Name Field -->
+  <div style="margin-bottom: 14px; text-align: left;">
+    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+      Full Name *
+    </label>
+    <input 
+      type="text" 
+      name="name" 
+      required 
+      placeholder="e.g. Ramesh Verma" 
+      style="width: 100%; padding: 11px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box;"
+    />
+  </div>
+
+  <!-- Phone / WhatsApp Field -->
+  <div style="margin-bottom: 14px; text-align: left;">
+    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+      Phone / WhatsApp Number *
+    </label>
+    <input 
+      type="tel" 
+      name="phone" 
+      required 
+      placeholder="e.g. 9876543210" 
+      style="width: 100%; padding: 11px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box;"
+    />
+  </div>
+${
+  includeEmail
+    ? `
+  <!-- Email Address (Optional) -->
+  <div style="margin-bottom: 14px; text-align: left;">
+    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+      Email Address
+    </label>
+    <input 
+      type="email" 
+      name="email" 
+      placeholder="e.g. name@example.com" 
+      style="width: 100%; padding: 11px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box;"
+    />
+  </div>`
+    : ""
+}${
+  includeType
+    ? `
+  <!-- Consultation Type -->
+  <div style="margin-bottom: 14px; text-align: left;">
+    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+      Consultation Type
+    </label>
+    <select 
+      name="appointment_type" 
+      style="width: 100%; padding: 11px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #fff; box-sizing: border-box;"
+    >
+      <option value="offline">In-Clinic Visit</option>
+      <option value="online">Video Consultation</option>
+    </select>
+  </div>`
+    : ""
+}${
+  includeDate
+    ? `
+  <!-- Preferred Appointment Date -->
+  <div style="margin-bottom: 14px; text-align: left;">
+    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+      Preferred Date
+    </label>
+    <input 
+      type="date" 
+      name="date" 
+      style="width: 100%; padding: 11px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box;"
+    />
+  </div>`
+    : ""
+}${
+  includeProblem
+    ? `
+  <!-- Symptoms or Message -->
+  <div style="margin-bottom: 18px; text-align: left;">
+    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+      Reason for Visit / Problem
+    </label>
+    <textarea 
+      name="problem" 
+      rows="2" 
+      placeholder="Briefly describe your symptoms or concern..." 
+      style="width: 100%; padding: 10px 14px; font-size: 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; box-sizing: border-box; resize: vertical;"
+    ></textarea>
+  </div>`
+    : ""
+}
+  <!-- Submit Button (Styled to your clinic color) -->
+  <button 
+    type="submit" 
+    style="width: 100%; padding: 14px 20px; font-size: 15px; font-weight: 600; background-color: ${accentColor}; color: #ffffff; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.2s;"
+  >
+    ${buttonText}
+  </button>
+</form>
+
+<!-- ClinicX Auto-Submit Connector Script (Handles AJAX & confirmation without page reload) -->
+<script src="${baseUrl}/widget.js" data-clinic="${slug}" data-mode="none" async></script>`;
+
+  // JavaScript / Fetch Code Snippet
+  const fetchApiSnippet = `// Submit booking data to ClinicX API from your custom JavaScript / React / Vue form:
+async function submitToClinicX(formData) {
+  const response = await fetch("${apiEndpointUrl}", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({
+      clinic: "${slug}",
+      name: formData.name,              // Patient Full Name
+      phone: formData.phone,            // Mobile / WhatsApp number
+      email: formData.email,            // Optional email
+      date: formData.date,              // e.g. "2026-10-27"
+      appointment_type: formData.type,  // "offline" or "online"
+      problem: formData.problem,        // Symptoms or notes
+    }),
+  });
+
+  const result = await response.json();
+  if (result.success) {
+    console.log("Appointment created in ClinicX with ID:", result.appointment_id);
+    alert("Appointment requested! Clinic will confirm shortly.");
+  } else {
+    alert("Error: " + result.error);
+  }
+}`;
+
+  // Copy helper
   const copyToClipboard = (text: string, type: string) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -177,38 +263,66 @@ export function WebsiteWidgetView() {
     }
   };
 
-  // Preview button styles computation
-  const previewRadiusClass = {
-    pill: "rounded-full",
-    rounded: "rounded-xl",
-    soft: "rounded-lg",
-    sharp: "rounded-none",
-  }[buttonRadius];
+  // Perform a Live Test Submission
+  const handleTestSubmit = async () => {
+    if (!testPhone) {
+      toast.error("Please enter a phone number to test");
+      return;
+    }
+    setTestingSubmit(true);
+    setTestResult(null);
 
-  const previewSizeClass = {
-    sm: "px-3.5 py-2 text-xs gap-1.5",
-    md: "px-5 py-2.5 text-sm gap-2",
-    lg: "px-6 py-3.5 text-base gap-2.5",
-  }[buttonSize];
+    try {
+      const res = await fetch(apiEndpointUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          clinic: slug,
+          name: testName,
+          phone: testPhone,
+          email: testEmail,
+          date: testDate,
+          appointment_type: testType,
+          problem: testProblem,
+        }),
+      });
+
+      const data = await res.json();
+      setTestResult(data);
+      if (data.success) {
+        toast.success("Test booking sent! Checked in Appointments & Leads!");
+      } else {
+        toast.error(data.error || "Submission failed");
+      }
+    } catch (err: any) {
+      toast.error("Network error: " + err.message);
+      setTestResult({ success: false, error: err.message });
+    } finally {
+      setTestingSubmit(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Top Banner */}
-      <div className="p-6 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-background to-teal-500/10 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-background to-teal-500/10 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
-              <Code2 className="size-5" />
+            <span className="p-2 rounded-xl bg-emerald-600 text-white shadow-xs">
+              <Zap className="size-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Custom Website Booking Widget
+              Custom Theme Form Integration (No iFrame)
             </h1>
             <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold gap-1">
-              <CheckCircle2 className="size-3" /> Live Sync Active
+              <CheckCircle2 className="size-3" /> Zero iFrame Required
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Agar doctor ki already koi custom website hai (WordPress, Webflow, Wix, Squarespace, ya custom coded website), toh bina kisi code complex coding ke aap ClinicX ka booking widget laga sakte hain. Website se aane wali har lead aur appointment sidhe aapke ClinicX CRM aur Appointments me show hogi!
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
+            Doctor ki custom website ka <strong>apna design, apna theme aur apna form</strong> rahega! Jab patient doctor ki website par apna form submit karega, tab sari information (Patient details, phone, date, symptoms) automatic ClinicX CRM ke <strong>Leads</strong> aur <strong>Appointments</strong> me real-time show hogi.
           </p>
         </div>
 
@@ -216,781 +330,501 @@ export function WebsiteWidgetView() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(embedUrl, "_blank")}
+            onClick={() => window.open(apiEndpointUrl + "?clinic=" + slug, "_blank")}
             className="rounded-xl gap-1.5 text-xs bg-background/80"
           >
-            <ExternalLink className="size-3.5 text-blue-600" />
-            Test Live Embed
+            <Terminal className="size-3.5 text-emerald-600" />
+            API Docs / Spec
           </Button>
         </div>
       </div>
 
-      {/* Main 2-Column Grid */}
+      {/* 3 Step Flow Diagram */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="p-4 rounded-xl border border-border/80 bg-card space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+            <span className="size-5 rounded-full bg-blue-500/10 text-blue-600 grid place-items-center text-[11px]">
+              1
+            </span>
+            <span>Doctor's Custom Website</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Doctor apne WordPress, Webflow, Wix ya custom theme me apna form lagate hain.
+          </p>
+        </Card>
+
+        <Card className="p-4 rounded-xl border border-border/80 bg-card space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+            <span className="size-5 rounded-full bg-emerald-500/10 text-emerald-600 grid place-items-center text-[11px]">
+              2
+            </span>
+            <span>Patient Submits Form</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Patient name, phone aur date enter karke submit karta hai.
+          </p>
+        </Card>
+
+        <Card className="p-4 rounded-xl border border-border/80 bg-card space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+            <span className="size-5 rounded-full bg-purple-500/10 text-purple-600 grid place-items-center text-[11px]">
+              3
+            </span>
+            <span>ClinicX Live Sync</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            ClinicX me instant appointment generate hoti hai, CRM me lead aati hai aur doctor ko WhatsApp alert jata hai!
+          </p>
+        </Card>
+      </div>
+
+      {/* Main Grid: Custom Form Configuration & Generated Code */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Complete Customization Controls */}
-        <div className="lg:col-span-6 space-y-6">
-          {/* Card 1: Floating Button Customization */}
+        {/* Left Column: Form Setup & Options */}
+        <div className="lg:col-span-5 space-y-5">
           <Card className="p-5 space-y-5 bg-card/90 border-border/80 shadow-xs">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
-                  <MousePointerClick className="size-4" />
-                </span>
-                <div>
-                  <h3 className="font-semibold text-sm">Floating Button Styling</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    Customize the floating trigger button that appears on doctor's website
-                  </p>
-                </div>
-              </div>
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-                Button
-              </Badge>
-            </div>
-
-            {/* Button Label Text */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Button Label Text</Label>
-              <Input
-                value={buttonText}
-                onChange={(e) => setButtonText(e.target.value)}
-                placeholder="e.g. Book Appointment, Consult Doctor"
-                className="h-9 text-xs"
-              />
-            </div>
-
-            {/* Icon & Position Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Button Icon</Label>
-                <Select
-                  value={iconType}
-                  onValueChange={(val: any) => setIconType(val)}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Choose icon" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="calendar">📅 Calendar</SelectItem>
-                    <SelectItem value="stethoscope">🩺 Stethoscope</SelectItem>
-                    <SelectItem value="clock">⏰ Clock</SelectItem>
-                    <SelectItem value="message">💬 Message Chat</SelectItem>
-                    <SelectItem value="sparkles">✨ Sparkles / AI</SelectItem>
-                    <SelectItem value="none">🚫 No Icon (Text only)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Screen Position</Label>
-                <Select
-                  value={position}
-                  onValueChange={(val: any) => setPosition(val)}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Position" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bottom-right">Bottom Right (Recommended)</SelectItem>
-                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                    <SelectItem value="bottom-center">Bottom Center (Mobile friendly)</SelectItem>
-                    <SelectItem value="top-right">Top Right</SelectItem>
-                    <SelectItem value="top-left">Top Left</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Size & Radius Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Button Size</Label>
-                <div className="grid grid-cols-3 gap-1.5 bg-muted/40 p-1 rounded-lg border">
-                  {(["sm", "md", "lg"] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setButtonSize(s)}
-                      className={`text-xs py-1 rounded font-medium transition-all ${
-                        buttonSize === s
-                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {s === "sm" ? "Compact" : s === "md" ? "Medium" : "Large"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Corner Radius</Label>
-                <div className="grid grid-cols-4 gap-1 bg-muted/40 p-1 rounded-lg border">
-                  {(["pill", "rounded", "soft", "sharp"] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setButtonRadius(r)}
-                      className={`text-[11px] py-1 rounded font-medium transition-all ${
-                        buttonRadius === r
-                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {r === "pill" ? "Pill" : r === "rounded" ? "Round" : r === "soft" ? "Soft" : "Sharp"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Button Theme Color */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Button Background Color</Label>
-                <span className="text-[11px] font-mono text-muted-foreground uppercase">{themeColor}</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {COLOR_PRESETS.map((c) => (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    onClick={() => setThemeColor(c.hex)}
-                    title={c.name}
-                    className={`size-6 rounded-full border-2 transition-transform ${
-                      themeColor.toLowerCase() === c.hex.toLowerCase()
-                        ? "scale-125 border-foreground shadow-sm"
-                        : "border-transparent hover:scale-110"
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                  />
-                ))}
-                <div className="flex items-center gap-1.5 ml-auto">
-                  <input
-                    type="color"
-                    value={themeColor}
-                    onChange={(e) => setThemeColor(e.target.value)}
-                    className="size-7 rounded-lg border border-border cursor-pointer p-0.5 bg-background"
-                  />
-                  <Input
-                    value={themeColor}
-                    onChange={(e) => setThemeColor(e.target.value)}
-                    className="w-20 h-7 text-xs font-mono px-2"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Text Color & Animation */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Button Text Color</Label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setTextColor("#ffffff")}
-                    className={`px-3 py-1 rounded-md text-xs font-medium border flex items-center gap-1.5 transition-all ${
-                      textColor === "#ffffff" ? "bg-slate-900 text-white border-slate-900 shadow-xs" : "hover:bg-muted"
-                    }`}
-                  >
-                    <span className="size-2.5 rounded-full bg-white border border-slate-300" /> White
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTextColor("#0f172a")}
-                    className={`px-3 py-1 rounded-md text-xs font-medium border flex items-center gap-1.5 transition-all ${
-                      textColor === "#0f172a" ? "bg-slate-900 text-white border-slate-900 shadow-xs" : "hover:bg-muted"
-                    }`}
-                  >
-                    <span className="size-2.5 rounded-full bg-slate-900" /> Dark
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Attention Animation</Label>
-                <Select
-                  value={animation}
-                  onValueChange={(val: any) => setAnimation(val)}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Animation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pulse">💓 Subtle Pulse</SelectItem>
-                    <SelectItem value="bounce">🪂 Floating Bounce</SelectItem>
-                    <SelectItem value="glow">✨ Soft Glow</SelectItem>
-                    <SelectItem value="none">Static (No Animation)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </Card>
-
-          {/* Card 2: Form & Modal Customization */}
-          <Card className="p-5 space-y-5 bg-card/90 border-border/80 shadow-xs">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-teal-500/10 text-teal-600">
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
                   <Sliders className="size-4" />
                 </span>
                 <div>
-                  <h3 className="font-semibold text-sm">Booking Form & Modal Customization</h3>
+                  <h3 className="font-semibold text-sm">Form Fields &amp; Content</h3>
                   <p className="text-[11px] text-muted-foreground">
-                    Control headers, colors, and consultation options inside the booking calendar
+                    Choose which fields to include in the generated custom form
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-                Modal Form
+              <Badge variant="outline" className="text-[10px]">
+                Setup
               </Badge>
             </div>
 
-            {/* Modal Title & Subtitle */}
+            {/* Form Title & Subtitle */}
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Modal Header Title</Label>
+                <Label className="text-xs font-semibold">Form Heading</Label>
                 <Input
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
+                  value={formHeading}
+                  onChange={(e) => setFormHeading(e.target.value)}
                   placeholder="e.g. Book an Appointment with Dr. Sharma"
                   className="h-9 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Header Tagline / Subtitle</Label>
+                <Label className="text-xs font-semibold">Form Subheading / Notice</Label>
                 <Input
-                  value={formSubtitle}
-                  onChange={(e) => setFormSubtitle(e.target.value)}
-                  placeholder="e.g. Instant confirmation in 30 seconds"
+                  value={formSubheading}
+                  onChange={(e) => setFormSubheading(e.target.value)}
+                  placeholder="e.g. Our clinic will confirm within 15 minutes"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Submit Button Text</Label>
+                <Input
+                  value={buttonText}
+                  onChange={(e) => setButtonText(e.target.value)}
+                  placeholder="e.g. Confirm Appointment"
                   className="h-9 text-xs"
                 />
               </div>
             </div>
 
-            {/* Allowed Appointment Types */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Allowed Visit Types</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setApptType("both")}
-                  className={`p-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all ${
-                    apptType === "both"
-                      ? "border-primary bg-primary/10 text-primary font-semibold shadow-xs"
-                      : "border-border hover:bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <Layers className="size-4" />
-                  <span>Both Types</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setApptType("offline")}
-                  className={`p-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all ${
-                    apptType === "offline"
-                      ? "border-primary bg-primary/10 text-primary font-semibold shadow-xs"
-                      : "border-border hover:bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <Building2 className="size-4" />
-                  <span>In-Clinic Only</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setApptType("online")}
-                  className={`p-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all ${
-                    apptType === "online"
-                      ? "border-primary bg-primary/10 text-primary font-semibold shadow-xs"
-                      : "border-border hover:bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <Video className="size-4" />
-                  <span>Video Consult Only</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Form Accent Color */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Form Accent & Button Color</Label>
-                <span className="text-[11px] font-mono text-muted-foreground uppercase">{formColor}</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {COLOR_PRESETS.map((c) => (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    onClick={() => setFormColor(c.hex)}
-                    title={c.name}
-                    className={`size-6 rounded-full border-2 transition-transform ${
-                      formColor.toLowerCase() === c.hex.toLowerCase()
-                        ? "scale-125 border-foreground shadow-sm"
-                        : "border-transparent hover:scale-110"
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                  />
-                ))}
-                <div className="flex items-center gap-1.5 ml-auto">
+            {/* Field Toggles */}
+            <div className="space-y-2 border-t pt-3">
+              <Label className="text-xs font-semibold">Include Fields</Label>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <label className="flex items-center gap-2 p-2 rounded-lg border bg-muted/20 cursor-pointer">
                   <input
-                    type="color"
-                    value={formColor}
-                    onChange={(e) => setFormColor(e.target.value)}
-                    className="size-7 rounded-lg border border-border cursor-pointer p-0.5 bg-background"
+                    type="checkbox"
+                    checked={true}
+                    disabled
+                    className="size-3.5 accent-primary"
                   />
-                  <Input
-                    value={formColor}
-                    onChange={(e) => setFormColor(e.target.value)}
-                    className="w-20 h-7 text-xs font-mono px-2"
+                  <span>Full Name (Required)</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border bg-muted/20 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={true}
+                    disabled
+                    className="size-3.5 accent-primary"
                   />
-                </div>
+                  <span>Phone Number (Required)</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border bg-muted/10 cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={includeEmail}
+                    onChange={(e) => setIncludeEmail(e.target.checked)}
+                    className="size-3.5 accent-primary"
+                  />
+                  <span>Email Address</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border bg-muted/10 cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={includeDate}
+                    onChange={(e) => setIncludeDate(e.target.checked)}
+                    className="size-3.5 accent-primary"
+                  />
+                  <span>Preferred Date</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border bg-muted/10 cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={includeType}
+                    onChange={(e) => setIncludeType(e.target.checked)}
+                    className="size-3.5 accent-primary"
+                  />
+                  <span>In-Clinic / Video Option</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border bg-muted/10 cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={includeProblem}
+                    onChange={(e) => setIncludeProblem(e.target.checked)}
+                    className="size-3.5 accent-primary"
+                  />
+                  <span>Problem / Symptoms</span>
+                </label>
               </div>
             </div>
 
-            {/* Modal Corner Radius */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Modal Popup Corner Rounding</Label>
-              <div className="grid grid-cols-5 gap-1 bg-muted/40 p-1 rounded-lg border">
-                {(
-                  [
-                    { id: "24px", label: "24px" },
-                    { id: "20px", label: "20px" },
-                    { id: "16px", label: "16px" },
-                    { id: "8px", label: "8px" },
-                    { id: "0px", label: "0px" },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setModalRadius(item.id)}
-                    className={`text-[11px] py-1 rounded font-medium transition-all ${
-                      modalRadius === item.id
-                        ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+            {/* Optional Redirect URL */}
+            <div className="space-y-1.5 border-t pt-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">
+                  Thank You / Redirect Page URL (Optional)
+                </Label>
               </div>
+              <Input
+                value={redirectUrl}
+                onChange={(e) => setRedirectUrl(e.target.value)}
+                placeholder="https://doctorwebsite.com/thank-you"
+                className="h-9 text-xs font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Khali chhodne par form submit hone ke baad wahi par clean success message appear hoga.
+              </p>
             </div>
-          </Card>
-        </div>
 
-        {/* Right Column: Live Interactive Mockup + Code Snippets */}
-        <div className="lg:col-span-6 space-y-6">
-          {/* Live Preview Card */}
-          <Card className="p-5 space-y-4 bg-card border-border shadow-xs">
-            <div className="flex items-center justify-between border-b pb-3">
+            {/* Accent Color */}
+            <div className="space-y-2 border-t pt-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Button Accent Color</Label>
+                <span className="text-[11px] font-mono text-muted-foreground">{accentColor}</span>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                  <Eye className="size-4" />
-                </span>
-                <h3 className="font-semibold text-sm">Interactive Live Preview</h3>
-              </div>
-
-              {/* Preview mode tabs */}
-              <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab("button")}
-                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
-                    previewTab === "button"
-                      ? "bg-background text-foreground shadow-xs font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Floating Button
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab("modal")}
-                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
-                    previewTab === "modal"
-                      ? "bg-background text-foreground shadow-xs font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Form Modal
-                </button>
-              </div>
-            </div>
-
-            {/* Preview Viewport Container */}
-            <div className="relative rounded-xl border border-border/70 overflow-hidden bg-slate-900/5 dark:bg-slate-950 min-h-[380px] flex flex-col">
-              {/* Browser chrome header mockup */}
-              <div className="bg-muted/70 border-b border-border/50 px-3 py-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <span className="size-2.5 rounded-full bg-rose-500/70" />
-                  <span className="size-2.5 rounded-full bg-amber-500/70" />
-                  <span className="size-2.5 rounded-full bg-emerald-500/70" />
-                </div>
-                <div className="px-3 py-0.5 rounded-md bg-background/80 border text-[10px] font-mono text-muted-foreground/80 truncate max-w-[220px]">
-                  doctor-custom-website.com
-                </div>
-                <div className="text-[10px] text-muted-foreground">Preview</div>
-              </div>
-
-              {/* Mockup Canvas */}
-              <div className="relative flex-1 p-5 overflow-hidden flex flex-col justify-between bg-gradient-to-b from-background via-background to-muted/20">
-                {/* Mock Website Page Content */}
-                <div className="space-y-3 pointer-events-none opacity-80">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <div className="h-4 w-28 bg-muted rounded" />
-                    <div className="flex gap-2">
-                      <div className="h-3 w-12 bg-muted rounded" />
-                      <div className="h-3 w-12 bg-muted rounded" />
-                      <div className="h-3 w-12 bg-muted rounded" />
-                    </div>
-                  </div>
-                  <div className="h-7 w-3/4 bg-muted/80 rounded-lg mt-4" />
-                  <div className="h-3 w-full bg-muted/50 rounded" />
-                  <div className="h-3 w-4/5 bg-muted/50 rounded" />
-                  <div className="grid grid-cols-3 gap-2 mt-4 pt-2">
-                    <div className="h-16 bg-muted/40 rounded-xl border border-border/30" />
-                    <div className="h-16 bg-muted/40 rounded-xl border border-border/30" />
-                    <div className="h-16 bg-muted/40 rounded-xl border border-border/30" />
-                  </div>
-                </div>
-
-                {/* Tab 1 Preview: Floating Button on Mockup */}
-                {previewTab === "button" && (
-                  <div
-                    className={`absolute ${
-                      position === "bottom-left"
-                        ? "bottom-5 left-5"
-                        : position === "bottom-center"
-                        ? "bottom-5 left-1/2 -translate-x-1/2"
-                        : position === "top-right"
-                        ? "top-14 right-5"
-                        : position === "top-left"
-                        ? "top-14 left-5"
-                        : "bottom-5 right-5"
-                    } transition-all duration-300 z-10`}
-                  >
-                    <button
-                      type="button"
-                      className={`inline-flex items-center justify-center font-semibold shadow-xl transition-all ${previewSizeClass} ${previewRadiusClass} ${
-                        animation === "pulse"
-                          ? "animate-pulse"
-                          : animation === "bounce"
-                          ? "animate-bounce"
-                          : ""
-                      }`}
-                      style={{
-                        backgroundColor: themeColor,
-                        color: textColor,
-                        boxShadow:
-                          animation === "glow"
-                            ? `0 0 20px ${themeColor}88, 0 10px 25px rgba(0,0,0,0.2)`
-                            : `0 10px 25px -5px ${themeColor}40, 0 8px 10px -6px rgba(0,0,0,0.1)`,
-                      }}
-                      onClick={() => setPreviewTab("modal")}
-                    >
-                      {iconType === "calendar" && <Calendar className="size-4 shrink-0" />}
-                      {iconType === "stethoscope" && <Stethoscope className="size-4 shrink-0" />}
-                      {iconType === "clock" && <Clock className="size-4 shrink-0" />}
-                      {iconType === "message" && <MessageCircle className="size-4 shrink-0" />}
-                      {iconType === "sparkles" && <Sparkles className="size-4 shrink-0" />}
-                      <span>{buttonText}</span>
-                    </button>
-                    <div className="text-[10px] text-center mt-1 text-muted-foreground/80 font-medium">
-                      (Click to preview modal)
-                    </div>
-                  </div>
-                )}
-
-                {/* Tab 2 Preview: Modal Preview */}
-                {previewTab === "modal" && (
-                  <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-20">
-                    <div
-                      className="w-full max-w-sm bg-background border shadow-2xl overflow-hidden flex flex-col transition-all"
-                      style={{ borderRadius: modalRadius }}
-                    >
-                      {/* Modal Mock Header */}
-                      <div className="p-3 bg-muted/60 border-b flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ backgroundColor: formColor }}
-                          />
-                          <span className="text-xs font-semibold truncate max-w-[180px]">
-                            {formTitle}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewTab("button")}
-                          className="size-5 rounded grid place-items-center text-xs text-muted-foreground hover:bg-muted"
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      {/* Modal Mock Body */}
-                      <div className="p-4 space-y-3 text-left">
-                        <div>
-                          <div className="text-xs font-bold text-foreground">
-                            {formTitle}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">
-                            {formSubtitle}
-                          </div>
-                        </div>
-
-                        {/* Visit type pills */}
-                        {apptType === "both" && (
-                          <div className="flex gap-1.5">
-                            <span
-                              className="px-2.5 py-1 rounded-full text-[10px] font-semibold text-white shadow-xs"
-                              style={{ backgroundColor: formColor }}
-                            >
-                              In-clinic visit
-                            </span>
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-medium border text-muted-foreground">
-                              Video consultation
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Doctor snippet */}
-                        <div className="p-2.5 rounded-lg border bg-muted/20 flex items-center gap-2">
-                          <div
-                            className="size-8 rounded-full text-white grid place-items-center text-xs font-bold"
-                            style={{ backgroundColor: formColor }}
-                          >
-                            Dr
-                          </div>
-                          <div>
-                            <div className="text-xs font-semibold">
-                              {clinic?.doctor_name || "Doctor Consultation"}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {clinic?.specialization || "Healthcare Specialist"}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Date slots mini mockup */}
-                        <div className="grid grid-cols-4 gap-1 pt-1">
-                          {["Today", "Tomorrow", "Wed", "Thu"].map((d, i) => (
-                            <div
-                              key={d}
-                              className={`p-1.5 rounded-md text-center text-[10px] border ${
-                                i === 0
-                                  ? "text-white font-semibold"
-                                  : "text-muted-foreground bg-muted/30"
-                              }`}
-                              style={i === 0 ? { backgroundColor: formColor } : {}}
-                            >
-                              {d}
-                            </div>
-                          ))}
-                        </div>
-
-                        <button
-                          type="button"
-                          className="w-full py-2 rounded-lg text-white font-semibold text-xs mt-2 shadow-xs"
-                          style={{ backgroundColor: formColor }}
-                        >
-                          Continue to Select Time
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="size-8 rounded-lg border cursor-pointer p-0.5"
+                />
+                <Input
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-8 text-xs font-mono w-28"
+                />
               </div>
             </div>
           </Card>
 
-          {/* Generated Code Snippets Card */}
-          <Card className="p-5 space-y-4 bg-card border-border shadow-xs">
-            <div className="flex items-center justify-between border-b pb-3">
+          {/* Live Test Sandbox Card */}
+          <Card className="p-5 space-y-4 bg-gradient-to-br from-emerald-500/5 to-teal-500/10 border-emerald-500/30 shadow-xs">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600">
-                  <Code2 className="size-4" />
+                <span className="p-1.5 rounded-lg bg-emerald-600 text-white">
+                  <Send className="size-3.5" />
                 </span>
-                <h3 className="font-semibold text-sm">Copy Integration Snippet</h3>
+                <h3 className="font-semibold text-xs uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                  Live Test: Send a Test Submission
+                </h3>
               </div>
-              <Badge variant="secondary" className="text-[11px] font-mono">
-                HTML / JS
+              <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700">
+                Sandbox
               </Badge>
             </div>
 
-            <Tabs
-              value={activeSnippetTab}
-              onValueChange={(val: any) => setActiveSnippetTab(val)}
-              className="w-full"
+            <p className="text-xs text-muted-foreground">
+              Abhi test karein ki doctor ki custom website se data ClinicX me smoothly record ho raha hai ya nahi:
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="space-y-1">
+                <Label className="text-[11px]">Test Patient Name</Label>
+                <Input
+                  value={testName}
+                  onChange={(e) => setTestName(e.target.value)}
+                  className="h-8 text-xs bg-background"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Test Phone</Label>
+                <Input
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  className="h-8 text-xs bg-background"
+                />
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={handleTestSubmit}
+              disabled={testingSubmit}
+              className="w-full h-8 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
             >
+              {testingSubmit ? (
+                <>
+                  <RefreshCw className="size-3.5 animate-spin" /> Submitting to ClinicX...
+                </>
+              ) : (
+                <>
+                  <Send className="size-3.5" /> Send Test Booking to ClinicX
+                </>
+              )}
+            </Button>
+
+            {testResult && (
+              <div
+                className={`p-3 rounded-xl border text-xs space-y-1 ${
+                  testResult.success
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                    : "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300"
+                }`}
+              >
+                <div className="font-bold flex items-center gap-1.5">
+                  {testResult.success ? (
+                    <>
+                      <CheckCircle2 className="size-4 text-emerald-600" />
+                      Success! Synced into ClinicX
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="size-4 text-rose-600" />
+                      Failed
+                    </>
+                  )}
+                </div>
+                <div className="text-[11px] leading-relaxed">
+                  {testResult.message || testResult.error}
+                </div>
+                {testResult.appointment_id && (
+                  <div className="text-[10px] font-mono opacity-80 pt-1">
+                    Appt ID: {testResult.appointment_id} · Check in Appointments tab!
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Right Column: Code Snippets & Integration Methods */}
+        <div className="lg:col-span-7 space-y-5">
+          <Card className="p-5 space-y-4 bg-card border-border shadow-xs">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
+                  <Code2 className="size-4" />
+                </span>
+                <div>
+                  <h3 className="font-semibold text-sm">Choose Your Integration Method</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Zero iframes. Use pure HTML, Elementor, Webflow, or JavaScript.
+                  </p>
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-[10px] font-mono">
+                No iFrame
+              </Badge>
+            </div>
+
+            <Tabs defaultValue="html_form" className="w-full">
               <TabsList className="grid grid-cols-4 w-full h-8 p-0.5 bg-muted/60">
-                <TabsTrigger value="script" className="text-[11px] py-1">
-                  Floating Script
+                <TabsTrigger value="html_form" className="text-[11px] py-1">
+                  1. HTML Form
                 </TabsTrigger>
-                <TabsTrigger value="inline" className="text-[11px] py-1">
-                  Inline iFrame
+                <TabsTrigger value="webhook" className="text-[11px] py-1">
+                  2. Webhook / URL
                 </TabsTrigger>
-                <TabsTrigger value="custom_button" className="text-[11px] py-1">
-                  Custom Button
+                <TabsTrigger value="elementor" className="text-[11px] py-1">
+                  3. Elementor / Wix
                 </TabsTrigger>
-                <TabsTrigger value="direct_link" className="text-[11px] py-1">
-                  Direct Link
+                <TabsTrigger value="javascript" className="text-[11px] py-1">
+                  4. Fetch API
                 </TabsTrigger>
               </TabsList>
 
-              {/* Tab 1: Floating Script */}
-              <TabsContent value="script" className="space-y-3 pt-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Apni website ke <code className="text-foreground bg-muted px-1 rounded">&lt;body&gt;</code> ya footer me kahi bhi ye 1 script tag paste karein. Floating button aur modal automatic appear hoga:
-                </p>
+              {/* Tab 1: Pure HTML Form (NO IFRAME) */}
+              <TabsContent value="html_form" className="space-y-3 pt-3">
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                  <strong>Pure Custom HTML Form:</strong> Is code ko doctor ki website me jaha bhi paste karenge, wo website ke theme me naturally merge hoga. Koi iframe nahi hoga, aur submit par lead automatic ClinicX me aayegi.
+                </div>
+
                 <div className="relative">
-                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800">
-                    {popupScriptCode}
+                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 max-h-[380px]">
+                    {pureHtmlFormSnippet}
                   </pre>
                   <Button
                     size="sm"
-                    onClick={() => copyToClipboard(popupScriptCode, "script")}
-                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-primary/90 hover:bg-primary text-primary-foreground"
+                    onClick={() => copyToClipboard(pureHtmlFormSnippet, "html_form")}
+                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    {copiedType === "script" ? (
+                    {copiedType === "html_form" ? (
                       <>
-                        <Check className="size-3 text-emerald-400" /> Copied!
+                        <Check className="size-3 text-white" /> Copied HTML!
                       </>
                     ) : (
                       <>
-                        <Copy className="size-3" /> Copy Script
+                        <Copy className="size-3" /> Copy HTML Form
                       </>
                     )}
                   </Button>
                 </div>
               </TabsContent>
 
-              {/* Tab 2: Inline iFrame */}
-              <TabsContent value="inline" className="space-y-3 pt-3">
+              {/* Tab 2: Webhook / Endpoint URL */}
+              <TabsContent value="webhook" className="space-y-4 pt-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Agar aap floating button ke badle direct website ke page ke andar booking calendar embed karna chahte hain:
+                  Agar aapke paas already WordPress (Contact Form 7 / WPForms / Gravity Forms) ya Webflow Form bana hua hai, toh form action ya Webhook URL me ye link paste karein:
                 </p>
-                <div className="relative">
-                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800">
-                    {inlineIframeCode}
-                  </pre>
-                  <Button
-                    size="sm"
-                    onClick={() => copyToClipboard(inlineIframeCode, "inline")}
-                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-primary/90 hover:bg-primary text-primary-foreground"
-                  >
-                    {copiedType === "inline" ? (
-                      <>
-                        <Check className="size-3 text-emerald-400" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3" /> Copy iFrame
-                      </>
-                    )}
-                  </Button>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">ClinicX Direct Form Action / Webhook URL</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={actionWithClinicUrl}
+                      className="font-mono text-xs h-9 bg-muted/40"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => copyToClipboard(actionWithClinicUrl, "webhook_url")}
+                      className="h-9 px-3 text-xs rounded-xl shrink-0 gap-1.5"
+                    >
+                      {copiedType === "webhook_url" ? (
+                        <>
+                          <Check className="size-3 text-emerald-400" /> Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3" /> Copy URL
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-2 text-xs">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Database className="size-3.5 text-blue-500" /> Supported Field Names in Your Form:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <code className="text-emerald-600 font-bold">name</code>: Patient's name
+                    </div>
+                    <div>
+                      <code className="text-emerald-600 font-bold">phone</code>: Mobile number
+                    </div>
+                    <div>
+                      <code className="text-muted-foreground font-bold">email</code>: Patient email (optional)
+                    </div>
+                    <div>
+                      <code className="text-muted-foreground font-bold">date</code>: Preferred date (optional)
+                    </div>
+                    <div>
+                      <code className="text-muted-foreground font-bold">appointment_type</code>: offline / online
+                    </div>
+                    <div>
+                      <code className="text-muted-foreground font-bold">problem</code>: Symptoms / message
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
-              {/* Tab 3: Custom Button Trigger */}
-              <TabsContent value="custom_button" className="space-y-3 pt-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Agar aapki website ke navbar me already "Book Appointment" button hai, toh bas uska onclick call karwayein:
-                </p>
-                <div className="relative">
-                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800">
-                    {customButtonCode}
-                  </pre>
-                  <Button
-                    size="sm"
-                    onClick={() => copyToClipboard(customButtonCode, "custom_button")}
-                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-primary/90 hover:bg-primary text-primary-foreground"
-                  >
-                    {copiedType === "custom_button" ? (
-                      <>
-                        <Check className="size-3 text-emerald-400" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3" /> Copy Snippet
-                      </>
-                    )}
-                  </Button>
+              {/* Tab 3: Elementor / Webflow / Wix Guide */}
+              <TabsContent value="elementor" className="space-y-4 pt-3 text-xs">
+                <div className="space-y-3">
+                  <div className="p-3 rounded-xl border bg-background space-y-1">
+                    <div className="font-bold text-foreground">WordPress Elementor Form:</div>
+                    <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[11px]">
+                      <li>Elementor me apna custom Form widget add karein aur design customize karein.</li>
+                      <li>Form Settings me <strong>Actions After Submit</strong> &gt; <strong>Webhook</strong> choose karein.</li>
+                      <li>Webhook URL me paste karein: <code className="bg-muted px-1 rounded text-foreground">{actionWithClinicUrl}</code></li>
+                      <li>Form fields ke ID ko <code className="text-foreground">name</code>, <code className="text-foreground">phone</code>, <code className="text-foreground">problem</code> set karein.</li>
+                    </ol>
+                  </div>
+
+                  <div className="p-3 rounded-xl border bg-background space-y-1">
+                    <div className="font-bold text-foreground">Webflow Form:</div>
+                    <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[11px]">
+                      <li>Webflow me apna custom styled Form element banayein.</li>
+                      <li>Form Settings me <strong>Action</strong> field me paste karein: <code className="bg-muted px-1 rounded text-foreground">{actionWithClinicUrl}</code></li>
+                      <li>Method ko <strong>POST</strong> select karein.</li>
+                    </ol>
+                  </div>
+
+                  <div className="p-3 rounded-xl border bg-background space-y-1">
+                    <div className="font-bold text-foreground">Contact Form 7 / WPForms:</div>
+                    <p className="text-[11px] text-muted-foreground">
+                      CF7 Webhooks addon ya WPForms Webhooks addon me Webhook URL enter karke field mapping connect karein.
+                    </p>
+                  </div>
                 </div>
               </TabsContent>
 
-              {/* Tab 4: Direct Link */}
-              <TabsContent value="direct_link" className="space-y-3 pt-3">
+              {/* Tab 4: JavaScript Fetch API */}
+              <TabsContent value="javascript" className="space-y-3 pt-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Instagram bio, Google My Business, WhatsApp status ya SMS me share karne ke liye direct booking link:
+                  Custom React, Vue, Next.js, ya Vanilla JavaScript me AJAX call karne ke liye code snippet:
                 </p>
-                <div className="flex items-center gap-2">
-                  <Input
-                    readOnly
-                    value={directUrl}
-                    className="font-mono text-xs h-9 bg-muted/40"
-                  />
+                <div className="relative">
+                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800">
+                    {fetchApiSnippet}
+                  </pre>
                   <Button
                     size="sm"
-                    onClick={() => copyToClipboard(directUrl, "direct_link")}
-                    className="h-9 px-3 text-xs rounded-xl shrink-0 gap-1.5"
+                    onClick={() => copyToClipboard(fetchApiSnippet, "fetch_api")}
+                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {copiedType === "direct_link" ? (
+                    {copiedType === "fetch_api" ? (
                       <>
-                        <Check className="size-3 text-emerald-400" /> Copied!
+                        <Check className="size-3 text-white" /> Copied JS!
                       </>
                     ) : (
                       <>
-                        <Copy className="size-3" /> Copy Link
+                        <Copy className="size-3" /> Copy JS Code
                       </>
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(directUrl, "_blank")}
-                    className="h-9 px-2.5 rounded-xl shrink-0"
-                    title="Open in new tab"
-                  >
-                    <ExternalLink className="size-3.5" />
                   </Button>
                 </div>
               </TabsContent>
             </Tabs>
           </Card>
 
-          {/* Quick Platform Guides Card */}
-          <Card className="p-5 space-y-3 bg-muted/30 border-border/70">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <HelpCircle className="size-3.5 text-blue-500" />
-              Platform Installation Guide
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-lg border bg-background/80 space-y-1">
-                <div className="font-semibold text-foreground">WordPress / WooCommerce</div>
-                <div className="text-[11px] text-muted-foreground">
-                  WPCode plugin install karein ya Theme Customizer &gt; Custom JS / Footer me paste karein.
-                </div>
+          {/* Real-Time Sync Assurance Notice */}
+          <Card className="p-4 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              <CheckCheck className="size-4 text-emerald-600" />
+              <span>Automatic Synchronization into ClinicX</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-muted-foreground pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span>Appointments Page</span>
               </div>
-              <div className="p-2.5 rounded-lg border bg-background/80 space-y-1">
-                <div className="font-semibold text-foreground">Webflow</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Project Settings &gt; Custom Code &gt; Footer Code me snippet paste karke Publish karein.
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span>Leads CRM Table</span>
               </div>
-              <div className="p-2.5 rounded-lg border bg-background/80 space-y-1">
-                <div className="font-semibold text-foreground">Wix Studio</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Settings &gt; Custom Code &gt; Add Custom Code (Body - End) me paste karein.
-                </div>
-              </div>
-              <div className="p-2.5 rounded-lg border bg-background/80 space-y-1">
-                <div className="font-semibold text-foreground">Shopify / Custom HTML</div>
-                <div className="text-[11px] text-muted-foreground">
-                  <code className="text-[10px]">&lt;/body&gt;</code> closing tag se theek pehle script paste karein.
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span>Doctor WhatsApp Notification</span>
               </div>
             </div>
           </Card>

@@ -450,6 +450,96 @@
     document.body.appendChild(fab);
   }
 
+  // --- NATIVE CUSTOM FORM AUTO-BINDER (NO IFRAME) ---
+  // Doctors can use their own custom website theme and design!
+  // Any form with id="clinicx-booking-form", class="clinicx-form", or data-clinicx-form
+  // will automatically submit leads and appointments to ClinicX via AJAX.
+  function bindCustomForms() {
+    var forms = document.querySelectorAll(
+      "#clinicx-booking-form, form.clinicx-form, form[data-clinicx-form]"
+    );
+    forms.forEach(function (form) {
+      if (form.getAttribute("data-clinicx-bound")) return;
+      form.setAttribute("data-clinicx-bound", "true");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        var submitBtn = form.querySelector("button[type='submit'], input[type='submit']");
+        var originalBtnText = submitBtn ? submitBtn.innerHTML : "";
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = "Submitting...";
+        }
+
+        var formData = new FormData(form);
+        var data = {
+          clinic: form.getAttribute("data-clinic") || clinicSlug,
+        };
+        formData.forEach(function (value, key) {
+          data[key] = value;
+        });
+
+        fetch(origin + "/api/public/submit-booking", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify(data),
+        })
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (result) {
+            if (result.success) {
+              var redirect = form.getAttribute("data-redirect");
+              if (redirect) {
+                window.location.href = redirect;
+                return;
+              }
+
+              var successMsg = document.createElement("div");
+              successMsg.className = "clinicx-form-success";
+              successMsg.style.cssText =
+                "padding: 16px; border-radius: 12px; background: #ecfdf5; border: 1px solid #10b981; color: #065f46; font-size: 14px; text-align: center; margin-top: 14px; font-weight: 500; font-family: inherit;";
+              successMsg.innerHTML =
+                "✓ " +
+                (form.getAttribute("data-success-message") ||
+                  "Appointment request submitted successfully! Clinic will confirm shortly.");
+
+              form.innerHTML = "";
+              form.appendChild(successMsg);
+
+              // Dispatch success event
+              window.dispatchEvent(
+                new CustomEvent("clinicx:booking_success", { detail: result })
+              );
+            } else {
+              alert(result.error || "Failed to submit booking. Please try again.");
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+              }
+            }
+          })
+          .catch(function () {
+            alert("Network error: Could not reach ClinicX server.");
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = originalBtnText;
+            }
+          });
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindCustomForms);
+  } else {
+    bindCustomForms();
+  }
+
   // Conversion Event listener: Forward confirmation events to host window
   window.addEventListener("message", function (e) {
     if (e.data && e.data.type === "CLINICX_BOOKING_SUCCESS") {
@@ -470,14 +560,21 @@
     }
   });
 
-  // Expose global controller for custom button clicks:
-  // e.g. <button onclick="ClinicXWidget.open()">Book Appointment</button>
-  window.ClinicXWidget = {
+  // Expose global controller
+  window.ClinicX = {
+    submit: function (data) {
+      if (!data.clinic) data.clinic = clinicSlug;
+      return fetch(origin + "/api/public/submit-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(data),
+      }).then(function (r) {
+        return r.json();
+      });
+    },
     open: openModal,
     close: closeModal,
-    setUrl: function (newUrl) {
-      bookingUrl = newUrl;
-      if (iframeElement) iframeElement.src = newUrl;
-    },
   };
+
+  window.ClinicXWidget = window.ClinicX;
 })();

@@ -102,6 +102,7 @@ import { Route as ApiInternalClinicxBillingJobsRouteImport } from './routes/api/
 import { Route as ApiInternalClinicxJobsRouteImport } from './routes/api/internal/clinicx-jobs'
 import { Route as ApiPublicHealthzRouteImport } from './routes/api/public/healthz'
 import { Route as ApiPublicPushEventRouteImport } from './routes/api.public.push-event'
+import { Route as ApiPublicSubmitBookingRouteImport } from './routes/api/public/submit-booking'
 import { Route as ApiWaCronRouteImport } from './routes/api.wa.cron'
 import { Route as CSlugIndexRouteImport } from './routes/c.$slug.index'
 import { Route as CSlugAboutRouteImport } from './routes/c.$slug.about'
@@ -620,6 +621,11 @@ const ApiPublicPushEventRoute = ApiPublicPushEventRouteImport.update({
   path: '/api/public/push-event',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSubmitBookingRoute = ApiPublicSubmitBookingRouteImport.update({
+  id: '/api/public/submit-booking',
+  path: '/api/public/submit-booking',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWaCronRoute = ApiWaCronRouteImport.update({
   id: '/api/wa/cron',
   path: '/api/wa/cron',
@@ -818,6 +824,7 @@ export interface FileRoutesByFullPath {
   '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
+  '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
   '/api/wa/cron': typeof ApiWaCronRoute
   '/c/$slug/about': typeof CSlugAboutRoute
   '/c/$slug/book': typeof CSlugBookRoute
@@ -927,6 +934,7 @@ export interface FileRoutesByTo {
   '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
+  '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
   '/api/wa/cron': typeof ApiWaCronRoute
   '/c/$slug/about': typeof CSlugAboutRoute
   '/c/$slug/book': typeof CSlugBookRoute
@@ -1043,6 +1051,7 @@ export interface FileRoutesById {
   '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
+  '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
   '/api/wa/cron': typeof ApiWaCronRoute
   '/c/$slug/about': typeof CSlugAboutRoute
   '/c/$slug/book': typeof CSlugBookRoute
@@ -1158,6 +1167,7 @@ export interface FileRouteTypes {
     | '/api/internal/clinicx-jobs'
     | '/api/public/healthz'
     | '/api/public/push-event'
+    | '/api/public/submit-booking'
     | '/api/wa/cron'
     | '/c/$slug/about'
     | '/c/$slug/book'
@@ -1267,6 +1277,7 @@ export interface FileRouteTypes {
     | '/api/internal/clinicx-jobs'
     | '/api/public/healthz'
     | '/api/public/push-event'
+    | '/api/public/submit-booking'
     | '/api/wa/cron'
     | '/c/$slug/about'
     | '/c/$slug/book'
@@ -1382,6 +1393,7 @@ export interface FileRouteTypes {
     | '/api/internal/clinicx-jobs'
     | '/api/public/healthz'
     | '/api/public/push-event'
+    | '/api/public/submit-booking'
     | '/api/wa/cron'
     | '/c/$slug/about'
     | '/c/$slug/book'
@@ -1449,6 +1461,7 @@ export interface RootRouteChildren {
   ApiInternalClinicxJobsRoute: typeof ApiInternalClinicxJobsRoute
   ApiPublicHealthzRoute: typeof ApiPublicHealthzRoute
   ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
+  ApiPublicSubmitBookingRoute: typeof ApiPublicSubmitBookingRoute
   ApiWaCronRoute: typeof ApiWaCronRoute
   ApiPublicHooksRazorpayRoute: typeof ApiPublicHooksRazorpayRoute
   ApiPublicHooksSeoAutopilotRoute: typeof ApiPublicHooksSeoAutopilotRoute
@@ -2109,6 +2122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPushEventRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/submit-booking': {
+      id: '/api/public/submit-booking'
+      path: '/api/public/submit-booking'
+      fullPath: '/api/public/submit-booking'
+      preLoaderRoute: typeof ApiPublicSubmitBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/wa/cron': {
       id: '/api/wa/cron'
       path: '/api/wa/cron'
@@ -2508,6 +2528,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInternalClinicxJobsRoute: ApiInternalClinicxJobsRoute,
   ApiPublicHealthzRoute: ApiPublicHealthzRoute,
   ApiPublicPushEventRoute: ApiPublicPushEventRoute,
+  ApiPublicSubmitBookingRoute: ApiPublicSubmitBookingRoute,
   ApiWaCronRoute: ApiWaCronRoute,
   ApiPublicHooksRazorpayRoute: ApiPublicHooksRazorpayRoute,
   ApiPublicHooksSeoAutopilotRoute: ApiPublicHooksSeoAutopilotRoute,
