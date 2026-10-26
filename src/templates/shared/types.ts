@@ -1,6 +1,7 @@
 import type { SiteClinic } from "@/components/site/types";
 
 export type PremiumTemplateId =
+  // 1-10 Original Signature Templates
   | "aura-care"
   | "pulse-motion"
   | "dental-atelier"
@@ -10,7 +11,28 @@ export type PremiumTemplateId =
   | "noir-signature"
   | "digital-health"
   | "local-trust"
-  | "editorial-studio";
+  | "editorial-studio"
+  // 11-30 New Signature Templates
+  | "swiss-medical"
+  | "coastal-calm"
+  | "urban-clinical"
+  | "botanical-wellness"
+  | "clinical-editorial"
+  | "neo-bauhaus"
+  | "soft-luxury"
+  | "active-recovery"
+  | "family-first"
+  | "precision-ortho"
+  | "neonatal-gentle"
+  | "dermatology-gallery"
+  | "neuro-motion"
+  | "cardio-clarity"
+  | "dental-pop"
+  | "rural-community"
+  | "digital-appointment"
+  | "heritage-medical"
+  | "editorial-split"
+  | "horizon-modern";
 
 export type TemplatePalette = {
   primary: string;

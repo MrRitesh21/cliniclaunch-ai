@@ -101,7 +101,7 @@ export function TemplatesView() {
             }`}
           >
             <Sparkles className="size-3.5" />
-            <span>Signature Series (10 Masterpieces)</span>
+            <span>Signature Series (30 Masterpieces)</span>
             {isCurrentSignature && (
               <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                 Active
@@ -125,7 +125,7 @@ export function TemplatesView() {
           {viewMode === "signature" ? (
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              10 bespoke design systems with motion graphics & custom layouts
+              30 bespoke design systems with motion graphics & custom layouts
             </span>
           ) : (
             <span>40+ specialty-tailored layouts ready for one-click deployment</span>

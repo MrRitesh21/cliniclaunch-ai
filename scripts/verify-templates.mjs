@@ -2,6 +2,7 @@ import { PREMIUM_TEMPLATES, TEMPLATE_COMPONENTS, isPremiumTemplate, getPremiumTe
 import { allTemplates, categories } from "../src/features/website-builder/data/templatesData.ts";
 
 const EXPECTED_TEMPLATES = [
+  // 1-10 Original
   "aura-care",
   "pulse-motion",
   "dental-atelier",
@@ -12,19 +13,40 @@ const EXPECTED_TEMPLATES = [
   "digital-health",
   "local-trust",
   "editorial-studio",
+  // 11-30 New
+  "swiss-medical",
+  "coastal-calm",
+  "urban-clinical",
+  "botanical-wellness",
+  "clinical-editorial",
+  "neo-bauhaus",
+  "soft-luxury",
+  "active-recovery",
+  "family-first",
+  "precision-ortho",
+  "neonatal-gentle",
+  "dermatology-gallery",
+  "neuro-motion",
+  "cardio-clarity",
+  "dental-pop",
+  "rural-community",
+  "digital-appointment",
+  "heritage-medical",
+  "editorial-split",
+  "horizon-modern",
 ];
 
-console.log("=== CLINICX 10 PREMIUM TEMPLATES VERIFICATION ===");
+console.log("=== CLINICX 30 PREMIUM TEMPLATES VERIFICATION ===");
 
 let passed = true;
 
-// 1. Verify all 10 expected templates exist in registry
+// 1. Verify all 30 expected templates exist in registry
 console.log("\n1. Verifying Registry Definitions...");
-if (PREMIUM_TEMPLATES.length !== 10) {
-  console.error(`❌ Expected 10 templates in PREMIUM_TEMPLATES, got ${PREMIUM_TEMPLATES.length}`);
+if (PREMIUM_TEMPLATES.length !== 30) {
+  console.error(`❌ Expected 30 templates in PREMIUM_TEMPLATES, got ${PREMIUM_TEMPLATES.length}`);
   passed = false;
 } else {
-  console.log(`✅ Exactly 10 templates defined in PREMIUM_TEMPLATES.`);
+  console.log(`✅ Exactly 30 templates defined in PREMIUM_TEMPLATES.`);
 }
 
 for (const id of EXPECTED_TEMPLATES) {
@@ -66,7 +88,7 @@ for (const id of EXPECTED_TEMPLATES) {
   console.log(`  ✓ Template [${id}]: "${def.name}" - ${def.tagline} (${def.palette.primary})`);
 }
 
-// 2. Verify Website Builder allTemplates has all 10 templates
+// 2. Verify Website Builder allTemplates has all 30 templates
 console.log("\n2. Verifying Website Builder allTemplates & Category...");
 const signatureCategory = categories.find((c) => c.id === "signature");
 if (!signatureCategory) {
@@ -90,5 +112,5 @@ if (!passed) {
   console.error("\n❌ VERIFICATION FAILED!");
   process.exit(1);
 } else {
-  console.log("\n🎉 ALL 10 PREMIUM TEMPLATES VERIFIED SUCCESSFULLY!");
+  console.log("\n🎉 ALL 30 PREMIUM TEMPLATES VERIFIED SUCCESSFULLY!");
 }

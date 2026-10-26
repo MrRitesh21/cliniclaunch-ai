@@ -45,13 +45,14 @@ export function TemplateGallery({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const categories = [
-    { id: "all", label: "All 10 Signature Designs" },
+    { id: "all", label: `All ${PREMIUM_TEMPLATES.length} Signature Designs` },
     { id: "general", label: "General & Multispecialty" },
-    { id: "dental", label: "Dental Studio" },
-    { id: "pediatrics", label: "Pediatrics & Family" },
+    { id: "dental", label: "Dental & Ortho" },
+    { id: "cardiology", label: "Cardiology & Vascular" },
+    { id: "pediatrics", label: "Pediatrics & Maternal" },
     { id: "orthopedics", label: "Sports & Rehab" },
-    { id: "dermatology", label: "Luxury & Aesthetics" },
-    { id: "ayurvedic", label: "Holistic Wellness" },
+    { id: "dermatology", label: "Dermatology & Luxury" },
+    { id: "ayurvedic", label: "Holistic & Wellness" },
   ];
 
   const filtered = PREMIUM_TEMPLATES.filter((tpl) => {
@@ -77,7 +78,7 @@ export function TemplateGallery({
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs text-indigo-300 font-mono font-medium">
             <Sparkles className="size-3.5 text-amber-400" />
-            <span>ClinicX Design System · 10 Bespoke Medical Architectures</span>
+            <span>ClinicX Design System · 30 Bespoke Medical Architectures</span>
           </div>
 
           <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
@@ -113,7 +114,7 @@ export function TemplateGallery({
           </div>
 
           <Badge variant="outline" className="text-xs font-semibold px-3 py-1 bg-primary/10 text-primary border-primary/30 shrink-0 self-start sm:self-auto">
-            {filtered.length} of 10 Templates Shown
+            {filtered.length} of {PREMIUM_TEMPLATES.length} Templates Shown
           </Badge>
         </div>
 
