@@ -4,6 +4,7 @@ import { LeadCapture } from "@/components/clinic/lead-capture";
 import { CustomTemplateSite } from "@/components/site/CustomTemplateSite";
 import { resolveVariants, getVariantComponent } from "@/components/site/registry";
 import { DEFAULT_SECTION_ORDER, type SectionKey, type SiteClinic } from "@/components/site/types";
+import { isPremiumTemplate, getPremiumTemplateComponent } from "@/templates/registry";
 
 export const Route = createFileRoute("/c/$slug/")({
   component: ClinicHome,
@@ -13,6 +14,25 @@ function ClinicHome() {
   const { clinic, template } = ClinicRoute.useLoaderData();
   const { tpl } = ClinicRoute.useSearch();
   const c = clinic as unknown as SiteClinic;
+
+  // 1. Check for dedicated ClinicX Signature Premium Templates
+  const activeTemplateId = tpl || c.template;
+  if (isPremiumTemplate(activeTemplateId)) {
+    const PremiumTemplateComp = getPremiumTemplateComponent(activeTemplateId);
+    if (PremiumTemplateComp) {
+      return (
+        <>
+          <PremiumTemplateComp clinic={c} />
+          <LeadCapture
+            clinicId={c.id}
+            slug={c.slug}
+            doctorName={c.doctor_name}
+            config={(c as any).lead_popup}
+          />
+        </>
+      );
+    }
+  }
 
   // Admin-uploaded HTML/CSS template (assigned by admin or chosen by the doctor).
   // Booking + lead capture stay wired via {{book_url}} and the LeadCapture widget.

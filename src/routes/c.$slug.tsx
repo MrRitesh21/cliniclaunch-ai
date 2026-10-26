@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { resolveVariants, getVariantComponent } from "@/components/site/registry";
 import type { SiteClinic } from "@/components/site/types";
 import { SITE_URL } from "@/lib/marketing-data";
+import { isPremiumTemplate } from "@/templates/registry";
 
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (
@@ -193,10 +194,29 @@ function ClinicLayout() {
     .join(" ");
 
   const showStickyBook = has("appointments") && !/\/(book|walkin)(\/|$)/.test(pathname);
+  const activeTemplateId = tpl || c.template;
+  const isPremium = isPremiumTemplate(activeTemplateId);
+  const isHome = pathname === `/c/${c.slug}` || pathname === `/c/${c.slug}/`;
 
   if (isEmbed) {
     return (
       <div className={`min-h-screen flex flex-col bg-background ${modCls}`} style={themeStyle}>
+        <main className="flex-1">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
+  // Premium templates render their own bespoke layout, art-directed navbar & footer
+  if (isPremium && isHome) {
+    return (
+      <div className={`min-h-screen flex flex-col ${modCls}`} style={themeStyle}>
+        <style>{`
+          .mod-no-appt a[href*="/book"], .mod-no-appt [data-cta="book"] { display: none !important; }
+          .mod-no-walkin a[href*="/walkin"], .mod-no-walkin [data-cta="walkin"] { display: none !important; }
+          .mod-no-consult [data-cta="online-consult"] { display: none !important; }
+        `}</style>
         <main className="flex-1">
           <Outlet />
         </main>

@@ -114,6 +114,7 @@ export type EditorState = {
 
 export type TemplateCategory =
   | "all"
+  | "signature"
   | "general"
   | "dental"
   | "dermatology"
