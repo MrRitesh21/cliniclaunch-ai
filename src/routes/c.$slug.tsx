@@ -209,7 +209,7 @@ function ClinicLayout() {
   }
 
   // Premium templates render their own bespoke layout, art-directed navbar & footer
-  if (isPremium && isHome) {
+  if (isPremium) {
     return (
       <div className={`min-h-screen flex flex-col ${modCls}`} style={themeStyle}>
         <style>{`

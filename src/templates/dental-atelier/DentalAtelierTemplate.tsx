@@ -35,8 +35,14 @@ import {
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function DentalAtelierTemplate({ clinic }: TemplateProps) {
+export function DentalAtelierTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -56,6 +62,22 @@ export function DentalAtelierTemplate({ clinic }: TemplateProps) {
 
   const porcelainTeal = "#0d9488";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0d9488",
+    "secondary": "#0f172a",
+    "accent": "#38bdf8",
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "text": "#1e293b",
+    "mutedText": "#64748b",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Modern Airy Sans",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Porcelain-smooth tracking, clean treatment hierarchy"
+};
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-teal-500/20">
       {/* ─── DENTAL ATELIER HEADER ───────────────────────────────────────── */}
@@ -75,12 +97,7 @@ export function DentalAtelierTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wide uppercase text-slate-500">
-            <a href="#treatments" className="hover:text-teal-600 transition-colors">Treatments</a>
-            <a href="#studio" className="hover:text-teal-600 transition-colors">The Studio</a>
-            <a href="#technology" className="hover:text-teal-600 transition-colors">Digital Dental</a>
-            <a href="#schedule" className="hover:text-teal-600 transition-colors">Timetable</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -102,6 +119,18 @@ export function DentalAtelierTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: GENTLE SMILE REVEAL ──────────────────────────────────── */}
       <section className="relative pt-12 pb-20 md:py-24 bg-gradient-to-b from-white via-teal-50/20 to-[#f8fafc] border-b border-slate-200/60 overflow-hidden">
@@ -348,6 +377,10 @@ export function DentalAtelierTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-slate-900 text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -356,7 +389,11 @@ export function DentalAtelierTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-slate-400">© {new Date().getFullYear()} {clinicName}. All rights reserved.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -367,7 +404,7 @@ export function DentalAtelierTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={porcelainTeal}
       />
     </div>

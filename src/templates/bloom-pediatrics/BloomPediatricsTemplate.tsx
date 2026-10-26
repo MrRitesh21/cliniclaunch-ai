@@ -37,8 +37,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
+export function BloomPediatricsTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -75,6 +81,22 @@ export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
     },
   ];
 
+
+  const palette: TemplatePalette = {
+    "primary": "#fb7185",
+    "secondary": "#0284c7",
+    "accent": "#facc15",
+    "background": "#fffdfa",
+    "surface": "#ffffff",
+    "text": "#1e293b",
+    "mutedText": "#64748b",
+    "border": "#ffe4e6"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Approachable Rounded Sans",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Warm, reassuring, parent-friendly typography"
+};
   return (
     <div className="min-h-screen bg-[#fffdfa] text-slate-800 font-sans antialiased selection:bg-rose-500/20">
       {/* ─── PARENT REASSURANCE BANNER ─────────────────────────────────── */}
@@ -108,12 +130,7 @@ export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-wider uppercase text-slate-600">
-            <a href="#child-services" className="hover:text-rose-600 transition-colors">Child Care</a>
-            <a href="#pediatrician" className="hover:text-rose-600 transition-colors">The Doctor</a>
-            <a href="#parent-faqs" className="hover:text-rose-600 transition-colors">Parent FAQs</a>
-            <a href="#timings" className="hover:text-rose-600 transition-colors">Hours</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -135,6 +152,18 @@ export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: WARM & WELCOMING FAMILY CARE ─────────────────────────── */}
       <section className="relative pt-12 pb-20 md:py-24 bg-gradient-to-b from-rose-50/40 via-sky-50/30 to-[#fffdfa] border-b border-rose-100 overflow-hidden">
@@ -416,6 +445,10 @@ export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-slate-900 text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -424,7 +457,11 @@ export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-slate-400">© {new Date().getFullYear()} {clinicName}. All rights reserved.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -435,7 +472,7 @@ export function BloomPediatricsTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={coralPink}
       />
     </div>

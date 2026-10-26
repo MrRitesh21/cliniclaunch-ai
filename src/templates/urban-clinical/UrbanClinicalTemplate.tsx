@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function UrbanClinicalTemplate({ clinic }: TemplateProps) {
+export function UrbanClinicalTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function UrbanClinicalTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#2563eb",
+    "secondary": "#0f172a",
+    "accent": "#3b82f6",
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Space Grotesk / Bold",
+    "bodyFont": "Plus Jakarta Sans",
+    "styleDescription": "High-contrast urban typography with brutalist structural borders"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-slate-50 antialiased selection:bg-blue-600 selection:text-white"
@@ -88,17 +110,7 @@ export function UrbanClinicalTemplate({ clinic }: TemplateProps) {
             </span>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-700">
-            <a href="#services" className="hover:text-blue-600 transition-colors">
-              Services
-            </a>
-            <a href="#practice" className="hover:text-blue-600 transition-colors">
-              The Practice
-            </a>
-            <a href="#transit" className="hover:text-blue-600 transition-colors">
-              Transit & Hours
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -108,6 +120,18 @@ export function UrbanClinicalTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Industrial Asymmetry */}
       <section className="border-b border-slate-200 bg-white relative">
@@ -317,12 +341,20 @@ export function UrbanClinicalTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. All rights reserved. Reg: {regNo}</div>
           <div className="text-slate-400">Metropolitan Clinical Standards</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

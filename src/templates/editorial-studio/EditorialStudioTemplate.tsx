@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function EditorialStudioTemplate({ clinic }: TemplateProps) {
+export function EditorialStudioTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -57,6 +63,22 @@ export function EditorialStudioTemplate({ clinic }: TemplateProps) {
   const museumOffWhite = "#f7f6f2";
   const cobalt = "#2563eb";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#111111",
+    "secondary": "#2563eb",
+    "accent": "#d97706",
+    "background": "#f7f6f2",
+    "surface": "#ffffff",
+    "text": "#111111",
+    "mutedText": "#444444",
+    "border": "#e5e4de"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Avant-Garde Architectural Serif",
+    "bodyFont": "Space Grotesk / Mono",
+    "styleDescription": "Oversized mixed-scale headlines, roman numeral section markers"
+};
   return (
     <div
       className="min-h-screen text-[#111111] font-sans antialiased selection:bg-blue-600 selection:text-white"
@@ -79,12 +101,7 @@ export function EditorialStudioTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-mono uppercase tracking-widest text-[#444444]">
-            <a href="#manifesto" className="hover:text-blue-600 transition-colors">I. Manifesto</a>
-            <a href="#expertise" className="hover:text-blue-600 transition-colors">II. Disciplines</a>
-            <a href="#physician" className="hover:text-blue-600 transition-colors">III. Lead</a>
-            <a href="#atelier" className="hover:text-blue-600 transition-colors">IV. Spaces &amp; Hours</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -105,6 +122,18 @@ export function EditorialStudioTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: BOLD ASYMMETRIC TYPOGRAPHY ──────────────────────────── */}
       <section id="manifesto" className="pt-14 pb-20 md:py-28 border-b border-[#e5e4de] overflow-hidden">
@@ -335,6 +364,10 @@ export function EditorialStudioTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-[#111111] text-slate-400 text-xs font-mono">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -343,7 +376,11 @@ export function EditorialStudioTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-slate-400">© {new Date().getFullYear()} {clinicName}. Architecture &amp; Medicine.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -354,7 +391,7 @@ export function EditorialStudioTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor="#111111"
       />
     </div>

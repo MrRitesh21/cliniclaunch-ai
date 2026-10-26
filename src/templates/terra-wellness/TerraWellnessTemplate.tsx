@@ -36,8 +36,14 @@ import {
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function TerraWellnessTemplate({ clinic }: TemplateProps) {
+export function TerraWellnessTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -59,6 +65,22 @@ export function TerraWellnessTemplate({ clinic }: TemplateProps) {
   const forestGreen = "#14532d";
   const warmSand = "#f7f3eb";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#c2410c",
+    "secondary": "#14532d",
+    "accent": "#ea580c",
+    "background": "#fcfbf7",
+    "surface": "#ffffff",
+    "text": "#292524",
+    "mutedText": "#57534e",
+    "border": "#e7e0d3"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Warm Literary Serif",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Warm earth-toned editorial layout with botanical accents"
+};
   return (
     <div className="min-h-screen bg-[#fcfbf7] text-[#292524] font-sans antialiased selection:bg-[#c2410c]/20">
       {/* ─── ORGANIC TOP BANNER ────────────────────────────────────────── */}
@@ -94,12 +116,7 @@ export function TerraWellnessTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-serif uppercase tracking-wider text-[#78716c]">
-            <a href="#therapies" className="hover:text-[#c2410c] transition-colors">Therapies</a>
-            <a href="#philosophy" className="hover:text-[#c2410c] transition-colors">Philosophy</a>
-            <a href="#practitioner" className="hover:text-[#c2410c] transition-colors">Practitioner</a>
-            <a href="#schedule" className="hover:text-[#c2410c] transition-colors">Visit Us</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -121,6 +138,18 @@ export function TerraWellnessTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: WARM ORGANIC MAGAZINE LAYOUT ─────────────────────────── */}
       <section className="relative pt-12 pb-20 md:py-24 border-b border-[#e7e0d3] overflow-hidden bg-gradient-to-b from-[#fcfbf7] to-[#f7f3eb]">
@@ -365,6 +394,10 @@ export function TerraWellnessTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-[#1c1917] text-[#a8a29e] text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -373,7 +406,11 @@ export function TerraWellnessTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-[#78716c]">© {new Date().getFullYear()} {clinicName}. All rights reserved.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -384,7 +421,7 @@ export function TerraWellnessTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={terracotta}
       />
     </div>

@@ -3,6 +3,8 @@ import { Route as ClinicRoute } from "./c.$slug";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { SiteClinic } from "@/components/site/types";
+import { isPremiumTemplate, getPremiumTemplateComponent } from "@/templates/registry";
 import {
   Check,
   Clock,
@@ -117,6 +119,17 @@ export const Route = createFileRoute("/c/$slug/services")({
 
 function ServicesPage() {
   const { clinic } = ClinicRoute.useLoaderData();
+  const { tpl } = ClinicRoute.useSearch();
+  const c = clinic as unknown as SiteClinic;
+
+  const activeTemplateId = tpl || c.template;
+  if (isPremiumTemplate(activeTemplateId)) {
+    const PremiumTemplateComp = getPremiumTemplateComponent(activeTemplateId);
+    if (PremiumTemplateComp) {
+      return <PremiumTemplateComp clinic={c} activePage="services" />;
+    }
+  }
+
   const services = parseServicesList(clinic.services);
 
   const cleanPhone = (clinic.public_phone || clinic.phone || "").replace(/[^0-9]/g, "");

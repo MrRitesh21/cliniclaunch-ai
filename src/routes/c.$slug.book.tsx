@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { SiteClinic } from "@/components/site/types";
+import { isPremiumTemplate, getPremiumTemplateComponent } from "@/templates/registry";
 import {
   Select,
   SelectContent,
@@ -226,8 +228,19 @@ function StepDot({ active, done }: { active: boolean; done: boolean }) {
 
 function BookPage() {
   const { clinic } = ClinicRoute.useLoaderData();
+  const { tpl } = ClinicRoute.useSearch();
   const search = Route.useSearch();
   const isEmbed = search?.embed === "true" || search?.embed === "1";
+
+  const c = clinic as unknown as SiteClinic;
+  const activeTemplateId = tpl || c.template;
+  if (!isEmbed && isPremiumTemplate(activeTemplateId)) {
+    const PremiumTemplateComp = getPremiumTemplateComponent(activeTemplateId);
+    if (PremiumTemplateComp) {
+      return <PremiumTemplateComp clinic={c} activePage="book" />;
+    }
+  }
+
   const bookingSource = (search?.source as string) || (isEmbed ? "website_widget" : "booking");
   const customTitle = search?.title;
   const customSubtitle = search?.subtitle;

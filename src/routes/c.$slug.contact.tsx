@@ -3,6 +3,8 @@ import { Route as ClinicRoute } from "./c.$slug";
 import { Card } from "@/components/ui/card";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { SiteClinic } from "@/components/site/types";
+import { isPremiumTemplate, getPremiumTemplateComponent } from "@/templates/registry";
 
 export const Route = createFileRoute("/c/$slug/contact")({
   head: ({ params }) => ({
@@ -16,6 +18,17 @@ export const Route = createFileRoute("/c/$slug/contact")({
 
 function ContactPage() {
   const { clinic } = ClinicRoute.useLoaderData();
+  const { tpl } = ClinicRoute.useSearch();
+  const c = clinic as unknown as SiteClinic;
+
+  const activeTemplateId = tpl || c.template;
+  if (isPremiumTemplate(activeTemplateId)) {
+    const PremiumTemplateComp = getPremiumTemplateComponent(activeTemplateId);
+    if (PremiumTemplateComp) {
+      return <PremiumTemplateComp clinic={c} activePage="contact" />;
+    }
+  }
+
   const mapsHref = clinic.address
     ? `https://www.google.com/maps?q=${encodeURIComponent(clinic.address)}`
     : null;

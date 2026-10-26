@@ -33,8 +33,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function DermatologyGalleryTemplate({ clinic }: TemplateProps) {
+export function DermatologyGalleryTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -52,6 +58,22 @@ export function DermatologyGalleryTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#831843",
+    "secondary": "#292524",
+    "accent": "#be185d",
+    "background": "#fafaf9",
+    "surface": "#ffffff",
+    "text": "#292524",
+    "mutedText": "#78716c",
+    "border": "#e7e5e4"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Playfair Display / Serif",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Editorial beauty gallery typography with high-contrast serif headlines"
+};
   return (
     <div
       className="min-h-screen text-[#292524] bg-[#fafaf9] selection:bg-rose-200 selection:text-rose-950"
@@ -76,17 +98,7 @@ export function DermatologyGalleryTemplate({ clinic }: TemplateProps) {
             </span>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-[#78716c]">
-            <a href="#gallery" className="hover:text-[#831843] transition-colors">
-              The Portfolio
-            </a>
-            <a href="#dermatologist" className="hover:text-[#831843] transition-colors">
-              Dermatologist
-            </a>
-            <a href="#schedule" className="hover:text-[#831843] transition-colors">
-              Clinic Timetable
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -96,6 +108,18 @@ export function DermatologyGalleryTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Exhibition Gallery */}
       <section className="py-16 lg:py-24 px-6 border-b border-[#e7e5e4] bg-white">
@@ -303,12 +327,20 @@ export function DermatologyGalleryTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="py-10 px-6 bg-[#292524] text-[#a8a29e] text-xs text-center font-sans border-t border-[#1c1917]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. Dermatological Excellence.</div>
           <div>Medical Authority Registry: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

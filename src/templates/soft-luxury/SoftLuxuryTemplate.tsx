@@ -31,8 +31,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function SoftLuxuryTemplate({ clinic }: TemplateProps) {
+export function SoftLuxuryTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -50,6 +56,22 @@ export function SoftLuxuryTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#1c1917",
+    "secondary": "#c5a059",
+    "accent": "#d4af37",
+    "background": "#fafafa",
+    "surface": "#ffffff",
+    "text": "#1c1917",
+    "mutedText": "#78716c",
+    "border": "#e7e5e4"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Playfair Display / Serif",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Quiet luxury typography with gold hairlines and generous whitespace"
+};
   return (
     <div
       className="min-h-screen text-[#1c1917] bg-[#fafafa] selection:bg-[#e7e5e4] selection:text-[#1c1917]"
@@ -72,17 +94,7 @@ export function SoftLuxuryTemplate({ clinic }: TemplateProps) {
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-10 text-xs uppercase tracking-widest text-[#78716c]">
-            <a href="#suite" className="hover:text-[#1c1917] transition-colors">
-              The Suite
-            </a>
-            <a href="#physician" className="hover:text-[#1c1917] transition-colors">
-              Lead Physician
-            </a>
-            <a href="#hours" className="hover:text-[#1c1917] transition-colors">
-              Concierge Hours
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -92,6 +104,18 @@ export function SoftLuxuryTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Understated Elegance */}
       <section className="py-20 lg:py-28 px-6 max-w-6xl mx-auto">
@@ -280,12 +304,20 @@ export function SoftLuxuryTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="py-12 px-6 border-t border-[#e7e5e4] text-center font-sans text-xs text-[#a8a29e]">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. All rights reserved.</div>
           <div>Medical Registry: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

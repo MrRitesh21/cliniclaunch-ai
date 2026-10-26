@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function CoastalCalmTemplate({ clinic }: TemplateProps) {
+export function CoastalCalmTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function CoastalCalmTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0d9488",
+    "secondary": "#134e4a",
+    "accent": "#14b8a6",
+    "background": "#f8faf9",
+    "surface": "#ffffff",
+    "text": "#134e4a",
+    "mutedText": "#0f766e",
+    "border": "#e6f0ed"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Outfit / Light",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Spacious maritime tracking with rounded organic geometry"
+};
   return (
     <div
       className="min-h-screen text-[#134e4a] bg-[#f8faf9] selection:bg-teal-200 selection:text-teal-900"
@@ -79,20 +101,7 @@ export function CoastalCalmTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#115e59]">
-            <a href="#services" className="hover:text-teal-900 transition-colors">
-              Care Offerings
-            </a>
-            <a href="#about" className="hover:text-teal-900 transition-colors">
-              About Doctor
-            </a>
-            <a href="#schedule" className="hover:text-teal-900 transition-colors">
-              Hours
-            </a>
-            <a href="#location" className="hover:text-teal-900 transition-colors">
-              Location
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -102,6 +111,18 @@ export function CoastalCalmTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* 2. Coastal Hero Section */}
       <section className="relative overflow-hidden pt-12 pb-24 lg:pt-20 lg:pb-32">
@@ -315,12 +336,20 @@ export function CoastalCalmTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="py-10 px-6 bg-[#0f766e] text-white text-xs text-center border-t border-teal-700">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. All rights reserved.</div>
           <div className="text-teal-200">Registration Authority: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Modal & Contact Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

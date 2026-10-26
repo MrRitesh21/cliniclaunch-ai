@@ -38,8 +38,14 @@ import {
 import { FadeUp, TextReveal, ImageMaskReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function AuraCareTemplate({ clinic }: TemplateProps) {
+export function AuraCareTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -62,6 +68,22 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
   const deepNavy = "#0a192f";
   const ivoryBg = "#faf9f5";
 
+  const palette: TemplatePalette = {
+    primary: deepNavy,
+    secondary: "#1b2a41",
+    accent: sageAccent,
+    background: ivoryBg,
+    surface: "#ffffff",
+    text: "#1b2a41",
+    mutedText: "#4a5568",
+    border: "#e5dfd5",
+  };
+
+  const typography: TemplateTypography = {
+    headingClass: "font-serif",
+    bodyClass: "font-sans",
+  };
+
   return (
     <div
       className="min-h-screen text-[#1b2a41] selection:bg-[#52796f]/20 font-sans antialiased"
@@ -70,7 +92,7 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
       {/* ─── LUXURY HEADER / NAV ────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-[#faf9f5]/90 border-b border-[#e5dfd5] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActivePage("home")}>
             {clinic.logo_url ? (
               <img src={clinic.logo_url} alt={clinicName} className="h-10 w-auto object-contain rounded-lg" />
             ) : (
@@ -88,24 +110,7 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-medium tracking-wider uppercase text-[#4a5568]">
-            <a href="#services" className="hover:text-[#52796f] transition-colors py-1 relative group">
-              Expertise
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#52796f] transition-all group-hover:w-full" />
-            </a>
-            <a href="#practitioner" className="hover:text-[#52796f] transition-colors py-1 relative group">
-              The Doctor
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#52796f] transition-all group-hover:w-full" />
-            </a>
-            <a href="#schedule" className="hover:text-[#52796f] transition-colors py-1 relative group">
-              Hours
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#52796f] transition-all group-hover:w-full" />
-            </a>
-            <a href="#reviews" className="hover:text-[#52796f] transition-colors py-1 relative group">
-              Patient Trust
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#52796f] transition-all group-hover:w-full" />
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -118,7 +123,7 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
               </a>
             )}
             <button
-              onClick={() => setBookingOpen(true)}
+              onClick={() => setActivePage("book")}
               className="px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-98"
               style={{ backgroundColor: sageAccent }}
             >
@@ -128,6 +133,16 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
         </div>
       </header>
 
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
       {/* ─── HERO SECTION ──────────────────────────────────────────────── */}
       <section className="relative pt-12 pb-20 md:py-24 border-b border-[#e5dfd5] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -458,28 +473,42 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
         </div>
       </section>
 
+          </>
+        }
+      />
+
       {/* ─── EDITORIAL FOOTER ───────────────────────────────────────────── */}
       <footer className="py-14 bg-[#0a192f] text-[#c7d1db] text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-center md:text-left space-y-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-12 gap-8 text-left">
+          <div className="md:col-span-5 space-y-2">
             <p className="font-serif text-lg font-normal text-white">{clinicName}</p>
-            <p className="text-[11px] text-[#8c9ba5]">
+            <p className="text-[11px] text-[#8c9ba5] leading-relaxed">
               {doctorName} · {specialization} · Reg: {regNo || "Verified"}
             </p>
+            <p className="text-[11px] text-[#8c9ba5]">{address}</p>
           </div>
 
-          <div className="flex items-center gap-6 text-[11px]">
-            <a href="#services" className="hover:text-white transition-colors">Specializations</a>
-            <a href="#schedule" className="hover:text-white transition-colors">Hours</a>
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Location</a>
-            <button onClick={() => setBookingOpen(true)} className="text-[#86efac] font-semibold hover:underline">
-              Request Booking
+          <div className="md:col-span-4">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} headingText="Navigation & Pages" />
+          </div>
+
+          <div className="md:col-span-3 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-white">Direct Assistance</p>
+            {phone && (
+              <p className="text-xs">
+                Call: <a href={`tel:${phone}`} className="text-white underline">{phone}</a>
+              </p>
+            )}
+            <button
+              onClick={() => setActivePage("book")}
+              className="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider text-white border border-[#52796f] hover:bg-[#52796f] transition-all"
+            >
+              Book Appointment
             </button>
+            <p className="text-[10px] text-[#627282] pt-2">
+              © {new Date().getFullYear()} {clinicName}. All rights reserved.
+            </p>
           </div>
-
-          <p className="text-[10px] text-[#627282]">
-            © {new Date().getFullYear()} {clinicName}. All rights reserved.
-          </p>
         </div>
       </footer>
 
@@ -492,7 +521,7 @@ export function AuraCareTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={sageAccent}
       />
     </div>

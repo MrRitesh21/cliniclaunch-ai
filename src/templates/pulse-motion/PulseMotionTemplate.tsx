@@ -36,8 +36,14 @@ import {
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function PulseMotionTemplate({ clinic }: TemplateProps) {
+export function PulseMotionTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -59,6 +65,22 @@ export function PulseMotionTemplate({ clinic }: TemplateProps) {
   const lime = "#84cc16";
   const charcoal = "#0f172a";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#1d4ed8",
+    "secondary": "#0f172a",
+    "accent": "#84cc16",
+    "background": "#ffffff",
+    "surface": "#ffffff",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Bold Kinetic Sans",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "High-energy athletic precision with monospace metrics"
+};
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-blue-600 selection:text-white">
       {/* ─── ENERGETIC TICKER BAR ─────────────────────────────────────── */}
@@ -94,20 +116,7 @@ export function PulseMotionTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-wider uppercase text-slate-600">
-            <a href="#movement-programs" className="hover:text-blue-600 transition-colors">
-              Programs
-            </a>
-            <a href="#sports-specialist" className="hover:text-blue-600 transition-colors">
-              Specialist
-            </a>
-            <a href="#recovery-stats" className="hover:text-blue-600 transition-colors">
-              Metrics
-            </a>
-            <a href="#timetable" className="hover:text-blue-600 transition-colors">
-              Slots
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -129,6 +138,18 @@ export function PulseMotionTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: ASYMMETRICAL MOTION ─────────────────────────────────── */}
       <section className="relative pt-12 pb-20 md:py-24 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/40 border-b border-slate-200">
@@ -381,6 +402,10 @@ export function PulseMotionTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-slate-950 text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -389,7 +414,11 @@ export function PulseMotionTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-slate-400">© {new Date().getFullYear()} {clinicName}. All rights reserved.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -400,7 +429,7 @@ export function PulseMotionTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={cobalt}
       />
     </div>

@@ -77,9 +77,13 @@ export type TemplateDefinition = {
   isNew?: boolean;
 };
 
+export type TemplatePage = "home" | "about" | "services" | "book" | "contact";
+
 export interface TemplateProps {
   clinic: SiteClinic;
   pathname?: string;
   preview?: boolean;
   onOpenBooking?: () => void;
+  activePage?: TemplatePage;
+  onNavigatePage?: (page: TemplatePage) => void;
 }

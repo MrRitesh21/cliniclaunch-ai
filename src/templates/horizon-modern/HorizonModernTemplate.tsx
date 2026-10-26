@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function HorizonModernTemplate({ clinic }: TemplateProps) {
+export function HorizonModernTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function HorizonModernTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0284c7",
+    "secondary": "#0f172a",
+    "accent": "#10b981",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "mutedText": "#64748b",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Visionary, high-elevation panoramic typography"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-white antialiased selection:bg-sky-500 selection:text-white"
@@ -87,20 +109,7 @@ export function HorizonModernTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#offerings" className="hover:text-sky-700 transition-colors">
-              Care Pillars
-            </a>
-            <a href="#leadership" className="hover:text-sky-700 transition-colors">
-              Medical Leadership
-            </a>
-            <a href="#timetable" className="hover:text-sky-700 transition-colors">
-              Visiting Hours
-            </a>
-            <a href="#facility" className="hover:text-sky-700 transition-colors">
-              The Facility
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -110,6 +119,18 @@ export function HorizonModernTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Horizon Panoramic Minimalist */}
       <section className="py-20 lg:py-28 px-6 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
@@ -319,12 +340,20 @@ export function HorizonModernTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. HORIZON MEDICAL SCIENCES.</div>
           <div className="text-slate-400">REGISTRATION NO: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

@@ -33,8 +33,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function BotanicalWellnessTemplate({ clinic }: TemplateProps) {
+export function BotanicalWellnessTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -52,6 +58,22 @@ export function BotanicalWellnessTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#52796f",
+    "secondary": "#3f4f3e",
+    "accent": "#b45309",
+    "background": "#faf9f6",
+    "surface": "#ffffff",
+    "text": "#2d372e",
+    "mutedText": "#5c6b5d",
+    "border": "#e9edc9"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Playfair Display / Serif",
+    "bodyFont": "Plus Jakarta Sans",
+    "styleDescription": "Warm literary serif paired with delicate botanical accents"
+};
   return (
     <div
       className="min-h-screen text-[#2d372e] bg-[#faf9f6] selection:bg-[#d8e2dc] selection:text-[#1b2b1d]"
@@ -78,20 +100,7 @@ export function BotanicalWellnessTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-[#4f5d4e]">
-            <a href="#therapies" className="hover:text-[#2d372e] transition-colors">
-              Holistic Therapies
-            </a>
-            <a href="#practitioner" className="hover:text-[#2d372e] transition-colors">
-              Practitioner
-            </a>
-            <a href="#hours" className="hover:text-[#2d372e] transition-colors">
-              Hours
-            </a>
-            <a href="#sanctuary" className="hover:text-[#2d372e] transition-colors">
-              Visit Us
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -101,6 +110,18 @@ export function BotanicalWellnessTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section */}
       <section className="py-16 lg:py-24 px-6 relative overflow-hidden">
@@ -303,12 +324,20 @@ export function BotanicalWellnessTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="py-10 px-6 bg-[#2d372e] text-[#ccd5ae] text-xs text-center font-sans">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. Natural Healing Practice.</div>
           <div>Medical Authority Reg: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

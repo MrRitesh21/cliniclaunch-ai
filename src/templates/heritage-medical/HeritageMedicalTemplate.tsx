@@ -32,8 +32,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function HeritageMedicalTemplate({ clinic }: TemplateProps) {
+export function HeritageMedicalTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -51,6 +57,22 @@ export function HeritageMedicalTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#1e293b",
+    "secondary": "#881337",
+    "accent": "#ca8a04",
+    "background": "#fdfbf7",
+    "surface": "#ffffff",
+    "text": "#1e293b",
+    "mutedText": "#64748b",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Playfair Display / Serif",
+    "bodyFont": "Plus Jakarta Sans",
+    "styleDescription": "Timeless classical serif paired with structured clinical metadata"
+};
   return (
     <div
       className="min-h-screen text-[#1e293b] bg-[#fdfbf7] selection:bg-[#ca8a04]/20 selection:text-[#1e293b]"
@@ -80,20 +102,7 @@ export function HeritageMedicalTemplate({ clinic }: TemplateProps) {
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-widest text-[#64748b]">
-            <a href="#services" className="hover:text-[#1e293b] transition-colors">
-              Specialized Care
-            </a>
-            <a href="#credentials" className="hover:text-[#1e293b] transition-colors">
-              Qualifications
-            </a>
-            <a href="#timetable" className="hover:text-[#1e293b] transition-colors">
-              Visiting Timetable
-            </a>
-            <a href="#sanctuary" className="hover:text-[#1e293b] transition-colors">
-              The Clinic
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -103,6 +112,18 @@ export function HeritageMedicalTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Classical Gravitas */}
       <section className="py-20 lg:py-28 px-6 max-w-6xl mx-auto">
@@ -305,12 +326,20 @@ export function HeritageMedicalTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="py-10 px-6 bg-[#1e293b] text-slate-300 text-xs text-center font-sans border-t border-slate-900">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. Established Medical Practice.</div>
           <div className="text-[#ca8a04]">MEDICAL COUNCIL REG: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

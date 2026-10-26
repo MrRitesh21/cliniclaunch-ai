@@ -37,8 +37,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function SwissMedicalTemplate({ clinic }: TemplateProps) {
+export function SwissMedicalTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedServiceIndex, setSelectedServiceIndex] = useState(0);
 
@@ -60,6 +66,22 @@ export function SwissMedicalTemplate({ clinic }: TemplateProps) {
   const vermilion = "#dc2626";
   const charcoal = "#18181b";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#dc2626",
+    "secondary": "#18181b",
+    "accent": "#ef4444",
+    "background": "#ffffff",
+    "surface": "#fafafa",
+    "text": "#18181b",
+    "mutedText": "#71717a",
+    "border": "#e4e4e7"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Bold",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Strict International Typographic Style with monospaced metadata"
+};
   return (
     <div
       className="min-h-screen text-[#18181b] bg-white antialiased selection:bg-red-600 selection:text-white"
@@ -105,20 +127,7 @@ export function SwissMedicalTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-zinc-600">
-            <a href="#services" className="hover:text-red-600 transition-colors">
-              01. Services Index
-            </a>
-            <a href="#physician" className="hover:text-red-600 transition-colors">
-              02. Medical Directorate
-            </a>
-            <a href="#schedule" className="hover:text-red-600 transition-colors">
-              03. Clinic Hours
-            </a>
-            <a href="#location" className="hover:text-red-600 transition-colors">
-              04. Location Map
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -129,6 +138,18 @@ export function SwissMedicalTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* 2. Hero Section: Swiss Modernist Asymmetric Grid */}
       <section className="border-b border-zinc-200 relative overflow-hidden bg-white">
@@ -446,6 +467,10 @@ export function SwissMedicalTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* 6. Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-zinc-950 text-white py-12 px-4 sm:px-8 font-mono text-xs border-t border-zinc-900">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
@@ -457,7 +482,11 @@ export function SwissMedicalTemplate({ clinic }: TemplateProps) {
             © {new Date().getFullYear()} {clinicName}. Medical Registration: {regNo}. All rights reserved.
           </div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Consultation Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

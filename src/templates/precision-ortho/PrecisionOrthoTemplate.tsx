@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function PrecisionOrthoTemplate({ clinic }: TemplateProps) {
+export function PrecisionOrthoTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function PrecisionOrthoTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0284c7",
+    "secondary": "#0f172a",
+    "accent": "#38bdf8",
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "text": "#0f172a",
+    "mutedText": "#64748b",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Technical clinical precision with clean millimeter markers"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-[#f8fafc] antialiased selection:bg-cyan-500 selection:text-white"
@@ -87,20 +109,7 @@ export function PrecisionOrthoTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#treatments" className="hover:text-cyan-700 transition-colors">
-              Aligner & Ortho
-            </a>
-            <a href="#pathway" className="hover:text-cyan-700 transition-colors">
-              Smile Process
-            </a>
-            <a href="#specialist" className="hover:text-cyan-700 transition-colors">
-              Orthodontist
-            </a>
-            <a href="#schedule" className="hover:text-cyan-700 transition-colors">
-              Hours & Clinic
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -110,6 +119,18 @@ export function PrecisionOrthoTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Technical & Clinical Precision */}
       <section className="py-16 lg:py-24 px-6 border-b border-slate-200 bg-white relative">
@@ -351,12 +372,20 @@ export function PrecisionOrthoTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. PRECISION ORTHODONTIC SYSTEMS.</div>
           <div className="text-slate-400">DENTAL COUNCIL: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

@@ -32,8 +32,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function EditorialSplitTemplate({ clinic }: TemplateProps) {
+export function EditorialSplitTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -51,12 +57,57 @@ export function EditorialSplitTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0f172a",
+    "secondary": "#0284c7",
+    "accent": "#06b6d4",
+    "background": "#ffffff",
+    "surface": "#fafaf9",
+    "text": "#0f172a",
+    "mutedText": "#64748b",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Bold dual-tone editorial typography with oversized headlines"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-white antialiased selection:bg-slate-900 selection:text-white"
       style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}
     >
-      {/* 50/50 Split Screen Hero Section */}
+            {/* Top Multi-Page Header */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 cursor-pointer font-bold text-sm tracking-tight" onClick={() => setActivePage("home")}>
+            <span className="size-7 rounded bg-slate-900 text-white grid place-items-center font-mono text-xs font-bold">CX</span>
+            <span>{clinicName}</span>
+          </div>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          <button
+            onClick={() => setActivePage("book")}
+            className="px-4 py-2 bg-slate-950 text-white font-mono text-xs uppercase font-bold tracking-wider hover:bg-slate-800 transition-colors"
+          >
+            Book Visit
+          </button>
+        </div>
+      </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
+
+{/* 50/50 Split Screen Hero Section */}
       <section className="min-h-screen flex flex-col lg:flex-row border-b border-slate-200">
         {/* Left Pane: Information & Editorial Narrative */}
         <div className="w-full lg:w-1/2 p-8 sm:p-12 lg:p-16 flex flex-col justify-between bg-[#fafaf9] border-r border-slate-200">
@@ -250,12 +301,20 @@ export function EditorialSplitTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-900">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. EDITORIAL SPLIT SCREEN SYSTEM.</div>
           <div className="text-slate-400">REGISTRATION NO: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

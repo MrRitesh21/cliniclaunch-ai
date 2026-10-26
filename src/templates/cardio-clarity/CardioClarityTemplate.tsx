@@ -33,8 +33,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function CardioClarityTemplate({ clinic }: TemplateProps) {
+export function CardioClarityTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -52,6 +58,22 @@ export function CardioClarityTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#dc2626",
+    "secondary": "#0f172a",
+    "accent": "#b91c1c",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Authoritative clinical typography with clean informational rhythm"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-white antialiased selection:bg-red-600 selection:text-white"
@@ -86,20 +108,7 @@ export function CardioClarityTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#panels" className="hover:text-red-600 transition-colors">
-              Cardiology Panels
-            </a>
-            <a href="#cardiologist" className="hover:text-red-600 transition-colors">
-              Cardiologist
-            </a>
-            <a href="#schedule" className="hover:text-red-600 transition-colors">
-              Timetable
-            </a>
-            <a href="#emergency" className="hover:text-red-600 transition-colors text-red-700 font-bold">
-              Triage Notice
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -109,6 +118,18 @@ export function CardioClarityTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Clear & Reassuring */}
       <section className="py-16 lg:py-24 px-6 border-b border-slate-200 bg-slate-50/50 relative">
@@ -331,12 +352,20 @@ export function CardioClarityTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. CARDIOVASCULAR HEALTH SCIENCES.</div>
           <div className="text-red-400">REGISTRATION NO: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

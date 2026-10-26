@@ -36,8 +36,14 @@ import {
 import { FadeUp, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function LocalTrustTemplate({ clinic }: TemplateProps) {
+export function LocalTrustTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -73,6 +79,22 @@ export function LocalTrustTemplate({ clinic }: TemplateProps) {
     },
   ];
 
+
+  const palette: TemplatePalette = {
+    "primary": "#059669",
+    "secondary": "#047857",
+    "accent": "#10b981",
+    "background": "#fafaf9",
+    "surface": "#ffffff",
+    "text": "#1c1917",
+    "mutedText": "#57534e",
+    "border": "#e7e5e4"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "High-Legibility Accessible Sans",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Unmistakable bold contact points, large touch targets"
+};
   return (
     <div className="min-h-screen bg-[#fafaf9] text-stone-900 font-sans antialiased selection:bg-emerald-500/20">
       {/* ─── URGENT CONTACT TOP BAR ────────────────────────────────────── */}
@@ -112,12 +134,7 @@ export function LocalTrustTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-6 text-xs font-bold uppercase tracking-wider text-stone-600">
-            <a href="#services" className="hover:text-emerald-700 transition-colors">Treatments</a>
-            <a href="#doctor" className="hover:text-emerald-700 transition-colors">About Doctor</a>
-            <a href="#location" className="hover:text-emerald-700 transition-colors">Timings &amp; Map</a>
-            <a href="#faqs" className="hover:text-emerald-700 transition-colors">FAQs</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -139,6 +156,18 @@ export function LocalTrustTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: DIRECT LOCAL TRUST & QUICK ACTIONS ──────────────────── */}
       <section className="py-12 md:py-20 bg-white border-b border-stone-200">
@@ -411,6 +440,10 @@ export function LocalTrustTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-stone-900 text-stone-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -419,7 +452,11 @@ export function LocalTrustTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-stone-500">© {new Date().getFullYear()} {clinicName}. Serving the community with care.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -430,7 +467,7 @@ export function LocalTrustTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={emeraldGreen}
       />
     </div>

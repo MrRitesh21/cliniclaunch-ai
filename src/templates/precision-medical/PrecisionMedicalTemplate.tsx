@@ -37,8 +37,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
+export function PrecisionMedicalTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<number>(0);
 
@@ -60,6 +66,22 @@ export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
   const medicalNavy = "#0f172a";
   const clinicalRed = "#dc2626";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0f172a",
+    "secondary": "#dc2626",
+    "accent": "#334155",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#0f172a"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Structured Tabular Sans",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "High-contrast clinical Swiss alignment with monospaced metadata"
+};
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-slate-900 selection:text-white">
       {/* ─── TECHNICAL CLINICAL PROTOCOL BAR ───────────────────────────── */}
@@ -100,12 +122,7 @@ export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-wider uppercase text-slate-700">
-            <a href="#directory" className="hover:text-red-600 transition-colors">Directory</a>
-            <a href="#credentials" className="hover:text-red-600 transition-colors">Credentials</a>
-            <a href="#timetable" className="hover:text-red-600 transition-colors">Timetable</a>
-            <a href="#facility" className="hover:text-red-600 transition-colors">Facility Info</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -126,6 +143,18 @@ export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: STRUCTURED SWISS GRID ───────────────────────────────── */}
       <section className="py-14 md:py-20 border-b border-slate-200 bg-slate-50/60">
@@ -362,6 +391,10 @@ export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-10 bg-slate-950 text-slate-400 text-xs font-mono">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
@@ -370,7 +403,11 @@ export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px]">© {new Date().getFullYear()} {clinicName}. All clinical rights reserved.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -381,7 +418,7 @@ export function PrecisionMedicalTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor="#0f172a"
       />
     </div>

@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function ActiveRecoveryTemplate({ clinic }: TemplateProps) {
+export function ActiveRecoveryTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function ActiveRecoveryTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#f97316",
+    "secondary": "#0f172a",
+    "accent": "#0284c7",
+    "background": "#ffffff",
+    "surface": "#f8fafc",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "High-energy athletic precision with monospace metrics"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-white antialiased selection:bg-orange-500 selection:text-white"
@@ -87,20 +109,7 @@ export function ActiveRecoveryTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-700">
-            <a href="#protocols" className="hover:text-orange-600 transition-colors">
-              Rehab Protocols
-            </a>
-            <a href="#roadmap" className="hover:text-orange-600 transition-colors">
-              Return-To-Play
-            </a>
-            <a href="#specialist" className="hover:text-orange-600 transition-colors">
-              Lead Specialist
-            </a>
-            <a href="#hours" className="hover:text-orange-600 transition-colors">
-              Hours
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -110,6 +119,18 @@ export function ActiveRecoveryTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: High Energy Kinetic */}
       <section className="py-16 lg:py-24 px-6 border-b border-slate-200 relative overflow-hidden bg-slate-50/50">
@@ -351,12 +372,20 @@ export function ActiveRecoveryTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. ACTIVE RECOVERY MEDICINE.</div>
           <div className="text-slate-400">REGISTRATION NO: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

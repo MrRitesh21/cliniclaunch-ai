@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function FamilyFirstTemplate({ clinic }: TemplateProps) {
+export function FamilyFirstTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function FamilyFirstTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#0284c7",
+    "secondary": "#fb923c",
+    "accent": "#166534",
+    "background": "#fffdf9",
+    "surface": "#ffffff",
+    "text": "#1e293b",
+    "mutedText": "#64748b",
+    "border": "#fed7aa"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Bold",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Approachable, rounded, comforting multigenerational typography"
+};
   return (
     <div
       className="min-h-screen text-slate-800 bg-[#fffdf9] selection:bg-amber-100 selection:text-amber-900"
@@ -79,20 +101,7 @@ export function FamilyFirstTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#care" className="hover:text-sky-700 transition-colors">
-              Family Services
-            </a>
-            <a href="#doctor" className="hover:text-sky-700 transition-colors">
-              Our Doctor
-            </a>
-            <a href="#schedule" className="hover:text-sky-700 transition-colors">
-              Clinic Hours
-            </a>
-            <a href="#location" className="hover:text-sky-700 transition-colors">
-              Location
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -102,6 +111,18 @@ export function FamilyFirstTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Warm & Reassuring */}
       <section className="py-16 lg:py-24 px-6 relative overflow-hidden">
@@ -312,12 +333,20 @@ export function FamilyFirstTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="py-10 px-6 bg-slate-900 text-slate-400 text-xs text-center border-t border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. Caring for Every Generation.</div>
           <div>Council Lic: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

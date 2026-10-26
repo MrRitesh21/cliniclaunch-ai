@@ -39,8 +39,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function DigitalHealthTemplate({ clinic }: TemplateProps) {
+export function DigitalHealthTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<"in_clinic" | "video">("in_clinic");
 
@@ -62,6 +68,22 @@ export function DigitalHealthTemplate({ clinic }: TemplateProps) {
   const electricIndigo = "#4f46e5";
   const cyanAqua = "#06b6d4";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#4f46e5",
+    "secondary": "#06b6d4",
+    "accent": "#a855f7",
+    "background": "#fcfdff",
+    "surface": "#ffffff",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Neo-Grotesque Tech Sans",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Clean, digital-native typography with terminal status pills"
+};
   return (
     <div className="min-h-screen bg-[#fcfdff] text-slate-800 font-sans antialiased selection:bg-indigo-500/20">
       {/* ─── DIGITAL TELEMETRY STATUS BAR ──────────────────────────────── */}
@@ -95,12 +117,7 @@ export function DigitalHealthTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#digital-tracks" className="hover:text-indigo-600 transition-colors">Care Pathways</a>
-            <a href="#workflow" className="hover:text-indigo-600 transition-colors">How It Works</a>
-            <a href="#doctor-lead" className="hover:text-indigo-600 transition-colors">Specialist</a>
-            <a href="#schedule" className="hover:text-indigo-600 transition-colors">Live Schedule</a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -122,6 +139,18 @@ export function DigitalHealthTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: INTERACTIVE TELE-JOURNEY BENTO ───────────────────────── */}
       <section className="relative pt-12 pb-20 md:py-24 bg-gradient-to-br from-indigo-50/50 via-white to-cyan-50/40 border-b border-slate-200 overflow-hidden">
@@ -453,6 +482,10 @@ export function DigitalHealthTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-slate-950 text-slate-400 text-xs font-mono">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -461,7 +494,11 @@ export function DigitalHealthTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px]">© {new Date().getFullYear()} {clinicName}. Digital healthcare powered.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -472,7 +509,7 @@ export function DigitalHealthTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={electricIndigo}
       />
     </div>

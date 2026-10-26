@@ -35,8 +35,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function DigitalAppointmentTemplate({ clinic }: TemplateProps) {
+export function DigitalAppointmentTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedStep, setSelectedStep] = useState(1);
 
@@ -55,6 +61,22 @@ export function DigitalAppointmentTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#2563eb",
+    "secondary": "#0d9488",
+    "accent": "#7c3aed",
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "text": "#0f172a",
+    "mutedText": "#475569",
+    "border": "#e2e8f0"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Plus Jakarta Sans / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Tech-forward, digital-native typography with clean progress indicators"
+};
   return (
     <div
       className="min-h-screen text-slate-900 bg-[#f8fafc] antialiased selection:bg-blue-600 selection:text-white"
@@ -89,20 +111,7 @@ export function DigitalAppointmentTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-600">
-            <a href="#booking-flow" className="hover:text-blue-600 transition-colors">
-              How Booking Works
-            </a>
-            <a href="#services" className="hover:text-blue-600 transition-colors">
-              Services & Fees
-            </a>
-            <a href="#doctor" className="hover:text-blue-600 transition-colors">
-              Doctor Credentials
-            </a>
-            <a href="#schedule" className="hover:text-blue-600 transition-colors">
-              Operating Schedule
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -112,6 +121,18 @@ export function DigitalAppointmentTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Interactive Appointment Card as Focal Center */}
       <section className="py-16 lg:py-24 px-6 border-b border-slate-200 bg-white">
@@ -351,12 +372,20 @@ export function DigitalAppointmentTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-slate-950 text-white py-12 px-6 font-mono text-xs border-t border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. DIGITAL APPOINTMENT DISPATCH.</div>
           <div className="text-slate-400">REGISTRATION NO: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

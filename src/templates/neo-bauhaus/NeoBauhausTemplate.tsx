@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function NeoBauhausTemplate({ clinic }: TemplateProps) {
+export function NeoBauhausTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -53,6 +59,22 @@ export function NeoBauhausTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#1d4ed8",
+    "secondary": "#dc2626",
+    "accent": "#f59e0b",
+    "background": "#faf7f2",
+    "surface": "#ffffff",
+    "text": "#171717",
+    "mutedText": "#525252",
+    "border": "#171717"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Space Grotesk / Black",
+    "bodyFont": "Plus Jakarta Sans",
+    "styleDescription": "Bauhaus constructivist geometry with primary color accents"
+};
   return (
     <div
       className="min-h-screen text-[#171717] bg-[#faf7f2] antialiased selection:bg-[#1d4ed8] selection:text-white"
@@ -89,17 +111,7 @@ export function NeoBauhausTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-wider">
-            <a href="#construct" className="hover:text-[#1d4ed8] transition-colors">
-              01 // Units
-            </a>
-            <a href="#directorate" className="hover:text-[#dc2626] transition-colors">
-              02 // Directorate
-            </a>
-            <a href="#matrix" className="hover:text-[#f59e0b] transition-colors">
-              03 // Schedule
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <button
             onClick={() => setBookingOpen(true)}
@@ -109,6 +121,18 @@ export function NeoBauhausTemplate({ clinic }: TemplateProps) {
           </button>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Hero Section: Constructivist Geometry */}
       <section className="py-16 lg:py-24 px-6 border-b-4 border-[#171717] bg-[#faf7f2] relative overflow-hidden">
@@ -331,12 +355,20 @@ export function NeoBauhausTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Footer */}
+                </>
+        }
+      />
+
       <footer className="bg-[#171717] text-white py-12 px-6 border-t-4 border-[#171717] font-mono text-xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. BAUHAUS HEALTH SYSTEM.</div>
           <div className="text-[#f59e0b]">MEDICAL LICENSE: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as ClinicRoute } from "./c.$slug";
 import { Card } from "@/components/ui/card";
+import type { SiteClinic } from "@/components/site/types";
+import { isPremiumTemplate, getPremiumTemplateComponent } from "@/templates/registry";
 
 export const Route = createFileRoute("/c/$slug/about")({
   head: ({ params }) => ({
@@ -14,6 +16,17 @@ export const Route = createFileRoute("/c/$slug/about")({
 
 function AboutPage() {
   const { clinic } = ClinicRoute.useLoaderData();
+  const { tpl } = ClinicRoute.useSearch();
+  const c = clinic as unknown as SiteClinic;
+
+  const activeTemplateId = tpl || c.template;
+  if (isPremiumTemplate(activeTemplateId)) {
+    const PremiumTemplateComp = getPremiumTemplateComponent(activeTemplateId);
+    if (PremiumTemplateComp) {
+      return <PremiumTemplateComp clinic={c} activePage="about" />;
+    }
+  }
+
   const body =
     clinic.about_text ||
     clinic.bio ||

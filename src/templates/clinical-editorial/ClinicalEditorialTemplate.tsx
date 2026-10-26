@@ -33,8 +33,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function ClinicalEditorialTemplate({ clinic }: TemplateProps) {
+export function ClinicalEditorialTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -52,6 +58,22 @@ export function ClinicalEditorialTemplate({ clinic }: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
+
+  const palette: TemplatePalette = {
+    "primary": "#1c1917",
+    "secondary": "#881337",
+    "accent": "#ca8a04",
+    "background": "#faf8f5",
+    "surface": "#ffffff",
+    "text": "#1c1917",
+    "mutedText": "#57534e",
+    "border": "#e7e5e4"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "Playfair Display / Black",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Journalistic high-fashion masthead with pull quotes and multi-column articles"
+};
   return (
     <div
       className="min-h-screen text-[#1c1917] bg-[#faf8f5] selection:bg-[#e7e5e4] selection:text-[#0c0a09]"
@@ -99,7 +121,21 @@ export function ClinicalEditorialTemplate({ clinic }: TemplateProps) {
             Reserve Consultation
           </button>
         </div>
-      </header>
+      
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
+        </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* Cover Story Hero: Asymmetric Magazine Columns */}
       <section id="cover-story" className="py-16 px-6 max-w-7xl mx-auto border-b border-[#e7e5e4]">
@@ -269,12 +305,20 @@ export function ClinicalEditorialTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* Editorial Colophon / Footer */}
+                </>
+        }
+      />
+
       <footer className="border-t-2 border-[#1c1917] bg-[#f5f2eb] py-10 px-6 text-center font-sans text-xs text-[#78716c]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>© {new Date().getFullYear()} {clinicName}. Published Clinical Archive.</div>
           <div>Medical Authority Registry: {regNo}</div>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Booking Modal & Floating Bar */}
       <AppointmentModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} clinic={clinic} />

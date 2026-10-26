@@ -34,8 +34,14 @@ import {
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
+import { useTemplatePage } from "../shared/useTemplatePage";
+import { TemplatePageRenderer } from "../shared/pages/TemplatePageRenderer";
+import { TemplateNavLinks, TemplateFooterPages } from "../shared/TemplateNav";
+import type { TemplatePalette, TemplateTypography } from "../shared/types";
 
-export function NoirSignatureTemplate({ clinic }: TemplateProps) {
+export function NoirSignatureTemplate(props: TemplateProps) {
+  const { clinic } = props;
+  const [activePage, setActivePage] = useTemplatePage(props);
   const [bookingOpen, setBookingOpen] = useState(false);
 
   const clinicName = getClinicName(clinic);
@@ -57,6 +63,22 @@ export function NoirSignatureTemplate({ clinic }: TemplateProps) {
   const obsidianCharcoal = "#18181b";
   const warmCream = "#faf8f5";
 
+
+  const palette: TemplatePalette = {
+    "primary": "#18181b",
+    "secondary": "#c5a059",
+    "accent": "#d4af37",
+    "background": "#faf8f5",
+    "surface": "#ffffff",
+    "text": "#18181b",
+    "mutedText": "#57534e",
+    "border": "#e7e2d8"
+};
+  const typography: TemplateTypography = {
+    "headingFont": "High-Fashion Editorial Serif",
+    "bodyFont": "Inter / Sans-Serif",
+    "styleDescription": "Understated champagne tracking, gold hairline dividers"
+};
   return (
     <div
       className="min-h-screen text-[#18181b] font-sans antialiased selection:bg-[#c5a059]/20"
@@ -93,24 +115,7 @@ export function NoirSignatureTemplate({ clinic }: TemplateProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-9 text-xs font-serif uppercase tracking-widest text-[#57534e]">
-            <a href="#dossier" className="hover:text-[#c5a059] transition-colors py-1 relative group">
-              Expertise
-              <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#c5a059] transition-all group-hover:w-full" />
-            </a>
-            <a href="#physician" className="hover:text-[#c5a059] transition-colors py-1 relative group">
-              Physician
-              <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#c5a059] transition-all group-hover:w-full" />
-            </a>
-            <a href="#privilege" className="hover:text-[#c5a059] transition-colors py-1 relative group">
-              Protocols
-              <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#c5a059] transition-all group-hover:w-full" />
-            </a>
-            <a href="#suite" className="hover:text-[#c5a059] transition-colors py-1 relative group">
-              Private Suite
-              <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#c5a059] transition-all group-hover:w-full" />
-            </a>
-          </nav>
+          <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
           <div className="flex items-center gap-3">
             {phone && (
@@ -132,6 +137,18 @@ export function NoirSignatureTemplate({ clinic }: TemplateProps) {
           </div>
         </div>
       </header>
+
+      {/* ─── 5-PAGE CONTENT RENDERER ───────────────────────────────────── */}
+      <TemplatePageRenderer
+        page={activePage}
+        clinic={clinic}
+        palette={palette}
+        typography={typography}
+        onNavigate={setActivePage}
+        onOpenBooking={() => setBookingOpen(true)}
+        homeContent={
+          <>
+
 
       {/* ─── HERO: EDITORIAL LUXURY ────────────────────────────────────── */}
       <section className="relative pt-14 pb-20 md:py-28 border-b border-[#e7e2d8] overflow-hidden">
@@ -382,6 +399,10 @@ export function NoirSignatureTemplate({ clinic }: TemplateProps) {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
+                </>
+        }
+      />
+
       <footer className="py-12 bg-[#18181b] text-[#a8a29e] text-xs font-serif">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
@@ -390,7 +411,11 @@ export function NoirSignatureTemplate({ clinic }: TemplateProps) {
           </div>
           <p className="text-[10px] text-[#78716c] font-mono">© {new Date().getFullYear()} {clinicName}. Confidential clinical practice.</p>
         </div>
-      </footer>
+      
+          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
+            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+          </div>
+        </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
       <AppointmentModal
@@ -401,7 +426,7 @@ export function NoirSignatureTemplate({ clinic }: TemplateProps) {
       />
       <FloatingContactBar
         clinic={clinic}
-        onBookClick={() => setBookingOpen(true)}
+        onBookClick={() => setActivePage("book")}
         primaryColor={obsidianCharcoal}
       />
     </div>
