@@ -63,6 +63,12 @@ export function WebsiteWidgetView() {
   const [redirectUrl, setRedirectUrl] = useState("");
   const [formTheme, setFormTheme] = useState<"clean" | "minimal" | "modern">("modern");
 
+  // iFrame configuration state
+  const [iframeHeight, setIframeHeight] = useState("750");
+  const [iframeMaxWidth, setIframeMaxWidth] = useState("680");
+  const [iframeShowBorder, setIframeShowBorder] = useState(true);
+  const [showIframePreview, setShowIframePreview] = useState(false);
+
   // Live Test Form State
   const [testName, setTestName] = useState("Ramesh Verma");
   const [testPhone, setTestPhone] = useState("9876543210");
@@ -89,6 +95,28 @@ export function WebsiteWidgetView() {
 
   const apiEndpointUrl = `${baseUrl}/api/public/submit-booking`;
   const actionWithClinicUrl = `${baseUrl}/api/public/submit-booking?clinic=${encodeURIComponent(slug)}`;
+
+  // iFrame Embed URLs & Snippet
+  const iframeEmbedUrl = `${baseUrl}/c/${slug}/book?embed=true&source=website_iframe${accentColor ? `&tc=${encodeURIComponent(accentColor)}` : ""}`;
+  const iframeDirectUrl = `${baseUrl}/c/${slug}/book?source=website_direct`;
+
+  const iframeCodeSnippet = `<!-- ========================================================
+  ClinicX Interactive Appointment Booking iFrame
+  Paste this snippet into your website (WordPress, Wix, Webflow, Squarespace, or HTML).
+  Includes doctor selection, date & time slots, and real-time CRM sync!
+======================================================== -->
+
+<div style="width: 100%; max-width: ${iframeMaxWidth === "100%" ? "100%" : `${iframeMaxWidth}px`}; margin: 0 auto; min-height: ${iframeHeight}px;">
+  <iframe
+    src="${iframeEmbedUrl}"
+    width="100%"
+    height="${iframeHeight}"
+    style="width: 100%; min-height: ${iframeHeight}px; border: ${iframeShowBorder ? "1px solid #e2e8f0" : "none"}; border-radius: 16px; box-shadow: ${iframeShowBorder ? "0 4px 20px rgba(0,0,0,0.06)" : "none"}; display: block;"
+    allow="payment; geolocation; camera; microphone"
+    loading="lazy"
+    title="Book Appointment with ${clinic?.doctor_name || clinic?.clinic_name || "Doctor"}"
+  ></iframe>
+</div>`;
 
   // Pure HTML Form Snippet (NO IFRAME) - Fully styled and customizable
   const pureHtmlFormSnippet = `<!-- ========================================================
@@ -315,18 +343,27 @@ async function submitToClinicX(formData) {
               <Zap className="size-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Custom Theme Form Integration (No iFrame)
+              Custom Website Integration (Form &amp; iFrame)
             </h1>
             <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold gap-1">
-              <CheckCircle2 className="size-3" /> Zero iFrame Required
+              <CheckCircle2 className="size-3" /> HTML Form + iFrame Embed
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            Doctor ki custom website ka <strong>apna design, apna theme aur apna form</strong> rahega! Jab patient doctor ki website par apna form submit karega, tab sari information (Patient details, phone, date, symptoms) automatic ClinicX CRM ke <strong>Leads</strong> aur <strong>Appointments</strong> me real-time show hogi.
+            Doctor ki custom website (WordPress, Webflow, Wix, React ya custom theme) par ClinicX booking lagayein! Chahe <strong>Custom HTML Form</strong> ho ya <strong>1-Click Interactive iFrame Widget</strong>, jab bhi patient booking submit karega, information real-time ClinicX <strong>Leads</strong> aur <strong>Appointments</strong> me sync hogi.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(iframeEmbedUrl, "_blank")}
+            className="rounded-xl gap-1.5 text-xs bg-background/80 text-blue-600 border-blue-500/30 hover:bg-blue-500/10"
+          >
+            <ExternalLink className="size-3.5" />
+            Open iFrame Link
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -531,6 +568,9 @@ async function submitToClinicX(formData) {
                   className="h-8 text-xs font-mono w-28"
                 />
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Yeh color HTML form button aur iFrame booking widget dono me real-time apply hota hai.
+              </p>
             </div>
           </Card>
 
@@ -635,28 +675,31 @@ async function submitToClinicX(formData) {
                 <div>
                   <h3 className="font-semibold text-sm">Choose Your Integration Method</h3>
                   <p className="text-[11px] text-muted-foreground">
-                    Zero iframes. Use pure HTML, Elementor, Webflow, or JavaScript.
+                    Pure HTML Form, Responsive iFrame Embed, Elementor, Webflow, or JavaScript.
                   </p>
                 </div>
               </div>
               <Badge variant="secondary" className="text-[10px] font-mono">
-                No iFrame
+                5 Methods
               </Badge>
             </div>
 
             <Tabs defaultValue="html_form" className="w-full">
-              <TabsList className="grid grid-cols-4 w-full h-8 p-0.5 bg-muted/60">
+              <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full h-auto sm:h-9 p-0.5 bg-muted/60 gap-1 sm:gap-0">
                 <TabsTrigger value="html_form" className="text-[11px] py-1">
                   1. HTML Form
                 </TabsTrigger>
+                <TabsTrigger value="iframe" className="text-[11px] py-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                  2. iFrame Embed ✨
+                </TabsTrigger>
                 <TabsTrigger value="webhook" className="text-[11px] py-1">
-                  2. Webhook / URL
+                  3. Webhook / URL
                 </TabsTrigger>
                 <TabsTrigger value="elementor" className="text-[11px] py-1">
-                  3. Elementor / Wix
+                  4. Elementor / Wix
                 </TabsTrigger>
                 <TabsTrigger value="javascript" className="text-[11px] py-1">
-                  4. Fetch API
+                  5. Fetch API
                 </TabsTrigger>
               </TabsList>
 
@@ -688,7 +731,195 @@ async function submitToClinicX(formData) {
                 </div>
               </TabsContent>
 
-              {/* Tab 2: Webhook / Endpoint URL */}
+              {/* Tab 2: Responsive iFrame Embed */}
+              <TabsContent value="iframe" className="space-y-4 pt-3">
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-950 dark:text-emerald-200 leading-relaxed space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300">
+                    <Sparkles className="size-4 text-emerald-600" />
+                    Direct 1-Click iFrame Embed:
+                  </div>
+                  <p>
+                    Aapko HTML form ya coding likhne ki zaroorat nahi hai. Full interactive booking experience (Doctor selection, Date &amp; Time slots, Consultation type, Patient details) direct aapki doctor website me embed ho jayega!
+                  </p>
+                </div>
+
+                {/* Direct Embed URL */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">iFrame Embed Page URL</Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      Clean embed mode (No header/footer)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={iframeEmbedUrl}
+                      className="font-mono text-xs h-9 bg-muted/40"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(iframeEmbedUrl, "iframe_url")}
+                      className="h-9 px-3 text-xs rounded-xl shrink-0 gap-1.5"
+                    >
+                      {copiedType === "iframe_url" ? (
+                        <>
+                          <Check className="size-3 text-emerald-500" /> Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3" /> Copy URL
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => window.open(iframeEmbedUrl, "_blank")}
+                      className="h-9 px-3 text-xs rounded-xl shrink-0 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <ExternalLink className="size-3" /> Open
+                    </Button>
+                  </div>
+                </div>
+
+                {/* iFrame Dimensions & Style Controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl border bg-muted/20 text-xs">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium">iFrame Height</Label>
+                    <Select value={iframeHeight} onValueChange={setIframeHeight}>
+                      <SelectTrigger className="h-8 text-xs bg-background">
+                        <SelectValue placeholder="Height" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="650">650px (Compact)</SelectItem>
+                        <SelectItem value="750">750px (Recommended)</SelectItem>
+                        <SelectItem value="850">850px (Spacious)</SelectItem>
+                        <SelectItem value="950">950px (Large)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium">Max Container Width</Label>
+                    <Select value={iframeMaxWidth} onValueChange={setIframeMaxWidth}>
+                      <SelectTrigger className="h-8 text-xs bg-background">
+                        <SelectValue placeholder="Max Width" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="520">520px (Narrow Form)</SelectItem>
+                        <SelectItem value="680">680px (Standard / Balanced)</SelectItem>
+                        <SelectItem value="800">800px (Wide Desktop)</SelectItem>
+                        <SelectItem value="100%">100% (Full Width Fluid)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium">Border &amp; Shadow Style</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIframeShowBorder(!iframeShowBorder)}
+                      className="w-full h-8 text-xs justify-between bg-background"
+                    >
+                      <span>{iframeShowBorder ? "Card Shadow" : "Flat / Borderless"}</span>
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0">
+                        {iframeShowBorder ? "Shadow ON" : "Flat"}
+                      </Badge>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Embed Code Snippet */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Ready-to-Paste HTML iFrame Code</Label>
+                    <span className="text-[10px] text-muted-foreground">Responsive with mobile scaling</span>
+                  </div>
+                  <div className="relative">
+                    <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 max-h-[260px]">
+                      {iframeCodeSnippet}
+                    </pre>
+                    <Button
+                      size="sm"
+                      onClick={() => copyToClipboard(iframeCodeSnippet, "iframe_code")}
+                      className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {copiedType === "iframe_code" ? (
+                        <>
+                          <Check className="size-3 text-white" /> Copied iFrame Code!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3" /> Copy iFrame Code
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Live Preview Toggle & Box */}
+                <div className="space-y-2 border-t pt-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold">
+                      <Eye className="size-3.5 text-emerald-600" />
+                      <span>Live iFrame Sandbox Preview</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowIframePreview(!showIframePreview)}
+                      className="h-7 px-2.5 text-xs rounded-lg gap-1.5"
+                    >
+                      <Eye className="size-3" />
+                      {showIframePreview ? "Hide Preview" : "Test Live iFrame Here"}
+                    </Button>
+                  </div>
+
+                  {showIframePreview && (
+                    <div className="p-3 rounded-2xl border bg-muted/20 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                        <span className="font-mono text-[10px] truncate max-w-xs">{iframeEmbedUrl}</span>
+                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                          Interactive Live Frame
+                        </Badge>
+                      </div>
+                      <div
+                        className="mx-auto rounded-xl overflow-hidden bg-background border transition-all"
+                        style={{
+                          maxWidth: iframeMaxWidth === "100%" ? "100%" : `${iframeMaxWidth}px`,
+                          height: `${iframeHeight}px`,
+                          boxShadow: iframeShowBorder ? "0 4px 20px rgba(0,0,0,0.08)" : "none",
+                        }}
+                      >
+                        <iframe
+                          src={iframeEmbedUrl}
+                          title="Live iFrame Preview"
+                          className="w-full h-full border-0"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Platform embedding instructions */}
+                <div className="p-3 rounded-xl border bg-muted/10 space-y-1.5 text-xs">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Globe className="size-3.5 text-blue-500" /> Where to paste in popular website builders:
+                  </div>
+                  <ul className="list-disc list-inside text-muted-foreground space-y-1 text-[11px]">
+                    <li><strong>WordPress / Gutenberg:</strong> Add a <em>Custom HTML</em> block and paste the iFrame code.</li>
+                    <li><strong>Elementor:</strong> Drag the <em>HTML Widget</em> anywhere on your page and paste the code.</li>
+                    <li><strong>Wix:</strong> Click <em>Add Elements (+) &gt; Embed Code &gt; Embed HTML</em> and paste.</li>
+                    <li><strong>Webflow:</strong> Drag an <em>Embed</em> component and paste the snippet.</li>
+                  </ul>
+                </div>
+              </TabsContent>
+
+              {/* Tab 3: Webhook / Endpoint URL */}
               <TabsContent value="webhook" className="space-y-4 pt-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Agar aapke paas already WordPress (Contact Form 7 / WPForms / Gravity Forms) ya Webflow Form bana hua hai, toh form action ya Webhook URL me ye link paste karein:
@@ -747,11 +978,21 @@ async function submitToClinicX(formData) {
                 </div>
               </TabsContent>
 
-              {/* Tab 3: Elementor / Webflow / Wix Guide */}
+              {/* Tab 4: Elementor / Webflow / Wix Guide */}
               <TabsContent value="elementor" className="space-y-4 pt-3 text-xs">
                 <div className="space-y-3">
+                  <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-1">
+                    <div className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <Sparkles className="size-3.5 text-emerald-600" />
+                      Quickest 1-Click Method for Elementor &amp; Wix:
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Aap direct <strong>Tab 2 (iFrame Embed)</strong> ka code copy karke Elementor ke <em>HTML Widget</em> ya Wix ke <em>Embed HTML</em> box me paste kar sakte hain — bina kisi field setup ke instant full interactive booking widget activate ho jayega!
+                    </p>
+                  </div>
+
                   <div className="p-3 rounded-xl border bg-background space-y-1">
-                    <div className="font-bold text-foreground">WordPress Elementor Form:</div>
+                    <div className="font-bold text-foreground">WordPress Elementor Form (Custom Theme):</div>
                     <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[11px]">
                       <li>Elementor me apna custom Form widget add karein aur design customize karein.</li>
                       <li>Form Settings me <strong>Actions After Submit</strong> &gt; <strong>Webhook</strong> choose karein.</li>
@@ -778,7 +1019,7 @@ async function submitToClinicX(formData) {
                 </div>
               </TabsContent>
 
-              {/* Tab 4: JavaScript Fetch API */}
+              {/* Tab 5: JavaScript Fetch API */}
               <TabsContent value="javascript" className="space-y-3 pt-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Custom React, Vue, Next.js, ya Vanilla JavaScript me AJAX call karne ke liye code snippet:

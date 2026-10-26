@@ -14,7 +14,7 @@ type Plan = Database["public"]["Tables"]["plans"]["Row"];
 type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 
 export function AppNotInstalled({ appKey }: { appKey: string }) {
-  const { org, refresh } = useOrganization();
+  const { org, planModuleIds, refresh } = useOrganization();
   const [mod, setMod] = useState<Module | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,7 +69,7 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
   const Icon =
     (mod ? ((Icons as any)[mod.icon] as React.ComponentType<{ className?: string }>) : Package) ??
     Package;
-  const allowed = plan?.module_ids?.includes(appKey) ?? false;
+  const allowed = (planModuleIds ?? []).includes(appKey) || (plan?.module_ids?.includes(appKey) ?? false);
 
   return (
     <div className="max-w-xl mx-auto py-12">

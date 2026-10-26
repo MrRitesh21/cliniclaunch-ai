@@ -361,11 +361,28 @@ function ModulesPage() {
 
     setBusy(m.id);
     if (installed) {
+      const MODULE_ALIASES: Record<string, string[]> = {
+        consultation: ["consult", "video"],
+        consult: ["consultation", "video"],
+        website_builder: ["website"],
+        website: ["website_builder"],
+        qr_appointment: ["qr_checkin"],
+        qr_checkin: ["qr_appointment"],
+        crm: ["patients", "emr", "records"],
+        patients: ["crm", "emr", "records"],
+        appointments: ["visits", "queue"],
+        billing: ["finance", "expenses"],
+        finance: ["billing", "expenses"],
+        staff: ["staff_management"],
+        pharmacy: ["inventory"],
+        ai_assistant: ["ai_scribe"],
+      };
+      const idsToDelete = [m.id, ...(MODULE_ALIASES[m.id] ?? [])];
       const { error } = await supabase
         .from("organization_modules")
         .delete()
         .eq("organization_id", org.id)
-        .eq("module_id", m.id);
+        .in("module_id", idsToDelete);
       if (error) toast.error(error.message);
       else toast.success(`${m.name} uninstalled`);
     } else {
@@ -394,7 +411,7 @@ function ModulesPage() {
   });
 
   const groupedByCategory = Array.from(new Set(filtered.map((m) => m.category)));
-  const installedCount = installedModuleIds.length;
+  const installedCount = modules.filter((m) => installedModuleIds.includes(m.id)).length;
 
   const currentBenefit = selectedModule
     ? MODULE_BENEFITS[selectedModule.id] || DEFAULT_BENEFIT

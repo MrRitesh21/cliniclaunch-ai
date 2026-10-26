@@ -179,18 +179,64 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
   // A UI override can enable an installation preference, NOT grant a purchased feature.
   const apply = (ids: string[]) => Array.from(new Set(ids)).filter(id => allowed.has(id) && !disabled.has(id));
   const installed = (modResult.data ?? []).map(m => m.module_id);
-  // Existing core workflows need no app-store installation; still require server entitlement.
-  const clinical = ["appointments", "queue", "patients", "records", "crm", "emr", "doctors", "visits", "prescriptions", "consult", "consultation", "billing", "website", "website_builder", "qr_checkin", "qr_appointment", "analytics"];
-  const readOnly = authority.can_read && !authority.can_write;
+
+  // Bidirectional aliases mapping for all known modules & feature names
+  const MODULE_ALIASES: Record<string, string[]> = {
+    consultation: ["consult", "video"],
+    consult: ["consultation", "video"],
+    website_builder: ["website"],
+    website: ["website_builder"],
+    qr_appointment: ["qr_checkin"],
+    qr_checkin: ["qr_appointment"],
+    crm: ["patients", "emr", "records"],
+    patients: ["crm", "emr", "records"],
+    appointments: ["visits", "queue"],
+    billing: ["finance", "expenses"],
+    finance: ["billing", "expenses"],
+    staff: ["staff_management"],
+    pharmacy: ["inventory"],
+    ai_assistant: ["ai_scribe"],
+  };
+
+  // Derive installed module IDs strictly from actual organization_modules records
+  const installedSet = new Set<string>();
+  for (const id of installed) {
+    installedSet.add(id);
+    const mapped = MODULE_ALIASES[id];
+    if (mapped) {
+      mapped.forEach(a => installedSet.add(a));
+    }
+  }
+
+  // Also include bidirectional aliases from clinicx_feature_aliases table for installed items
+  for (const a of aliases) {
+    if (installed.includes(a.alias)) installedSet.add(a.feature);
+    if (installed.includes(a.feature)) installedSet.add(a.alias);
+  }
+
+  // Explicit UI overrides
+  for (const id of enabled) {
+    installedSet.add(id);
+  }
+  for (const id of disabled) {
+    installedSet.delete(id);
+  }
+
+  // If org has zero records yet (e.g. newly created clinic or legacy unseeded clinic),
+  // fallback to essential core clinical records only
+  const effectiveInstalled = installedSet.size === 0 && (!modResult.data || modResult.data.length === 0)
+    ? ["appointments", "crm", "patients", "visits", "records", "queue"]
+    : Array.from(installedSet);
+
+  const installedModuleIds = effectiveInstalled.filter(id => allowed.has(id) && !disabled.has(id));
+
   return {
     org: orgResult.data ?? null, role: authority.role,
     subscription: subResult.data ?? null, entitlement: authority, authorityUserId: userId, authorityGeneration: 0, authorityError: null, authorityPending: false, authorityScope: null,
     isSubscriptionExpired: !authority.can_read,
     planModuleIds: apply(Array.from(allowed)),
     unavailableModuleIds: Array.from(disabled),
-    installedModuleIds: readOnly
-      ? Array.from(new Set([...installed, ...clinical])).filter(id => !disabled.has(id))
-      : apply([...installed, ...clinical, ...enabled, ...(authority.effective_state === "trialing" ? Array.from(allowed) : [])]).filter(id => id !== "attendance" || installed.includes("attendance")),
+    installedModuleIds,
   };
 }
 function loadShared(userId: string, force = false): Promise<Snapshot> {
