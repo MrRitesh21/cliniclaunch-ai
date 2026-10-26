@@ -707,7 +707,7 @@ const bookingSchema = z.object({
   problem: z.string().trim().max(1000),
   scheduled_at: publicTimestampSchema,
   appointment_type: z.enum(["online", "offline"]).default("offline"),
-  source: z.enum(["walkin", "booking"]).optional().default("booking"),
+  source: z.string().trim().max(50).optional().default("booking"),
   doctor_id: z.string().uuid().nullable().optional(),
 });
 
@@ -933,6 +933,23 @@ export const createBooking = createServerFn({ method: "POST" })
     );
     if (patientErr) {
       console.error("createBooking: patients upsert failed", patientErr);
+    }
+
+    // Auto-sync into leads table so website widget & online leads show up in Leads CRM
+    try {
+      await sb.from("leads").insert({
+        clinic_id: data.clinic_id,
+        organization_id: orgId,
+        name: data.patient_name,
+        phone: data.patient_phone,
+        email: data.patient_email || null,
+        message: data.problem ? `Website Booking: ${data.problem}` : "Website Appointment Booking",
+        source: data.source || "website_widget",
+        status: "converted",
+        appointment_id: appt.id,
+      });
+    } catch (leadSyncErr) {
+      console.warn("createBooking: leads auto-sync skipped", leadSyncErr);
     }
 
     // WhatsApp & Push notifications side-effects (non-blocking background task)

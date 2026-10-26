@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { IntegrationItem } from "../types";
+import { useWebsiteBuilder } from "../context/WebsiteBuilderContext";
+import { WebsiteWidgetCard } from "@/components/website/WebsiteWidgetCard";
 
 const defaultIntegrations: IntegrationItem[] = [
   {
@@ -79,6 +81,7 @@ const defaultIntegrations: IntegrationItem[] = [
 ];
 
 export function IntegrationsView() {
+  const { clinic } = useWebsiteBuilder();
   const [items, setItems] = useState<IntegrationItem[]>(defaultIntegrations);
   const [configItem, setConfigItem] = useState<IntegrationItem | null>(null);
   const [keyInput, setKeyInput] = useState("");
@@ -117,6 +120,9 @@ export function IntegrationsView() {
           clinic site.
         </p>
       </div>
+
+      {/* Featured: Custom Website Booking Widget */}
+      {clinic && <WebsiteWidgetCard clinic={clinic} />}
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

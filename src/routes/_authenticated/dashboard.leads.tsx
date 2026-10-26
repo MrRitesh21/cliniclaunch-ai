@@ -235,8 +235,15 @@ function MobileLeadCard({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h3 className="font-bold text-sm text-foreground truncate">{l.name}</h3>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium capitalize">
-                {l.source || "Website"}
+              <Badge
+                variant="secondary"
+                className={`text-[10px] px-1.5 py-0 font-medium capitalize ${
+                  l.source === "website_widget" || l.source === "website" || l.source === "custom_website"
+                    ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                    : ""
+                }`}
+              >
+                {l.source === "website_widget" ? "Website Widget" : l.source || "Website"}
               </Badge>
             </div>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">

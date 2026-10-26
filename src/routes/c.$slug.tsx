@@ -11,12 +11,14 @@ import { SITE_URL } from "@/lib/marketing-data";
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (
     s: Record<string, unknown>,
-  ): { preview?: string; tpl?: string; tc?: string } => ({
+  ): { preview?: string; tpl?: string; tc?: string; embed?: string; source?: string } => ({
     preview: typeof s.preview === "string" ? s.preview : undefined,
     // Live template preview (marketplace cards / preview modal): render this
     // preset + theme colour without persisting anything on the clinic.
     tpl: typeof s.tpl === "string" ? s.tpl : undefined,
     tc: typeof s.tc === "string" ? s.tc : undefined,
+    embed: typeof s.embed === "string" ? s.embed : undefined,
+    source: typeof s.source === "string" ? s.source : undefined,
   }),
 
   loaderDeps: ({ search }) => ({ preview: search.preview, tpl: search.tpl }),
@@ -126,7 +128,8 @@ export const Route = createFileRoute("/c/$slug")({
 
 function ClinicLayout() {
   const data = Route.useLoaderData();
-  const { tpl, tc } = Route.useSearch();
+  const { tpl, tc, embed } = Route.useSearch();
+  const isEmbed = embed === "true" || embed === "1";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -190,6 +193,16 @@ function ClinicLayout() {
     .join(" ");
 
   const showStickyBook = has("appointments") && !/\/(book|walkin)(\/|$)/.test(pathname);
+
+  if (isEmbed) {
+    return (
+      <div className={`min-h-screen flex flex-col bg-background ${modCls}`} style={themeStyle}>
+        <main className="flex-1">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${modCls}`} style={themeStyle}>

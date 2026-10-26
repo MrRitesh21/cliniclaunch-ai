@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -11,6 +13,7 @@ import {
   getAiReceptionistInfo,
   testAiReceptionistSimulation,
   toggleAiReceptionistStatus,
+  saveAiReceptionistPersona,
 } from "@/lib/whatsapp-receptionist.functions";
 import {
   Bot,
@@ -30,6 +33,9 @@ import {
   AlertCircle,
   MessageSquare,
   Power,
+  Save,
+  HelpCircle,
+  UserCheck,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -70,6 +76,8 @@ function buildInitialData(clinic: any, cached: any) {
         waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
         isOnline: clinic.wa_status === "ready",
         isAiEnabled: (clinic.working_hours as any)?.ai_receptionist_enabled !== false,
+        aiPersona: String((clinic.working_hours as any)?.ai_persona || "ClinicX AI Medical Receptionist"),
+        systemInstructions: String((clinic.working_hours as any)?.system_instructions || ""),
       },
       stats: { todayBookings: 0, totalBookings: 0 },
       recentLogs: [],
@@ -88,6 +96,7 @@ export function AiReceptionistTab({
   const getInfoFn = useServerFn(getAiReceptionistInfo);
   const simulateFn = useServerFn(testAiReceptionistSimulation);
   const toggleFn = useServerFn(toggleAiReceptionistStatus);
+  const savePersonaFn = useServerFn(saveAiReceptionistPersona);
 
   // Instant SWR state: check cached data or derive from clinic prop
   const [data, setData] = useState<any>(() => {
@@ -104,6 +113,23 @@ export function AiReceptionistTab({
   });
   const [isTogglingAi, setIsTogglingAi] = useState(false);
 
+  // AI Persona & System Instructions state
+  const [aiPersona, setAiPersona] = useState<string>(() => {
+    return (
+      data?.clinic?.aiPersona ||
+      (clinic?.working_hours as any)?.ai_persona ||
+      "ClinicX AI Medical Receptionist"
+    );
+  });
+  const [systemInstructions, setSystemInstructions] = useState<string>(() => {
+    return (
+      data?.clinic?.systemInstructions ||
+      (clinic?.working_hours as any)?.system_instructions ||
+      ""
+    );
+  });
+  const [isSavingPersona, setIsSavingPersona] = useState(false);
+
   // Sync if clinic arrives or changes from parent
   useEffect(() => {
     if (clinic && !data) {
@@ -111,6 +137,8 @@ export function AiReceptionistTab({
       if (init) {
         setData(init);
         setIsAiEnabled(init.clinic.isAiEnabled);
+        if (init.clinic.aiPersona) setAiPersona(init.clinic.aiPersona);
+        if (init.clinic.systemInstructions) setSystemInstructions(init.clinic.systemInstructions);
         setLoading(false);
       }
     }
@@ -140,6 +168,8 @@ export function AiReceptionistTab({
       setData(res);
       writeCache("ai_receptionist_info", res);
       setIsAiEnabled(res.clinic.isAiEnabled);
+      if (res.clinic.aiPersona) setAiPersona(res.clinic.aiPersona);
+      if (res.clinic.systemInstructions !== undefined) setSystemInstructions(res.clinic.systemInstructions);
     } catch (err: any) {
       if (!data) toast.error(err.message || "Failed to load AI receptionist info");
     } finally {
@@ -147,6 +177,62 @@ export function AiReceptionistTab({
       setRefreshing(false);
     }
   };
+
+  const handleSavePersona = async () => {
+    setIsSavingPersona(true);
+    try {
+      const res = await savePersonaFn({
+        data: {
+          aiPersona: aiPersona.trim() || "ClinicX AI Medical Receptionist",
+          systemInstructions: systemInstructions.trim(),
+        },
+      });
+      if (data) {
+        const updated = {
+          ...data,
+          clinic: {
+            ...data.clinic,
+            aiPersona: res.aiPersona,
+            systemInstructions: res.systemInstructions,
+          },
+        };
+        setData(updated);
+        writeCache("ai_receptionist_info", updated);
+      }
+      toast.success("AI Persona & System Instructions saved! Live WhatsApp & Simulator updated.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save AI Persona");
+    } finally {
+      setIsSavingPersona(false);
+    }
+  };
+
+  const PERSONA_PRESETS = [
+    {
+      label: "Warm & Caring",
+      persona: "Riya - Dr. Receptionist",
+      desc: "Polite, empathetic Hinglish tone, guides patients gently.",
+      instructions: "Namaste se swagat karein. Patients ko politely Hinglish me guide karein. Doctor ki specialization aur fees clear batayein. Warm, compassionate aur respectful tone rakhein.",
+    },
+    {
+      label: "Fast & Direct Booking",
+      persona: "Express Appointment Desk",
+      desc: "Quick slots confirmation with zero delays.",
+      instructions: "Direct aur concise answers dein. Patient ka naam, symptom, aur preferred time/date pooch kar turant available slot book karein. Unnecessary long talks avoid karein.",
+    },
+    {
+      label: "Multi-Specialist Clinic",
+      persona: "Senior Clinical Coordinator",
+      desc: "Directs symptoms to right specialist.",
+      instructions: "Har symptom ko correct specialist doctor (Cardiologist, Dentist, Pediatrician, etc.) ke paas direct karein. Consultation fee aur OPD shifts batayein. Purani reports sath laane ko kahein.",
+    },
+    {
+      label: "Strict Clinic Policy",
+      persona: "Official Hospital Reception Desk",
+      desc: "Enforces arrival times & hospital rules.",
+      instructions: "Patients ko scheduled time se 10 min pehle aane ki hidayat dein. Sunday routine OPD band rehti hai, emergency only. Clinic 1st floor par hai aur basement parking available hai.",
+    },
+  ];
 
   const handleToggleAi = async (nextVal: boolean) => {
     setIsTogglingAi(true);
@@ -384,6 +470,105 @@ export function AiReceptionistTab({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: What the AI Receptionist Does & Clinic Info */}
         <div className="lg:col-span-5 space-y-6">
+          {/* AI Persona & System Instructions Card */}
+          <Card className="p-5 space-y-4 border-emerald-500/30 shadow-xs bg-gradient-to-br from-emerald-500/5 via-background to-teal-500/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <Sparkles className="size-4" />
+                </span>
+                <div>
+                  <h3 className="font-semibold text-sm">AI Persona & System Instructions</h3>
+                  <p className="text-[11px] text-muted-foreground">Customize your WhatsApp bot's identity and custom rules</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[10px] bg-background border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
+                Live AI Config
+              </Badge>
+            </div>
+
+            {/* Persona Name / Role Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ai-persona-input" className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>AI Persona / Frontdesk Name & Role</span>
+                <span className="text-[10px] text-muted-foreground font-normal">Identifies bot to patients</span>
+              </Label>
+              <Input
+                id="ai-persona-input"
+                value={aiPersona}
+                onChange={(e) => setAiPersona(e.target.value)}
+                placeholder="e.g. Riya - Dr. Sharma Clinic Medical Frontdesk"
+                className="rounded-xl text-xs sm:text-sm bg-background"
+                maxLength={100}
+              />
+            </div>
+
+            {/* Quick 1-Click Presets */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-muted-foreground">Quick Persona Presets:</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PERSONA_PRESETS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setAiPersona(p.persona);
+                      setSystemInstructions(p.instructions);
+                      toast.info(`Loaded preset: "${p.label}"`);
+                    }}
+                    className="p-2 rounded-xl border border-border/70 hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 text-left transition-all text-xs"
+                  >
+                    <div className="font-semibold text-foreground text-[11px]">{p.label}</div>
+                    <div className="text-[10px] text-muted-foreground line-clamp-1">{p.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* System Instructions / Persona Rules Field */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="system-instructions-input" className="text-xs font-semibold text-foreground">
+                  System Instructions & Custom Rules
+                </Label>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {systemInstructions.length} chars
+                </span>
+              </div>
+              <Textarea
+                id="system-instructions-input"
+                value={systemInstructions}
+                onChange={(e) => setSystemInstructions(e.target.value)}
+                placeholder={"Enter instructions for your AI receptionist:\n• Greet with 'Namaste Dr. Sharma Clinic me swagat hai'\n• Doctor has 15 years experience in laparoscopic surgery\n• Clinic is on 1st floor above Apollo Pharmacy\n• Sunday is emergency OPD only from 10am to 1pm\n• Fees ₹500, follow-up ₹300 within 7 days"}
+                rows={5}
+                className="rounded-xl text-xs sm:text-sm leading-relaxed resize-y bg-background"
+                maxLength={4000}
+              />
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                The AI receptionist strictly follows these rules when answering inquiries, greeting patients, and booking slots on WhatsApp.
+              </p>
+            </div>
+
+            {/* Save Button */}
+            <Button
+              onClick={handleSavePersona}
+              disabled={isSavingPersona}
+              className="w-full rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs sm:text-sm shadow-xs"
+            >
+              {isSavingPersona ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" /> Saving Persona...
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" /> Save AI Persona & Instructions
+                </>
+              )}
+            </Button>
+          </Card>
+
           {/* Capabilities Card */}
           <Card className="p-5 space-y-4">
             <div className="flex items-center gap-2">
@@ -481,11 +666,11 @@ export function AiReceptionistTab({
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm flex items-center gap-2">
-                    {data?.clinic.name} AI Receptionist
+                    {aiPersona || `${data?.clinic.name} AI Receptionist`}
                     <span className="size-2 rounded-full bg-emerald-500 inline-block" />
                   </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    Interactive Test Console · Test patient booking messages in real time
+                  <p className="text-[11px] text-muted-foreground truncate max-w-xs sm:max-w-md">
+                    Persona: <span className="text-foreground font-medium">{aiPersona}</span>
                   </p>
                 </div>
               </div>

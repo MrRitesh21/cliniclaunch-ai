@@ -41,9 +41,11 @@ import {
   ExternalLink,
   CheckCircle,
   Bell,
+  Code2,
 } from "lucide-react";
 import { NotificationSettingsCard } from "@/components/app/NotificationSettingsCard";
 import { PushAnalyticsCard } from "@/components/app/PushAnalyticsCard";
+import { WebsiteWidgetCard } from "@/components/website/WebsiteWidgetCard";
 import { Switch } from "@/components/ui/switch";
 import type { SectionVariants } from "@/components/site/types";
 import { uploadClinicMedia } from "@/lib/upload";
@@ -465,12 +467,22 @@ function SettingsPage() {
             <Globe className="size-3.5" /> Domain
           </TabsTrigger>
           <TabsTrigger
+            value="widget"
+            className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
+          >
+            <Code2 className="size-3.5 text-blue-600" /> Website Widget
+          </TabsTrigger>
+          <TabsTrigger
             value="notifications"
             className="rounded-xl px-3.5 py-1.5 text-xs font-medium data-[state=active]:font-bold border border-border/80 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-xs whitespace-nowrap gap-1.5"
           >
             <Bell className="size-3.5" /> Alerts
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="widget" forceMount className="mt-4 data-[state=inactive]:hidden">
+          <WebsiteWidgetCard clinic={clinic} />
+        </TabsContent>
 
         <TabsContent value="notifications" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
           <NotificationSettingsCard />

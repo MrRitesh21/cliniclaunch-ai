@@ -400,6 +400,8 @@ async function extractBookingDetailsAI(opts: {
   senderName: string | null;
   hasExistingAppt: boolean;
   activeApptDetails?: string | null;
+  aiPersona?: string | null;
+  systemInstructions?: string | null;
 }): Promise<ParsedBookingIntent | null> {
   const now = getNowIST();
   const tomorrowStr = addDaysIST(now.dateStr, 1);
@@ -411,7 +413,9 @@ async function extractBookingDetailsAI(opts: {
     )
     .join("\n");
 
-  const systemPrompt = `You are ClinicX WhatsApp AI Receptionist for ${opts.clinicName}.
+  const personaTitle = opts.aiPersona?.trim() || "ClinicX WhatsApp AI Receptionist";
+
+  const systemPrompt = `You are ${personaTitle} for ${opts.clinicName}.
 Current Date in India (IST): ${now.dateStr} (Today)
 Tomorrow's Date: ${tomorrowStr}
 Current Time in India: ${now.timeStr}
@@ -423,9 +427,12 @@ ALL DOCTORS & SPECIALISTS AT THIS CLINIC:
 ${doctorsCatalog}
 
 PATIENT HAS ACTIVE APPOINTMENT: ${opts.hasExistingAppt ? `YES (${opts.activeApptDetails || "Scheduled today"})` : "NO"}
-
+${opts.systemInstructions?.trim() ? `
+CUSTOM CLINIC SYSTEM INSTRUCTIONS & AI PERSONA RULES (STRICTLY FOLLOW THESE):
+${opts.systemInstructions.trim()}
+` : ""}
 ROLES & RULES:
-1. Speak natural, polite, respectful Hinglish/Hindi or English matching the patient's language.
+1. Speak natural, polite, respectful Hinglish/Hindi or English matching the patient's language and AI persona.
 2. DOCTOR & SPECIALIST MATCHING:
    - Match symptoms or requests to the specific doctor from the list above:
      * Heart / Dil / Chest Pain / BP -> Cardiologist
@@ -735,6 +742,13 @@ Aap kya karna chahte hain?
   }
 
   // 6. Natural Language Understanding (AI Gateway with fallback to Rule-based)
+  const clinicWh =
+    typeof clinic.working_hours === "object" && clinic.working_hours && !Array.isArray(clinic.working_hours)
+      ? (clinic.working_hours as any)
+      : {};
+  const customAiPersona = clinicWh.ai_persona || "ClinicX WhatsApp AI Receptionist";
+  const customSystemInstructions = clinicWh.system_instructions || "";
+
   let intent: ParsedBookingIntent | null = null;
   try {
     intent = await extractBookingDetailsAI({
@@ -748,6 +762,8 @@ Aap kya karna chahte hain?
       senderName,
       hasExistingAppt: Boolean(upcomingAppt),
       activeApptDetails: upcomingAppt ? `${currentApptDate} at ${currentApptTime} with ${activeApptDoctor}` : null,
+      aiPersona: customAiPersona,
+      systemInstructions: customSystemInstructions,
     });
   } catch (err) {
     console.warn("[WhatsApp AI Extraction Failed, using rules]:", err);
@@ -922,6 +938,13 @@ Aap kis nayi date aur time par shift karna chahte hain?
 
   // 9. GREETING INTENT
   if (intent.intent === "greeting" && !intent.readyToBook) {
+    if (intent.suggestedReply && intent.suggestedReply.trim().length > 15) {
+      return {
+        reply: intent.suggestedReply,
+        action: "inquiry",
+      };
+    }
+
     const upcomingMsg = upcomingAppt?.scheduled_at
       ? `\nℹ️ Aapka ek appointment *${currentApptDate}* ko *${currentApptTime}* baje (*${activeApptDoctor}*) scheduled hai.\n`
       : "";

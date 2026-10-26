@@ -49,6 +49,12 @@ type DoctorOption = {
 };
 
 export const Route = createFileRoute("/c/$slug/book")({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { embed?: string; source?: string } => ({
+    embed: typeof s.embed === "string" ? s.embed : undefined,
+    source: typeof s.source === "string" ? s.source : undefined,
+  }),
   head: ({ params }) => {
     const breadcrumbSchema = {
       "@context": "https://schema.org",
@@ -209,6 +215,10 @@ function StepDot({ active, done }: { active: boolean; done: boolean }) {
 
 function BookPage() {
   const { clinic } = ClinicRoute.useLoaderData();
+  const search = Route.useSearch();
+  const isEmbed = search?.embed === "true" || search?.embed === "1";
+  const bookingSource = (search?.source as string) || (isEmbed ? "website_widget" : "booking");
+
   const mods = Array.isArray((clinic as any).installed_modules)
     ? ((clinic as any).installed_modules as string[])
     : null;
@@ -567,9 +577,25 @@ function BookPage() {
           scheduled_at: selectedSlot.toISOString(),
           appointment_type: appointmentType,
           doctor_id: selectedDoctorId === "owner" ? null : selectedDoctorId,
+          source: bookingSource,
         },
       });
       setConfirmed({ id: appt.id, type: appointmentType });
+      if (typeof window !== "undefined" && window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage(
+            {
+              type: "CLINICX_BOOKING_SUCCESS",
+              appointmentId: appt.id,
+              appointmentType,
+              patientName: form.name.trim(),
+            },
+            "*",
+          );
+        } catch {
+          /* ignore */
+        }
+      }
       try {
         localStorage.removeItem(storageKey);
       } catch {
@@ -586,7 +612,7 @@ function BookPage() {
   if (confirmed) {
     const docForConfirm = selectedDoctor ?? (doctors.length === 1 ? doctors[0] : null);
     return (
-      <div className="max-w-lg mx-auto px-4 py-16 sm:py-20 text-center">
+      <div className={`max-w-lg mx-auto px-4 ${isEmbed ? "py-6 sm:py-8" : "py-16 sm:py-20"} text-center`}>
         <div className="size-20 mx-auto rounded-full bg-emerald-50 border-4 border-emerald-100 text-emerald-500 grid place-items-center">
           <CheckCircle2 className="size-10" />
         </div>
@@ -729,7 +755,7 @@ function BookPage() {
   const displayDoctor = selectedDoctor ?? (doctors.length === 1 ? doctors[0] : null);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+    <div className={`max-w-3xl mx-auto px-4 ${isEmbed ? "py-4 sm:py-6" : "py-8 sm:py-12"}`}>
       {/* Header */}
       <div className="flex items-start gap-4">
         {displayDoctor && <DoctorAvatar doc={displayDoctor} size="md" />}

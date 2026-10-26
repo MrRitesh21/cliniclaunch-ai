@@ -110,6 +110,8 @@ export const getAiReceptionistInfo = createServerFn({ method: "GET" })
         waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
         isOnline: clinic.wa_status === "ready",
         isAiEnabled: (clinic.working_hours as any)?.ai_receptionist_enabled !== false,
+        aiPersona: String((clinic.working_hours as any)?.ai_persona || "ClinicX AI Medical Receptionist"),
+        systemInstructions: String((clinic.working_hours as any)?.system_instructions || ""),
       },
       stats: {
         todayBookings: Number(todayBookings ?? 0),
@@ -202,5 +204,61 @@ export const testAiReceptionistSimulation = createServerFn({ method: "POST" })
       action: result.action,
       appointmentId: result.appointmentId || null,
       tokenNumber: result.tokenNumber || null,
+    };
+  });
+
+/**
+ * Save custom AI Persona and System Instructions for the clinic's WhatsApp AI Receptionist.
+ */
+export const saveAiReceptionistPersona = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    z.object({
+      aiPersona: z.string().trim().max(300).default("ClinicX AI Medical Receptionist"),
+      systemInstructions: z.string().trim().max(5000).default(""),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const currentWh =
+      typeof clinic.working_hours === "object" && clinic.working_hours && !Array.isArray(clinic.working_hours)
+        ? clinic.working_hours
+        : {};
+
+    const updatedWh = {
+      ...currentWh,
+      ai_persona: data.aiPersona,
+      system_instructions: data.systemInstructions,
+    };
+
+    const { error: clinicErr } = await supabaseAdmin
+      .from("clinics")
+      .update({ working_hours: updatedWh } as any)
+      .eq("id", clinic.id);
+
+    if (clinicErr) throw new Error(clinicErr.message);
+
+    // Also persist in system_settings for extra reliability
+    try {
+      await supabaseAdmin.from("system_settings" as any).upsert(
+        {
+          key: `ai_persona_${clinic.id}`,
+          value: JSON.stringify({
+            aiPersona: data.aiPersona,
+            systemInstructions: data.systemInstructions,
+          }),
+          description: `AI Persona and instructions for clinic ${clinic.id}`,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+    } catch {}
+
+    return {
+      success: true,
+      aiPersona: data.aiPersona,
+      systemInstructions: data.systemInstructions,
     };
   });
