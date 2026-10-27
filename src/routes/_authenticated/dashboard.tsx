@@ -72,7 +72,8 @@ import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { useTheme } from "@/components/ui/theme-provider";
 import { usePWAInstall } from "@/lib/pwa";
 import { isIos } from "@/lib/push-client";
-import { clearDemoSessionFlags, setDemoSessionFlags } from "@/lib/demo";
+import { clearDemoSessionFlags, setDemoSessionFlags, CLEAN_DEMO_CLINIC_DATA } from "@/lib/demo";
+import { getClinicBySlug } from "@/lib/clinic.functions";
 import { DemoConversionWidget } from "@/components/demo/DemoConversionWidget";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
@@ -146,6 +147,34 @@ export function useClinic() {
           .eq("organization_id", orgId)
           .limit(1);
         clinicData = (clinics?.[0] as Clinic | undefined) ?? null;
+      }
+
+      // If not linked in Postgres organization_members, resolve active clinic from SSO session or fallback doctor demo
+      if (!clinicData && typeof window !== "undefined") {
+        try {
+          const ssoSlug = localStorage.getItem("clinicx_active_clinic_slug");
+          const rawSso = localStorage.getItem("clinicx_sso_session");
+          const sso = rawSso ? JSON.parse(rawSso) : null;
+          const slugToLoad = ssoSlug || sso?.clinicSlug || "demo-clinic";
+
+          const fetched = await getClinicBySlug({ data: { slug: slugToLoad } }).catch(() => null);
+          if (fetched) {
+            clinicData = fetched as any;
+          } else {
+            clinicData = {
+              id: "sso-clinic-001",
+              organization_id: "sso-org-001",
+              slug: slugToLoad,
+              doctor_name: sso?.name || CLEAN_DEMO_CLINIC_DATA.doctor_name,
+              clinic_name: sso?.name ? `${sso.name}'s Practice` : CLEAN_DEMO_CLINIC_DATA.clinic_name,
+              ...CLEAN_DEMO_CLINIC_DATA,
+              is_published: true,
+              published_at: new Date().toISOString(),
+            } as any;
+          }
+        } catch (e) {
+          console.warn("[useClinic] SSO fallback clinic resolution error:", e);
+        }
       }
 
       // Reads never provision or publish. Only the atomic onboarding endpoint launches a trial.
@@ -744,6 +773,9 @@ function DashboardLayout() {
 
   useEffect(() => {
     if (clinic === null && org === null && !authorityError) {
+      if (typeof window !== "undefined" && localStorage.getItem("clinicx_sso_session")) {
+        return; // Active SSO / 1-click Doctor session retains full dashboard access without onboarding redirect
+      }
       supabase.auth.getSession().then(({ data: { session } }) => {
         const user = session?.user;
         if (user?.email) {

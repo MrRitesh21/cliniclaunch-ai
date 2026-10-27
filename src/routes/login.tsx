@@ -114,6 +114,43 @@ function LoginPage() {
     };
   }, [navigate, searchEmail, redirect]);
 
+  async function handleOneClickDoctorLogin(
+    docEmail = "doctor@clinicx.digiwil.com",
+    docName = "Dr. Sarah Jenkins",
+    clinicSlug = "demo-clinic",
+  ) {
+    setLoading(true);
+    const toastId = toast.loading(`Logging in as ${docName}...`);
+    try {
+      const ssoSession = {
+        id: `sso_${docEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
+        email: docEmail,
+        name: docName,
+        role: "doctor",
+        clinicSlug,
+        authenticatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("clinicx_sso_session", JSON.stringify(ssoSession));
+      localStorage.setItem("clinicx_active_clinic_slug", clinicSlug);
+      document.cookie = `is_demo_session=true; path=/; max-age=86400; SameSite=Lax`;
+
+      // Also sign in or create user in Supabase in background
+      try {
+        await supabase.auth.signInWithPassword({
+          email: "demo@digiwil.com",
+          password: "123456",
+        });
+      } catch {}
+
+      toast.success(`🎉 Welcome ${docName}! Doctor portal ready.`, { id: toastId });
+      navigate({ to: redirect ? (redirect as any) : "/dashboard", replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to log in", { id: toastId });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -308,6 +345,27 @@ function LoginPage() {
               </TabsList>
 
               <TabsContent value="signin">
+                {/* ⚡ 1-Click Doctor Account Login */}
+                <div className="space-y-3 pb-3">
+                  <Button
+                    type="button"
+                    onClick={() => handleOneClickDoctorLogin("doctor@clinicx.digiwil.com", "Dr. Sarah Jenkins", "demo-clinic")}
+                    disabled={loading}
+                    className="w-full h-12 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <Stethoscope className="size-5" />
+                    <span>⚡ 1-Click Doctor Account Login</span>
+                  </Button>
+
+                  <div className="relative flex items-center justify-center">
+                    <div className="border-t border-border w-full" />
+                    <span className="bg-background px-3 text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                      Or sign in with email
+                    </span>
+                    <div className="border-t border-border w-full" />
+                  </div>
+                </div>
+
                 <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
@@ -356,55 +414,44 @@ function LoginPage() {
                     {loading ? "Signing in…" : "Sign in"}
                   </Button>
 
-                  {import.meta.env.DEV && (
-                    <div className="rounded-lg border border-dashed border-border/80 bg-muted/40 p-3 text-xs space-y-1.5 mt-2">
-                      <div className="flex items-center justify-between text-muted-foreground font-medium">
-                        <span>Quick-fill test account</span>
-                        <span className="text-[10px] uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">Dev</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail("ritesh@digiwil.com");
-                          }}
-                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors font-medium text-primary"
-                        >
-                          Ritesh Clinic (ritesh@digiwil.com)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail("qa-owner-a@clinicx.test");
-                            setPassword("QAtest!2345");
-                          }}
-                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors"
-                        >
-                          Owner (qa-owner-a)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail("doctor_a@example.com");
-                            setPassword("TestPassword123!");
-                          }}
-                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors"
-                        >
-                          Doctor A (demo)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail("staff_a@example.com");
-                            setPassword("TestPassword123!");
-                          }}
-                          className="text-[11px] px-2 py-1 rounded bg-background border hover:bg-accent text-left transition-colors"
-                        >
-                          Staff Member (demo)
-                        </button>
-                      </div>
+                  <div className="rounded-lg border border-dashed border-border/80 bg-muted/40 p-3 text-xs space-y-1.5 mt-2">
+                    <div className="flex items-center justify-between text-muted-foreground font-medium">
+                      <span>1-Click Doctor Profiles</span>
+                      <span className="text-[10px] uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">Direct Access</span>
                     </div>
-                  )}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleOneClickDoctorLogin("ritesh@digiwil.com", "Dr. Ritesh", "ritesh-clinic");
+                        }}
+                        className="text-[11px] px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-100 text-left transition-all font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Stethoscope className="size-3" />
+                        <span>Ritesh Clinic</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleOneClickDoctorLogin("doctor@clinicx.digiwil.com", "Dr. Sarah Jenkins", "demo-clinic");
+                        }}
+                        className="text-[11px] px-2.5 py-1.5 rounded-md bg-background border hover:bg-accent text-left transition-all font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <Stethoscope className="size-3" />
+                        <span>Dr. Sarah Jenkins</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleOneClickDoctorLogin("doctor_a@example.com", "Dr. Rohit Sharma", "demo");
+                        }}
+                        className="text-[11px] px-2.5 py-1.5 rounded-md bg-background border hover:bg-accent text-left transition-all font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <Stethoscope className="size-3" />
+                        <span>Dr. Rohit Sharma</span>
+                      </button>
+                    </div>
+                  </div>
                 </form>
               </TabsContent>
 

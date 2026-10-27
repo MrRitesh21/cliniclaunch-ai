@@ -115,19 +115,18 @@ function SsoAuthPage() {
 
         // 2. Always persist the authenticated SSO session locally so _authenticated route & dashboard grant instant access
         try {
+          const activeSlug = verified.clinicSlug || "demo-clinic";
           const ssoSession = {
             id: `sso_${email.replace(/[^a-zA-Z0-9]/g, "_")}`,
             email,
             name,
             role: verified.role || "doctor",
-            clinicSlug: verified.clinicSlug,
+            clinicSlug: activeSlug,
             authenticatedAt: new Date().toISOString(),
           };
           localStorage.setItem("clinicx_sso_session", JSON.stringify(ssoSession));
+          localStorage.setItem("clinicx_active_clinic_slug", activeSlug);
           document.cookie = `is_demo_session=true; path=/; max-age=86400; SameSite=Lax`;
-          if (verified.clinicSlug) {
-            localStorage.setItem("clinicx_active_clinic_slug", verified.clinicSlug);
-          }
         } catch (storageErr) {
           console.warn("[SSO] Local storage notice:", storageErr);
         }

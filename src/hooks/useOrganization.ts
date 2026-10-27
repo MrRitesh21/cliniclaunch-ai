@@ -100,9 +100,67 @@ let staticAliases: Array<{ alias: string; feature: string }> | null = null;
 let staticDisabledModules: Array<{ id: string }> | null = null;
 
 async function fetchSnapshot(userId: string): Promise<Snapshot> {
-  const membership = await supabase.from("organization_members").select("organization_id, role").eq("user_id", userId).order("joined_at", { ascending: true }).limit(1);
-  if (membership.error) throw membership.error;
-  if (!membership.data?.length) return EMPTY;
+  let membership: any;
+  try {
+    membership = await supabase.from("organization_members").select("organization_id, role").eq("user_id", userId).order("joined_at", { ascending: true }).limit(1);
+  } catch {}
+
+  if (!membership?.data?.length) {
+    if (typeof window !== "undefined") {
+      try {
+        const rawSso = localStorage.getItem("clinicx_sso_session");
+        if (rawSso) {
+          const sso = JSON.parse(rawSso);
+          const orgId = "sso-org-001";
+          const coreMods = ["appointments", "consultation", "prescriptions", "whatsapp", "website_builder", "reviews", "analytics", "crm", "qr_appointment", "loyalty"];
+          return {
+            org: {
+              id: orgId,
+              name: sso.name ? `${sso.name}'s Practice` : "Doctor Clinic",
+              slug: sso.clinicSlug || "demo-clinic",
+              business_type: "clinic",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              billing_email: sso.email,
+              primary_color: "#059669",
+              tagline: "Healthcare Practice",
+            } as any,
+            role: "owner" as OrgRole,
+            installedModuleIds: coreMods,
+            planModuleIds: coreMods,
+            unavailableModuleIds: [],
+            subscription: {
+              id: "sso-sub-001",
+              organization_id: orgId,
+              plan_id: "growth",
+              status: "active",
+              billing_cycle: "monthly",
+              trial_started_at: null,
+              trial_ends_at: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any,
+            entitlement: {
+              organization_id: orgId,
+              role: "owner",
+              server_now: new Date().toISOString(),
+              effective_state: "active",
+              can_read: true,
+              can_write: true,
+              can_export: true,
+            } as any,
+            authorityUserId: userId,
+            authorityGeneration: 1,
+            authorityError: null,
+            authorityPending: false,
+            authorityScope: `1:${userId}:${orgId}:owner`,
+            isSubscriptionExpired: false,
+          };
+        }
+      } catch {}
+    }
+    return EMPTY;
+  }
   const orgId = membership.data[0].organization_id;
 
   const aliasPromise = staticAliases

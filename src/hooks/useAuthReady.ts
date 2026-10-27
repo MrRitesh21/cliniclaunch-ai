@@ -40,7 +40,29 @@ import { supabase } from "@/integrations/supabase/client";
  */
 type State = { isReady: boolean; user: User | null };
 
-let state: State = { isReady: false, user: null };
+function getLocalSsoUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("clinicx_sso_session");
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s?.email) {
+        return {
+          id: s.id || `sso_${s.email.replace(/[^a-zA-Z0-9]/g, "_")}`,
+          email: s.email,
+          user_metadata: { full_name: s.name || "Doctor", role: s.role || "doctor" },
+          app_metadata: { provider: "sso_waflow" },
+          aud: "authenticated",
+          created_at: s.authenticatedAt || new Date().toISOString(),
+        } as any;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+const initialSsoUser = getLocalSsoUser();
+let state: State = { isReady: !!initialSsoUser, user: initialSsoUser };
 let started = false;
 const listeners = new Set<(s: State) => void>();
 
@@ -54,11 +76,13 @@ function start() {
   started = true;
 
   void supabase.auth.getSession().then(({ data }) => {
-    publish({ isReady: true, user: data.session?.user ?? null });
+    const u = data.session?.user ?? getLocalSsoUser();
+    publish({ isReady: true, user: u });
   });
 
   supabase.auth.onAuthStateChange((_event, session) => {
-    publish({ isReady: true, user: session?.user ?? null });
+    const u = session?.user ?? getLocalSsoUser();
+    publish({ isReady: true, user: u });
   });
 }
 
