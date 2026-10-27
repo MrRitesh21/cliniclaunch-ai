@@ -70,6 +70,7 @@ import {
   Eye,
   Sliders,
   LayoutTemplate,
+  ArrowRight,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
