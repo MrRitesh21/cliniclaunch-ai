@@ -31,6 +31,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SsoRouteImport } from './routes/sso'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WalkinRouteImport } from './routes/walkin'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
@@ -233,6 +234,11 @@ const SignupRoute = SignupRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SsoRoute = SsoRouteImport.update({
+  id: '/sso',
+  path: '/sso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -774,6 +780,7 @@ export interface FileRoutesByFullPath {
   '/shipping-policy': typeof ShippingPolicyRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sso': typeof SsoRoute
   '/terms': typeof TermsRoute
   '/walkin': typeof WalkinRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -891,6 +898,7 @@ export interface FileRoutesByTo {
   '/shipping-policy': typeof ShippingPolicyRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sso': typeof SsoRoute
   '/terms': typeof TermsRoute
   '/walkin': typeof WalkinRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -1007,6 +1015,7 @@ export interface FileRoutesById {
   '/shipping-policy': typeof ShippingPolicyRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sso': typeof SsoRoute
   '/terms': typeof TermsRoute
   '/walkin': typeof WalkinRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -1126,6 +1135,7 @@ export interface FileRouteTypes {
     | '/shipping-policy'
     | '/signup'
     | '/sitemap.xml'
+    | '/sso'
     | '/terms'
     | '/walkin'
     | '/.mcp/list-tools'
@@ -1243,6 +1253,7 @@ export interface FileRouteTypes {
     | '/shipping-policy'
     | '/signup'
     | '/sitemap.xml'
+    | '/sso'
     | '/terms'
     | '/walkin'
     | '/.mcp/list-tools'
@@ -1358,6 +1369,7 @@ export interface FileRouteTypes {
     | '/shipping-policy'
     | '/signup'
     | '/sitemap.xml'
+    | '/sso'
     | '/terms'
     | '/walkin'
     | '/.mcp/list-tools'
@@ -1478,6 +1490,7 @@ export interface RootRouteChildren {
   ShippingPolicyRoute: typeof ShippingPolicyRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SsoRoute: typeof SsoRoute
   TermsRoute: typeof TermsRoute
   WalkinRoute: typeof WalkinRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
@@ -1662,6 +1675,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sso': {
+      id: '/sso'
+      path: '/sso'
+      fullPath: '/sso'
+      preLoaderRoute: typeof SsoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -2569,6 +2589,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShippingPolicyRoute: ShippingPolicyRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SsoRoute: SsoRoute,
   TermsRoute: TermsRoute,
   WalkinRoute: WalkinRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
