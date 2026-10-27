@@ -7316,5 +7316,161 @@
         "created_at": "2026-10-26T22:45:21.315Z"
       }
     ]
+  },
+  "active-life-physiotherapy-clinic-lucknow": {
+    "id": "36070874-4225-4759-9e2f-b132394f317e",
+    "organization_id": "dea4f834-b9f9-46ee-8074-430f57efb0b4",
+    "slug": "active-life-physiotherapy-clinic-lucknow",
+    "doctor_name": "Dr. Active Life",
+    "clinic_name": "Active Life physiotherapy clinic",
+    "specialization": "Physiotherapy & Rehabilitation",
+    "qualification": "MPT (Musculoskeletal), BPT",
+    "experience_years": 12,
+    "consultation_fee": 600,
+    "phone": "919455694723",
+    "public_phone": "919455694723",
+    "email": "contact@active-life-physiotherap.in",
+    "public_email": "contact@active-life-physiotherap.in",
+    "address": "Jankipuram, Lucknow",
+    "public_address": "Jankipuram, Lucknow",
+    "bio": "Active Life Physiotherapy Clinic in Lucknow is dedicated to providing comprehensive rehabilitation services under the expert guidance of Dr. Active Life. With a 4.9-star rating from 88 verified patients, our clinic is renowned for its clean environment, polite staff, and rapid pa",
+    "hero_headline": "Restore Mobility, Reclaim Your Active Life in Lucknow",
+    "hero_subheadline": "Book your OPD token instantly via WhatsApp for expert physiotherapy care.",
+    "about_text": "Active Life Physiotherapy Clinic in Lucknow is dedicated to providing comprehensive rehabilitation services under the expert guidance of Dr. Active Life. With a 4.9-star rating from 88 verified patients, our clinic is renowned for its clean environment, polite staff, and rapid pain relief protocols. We specialize in restoring functional independence through evidence-based physiotherapy techniques tailored to individual patient needs. Our goal is to help you return to an active lifestyle with confidence and comfort.",
+    "services": [
+      {
+        "name": "Musculoskeletal Assessment",
+        "price": 600,
+        "duration": 30,
+        "description": "Comprehensive evaluation of joint mobility, muscle strength, and pain levels to create a personalized rehab plan."
+      },
+      {
+        "name": "Post-Surgical Rehabilitation",
+        "price": 800,
+        "duration": 45,
+        "description": "Structured therapy to accelerate recovery and restore function after orthopedic surgeries like knee or hip replacements."
+      },
+      {
+        "name": "Sports Injury Treatment",
+        "price": 700,
+        "duration": 40,
+        "description": "Targeted interventions for sprains, strains, and overuse injuries to get athletes back to peak performance."
+      },
+      {
+        "name": "Neurological Rehabilitation",
+        "price": 900,
+        "duration": 50,
+        "description": "Specialized therapy for conditions like stroke or Parkinson's to improve balance, coordination, and independence."
+      }
+    ],
+    "faqs": [
+      {
+        "q": "How can I book an appointment at Active Life Physiotherapy Clinic?",
+        "a": "You can book an OPD token instantly by sending a message on our WhatsApp number. This ensures you get a confirmed slot without waiting on hold."
+      },
+      {
+        "q": "What are the consultation fees at your clinic in Lucknow?",
+        "a": "The standard consultation fee is ₹600. Specific treatment packages may vary based on the complexity of the condition and duration of therapy."
+      },
+      {
+        "q": "Is the clinic environment clean and hygienic?",
+        "a": "Yes, hygiene is a top priority for us. Our clinic is regularly sanitized, and we maintain strict hygiene protocols to ensure a safe and comfortable environment for all patients."
+      },
+      {
+        "q": "How quickly can I expect relief from pain?",
+        "a": "Many patients report quick relief after the first few sessions due to our targeted manual therapy and exercise prescription approaches, though timelines vary by individual condition."
+      }
+    ],
+    "working_hours": {
+      "monday": {
+        "start": "10:00",
+        "end": "20:00",
+        "enabled": true
+      },
+      "tuesday": {
+        "start": "10:00",
+        "end": "20:00",
+        "enabled": true
+      },
+      "wednesday": {
+        "start": "10:00",
+        "end": "20:00",
+        "enabled": true
+      },
+      "thursday": {
+        "start": "10:00",
+        "end": "20:00",
+        "enabled": true
+      },
+      "friday": {
+        "start": "10:00",
+        "end": "20:00",
+        "enabled": true
+      },
+      "saturday": {
+        "start": "10:00",
+        "end": "19:00",
+        "enabled": true
+      },
+      "sunday": {
+        "start": "10:00",
+        "end": "14:00",
+        "enabled": false
+      }
+    },
+    "theme_color": "#0891b2",
+    "template": "modern",
+    "google_rating": 4.9,
+    "google_rating_count": 88,
+    "google_place_id": null,
+    "is_published": true,
+    "published_at": "2026-10-27T01:31:57.481Z",
+    "updated_at": "2026-10-27T01:31:57.481Z",
+    "avatar_url": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    "gallery": [],
+    "section_variants": {},
+    "section_order": [],
+    "section_hidden": [],
+    "section_content": {},
+    "seo_config": {},
+    "medical_registration_no": "MCI-59718",
+    "lead_popup": {
+      "enabled": true,
+      "offer": "Instant OPD Token Confirmation",
+      "headline": "Consult with Dr. Active Life",
+      "subtext": "Leave your WhatsApp number to book your appointment slot immediately",
+      "ctaLabel": "Book Consultation",
+      "delaySeconds": 12,
+      "showFloatingButton": true,
+      "floatingLabel": "WhatsApp Appointment"
+    },
+    "walkin_max_per_slot": 3,
+    "walkin_start_time": "10:00",
+    "walkin_end_time": "20:00",
+    "walkin_weekends_enabled": true,
+    "walkin_slot_minutes": 30,
+    "db_reviews": [
+      {
+        "reviewer_name": "Verified Google Patient",
+        "patient_name": "Verified Google Patient",
+        "rating": 5,
+        "comment": "Excellent treatment by Dr. Active Life. Highly satisfied with the clinic care and digital token booking.",
+        "created_at": "2026-10-27T01:31:57.481Z"
+      },
+      {
+        "reviewer_name": "Suresh Chandra",
+        "patient_name": "Suresh Chandra",
+        "rating": 5,
+        "comment": "I had severe cervical spondylosis pain. After 5 sessions of therapy, I am completely pain-free.",
+        "created_at": "2026-10-27T01:31:57.481Z"
+      },
+      {
+        "reviewer_name": "Meenakshi Joshi",
+        "patient_name": "Meenakshi Joshi",
+        "rating": 5,
+        "comment": "Very gentle and experienced therapist. Clean clinic and excellent attention to exercise form.",
+        "created_at": "2026-10-27T01:31:57.481Z"
+      }
+    ]
   }
 }

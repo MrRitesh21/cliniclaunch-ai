@@ -1,0 +1,16 @@
+{
+  "name": "cliniclaunch-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol (MCP) server for 1-Click Clinic Website Creation & WAFlow CRM Sync",
+  "main": "index.ts",
+  "type": "module",
+  "bin": {
+    "cliniclaunch-mcp": "./index.ts"
+  },
+  "scripts": {
+    "start": "bun run index.ts"
+  },
+  "keywords": ["mcp", "clinicx", "waflow", "crm", "ai-website-builder"],
+  "author": "ClinicX & WAFlow",
+  "license": "MIT"
+}
