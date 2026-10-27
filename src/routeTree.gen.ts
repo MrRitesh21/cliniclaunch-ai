@@ -101,6 +101,7 @@ import { Route as AuthenticatedDashboardWebsiteRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardWhatsappRouteImport } from './routes/_authenticated/dashboard.whatsapp'
 import { Route as ApiInternalClinicxBillingJobsRouteImport } from './routes/api/internal/clinicx-billing-jobs'
 import { Route as ApiInternalClinicxJobsRouteImport } from './routes/api/internal/clinicx-jobs'
+import { Route as ApiPublicClinicGenerateRouteImport } from './routes/api/public/clinic-generate'
 import { Route as ApiPublicHealthzRouteImport } from './routes/api/public/healthz'
 import { Route as ApiPublicPushEventRouteImport } from './routes/api.public.push-event'
 import { Route as ApiPublicSubmitBookingRouteImport } from './routes/api/public/submit-booking'
@@ -618,6 +619,11 @@ const ApiInternalClinicxJobsRoute = ApiInternalClinicxJobsRouteImport.update({
   path: '/api/internal/clinicx-jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicClinicGenerateRoute = ApiPublicClinicGenerateRouteImport.update({
+  id: '/api/public/clinic-generate',
+  path: '/api/public/clinic-generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHealthzRoute = ApiPublicHealthzRouteImport.update({
   id: '/api/public/healthz',
   path: '/api/public/healthz',
@@ -830,6 +836,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
   '/api/internal/clinicx-billing-jobs': typeof ApiInternalClinicxBillingJobsRoute
   '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
+  '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
@@ -941,6 +948,7 @@ export interface FileRoutesByTo {
   '/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
   '/api/internal/clinicx-billing-jobs': typeof ApiInternalClinicxBillingJobsRoute
   '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
+  '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
@@ -1059,6 +1067,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/whatsapp': typeof AuthenticatedDashboardWhatsappRoute
   '/api/internal/clinicx-billing-jobs': typeof ApiInternalClinicxBillingJobsRoute
   '/api/internal/clinicx-jobs': typeof ApiInternalClinicxJobsRoute
+  '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
@@ -1176,6 +1185,7 @@ export interface FileRouteTypes {
     | '/dashboard/whatsapp'
     | '/api/internal/clinicx-billing-jobs'
     | '/api/internal/clinicx-jobs'
+    | '/api/public/clinic-generate'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/public/submit-booking'
@@ -1287,6 +1297,7 @@ export interface FileRouteTypes {
     | '/dashboard/whatsapp'
     | '/api/internal/clinicx-billing-jobs'
     | '/api/internal/clinicx-jobs'
+    | '/api/public/clinic-generate'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/public/submit-booking'
@@ -1404,6 +1415,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/whatsapp'
     | '/api/internal/clinicx-billing-jobs'
     | '/api/internal/clinicx-jobs'
+    | '/api/public/clinic-generate'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/public/submit-booking'
@@ -1472,6 +1484,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiInternalClinicxBillingJobsRoute: typeof ApiInternalClinicxBillingJobsRoute
   ApiInternalClinicxJobsRoute: typeof ApiInternalClinicxJobsRoute
+  ApiPublicClinicGenerateRoute: typeof ApiPublicClinicGenerateRoute
   ApiPublicHealthzRoute: typeof ApiPublicHealthzRoute
   ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
   ApiPublicSubmitBookingRoute: typeof ApiPublicSubmitBookingRoute
@@ -2128,6 +2141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInternalClinicxJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/clinic-generate': {
+      id: '/api/public/clinic-generate'
+      path: '/api/public/clinic-generate'
+      fullPath: '/api/public/clinic-generate'
+      preLoaderRoute: typeof ApiPublicClinicGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/healthz': {
       id: '/api/public/healthz'
       path: '/api/public/healthz'
@@ -2548,6 +2568,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiInternalClinicxBillingJobsRoute: ApiInternalClinicxBillingJobsRoute,
   ApiInternalClinicxJobsRoute: ApiInternalClinicxJobsRoute,
+  ApiPublicClinicGenerateRoute: ApiPublicClinicGenerateRoute,
   ApiPublicHealthzRoute: ApiPublicHealthzRoute,
   ApiPublicPushEventRoute: ApiPublicPushEventRoute,
   ApiPublicSubmitBookingRoute: ApiPublicSubmitBookingRoute,
