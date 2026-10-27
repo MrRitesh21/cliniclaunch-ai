@@ -391,6 +391,7 @@ export async function updateDoctorProfileImpl(input: any) {
             current_period_start: new Date().toISOString(),
             current_period_end: periodEndIso,
             billing_cycle: "monthly",
+            access_source: mappedSubStatus === "trialing" ? "free_trial" : "legacy_unverified",
           });
         if (subInsertErr) throw subInsertErr;
       }
@@ -490,6 +491,7 @@ export async function changeDoctorPlanImpl(input: any) {
         current_period_start: now.toISOString(),
         current_period_end: newPeriodEnd.toISOString(),
         billing_cycle: "monthly",
+        access_source: "legacy_unverified",
       });
   }
 
@@ -608,6 +610,7 @@ export async function deleteDoctorAccountImpl(input: any) {
             current_period_start: new Date().toISOString(),
             current_period_end: futureDate,
             billing_cycle: "monthly",
+            access_source: "legacy_unverified",
           });
       }
     } catch (subErr) {

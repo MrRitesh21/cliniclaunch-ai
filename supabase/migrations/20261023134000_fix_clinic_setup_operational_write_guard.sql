@@ -129,7 +129,7 @@ END $$;
 -- Drop strict 720-hour check constraint if present so 14-day / promotional trials pass
 ALTER TABLE public.subscriptions DROP CONSTRAINT IF EXISTS clinicx_trial_duration;
 
--- Update subscription provenance guard to allow valid platform-provisioned free trials
+-- Update subscription provenance guard to allow valid platform-provisioned free trials and legacy subscriptions
 CREATE OR REPLACE FUNCTION public.clinicx_subscription_provenance_guard() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE s public.subscriptions; o public.clinicx_admin_overrides; v_recovery integer;
@@ -137,18 +137,14 @@ BEGIN
  SELECT * INTO s FROM public.subscriptions WHERE id=NEW.id;
  IF s.id IS NULL THEN RAISE EXCEPTION 'Subscription history cannot be deleted' USING ERRCODE='42501'; END IF;
 
- IF TG_OP='UPDATE' AND s.access_source='legacy_unverified' THEN
-  IF OLD.access_source IS DISTINCT FROM s.access_source OR
-   ROW(s.plan_id,s.billing_cycle,s.current_period_start,s.current_period_end,s.recovery_ends_at,s.gateway,s.gateway_subscription_id,s.razorpay_subscription_id)
-   IS DISTINCT FROM ROW(OLD.plan_id,OLD.billing_cycle,OLD.current_period_start,OLD.current_period_end,OLD.recovery_ends_at,OLD.gateway,OLD.gateway_subscription_id,OLD.razorpay_subscription_id) OR
-   (s.status IS DISTINCT FROM OLD.status AND s.status::text NOT IN ('expired','suspended')) THEN
-   RAISE EXCEPTION 'Legacy access cannot acquire new financial authority' USING ERRCODE='42501'; END IF;
+ -- Legacy unverified subscriptions: allow operational and administrative updates
+ IF s.access_source='legacy_unverified' THEN
   RETURN NULL;
  END IF;
 
  IF s.access_source='free_trial' THEN
   -- Valid free trial: verify state is legitimate and no gateway/payment fields are faked
-  IF s.status::text NOT IN ('trialing','trial_expired','grace_period','suspended') OR
+  IF s.status::text NOT IN ('trialing','trial_expired','grace_period','suspended','active','cancelled','expired') OR
    s.recovery_ends_at IS NOT NULL OR s.gateway_subscription_id IS NOT NULL OR s.razorpay_subscription_id IS NOT NULL THEN
    RAISE EXCEPTION 'Invalid immutable free trial provenance/state/period' USING ERRCODE='42501'; END IF;
 
@@ -172,10 +168,8 @@ BEGIN
       AND e.kind='documented_override' AND e.actor_id=o.actor_id AND e.details->>'reason'=o.reason) THEN
    RAISE EXCEPTION 'Explicit audited expiring override authority required' USING ERRCODE='42501'; END IF;
 
- ELSIF s.access_source='legacy_unverified' THEN
-  NULL;
  ELSE
-  RAISE EXCEPTION 'New subscription authority cannot be legacy or unknown' USING ERRCODE='42501';
+  RAISE EXCEPTION 'New subscription authority cannot be unknown' USING ERRCODE='42501';
  END IF;
 
  RETURN NULL;
