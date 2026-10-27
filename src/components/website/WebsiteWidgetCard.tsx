@@ -20,6 +20,10 @@ import {
   CheckCircle2,
   HelpCircle,
 } from "lucide-react";
+import {
+  generateStandaloneHtmlSnippet,
+  generateVibeCodingPrompt,
+} from "@/lib/widget-code-generator";
 
 interface WebsiteWidgetCardProps {
   clinic: any;
@@ -46,7 +50,7 @@ export function WebsiteWidgetCard({ clinic, onClose }: WebsiteWidgetCardProps) {
   const [position, setPosition] = useState<"bottom-right" | "bottom-left">(
     "bottom-right"
   );
-  const [activeTab, setActiveTab] = useState<"popup" | "inline" | "link">("popup");
+  const [activeTab, setActiveTab] = useState<"vibe" | "dpdp" | "popup" | "inline" | "link">("vibe");
 
   const slug = clinic?.slug || "my-clinic";
 
@@ -61,6 +65,32 @@ export function WebsiteWidgetCard({ clinic, onClose }: WebsiteWidgetCardProps) {
   const embedUrl = `${baseUrl}/c/${slug}/book?embed=true&source=website_widget`;
   const directUrl = `${baseUrl}/c/${slug}/book?source=website_widget`;
   const scriptUrl = `${baseUrl}/widget.js`;
+
+  const vibePrompt = useMemo(() => {
+    return generateVibeCodingPrompt({
+      slug,
+      clinicName: clinic?.clinic_name,
+      doctorName: clinic?.doctor_name,
+      specialty: clinic?.specialization,
+      consultationFee: clinic?.consultation_fee,
+      phone: clinic?.phone,
+      themeColor,
+      baseUrl,
+    });
+  }, [slug, clinic, themeColor, baseUrl]);
+
+  const dpdpSnippet = useMemo(() => {
+    return generateStandaloneHtmlSnippet({
+      slug,
+      clinicName: clinic?.clinic_name,
+      doctorName: clinic?.doctor_name,
+      specialty: clinic?.specialization,
+      consultationFee: clinic?.consultation_fee,
+      phone: clinic?.phone,
+      themeColor,
+      baseUrl,
+    });
+  }, [slug, clinic, themeColor, baseUrl]);
 
   // Code Snippets
   const popupScriptCode = `<!-- ClinicX Floating Appointment Widget -->
@@ -253,20 +283,79 @@ export function WebsiteWidgetCard({ clinic, onClose }: WebsiteWidgetCardProps) {
             onValueChange={(v) => setActiveTab(v as any)}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-3 w-full bg-muted/60 p-1 rounded-xl">
-              <TabsTrigger value="popup" className="rounded-lg text-xs font-medium gap-1.5">
-                <Sparkles className="size-3 text-amber-500" />
-                Floating Button
+            <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full bg-muted/60 p-1 rounded-xl h-auto gap-1 sm:gap-0">
+              <TabsTrigger value="vibe" className="rounded-lg text-xs font-bold gap-1 text-cyan-600 dark:text-cyan-400">
+                <Sparkles className="size-3 text-cyan-500" />
+                AI Vibe Prompt
               </TabsTrigger>
-              <TabsTrigger value="inline" className="rounded-lg text-xs font-medium gap-1.5">
-                <Code2 className="size-3 text-blue-500" />
-                Inline iFrame
+              <TabsTrigger value="dpdp" className="rounded-lg text-xs font-bold gap-1 text-purple-600 dark:text-purple-400">
+                <ShieldCheck className="size-3 text-purple-500" />
+                DPDP Widget
               </TabsTrigger>
-              <TabsTrigger value="link" className="rounded-lg text-xs font-medium gap-1.5">
-                <ExternalLink className="size-3 text-emerald-500" />
+              <TabsTrigger value="popup" className="rounded-lg text-xs font-medium gap-1">
+                Floating Script
+              </TabsTrigger>
+              <TabsTrigger value="inline" className="rounded-lg text-xs font-medium gap-1">
+                iFrame
+              </TabsTrigger>
+              <TabsTrigger value="link" className="rounded-lg text-xs font-medium gap-1">
                 Direct Link
               </TabsTrigger>
             </TabsList>
+
+            {/* TAB: AI Vibe-Coding Prompt */}
+            <TabsContent value="vibe" className="space-y-3 mt-3">
+              <div className="relative">
+                <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800 max-h-[300px] whitespace-pre-wrap">
+                  {vibePrompt}
+                </pre>
+                <Button
+                  size="sm"
+                  onClick={() => copyToClipboard(vibePrompt, "vibe")}
+                  className="absolute top-2 right-2 h-7 px-2.5 text-xs gap-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-bold shadow-md shadow-cyan-500/20"
+                >
+                  {copiedType === "vibe" ? (
+                    <>
+                      <Check className="size-3 text-white" /> Copied Prompt!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-3" /> Copy Vibe Prompt
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Paste into Lovable, v0, Cursor or Bolt to auto-generate a matching, DPDP-compliant appointment system in your app.
+              </p>
+            </TabsContent>
+
+            {/* TAB: DPDP 2023 Interactive Component */}
+            <TabsContent value="dpdp" className="space-y-3 mt-3">
+              <div className="relative">
+                <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800 max-h-[300px]">
+                  {dpdpSnippet}
+                </pre>
+                <Button
+                  size="sm"
+                  onClick={() => copyToClipboard(dpdpSnippet, "dpdp")}
+                  className="absolute top-2 right-2 h-7 px-2.5 text-xs gap-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-md shadow-purple-500/20"
+                >
+                  {copiedType === "dpdp" ? (
+                    <>
+                      <Check className="size-3 text-white" /> Copied DPDP!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-3" /> Copy DPDP Code
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Standalone 3-step component with doctor card, slot selection, and mandatory DPDP Act 2023 consent checkbox.
+              </p>
+            </TabsContent>
 
             {/* TAB 1: Floating Button Script */}
             <TabsContent value="popup" className="space-y-3 mt-3">

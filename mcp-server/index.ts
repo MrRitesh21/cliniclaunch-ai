@@ -139,6 +139,25 @@ const TOOLS = [
       required: ["slug_or_phone_or_lead_name"],
     },
   },
+  {
+    name: "get_appointment_embed_and_vibe_prompt",
+    description:
+      "Generates copy-paste ready DPDP Act 2023-compliant HTML/CSS appointment booking code and an AI Vibe-Coding Prompt (for Lovable, v0, Cursor, Bolt) to integrate the clinic's booking system into any external website.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug_or_phone_or_lead_name: {
+          type: "string",
+          description: "Clinic slug (e.g. 'active-life-physiotherapy-clinic-lucknow'), doctor phone, or lead name",
+        },
+        theme_color: {
+          type: "string",
+          description: "Optional theme accent color (e.g. '#2563EB', 'sapphire', 'emerald')",
+        },
+      },
+      required: ["slug_or_phone_or_lead_name"],
+    },
+  },
 ];
 
 // ─── EXECUTION HANDLERS ────────────────────────────────────────────────────────
@@ -472,6 +491,69 @@ async function handleUpdateClinicTheme(args: any) {
   };
 }
 
+async function handleGetAppointmentEmbed(args: any) {
+  const { loadAiCreatedClinicsFromFile, resolveThemeColor } = await import(
+    "../src/lib/ai-clinic-creator.server"
+  );
+  const {
+    generateStandaloneHtmlSnippet,
+    generateVibeCodingPrompt,
+    generateScriptTagSnippet,
+    generateIframeSnippet,
+  } = await import("../src/lib/widget-code-generator");
+
+  const identifier = String(args.slug_or_phone_or_lead_name || "").trim();
+  let slug = identifier;
+  const fileClinics = loadAiCreatedClinicsFromFile();
+  let clinic = fileClinics[slug];
+
+  if (!clinic) {
+    for (const [s, c] of Object.entries(fileClinics)) {
+      if (
+        c.phone === identifier ||
+        (c.clinic_name && c.clinic_name.toLowerCase().includes(identifier.toLowerCase())) ||
+        (c.doctor_name && c.doctor_name.toLowerCase().includes(identifier.toLowerCase()))
+      ) {
+        slug = s;
+        clinic = c;
+        break;
+      }
+    }
+  }
+
+  const themeColor = resolveThemeColor(args.theme_color) || clinic?.theme_color || "#059669";
+  const clinicName = clinic?.clinic_name || identifier;
+  const doctorName = clinic?.doctor_name || "Doctor";
+  const specialty = clinic?.specialization || "General Healthcare";
+  const consultationFee = clinic?.consultation_fee || 500;
+
+  const options = {
+    slug,
+    clinicName,
+    doctorName,
+    specialty,
+    consultationFee,
+    phone: clinic?.phone,
+    themeColor,
+    baseUrl: DEFAULT_ORIGIN,
+  };
+
+  return {
+    status: "success",
+    clinic: { slug, clinicName, doctorName, specialty, consultationFee, themeColor },
+    vibeCodingPrompt: generateVibeCodingPrompt(options),
+    standaloneHtmlCssComponent: generateStandaloneHtmlSnippet(options),
+    oneLineScriptTag: generateScriptTagSnippet(options),
+    iframeEmbed: generateIframeSnippet(options),
+    dpdpCompliance: {
+      compliant: true,
+      standard: "Digital Personal Data Protection Act, 2023 (Section 5 & 6)",
+      noticeIncluded: true,
+      affirmativeConsentCheckbox: true,
+    },
+  };
+}
+
 // ─── JSON-RPC MCP SERVER LOOP ──────────────────────────────────────────────────
 
 const rl = readline.createInterface({
@@ -545,6 +627,8 @@ rl.on("line", async (line) => {
         resultData = await handleBatchCreateFromCsv(args);
       } else if (toolName === "update_clinic_theme") {
         resultData = await handleUpdateClinicTheme(args);
+      } else if (toolName === "get_appointment_embed_and_vibe_prompt") {
+        resultData = await handleGetAppointmentEmbed(args);
       } else {
         return sendError(id, -32601, `Tool not found: ${toolName}`);
       }

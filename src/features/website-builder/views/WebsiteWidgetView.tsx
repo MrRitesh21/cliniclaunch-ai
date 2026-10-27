@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
+  generateStandaloneHtmlSnippet,
+  generateVibeCodingPrompt,
+} from "@/lib/widget-code-generator";
+import {
   Globe,
   Copy,
   Check,
@@ -117,6 +121,32 @@ export function WebsiteWidgetView() {
     title="Book Appointment with ${clinic?.doctor_name || clinic?.clinic_name || "Doctor"}"
   ></iframe>
 </div>`;
+
+  // 🛡️ DPDP Act 2023 3-Step Interactive Standalone Component Snippet
+  const dpdpHtmlSnippet = generateStandaloneHtmlSnippet({
+    slug,
+    clinicName: clinic?.clinic_name,
+    doctorName: clinic?.doctor_name,
+    specialty: clinic?.specialization,
+    consultationFee: clinic?.consultation_fee,
+    phone: clinic?.phone,
+    themeColor: accentColor,
+    baseUrl,
+    includeDpdpConsent: true,
+  });
+
+  // 🤖 AI Vibe-Coding Prompt (Lovable, v0, Cursor, Bolt, Windsurf)
+  const vibeCodingPrompt = generateVibeCodingPrompt({
+    slug,
+    clinicName: clinic?.clinic_name,
+    doctorName: clinic?.doctor_name,
+    specialty: clinic?.specialization,
+    consultationFee: clinic?.consultation_fee,
+    phone: clinic?.phone,
+    themeColor: accentColor,
+    baseUrl,
+    includeDpdpConsent: true,
+  });
 
   // Pure HTML Form Snippet (NO IFRAME) - Fully styled and customizable
   const pureHtmlFormSnippet = `<!-- ========================================================
@@ -675,33 +705,107 @@ async function submitToClinicX(formData) {
                 <div>
                   <h3 className="font-semibold text-sm">Choose Your Integration Method</h3>
                   <p className="text-[11px] text-muted-foreground">
-                    Pure HTML Form, Responsive iFrame Embed, Elementor, Webflow, or JavaScript.
+                    AI Vibe-Coding Prompt, DPDP 2023 Interactive Widget, iFrame, HTML Form, or Fetch API.
                   </p>
                 </div>
               </div>
               <Badge variant="secondary" className="text-[10px] font-mono">
-                5 Methods
+                7 Methods
               </Badge>
             </div>
 
-            <Tabs defaultValue="html_form" className="w-full">
-              <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full h-auto sm:h-9 p-0.5 bg-muted/60 gap-1 sm:gap-0">
-                <TabsTrigger value="html_form" className="text-[11px] py-1">
-                  1. HTML Form
+            <Tabs defaultValue="vibe_prompt" className="w-full">
+              <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 w-full h-auto sm:h-9 p-0.5 bg-muted/60 gap-1 sm:gap-0">
+                <TabsTrigger value="vibe_prompt" className="text-[11px] py-1 font-bold text-cyan-600 dark:text-cyan-400">
+                  🤖 AI Vibe Prompt
+                </TabsTrigger>
+                <TabsTrigger value="dpdp_widget" className="text-[11px] py-1 font-bold text-purple-600 dark:text-purple-400">
+                  🛡️ DPDP Widget
                 </TabsTrigger>
                 <TabsTrigger value="iframe" className="text-[11px] py-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                  2. iFrame Embed ✨
+                  iFrame Embed ✨
+                </TabsTrigger>
+                <TabsTrigger value="html_form" className="text-[11px] py-1">
+                  HTML Form
                 </TabsTrigger>
                 <TabsTrigger value="webhook" className="text-[11px] py-1">
-                  3. Webhook / URL
+                  Webhook / URL
                 </TabsTrigger>
                 <TabsTrigger value="elementor" className="text-[11px] py-1">
-                  4. Elementor / Wix
+                  Elementor / Wix
                 </TabsTrigger>
                 <TabsTrigger value="javascript" className="text-[11px] py-1">
-                  5. Fetch API
+                  Fetch API
                 </TabsTrigger>
               </TabsList>
+
+              {/* Tab 0: AI Vibe-Coding Prompt (Lovable / v0 / Cursor / Bolt) */}
+              <TabsContent value="vibe_prompt" className="space-y-3 pt-3">
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-500/10 via-background to-blue-500/10 border border-cyan-500/30 text-xs text-foreground leading-relaxed space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300">
+                    <Sparkles className="size-4 text-cyan-600" />
+                    1-Click Vibe-Coding AI Prompt (Lovable, v0, Cursor, Bolt, Windsurf):
+                  </div>
+                  <p className="text-muted-foreground text-[11px]">
+                    Is prompt ko copy karke aap Lovable, v0, Cursor ya kisi bhi vibe-coding AI tool me paste karein. AI aapki target website ke exact matching colors, theme aur typography ke sath complete 3-step OPD appointment booking system (Doctor Selection, Time Slot Picker, Patient Details &amp; DPDP Act 2023 Compliance) automatic code kar dega!
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 max-h-[380px] whitespace-pre-wrap">
+                    {vibeCodingPrompt}
+                  </pre>
+                  <Button
+                    size="sm"
+                    onClick={() => copyToClipboard(vibeCodingPrompt, "vibe_prompt")}
+                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-md shadow-cyan-500/20"
+                  >
+                    {copiedType === "vibe_prompt" ? (
+                      <>
+                        <Check className="size-3 text-white" /> Copied AI Prompt!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3" /> Copy Vibe Prompt
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Tab: DPDP 2023 Interactive Widget Code */}
+              <TabsContent value="dpdp_widget" className="space-y-3 pt-3">
+                <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/25 text-xs text-purple-950 dark:text-purple-200 leading-relaxed space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-purple-800 dark:text-purple-300">
+                    <ShieldCheck className="size-4 text-purple-600" />
+                    Complete 3-Step Standalone HTML/CSS Component (DPDP Act 2023 Compliant):
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Zero dependencies. Is code ko kisi bhi website (WordPress Custom HTML block, Webflow Embed, static HTML) me paste karein. Isme Doctor Selection, OPD Morning/Evening Slots, Patient Info, aur India ke <strong>DPDP Act 2023</strong> ka mandatory consent checkbox &amp; privacy notice built-in hai.
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto leading-relaxed border border-slate-800 max-h-[380px]">
+                    {dpdpHtmlSnippet}
+                  </pre>
+                  <Button
+                    size="sm"
+                    onClick={() => copyToClipboard(dpdpHtmlSnippet, "dpdp_widget")}
+                    className="absolute top-2 right-2 h-7 px-2.5 text-xs rounded-lg gap-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md shadow-purple-500/20"
+                  >
+                    {copiedType === "dpdp_widget" ? (
+                      <>
+                        <Check className="size-3 text-white" /> Copied DPDP Code!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3" /> Copy DPDP Widget Code
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
 
               {/* Tab 1: Pure HTML Form (NO IFRAME) */}
               <TabsContent value="html_form" className="space-y-3 pt-3">
