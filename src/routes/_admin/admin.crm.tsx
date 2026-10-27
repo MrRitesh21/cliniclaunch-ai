@@ -1100,6 +1100,16 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
             <span>{isRunningAutoBatch ? "Dripping…" : "⚡ Run Auto Drip"}</span>
           </Button>
 
+          {/* AI Bulk Clinic Creator Button */}
+          <Link
+            to="/admin/ai-clinic-builder"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all shadow-xs"
+            title="Import Excel spreadsheets and generate 100+ live clinic websites with AI"
+          >
+            <Sparkles className="size-3.5 text-amber-500 fill-amber-500" />
+            <span>AI Clinic Builder (Excel)</span>
+          </Link>
+
           {/* Import CSV Leads */}
           <Button
             size="sm"
@@ -2124,6 +2134,21 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
               </div>
             </div>
           </DialogHeader>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-amber-500 shrink-0" />
+              <span className="font-semibold text-foreground">Have 100+ Clinics Excel?</span>
+              <span className="text-muted-foreground hidden sm:inline">Use the AI Clinic Builder to generate complete live websites at /c/[slug] for all clinics.</span>
+            </div>
+            <Link
+              to="/admin/ai-clinic-builder"
+              className="h-7 px-2.5 rounded-lg text-xs font-bold bg-amber-500 text-amber-950 hover:bg-amber-400 inline-flex items-center gap-1 shrink-0 transition-colors"
+            >
+              <span>AI Clinic Builder</span>
+              <ArrowRight className="size-3" />
+            </Link>
+          </div>
 
           <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/80 text-xs">
             <div className="flex items-center gap-2">

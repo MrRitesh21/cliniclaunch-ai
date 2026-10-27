@@ -56,12 +56,45 @@ export async function getAiGatewayConfig(): Promise<AiGatewayConfig> {
       map[r.key] = r.value || "";
     });
 
-    const provider = (map.ai_provider as AiProvider) || (map.openai_api_key ? "openai" : "openrouter");
-    const apiKey = map.ai_api_key || (provider === "openai" ? map.openai_api_key : "") || "";
-    const model = map.ai_model || (provider === "openai" ? map.openai_model : "") || getDefaultModelForProvider(provider);
-    const customBaseUrl = map.ai_custom_base_url || "";
+    let provider = (map.ai_provider as AiProvider);
+    let apiKey = map.ai_api_key || (provider === "openai" ? map.openai_api_key : "") || "";
+    let model = map.ai_model || (provider === "openai" ? map.openai_model : "") || "";
+    let customBaseUrl = map.ai_custom_base_url || "";
     const temperature = map.ai_temperature ? parseFloat(map.ai_temperature) : 0.2;
     const fallbackEnabled = map.ai_fallback_enabled !== "false";
+
+    // Auto-detect environment variables if not saved in database
+    if (!apiKey) {
+      if (process.env.OPENAI_API_KEY) {
+        provider = provider || "openai";
+        apiKey = process.env.OPENAI_API_KEY;
+        model = model || process.env.OPENAI_MODEL || "gpt-4o-mini";
+      } else if (process.env.GEMINI_API_KEY) {
+        provider = provider || "gemini";
+        apiKey = process.env.GEMINI_API_KEY;
+        model = model || process.env.GEMINI_MODEL || "gemini-1.5-flash";
+      } else if (process.env.GROQ_API_KEY) {
+        provider = provider || "groq";
+        apiKey = process.env.GROQ_API_KEY;
+        model = model || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+      } else if (process.env.OPENROUTER_API_KEY) {
+        provider = provider || "openrouter";
+        apiKey = process.env.OPENROUTER_API_KEY;
+        model = model || "openai/gpt-4o-mini";
+      } else if (process.env.ANTHROPIC_API_KEY) {
+        provider = provider || "anthropic";
+        apiKey = process.env.ANTHROPIC_API_KEY;
+        model = model || "claude-3-5-haiku-20241022";
+      } else if (process.env.DEEPSEEK_API_KEY) {
+        provider = provider || "custom";
+        apiKey = process.env.DEEPSEEK_API_KEY;
+        customBaseUrl = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1";
+        model = model || "deepseek-chat";
+      }
+    }
+
+    if (!provider) provider = "openrouter";
+    if (!model) model = getDefaultModelForProvider(provider);
 
     const config: AiGatewayConfig = {
       provider,
@@ -76,10 +109,27 @@ export async function getAiGatewayConfig(): Promise<AiGatewayConfig> {
     return config;
   } catch (err) {
     console.warn("[AI Gateway] Failed to read system_settings, using env fallback:", err);
+    const envProvider: AiProvider = process.env.OPENAI_API_KEY
+      ? "openai"
+      : process.env.GEMINI_API_KEY
+      ? "gemini"
+      : process.env.GROQ_API_KEY
+      ? "groq"
+      : process.env.ANTHROPIC_API_KEY
+      ? "anthropic"
+      : "openrouter";
+    const envApiKey =
+      process.env.OPENAI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GROQ_API_KEY ||
+      process.env.OPENROUTER_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.DEEPSEEK_API_KEY ||
+      "";
     return {
-      provider: "openrouter",
-      model: "openai/gpt-4o-mini",
-      apiKey: "",
+      provider: envProvider,
+      model: getDefaultModelForProvider(envProvider),
+      apiKey: envApiKey,
       temperature: 0.2,
       fallbackEnabled: true,
     };
@@ -97,7 +147,7 @@ export function getDefaultModelForProvider(provider: AiProvider): string {
     case "gemini":
       return "gemini-1.5-flash";
     case "groq":
-      return "llama-3.3-70b-versatile";
+      return "qwen/qwen3.8-27b";
     case "anthropic":
       return "claude-3-5-haiku-20241022";
     case "custom":
@@ -171,8 +221,13 @@ export async function callAiWithProvider(opts: {
     throw new Error(`${provider.toUpperCase()} API key is required.`);
   }
 
+  let activeModel = model || getDefaultModelForProvider(provider);
+  if (provider === "groq" && (activeModel === "llama-3.3-70b-versatile" || activeModel.startsWith("llama3-"))) {
+    activeModel = "qwen/qwen3.8-27b";
+  }
+
   const body: Record<string, unknown> = {
-    model: model || getDefaultModelForProvider(provider),
+    model: activeModel,
     temperature,
     messages: [
       { role: "system", content: system },
@@ -232,9 +287,66 @@ export async function callAI(opts: {
     }
   }
 
-  // Fallback 1: Environment OPENROUTER_API_KEY
-  const openrouterKey = serverEnv.OPENROUTER_API_KEY;
-  if (openrouterKey) {
+  // Fallback 1: Environment OPENAI_API_KEY
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (openaiKey && config.apiKey !== openaiKey) {
+    try {
+      return await callAiWithProvider({
+        provider: "openai",
+        model: opts.model || process.env.OPENAI_MODEL || "gpt-4o-mini",
+        apiKey: openaiKey,
+        system: opts.system,
+        user: opts.user,
+        temperature: opts.temperature ?? 0.2,
+        json: opts.json,
+      });
+    } catch (err: any) {
+      console.warn("[AI Gateway] OpenAI env fallback failed:", err?.message);
+      errors.push(`openai: ${err?.message}`);
+    }
+  }
+
+  // Fallback 2: Environment GEMINI_API_KEY
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && config.apiKey !== geminiKey) {
+    try {
+      return await callAiWithProvider({
+        provider: "gemini",
+        model: opts.model || process.env.GEMINI_MODEL || "gemini-1.5-flash",
+        apiKey: geminiKey,
+        system: opts.system,
+        user: opts.user,
+        temperature: opts.temperature ?? 0.2,
+        json: opts.json,
+      });
+    } catch (err: any) {
+      console.warn("[AI Gateway] Gemini env fallback failed:", err?.message);
+      errors.push(`gemini: ${err?.message}`);
+    }
+  }
+
+  // Fallback 3: Environment GROQ_API_KEY
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey && config.apiKey !== groqKey) {
+    try {
+      return await callAiWithProvider({
+        provider: "groq",
+        model: opts.model || process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        apiKey: groqKey,
+        system: opts.system,
+        user: opts.user,
+        temperature: opts.temperature ?? 0.2,
+        json: opts.json,
+      });
+    } catch (err: any) {
+      console.warn("[AI Gateway] Groq env fallback failed:", err?.message);
+      errors.push(`groq: ${err?.message}`);
+    }
+  }
+
+  // Fallback 4: Environment OPENROUTER_API_KEY
+  const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  if (openrouterKey && config.apiKey !== openrouterKey) {
     try {
       return await callAiWithProvider({
         provider: "openrouter",
@@ -251,8 +363,8 @@ export async function callAI(opts: {
     }
   }
 
-  // Fallback 2: Environment LOVABLE_API_KEY
-  const lovableKey = serverEnv.LOVABLE_API_KEY;
+  // Fallback 5: Environment LOVABLE_API_KEY
+  const lovableKey = process.env.LOVABLE_API_KEY || process.env.VITE_LOVABLE_API_KEY;
   if (lovableKey) {
     try {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

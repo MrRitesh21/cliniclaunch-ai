@@ -51,6 +51,7 @@ import { Route as RefCodeRouteImport } from './routes/ref.$code'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin.index'
 import { Route as AdminAdminAiRouteImport } from './routes/_admin/admin.ai'
+import { Route as AdminAdminAiClinicBuilderRouteImport } from './routes/_admin/admin.ai-clinic-builder'
 import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin/admin.announcements'
 import { Route as AdminAdminAuditRouteImport } from './routes/_admin/admin.audit'
 import { Route as AdminAdminCrmRouteImport } from './routes/_admin/admin.crm'
@@ -335,6 +336,12 @@ const AdminAdminAiRoute = AdminAdminAiRouteImport.update({
   path: '/admin/ai',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAdminAiClinicBuilderRoute =
+  AdminAdminAiClinicBuilderRouteImport.update({
+    id: '/admin/ai-clinic-builder',
+    path: '/admin/ai-clinic-builder',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const AdminAdminAnnouncementsRoute = AdminAdminAnnouncementsRouteImport.update({
   id: '/admin/announcements',
   path: '/admin/announcements',
@@ -774,6 +781,7 @@ export interface FileRoutesByFullPath {
   '/ref/$code': typeof RefCodeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/ai': typeof AdminAdminAiRoute
+  '/admin/ai-clinic-builder': typeof AdminAdminAiClinicBuilderRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
   '/admin/crm': typeof AdminAdminCrmRoute
@@ -886,6 +894,7 @@ export interface FileRoutesByTo {
   '/ref/$code': typeof RefCodeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/ai': typeof AdminAdminAiRoute
+  '/admin/ai-clinic-builder': typeof AdminAdminAiClinicBuilderRoute
   '/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/admin/audit': typeof AdminAdminAuditRoute
   '/admin/crm': typeof AdminAdminCrmRoute
@@ -1001,6 +1010,7 @@ export interface FileRoutesById {
   '/ref/$code': typeof RefCodeRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_admin/admin/ai': typeof AdminAdminAiRoute
+  '/_admin/admin/ai-clinic-builder': typeof AdminAdminAiClinicBuilderRoute
   '/_admin/admin/announcements': typeof AdminAdminAnnouncementsRoute
   '/_admin/admin/audit': typeof AdminAdminAuditRoute
   '/_admin/admin/crm': typeof AdminAdminCrmRoute
@@ -1117,6 +1127,7 @@ export interface FileRouteTypes {
     | '/ref/$code'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/ai'
+    | '/admin/ai-clinic-builder'
     | '/admin/announcements'
     | '/admin/audit'
     | '/admin/crm'
@@ -1229,6 +1240,7 @@ export interface FileRouteTypes {
     | '/ref/$code'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/ai'
+    | '/admin/ai-clinic-builder'
     | '/admin/announcements'
     | '/admin/audit'
     | '/admin/crm'
@@ -1343,6 +1355,7 @@ export interface FileRouteTypes {
     | '/ref/$code'
     | '/.mcp/invoke-tool/$tool'
     | '/_admin/admin/ai'
+    | '/_admin/admin/ai-clinic-builder'
     | '/_admin/admin/announcements'
     | '/_admin/admin/audit'
     | '/_admin/admin/crm'
@@ -1763,6 +1776,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/ai'
       fullPath: '/admin/ai'
       preLoaderRoute: typeof AdminAdminAiRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_admin/admin/ai-clinic-builder': {
+      id: '/_admin/admin/ai-clinic-builder'
+      path: '/admin/ai-clinic-builder'
+      fullPath: '/admin/ai-clinic-builder'
+      preLoaderRoute: typeof AdminAdminAiClinicBuilderRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/_admin/admin/announcements': {
@@ -2291,6 +2311,7 @@ const AdminAdminDoctorsRouteWithChildren =
 
 interface AdminRouteRouteChildren {
   AdminAdminAiRoute: typeof AdminAdminAiRoute
+  AdminAdminAiClinicBuilderRoute: typeof AdminAdminAiClinicBuilderRoute
   AdminAdminAnnouncementsRoute: typeof AdminAdminAnnouncementsRoute
   AdminAdminAuditRoute: typeof AdminAdminAuditRoute
   AdminAdminCrmRoute: typeof AdminAdminCrmRoute
@@ -2315,6 +2336,7 @@ interface AdminRouteRouteChildren {
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAdminAiRoute: AdminAdminAiRoute,
+  AdminAdminAiClinicBuilderRoute: AdminAdminAiClinicBuilderRoute,
   AdminAdminAnnouncementsRoute: AdminAdminAnnouncementsRoute,
   AdminAdminAuditRoute: AdminAdminAuditRoute,
   AdminAdminCrmRoute: AdminAdminCrmRoute,

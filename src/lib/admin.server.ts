@@ -1892,9 +1892,18 @@ export async function testAiGatewayProviderImpl(input: {
       apiKey =
         data?.find((r: any) => r.key === "openai_api_key")?.value ||
         data?.find((r: any) => r.key === "ai_api_key")?.value ||
+        process.env.OPENAI_API_KEY ||
         "";
+    } else if (input.provider === "gemini") {
+      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || process.env.GEMINI_API_KEY || "";
+    } else if (input.provider === "groq") {
+      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || process.env.GROQ_API_KEY || "";
+    } else if (input.provider === "openrouter") {
+      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || process.env.OPENROUTER_API_KEY || "";
+    } else if (input.provider === "anthropic") {
+      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || process.env.ANTHROPIC_API_KEY || "";
     } else {
-      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || "";
+      apiKey = data?.find((r: any) => r.key === "ai_api_key")?.value || process.env.DEEPSEEK_API_KEY || "";
     }
   }
 

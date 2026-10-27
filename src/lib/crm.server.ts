@@ -1029,6 +1029,16 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
     return MEMORY_CLINIC_CACHE.get(slug);
   }
 
+  // 1.5. Check persistent AI clinic storage
+  try {
+    const { getAiCreatedClinicBySlug } = await import("./ai-clinic-creator.server");
+    const aiClinic = getAiCreatedClinicBySlug(slug);
+    if (aiClinic) {
+      MEMORY_CLINIC_CACHE.set(slug, aiClinic);
+      return aiClinic;
+    }
+  } catch {}
+
   // 2. Check Redis cache
   try {
     const { redisCache } = await import("./redis");
@@ -1120,6 +1130,7 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
         ? { name: s, price: profile.consultation_fee, duration: 15, description: s }
         : s,
     ),
+    faqs: profile.faqs || [],
     gallery: [],
     avatar_url:
       "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
@@ -1642,6 +1653,7 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
         ? { name: s, price: profile.consultation_fee, duration: 15, description: s }
         : s,
     ),
+    faqs: profile.faqs || [],
     gallery: [],
     avatar_url:
       "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
@@ -2344,6 +2356,25 @@ export function parseCrmCsv(csvText: string): Array<{
 
   // Check if first row is header
   const firstRow = rows[0].map((c) => c.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+
+  // Check for Google Maps / GMB scraper or Rich Clinic Spreadsheets (with Title / Keyword)
+  if (firstRow.some((c) => c.includes("keyword") || c === "title" || c.includes("reviews"))) {
+    try {
+      const { parseClinicSpreadsheet } = require("./ai-clinic-creator.server");
+      const richClinics = parseClinicSpreadsheet(csvText);
+      if (richClinics.length > 0) {
+        return richClinics.map((p: any) => ({
+          name: p.doctorName,
+          phone: p.phone,
+          clinic_name: p.clinicName,
+          city: p.city,
+          specialty: p.specialty,
+          notes: `[Google Rating: ${p.rating}★ (${p.reviewsCount} reviews)] ${p.address}`,
+        }));
+      }
+    } catch {}
+  }
+
   let nameIdx = firstRow.findIndex((c) => c.includes("name") || c.includes("doctor") || c === "dr");
   let phoneIdx = firstRow.findIndex(
     (c) =>
@@ -2725,6 +2756,16 @@ export async function getClinicWebsiteConfigImpl(opts: {
   if (MEMORY_CLINIC_CACHE.has(slug)) {
     return MEMORY_CLINIC_CACHE.get(slug);
   }
+
+  // 1.5. Check persistent AI clinic storage
+  try {
+    const { getAiCreatedClinicBySlug } = await import("./ai-clinic-creator.server");
+    const aiClinic = getAiCreatedClinicBySlug(slug);
+    if (aiClinic) {
+      MEMORY_CLINIC_CACHE.set(slug, aiClinic);
+      return aiClinic;
+    }
+  } catch {}
 
   // 2. Check Redis cache
   try {
