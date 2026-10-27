@@ -97,6 +97,8 @@ export const Route = createFileRoute("/api/public/clinic-generate")({
 
           const result = await createFullClinicFromParsedRow(row, {
             useAi: body.useAi !== false,
+            themeColor: body.themeColor || body.theme || body.siteTheme,
+            template: body.template || body.templateStyle,
           });
 
           // Canonical site origin

@@ -15,6 +15,7 @@ It allows any AI Agent (Claude, Cursor, Antigravity) or WAFlow CRM to generate c
 | **`sync_all_interested_waflow_leads`** | Automatically finds all **Interested** leads in WAFlow CRM without a website, generates websites in bulk, and updates all records. |
 | **`list_waflow_crm_leads`** | Lists CRM leads with filters by stage (`INTERESTED`, `NEW`, `WON`), search query, and priority. |
 | **`batch_create_from_csv`** | Batch creates 100+ clinic websites from an Excel/CSV file (Google Maps scraper) and exports live URLs. |
+| **`update_clinic_theme`** | Changes the visual theme color (sapphire, emerald, gold, crimson, violet, teal) or layout template (classic, modern, premium, warm, editorial) for any clinic website in 1-click and syncs with WAFlow CRM. |
 
 ---
 

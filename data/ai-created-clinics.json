@@ -7418,14 +7418,14 @@
         "enabled": false
       }
     },
-    "theme_color": "#0891b2",
+    "theme_color": "#2563EB",
     "template": "modern",
     "google_rating": 4.9,
     "google_rating_count": 88,
     "google_place_id": null,
     "is_published": true,
     "published_at": "2026-10-27T01:31:57.481Z",
-    "updated_at": "2026-10-27T01:31:57.481Z",
+    "updated_at": "2026-10-27T01:59:13.099Z",
     "avatar_url": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
     "gallery": [],
     "section_variants": {},

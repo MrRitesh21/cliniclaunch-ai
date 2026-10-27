@@ -116,6 +116,29 @@ const TOOLS = [
       required: ["csv_path_or_content"],
     },
   },
+  {
+    name: "update_clinic_theme",
+    description:
+      "Changes the visual theme color (e.g. sapphire, emerald, gold, crimson, violet, teal) or layout template (classic, modern, premium, warm, editorial) of any generated clinic website in 1 click and syncs with WAFlow CRM.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug_or_phone_or_lead_name: {
+          type: "string",
+          description: "Slug (e.g. 'active-life-physiotherapy-clinic-lucknow'), doctor phone, or lead name in CRM",
+        },
+        theme_color: {
+          type: "string",
+          description: "Theme color: 'emerald' (#059669), 'sapphire' (#2563EB), 'gold' (#D97706), 'crimson' (#E11D48), 'violet' (#7C3AED), 'teal' (#0D9488), 'noir' (#0F172A), or hex string (#xxxxxx)",
+        },
+        template: {
+          type: "string",
+          description: "Layout template: 'classic', 'modern', 'premium', 'warm', or 'editorial'",
+        },
+      },
+      required: ["slug_or_phone_or_lead_name"],
+    },
+  },
 ];
 
 // ─── EXECUTION HANDLERS ────────────────────────────────────────────────────────
@@ -371,6 +394,84 @@ async function handleBatchCreateFromCsv(args: any) {
   };
 }
 
+async function handleUpdateClinicTheme(args: any) {
+  const { updateClinicThemeAndTemplate, loadAiCreatedClinicsFromFile } = await import(
+    "../src/lib/ai-clinic-creator.server"
+  );
+  const identifier = String(args.slug_or_phone_or_lead_name || "").trim();
+  let slug = identifier;
+
+  const fileClinics = loadAiCreatedClinicsFromFile();
+  if (!fileClinics[slug]) {
+    for (const [s, c] of Object.entries(fileClinics)) {
+      if (
+        c.phone === identifier ||
+        (c.clinic_name && c.clinic_name.toLowerCase().includes(identifier.toLowerCase())) ||
+        (c.doctor_name && c.doctor_name.toLowerCase().includes(identifier.toLowerCase()))
+      ) {
+        slug = s;
+        break;
+      }
+    }
+  }
+
+  const res = await updateClinicThemeAndTemplate(
+    { slug },
+    { themeColor: args.theme_color, template: args.template }
+  );
+
+  if (!res.ok || !res.clinic) {
+    return {
+      status: "error",
+      message: res.error || "Clinic website not found",
+    };
+  }
+
+  const websiteUrl = `${DEFAULT_ORIGIN}/c/${res.clinic.slug}`;
+  const previewUrl = `${websiteUrl}?tc=${encodeURIComponent(res.clinic.theme_color)}&tpl=${res.clinic.template}`;
+
+  // Update lead in WAFlow CRM if present
+  try {
+    const leadsFile = getWAFlowCrmFile();
+    if (leadsFile && fs.existsSync(leadsFile)) {
+      const data = JSON.parse(fs.readFileSync(leadsFile, "utf8"));
+      if (data && Array.isArray(data.leads)) {
+        const lead = data.leads.find((l: any) => {
+          const lDigits = (l.phone || "").replace(/\D/g, "").slice(-10);
+          const cDigits = (res.clinic.phone || "").replace(/\D/g, "").slice(-10);
+          return (
+            (l.website && l.website.includes(res.clinic.slug)) ||
+            (lDigits && cDigits && lDigits === cDigits) ||
+            (l.name && l.name.toLowerCase().includes(res.clinic.clinic_name.toLowerCase()))
+          );
+        });
+        if (lead) {
+          lead.website = websiteUrl;
+          if (!lead.activities) lead.activities = [];
+          lead.activities.push({
+            id: `act_${Date.now()}_thm`,
+            type: "note",
+            content: `ClinicX Website theme changed to ${res.clinic.theme_color} (${res.clinic.template})`,
+            createdAt: new Date().toISOString(),
+          });
+          fs.writeFileSync(leadsFile, JSON.stringify(data, null, 2), "utf8");
+        }
+      }
+    }
+  } catch {}
+
+  return {
+    status: "success",
+    slug: res.clinic.slug,
+    clinicName: res.clinic.clinic_name,
+    themeColor: res.clinic.theme_color,
+    template: res.clinic.template,
+    websiteUrl,
+    previewUrl,
+    message: `Theme updated to ${res.clinic.theme_color} (${res.clinic.template}). Live preview: ${previewUrl}`,
+  };
+}
+
 // ─── JSON-RPC MCP SERVER LOOP ──────────────────────────────────────────────────
 
 const rl = readline.createInterface({
@@ -442,6 +543,8 @@ rl.on("line", async (line) => {
         resultData = await handleListWAFlowLeads(args);
       } else if (toolName === "batch_create_from_csv") {
         resultData = await handleBatchCreateFromCsv(args);
+      } else if (toolName === "update_clinic_theme") {
+        resultData = await handleUpdateClinicTheme(args);
       } else {
         return sendError(id, -32601, `Tool not found: ${toolName}`);
       }

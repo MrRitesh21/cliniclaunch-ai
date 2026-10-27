@@ -110,6 +110,113 @@ export function getAiCreatedClinicBySlug(slug: string): any | null {
   return map[slug] || null;
 }
 
+export const PRESET_THEME_COLORS: Record<string, string> = {
+  emerald: "#059669",
+  sapphire: "#2563EB",
+  gold: "#D97706",
+  amber: "#D97706",
+  crimson: "#E11D48",
+  ruby: "#E11D48",
+  violet: "#7C3AED",
+  purple: "#7C3AED",
+  teal: "#0D9488",
+  cyan: "#0284C7",
+  slate: "#475569",
+  noir: "#0F172A",
+  dark: "#0F172A",
+  rose: "#F43F5E",
+};
+
+export function resolveThemeColor(input?: string): string | undefined {
+  if (!input) return undefined;
+  const trimmed = input.trim();
+  const lower = trimmed.toLowerCase();
+  if (PRESET_THEME_COLORS[lower]) return PRESET_THEME_COLORS[lower];
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) return trimmed;
+  return undefined;
+}
+
+/**
+ * Updates the theme color and/or template layout for an existing clinic in-place.
+ */
+export async function updateClinicThemeAndTemplate(
+  identifier: { slug?: string; phone?: string; clinicId?: string },
+  opts: { themeColor?: string; template?: string }
+): Promise<{ ok: boolean; clinic?: any; error?: string }> {
+  const { slug, phone, clinicId } = identifier;
+  const cleanSlug = (slug || "").trim().toLowerCase();
+  const cleanPhone = (phone || "").trim();
+
+  const fileClinics = loadAiCreatedClinicsFromFile();
+  let targetSlug = cleanSlug;
+  let clinic = cleanSlug ? fileClinics[cleanSlug] : null;
+
+  if (!clinic) {
+    for (const [s, c] of Object.entries(fileClinics)) {
+      if ((cleanPhone && c.phone === cleanPhone) || (clinicId && c.id === clinicId)) {
+        clinic = c;
+        targetSlug = s;
+        break;
+      }
+    }
+  }
+
+  if (!clinic && cleanSlug) {
+    clinic = MEMORY_CLINIC_CACHE.get(cleanSlug);
+  }
+
+  const resolvedColor = resolveThemeColor(opts.themeColor);
+  const resolvedTemplate = opts.template ? opts.template.trim().toLowerCase() : undefined;
+
+  if (!clinic) {
+    // If clinic is not in file, check Supabase
+    try {
+      const query = (supabaseAdmin as any).from("clinics").select("*");
+      if (cleanSlug) query.eq("slug", cleanSlug);
+      else if (cleanPhone) query.or(`phone.eq.${cleanPhone},public_phone.eq.${cleanPhone}`);
+      else if (clinicId) query.eq("id", clinicId);
+      const { data } = await query.limit(1).maybeSingle();
+      if (data) {
+        clinic = data;
+        targetSlug = data.slug;
+      }
+    } catch {}
+  }
+
+  if (!clinic) {
+    return { ok: false, error: `Clinic not found for slug: ${cleanSlug || cleanPhone || clinicId}` };
+  }
+
+  if (resolvedColor) {
+    clinic.theme_color = resolvedColor;
+    if (clinic.primary_color !== undefined) clinic.primary_color = resolvedColor;
+  }
+  if (resolvedTemplate) {
+    clinic.template = resolvedTemplate;
+  }
+  clinic.updated_at = new Date().toISOString();
+
+  // Save to file cache & memory
+  saveAiCreatedClinicToFile(clinic);
+  MEMORY_CLINIC_CACHE.set(targetSlug, clinic);
+
+  // Update Supabase if available
+  try {
+    const updatePayload: Record<string, any> = { updated_at: clinic.updated_at };
+    if (resolvedColor) {
+      updatePayload.theme_color = resolvedColor;
+    }
+    if (resolvedTemplate) {
+      updatePayload.template = resolvedTemplate;
+    }
+    await (supabaseAdmin as any).from("clinics").update(updatePayload).eq("slug", targetSlug);
+  } catch (err) {
+    console.warn("[AI Clinic Creator] Failed to update Supabase theme:", err);
+  }
+
+  return { ok: true, clinic };
+}
+
 /**
  * Robust CSV Line Parser that respects quotes, inner commas, and escaped quotes.
  */
@@ -585,15 +692,20 @@ Return ONLY a valid JSON object matching this schema:
  */
 export async function createFullClinicFromParsedRow(
   row: ParsedClinicRow,
-  opts: { useAi?: boolean } = {}
+  opts: { useAi?: boolean; themeColor?: string; template?: string } = {}
 ): Promise<CreatedClinicResult> {
   const { doctorName, clinicName, specialty, city, phone, address, rating, reviewsCount, timings } = row;
   const cleanCity = extractCleanCity(city);
+  const resolvedColor = resolveThemeColor(opts.themeColor);
+  const resolvedTemplate = opts.template ? opts.template.trim().toLowerCase() : undefined;
 
   // 1. Check if clinic already exists by phone or exact name in memory or persistent store
   try {
     for (const [s, c] of MEMORY_CLINIC_CACHE.entries()) {
       if (c.phone === phone || (c.clinic_name && c.clinic_name.toLowerCase() === clinicName.toLowerCase())) {
+        if (resolvedColor) c.theme_color = resolvedColor;
+        if (resolvedTemplate) c.template = resolvedTemplate;
+        saveAiCreatedClinicToFile(c);
         return {
           ok: true,
           rowId: row.id,
@@ -616,6 +728,9 @@ export async function createFullClinicFromParsedRow(
     const fileClinics = loadAiCreatedClinicsFromFile();
     for (const [s, c] of Object.entries(fileClinics)) {
       if (c.phone === phone || (c.clinic_name && c.clinic_name.toLowerCase() === clinicName.toLowerCase())) {
+        if (resolvedColor) c.theme_color = resolvedColor;
+        if (resolvedTemplate) c.template = resolvedTemplate;
+        saveAiCreatedClinicToFile(c);
         MEMORY_CLINIC_CACHE.set(s, c);
         return {
           ok: true,
@@ -722,8 +837,8 @@ export async function createFullClinicFromParsedRow(
     services: content.services,
     faqs: content.faqs,
     working_hours: workingHours,
-    theme_color: content.themeColor,
-    template: content.template,
+    theme_color: resolvedColor || content.themeColor,
+    template: resolvedTemplate || content.template,
     google_rating: rating,
     google_rating_count: reviewsCount,
     google_place_id: row.googleMapsUrl || null,
@@ -785,7 +900,7 @@ export async function createFullClinicFromParsedRow(
       description: content.aboutText,
       public_phone: phone,
       public_address: address,
-      primary_color: content.themeColor,
+      primary_color: resolvedColor || content.themeColor,
     });
   } catch {}
 
@@ -811,8 +926,8 @@ export async function createFullClinicFromParsedRow(
       services: content.services,
       faqs: content.faqs,
       working_hours: workingHours,
-      theme_color: content.themeColor,
-      template: content.template,
+      theme_color: resolvedColor || content.themeColor,
+      template: resolvedTemplate || content.template,
       is_published: true,
       published_at: nowIso,
       google_rating: rating,
