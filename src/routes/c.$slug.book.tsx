@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Route as ClinicRoute } from "./c.$slug";
 import { useEffect, useMemo, useState } from "react";
 import { getBookedSlots, createBooking } from "@/lib/clinic.functions";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -372,31 +371,6 @@ function BookPage() {
     ) as DoctorOption[];
 
     processDoctorList(activeFromLoader);
-
-    // Only fetch live doctors if loader provided none (avoids 401 on anon REST endpoint)
-    if (activeFromLoader.length === 0 && clinic.id) {
-      const query = clinic.organization_id
-        ? supabase
-            .from("doctors")
-            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order")
-            .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
-            .neq("is_active", false)
-            .order("sort_order")
-            .order("created_at")
-        : supabase
-            .from("doctors")
-            .select("id, name, specialization, qualification, consultation_fee, avatar_url, bio, experience_years, working_hours, sort_order")
-            .eq("clinic_id", clinic.id)
-            .neq("is_active", false)
-            .order("sort_order")
-            .order("created_at");
-
-      Promise.resolve(query).then(({ data }) => {
-        if (data && data.length > 0) {
-          processDoctorList(data as DoctorOption[]);
-        }
-      }).catch(() => {});
-    }
   }, [clinic.id, clinic.organization_id, clinic.doctor_name, (clinic as any).active_doctors]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

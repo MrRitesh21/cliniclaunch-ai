@@ -55,6 +55,7 @@ export const Route = createFileRoute("/c/$slug")({
     const c = loaderData?.clinic;
     if (!c) return {};
 
+    const seo = typeof c.seo_config === "object" && c.seo_config ? (c.seo_config as any) : {};
     let title = seo.meta_title || `${c.doctor_name} — ${c.specialization} | ${c.clinic_name}`;
     let desc =
       seo.meta_description ||
