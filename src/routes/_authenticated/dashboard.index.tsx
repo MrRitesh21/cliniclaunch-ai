@@ -43,7 +43,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { AvatarInitials, SkeletonStatCards } from "@/components/ui/skeleton-rows";
 import { ClinicTrialJourney } from "@/components/billing/ClinicTrialJourney";
 import { useServerFn } from "@tanstack/react-start";
-import { updateAppointmentStatus } from "@/lib/clinic.functions";
+import { updateAppointmentStatus, getClinicAppointments } from "@/lib/clinic.functions";
 import { readCache, writeCache } from "@/lib/persist-cache";
 import { useOnline } from "@/hooks/useOnline";
 import { usePWAInstall } from "@/lib/pwa";
@@ -89,6 +89,7 @@ function Overview() {
   const [loadingAppts, setLoadingAppts] = useState(true);
 
   const updateStatusFn = useServerFn(updateAppointmentStatus);
+  const fetchAppointmentsFn = useServerFn(getClinicAppointments);
   const online = useOnline();
   const [usingCachedStats, setUsingCachedStats] = useState(false);
 
@@ -165,19 +166,45 @@ function Overview() {
           : Promise.resolve({ count: 0 }),
       ]);
 
+    let allApptList = (allApptsRes.data ?? []) as any[];
+    let todayApptList = ((todayListRes.data as TodayAppointment[]) ?? []) as TodayAppointment[];
+
+    // Fallback: If client-side PostgREST returned 0 due to RLS, fetch via server function
+    if (allApptList.length === 0 && clinic.id) {
+      try {
+        const serverRows = await fetchAppointmentsFn({
+          data: {
+            clinic_id: clinic.id,
+            organization_id: clinic.organization_id || null,
+          },
+        });
+        if (Array.isArray(serverRows) && serverRows.length > 0) {
+          allApptList = serverRows;
+          const startMs = startOfDay.getTime();
+          const endMs = endOfDay.getTime();
+          todayApptList = serverRows.filter((a: any) => {
+            const t = new Date(a.scheduled_at || 0).getTime();
+            return t >= startMs && t <= endMs;
+          }) as any;
+        }
+      } catch (err) {
+        console.warn("[DashboardOverview] Server fetch notice:", err);
+      }
+    }
+
     const uniquePhones = new Set(
-      (allApptsRes.data ?? []).map((r: any) => r.patient_phone).filter(Boolean),
+      allApptList.map((r: any) => r.patient_phone).filter(Boolean),
     );
 
-    const completedCount = completedRes.count ?? 0;
+    const completedCount = completedRes.count ?? allApptList.filter((a) => a.status === "completed").length;
     const fee = clinic.consultation_fee ?? 500;
     const estRevenue = completedCount * fee;
 
     const nextStats = {
-      todayTotal: todayRes.count ?? 0,
+      todayTotal: todayApptList.length || (todayRes.count ?? 0),
       todayCompleted: completedCount,
-      pending: pendingRes.count ?? 0,
-      week: weekRes.count ?? 0,
+      pending: (pendingRes.count ?? 0) || allApptList.filter((a) => a.status === "pending").length,
+      week: weekRes.count ?? allApptList.length,
       patients: uniquePhones.size,
       waitingQueue: queueRes.count ?? 0,
       todayRevenue: estRevenue,
@@ -185,7 +212,7 @@ function Overview() {
     setStats(nextStats);
     writeCache(`dash:stats:${clinic.id}`, nextStats);
 
-    setTodayAppts((todayListRes.data as TodayAppointment[]) ?? []);
+    setTodayAppts(todayApptList);
     setLoadingAppts(false);
   };
 

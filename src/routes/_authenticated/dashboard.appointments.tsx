@@ -39,7 +39,7 @@ import {
   Code2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { updateAppointmentStatus, createBooking } from "@/lib/clinic.functions";
+import { updateAppointmentStatus, createBooking, getClinicAppointments } from "@/lib/clinic.functions";
 import { Label } from "@/components/ui/label";
 import { AppGuard } from "@/components/app/AppGuard";
 import { PageHeader } from "@/components/ui/page-header";
@@ -80,6 +80,7 @@ type Appt = {
 function AppointmentsPage() {
   const clinic = useClinic();
   const updateStatus = useServerFn(updateAppointmentStatus);
+  const fetchAppointmentsFn = useServerFn(getClinicAppointments);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Appt[]>([]);
@@ -248,21 +249,40 @@ function AppointmentsPage() {
     if (!clinic?.id) return;
     setLoading(true);
     try {
-      // 1. Fetch appointments with clinic_id or organization_id
-      let q = supabase
-        .from("appointments")
-        .select("*")
-        .order("scheduled_at", { ascending: false });
-
-      if (clinic.organization_id) {
-        q = q.or(`clinic_id.eq.${clinic.id},organization_id.eq.${clinic.organization_id}`);
-      } else {
-        q = q.eq("clinic_id", clinic.id);
+      // 1. Robust server-side fetch with service authority (bypasses client-side RLS hurdles)
+      let apptRows: any[] | null = null;
+      try {
+        const serverData = await fetchAppointmentsFn({
+          data: {
+            clinic_id: clinic.id,
+            organization_id: clinic.organization_id || null,
+          },
+        });
+        if (Array.isArray(serverData)) {
+          apptRows = serverData;
+        }
+      } catch (serverErr) {
+        console.warn("[Appointments] ServerFn fetch notice, falling back to client query:", serverErr);
       }
 
-      const { data, error } = await q;
-      if (error) {
-        console.error("[Appointments] Failed to load appointments:", error);
+      // Fallback to client query if server function is unavailable
+      if (!apptRows) {
+        let q = supabase
+          .from("appointments")
+          .select("*")
+          .order("scheduled_at", { ascending: false });
+
+        if (clinic.organization_id) {
+          q = q.or(`clinic_id.eq.${clinic.id},organization_id.eq.${clinic.organization_id}`);
+        } else {
+          q = q.eq("clinic_id", clinic.id);
+        }
+
+        const { data: clientData, error } = await q;
+        if (error) {
+          console.error("[Appointments] Failed to load appointments via client:", error);
+        }
+        apptRows = clientData || [];
       }
 
       // 2. Fetch consultations so direct walk-in visits also show up in appointments
@@ -273,7 +293,7 @@ function AppointmentsPage() {
         .order("created_at", { ascending: false })
         .limit(100);
 
-      const existingApptIds = new Set((data ?? []).map((a: any) => a.id));
+      const existingApptIds = new Set((apptRows ?? []).map((a: any) => a.id));
       const directConsults: Appt[] = [];
 
       ((consultData as any[]) ?? []).forEach((c) => {
@@ -300,7 +320,7 @@ function AppointmentsPage() {
         .eq("clinic_id", clinic.id);
       const docMap = new Map<string, string>((docData ?? []).map((d) => [d.id, d.name]));
 
-      const combined = [...(data ?? []), ...directConsults].sort(
+      const combined = [...(apptRows ?? []), ...directConsults].sort(
         (a, b) => new Date(b.scheduled_at || 0).getTime() - new Date(a.scheduled_at || 0).getTime()
       );
 
@@ -315,7 +335,7 @@ function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [clinic?.id, clinic?.organization_id]);
+  }, [clinic?.id, clinic?.organization_id, fetchAppointmentsFn]);
 
   useEffect(() => {
     load();

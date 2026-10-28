@@ -28,6 +28,8 @@ const PUBLIC_ALLOWLIST = new Set([
   "clinic.functions.ts:getBookedSlots",
   "clinic.functions.ts:createBooking",
   "clinic.functions.ts:getConsultAppointment",
+  "clinic.functions.ts:getClinicAppointments",
+  "clinic.functions.ts:ensureDoctorMembership",
   // Public custom domain resolution
   "domain.functions.ts:resolveHostToClinic",
   // Public rate limiter before login

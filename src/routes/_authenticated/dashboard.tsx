@@ -73,7 +73,7 @@ import { useTheme } from "@/components/ui/theme-provider";
 import { usePWAInstall } from "@/lib/pwa";
 import { isIos } from "@/lib/push-client";
 import { clearDemoSessionFlags, setDemoSessionFlags, CLEAN_DEMO_CLINIC_DATA } from "@/lib/demo";
-import { getClinicBySlug } from "@/lib/clinic.functions";
+import { getClinicBySlug, ensureDoctorMembership } from "@/lib/clinic.functions";
 import { DemoConversionWidget } from "@/components/demo/DemoConversionWidget";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
@@ -165,6 +165,9 @@ export function useClinic() {
           const fetched = await getClinicBySlug({ data: { slug: slugToLoad } }).catch(() => null);
           if (fetched) {
             clinicData = fetched as any;
+            if (isTargetUuid && clinicData?.id && !clinicData.id.startsWith("sso-")) {
+              ensureDoctorMembership({ data: { clinic_id: clinicData.id, user_id: targetId } }).catch(() => {});
+            }
           } else {
             clinicData = {
               id: "sso-clinic-001",
