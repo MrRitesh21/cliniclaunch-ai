@@ -1,12 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, ShieldCheck } from "lucide-react";
 import type { SiteClinic } from "./types";
 
 type Props = { clinic: SiteClinic };
 
 function LegalLinks({ className = "" }: { className?: string }) {
   return (
-    <div className={`flex flex-wrap gap-x-4 gap-y-1 text-[11px] ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] ${className}`}>
+      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+        <ShieldCheck className="size-3 text-emerald-600" /> DPDP Act 2023 Compliant
+      </span>
       <Link to="/privacy" className="hover:underline">
         Privacy
       </Link>

@@ -34,6 +34,7 @@ import {
   getWorkingHours,
 } from "../clinicDataHelpers";
 import { FadeUp } from "../motion";
+import { DpdpConsentBox } from "@/components/clinic/DpdpCompliance";
 
 interface TemplateBookPageProps {
   clinic: SiteClinic;
@@ -75,6 +76,7 @@ export function TemplateBookPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
+  const [dpdpConsent, setDpdpConsent] = useState(true);
 
   // Generate next 7 dates
   const next7Days = Array.from({ length: 7 }).map((_, i) => {
@@ -94,6 +96,10 @@ export function TemplateBookPage({
     e.preventDefault();
     if (!formData.name || !formData.phone) {
       alert("Please fill in your name and mobile phone number.");
+      return;
+    }
+    if (!dpdpConsent) {
+      alert("Please agree to the DPDP Act consent to proceed with your booking.");
       return;
     }
     setIsSubmitting(true);
@@ -538,6 +544,14 @@ export function TemplateBookPage({
                 </div>
               </div>
             </div>
+
+            {/* DPDP Act 2023 Statutory Healthcare Consent */}
+            <DpdpConsentBox
+              clinicName={clinicName}
+              checked={dpdpConsent}
+              onChange={setDpdpConsent}
+              accentColor={palette.primary}
+            />
 
             {/* Submit Button */}
             <button

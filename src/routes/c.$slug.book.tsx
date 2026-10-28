@@ -37,6 +37,8 @@ import {
   Users,
 } from "lucide-react";
 import { buildIcsDataUrl, buildWhatsAppShareUrl } from "@/lib/booking-share";
+import { getServices } from "@/templates/shared/clinicDataHelpers";
+import { DpdpConsentBox } from "@/components/clinic/DpdpCompliance";
 
 type DoctorOption = {
   id: string;
@@ -281,6 +283,16 @@ function BookPage() {
     }
     return out;
   }, [activeSchedule.days]);
+
+  const availableServices = useMemo(() => getServices(c), [c]);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(
+    availableServices[0]?.id || "default",
+  );
+  const selectedService = useMemo(
+    () => availableServices.find((s) => s.id === selectedServiceId) || availableServices[0] || null,
+    [availableServices, selectedServiceId],
+  );
+  const [dpdpConsent, setDpdpConsent] = useState(true);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(days[0] ?? null);
   const [bookedCounts, setBookedCounts] = useState<Record<number, number>>({});
@@ -586,6 +598,7 @@ function BookPage() {
   async function submit() {
     if (!selectedSlot) return toast.error("Please pick a time slot");
     if (doctors.length > 1 && !selectedDoctorId) return toast.error("Please choose a doctor");
+    if (!dpdpConsent) return toast.error("Please agree to the DPDP Act consent to proceed with your booking");
     setTouched({ name: true, phone: true, email: true });
     if (nameError || phoneError || emailError) {
       toast.error(nameError || phoneError || emailError || "Please fix the errors above");
@@ -594,6 +607,8 @@ function BookPage() {
     setSubmitting(true);
     try {
       const cleanAge = form.age.trim() ? Math.min(130, Math.max(0, parseInt(form.age.trim(), 10))) : null;
+      const servicePrefix = selectedService ? `[Service: ${selectedService.name}] ` : "";
+      const fullProblem = `${servicePrefix}${form.problem.trim()}`;
       const appt = await createBooking({
         data: {
           clinic_id: clinic.id,
@@ -602,7 +617,7 @@ function BookPage() {
           patient_email: form.email.trim(),
           patient_age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
           patient_gender: (form.gender || null) as "male" | "female" | "other" | null,
-          problem: form.problem.trim(),
+          problem: fullProblem,
           scheduled_at: selectedSlot.toISOString(),
           appointment_type: appointmentType,
           doctor_id: selectedDoctorId === "owner" ? null : selectedDoctorId,
@@ -763,11 +778,13 @@ function BookPage() {
     );
   }
 
-  /* ── Steps: Doctor (only if multi-doctor), Schedule, Confirm ── */
+  /* ── Steps: Doctor (only if multi-doctor), Service (if available), Schedule, Confirm ── */
   const hasDoctorStep = doctors.length > 1;
-  type StepKey = "doctor" | "schedule" | "confirm";
+  const hasServiceStep = availableServices.length > 1;
+  type StepKey = "doctor" | "service" | "schedule" | "confirm";
   const stepKeys: StepKey[] = [
     ...(hasDoctorStep ? ["doctor" as const] : []),
+    ...(hasServiceStep ? ["service" as const] : []),
     "schedule",
     "confirm",
   ];
@@ -778,15 +795,18 @@ function BookPage() {
     switch (currentKey) {
       case "doctor":
         return !!selectedDoctorId;
+      case "service":
+        return !!selectedServiceId;
       case "schedule":
         return !!selectedDay && !!selectedSlot;
       case "confirm":
-        return !!form.name.trim() && !!form.phone.trim();
+        return !!form.name.trim() && !!form.phone.trim() && dpdpConsent;
     }
   }
 
   const stepLabels: Record<StepKey, string> = {
     doctor: "Choose doctor",
+    service: "Choose service",
     schedule: "Pick a time",
     confirm: "Your details",
   };
@@ -943,6 +963,59 @@ function BookPage() {
           </div>
         )}
 
+        {/* ── STEP: Select Service ── */}
+        {currentKey === "service" && (
+          <div className="space-y-4 text-left">
+            <Card className="p-5 sm:p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Select Treatment or Clinical Service</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Choose the specialized healthcare service you wish to consult for today.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                {availableServices.map((svc) => {
+                  const isSelected = svc.id === selectedServiceId;
+                  const priceStr = svc.price ? `${svc.price}` : `₹${selectedDoctor?.consultation_fee || clinic.consultation_fee || 500}`;
+                  return (
+                    <button
+                      type="button"
+                      key={svc.id}
+                      onClick={() => setSelectedServiceId(svc.id)}
+                      className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 relative cursor-pointer ${
+                        isSelected
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
+                          : "border-border hover:border-primary/40 bg-card hover:bg-muted/30"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 w-full">
+                        <div>
+                          <p className="text-sm font-bold text-foreground leading-snug">{svc.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{svc.description}</p>
+                        </div>
+                        {isSelected && (
+                          <span className="size-5 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0">
+                            <Check className="size-3 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-border/50 w-full">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Clock className="size-3" />
+                          <span>{svc.duration || "30 mins"}</span>
+                        </span>
+                        <span className="font-bold text-primary">{priceStr}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* ── STEP 2: Schedule (date + time + type on one page) ── */}
         {currentKey === "schedule" && (
           <div className="space-y-4">
@@ -1061,10 +1134,42 @@ function BookPage() {
 
         {/* ── STEP 3: Confirm (details + summary sidebar) ── */}
         {currentKey === "confirm" && (
-          <div className="grid md:grid-cols-[1fr_280px] gap-4 items-start">
+          <div className="grid md:grid-cols-[1fr_280px] gap-4 items-start text-left">
             {/* Form */}
             <Card className="p-5 sm:p-6 space-y-4">
-              <p className="text-sm font-medium">Your details</p>
+              <div className="flex items-center justify-between pb-2 border-b">
+                <p className="text-sm font-semibold">Your details & treatment</p>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ShieldCheck className="size-3 text-emerald-500" /> DPDP Protected
+                </span>
+              </div>
+
+              {availableServices.length > 0 && (
+                <div>
+                  <Label htmlFor="service-select">Selected Service / Treatment</Label>
+                  <Select
+                    value={selectedServiceId}
+                    onValueChange={(val) => setSelectedServiceId(val)}
+                  >
+                    <SelectTrigger id="service-select" className="mt-1 h-11">
+                      <SelectValue placeholder="Choose service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableServices.map((svc) => (
+                        <SelectItem key={svc.id} value={svc.id}>
+                          <div className="flex items-center justify-between gap-4 py-0.5">
+                            <span className="font-medium">{svc.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {svc.price || `₹${displayDoctor?.consultation_fee || clinic.consultation_fee || 500}`} · {svc.duration || "30m"}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">
@@ -1181,6 +1286,14 @@ function BookPage() {
                   onChange={(e) => setForm({ ...form, problem: e.target.value })}
                 />
               </div>
+
+              {/* DPDP Act 2023 Statutory Healthcare Consent */}
+              <DpdpConsentBox
+                clinicName={clinic.clinic_name || clinic.doctor_name}
+                checked={dpdpConsent}
+                onChange={setDpdpConsent}
+                accentColor={customColor || clinic.theme_color || "#2563eb"}
+              />
             </Card>
 
             {/* Summary sidebar */}
@@ -1203,6 +1316,14 @@ function BookPage() {
                   </div>
                 )}
                 <div className="space-y-2 text-sm">
+                  {selectedService && (
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-muted-foreground">Service</span>
+                      <span className="font-medium text-right max-w-[140px] truncate" title={selectedService.name}>
+                        {selectedService.name}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Date</span>
                     <span className="font-medium">
@@ -1223,12 +1344,14 @@ function BookPage() {
                       {appointmentType === "online" ? "Video call" : "In-clinic"}
                     </span>
                   </div>
-                  {(displayDoctor?.consultation_fee ?? 0) > 0 && (
-                    <div className="flex justify-between pt-2 border-t font-semibold text-primary">
-                      <span>Fee</span>
-                      <span>₹{displayDoctor?.consultation_fee}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between pt-2 border-t font-semibold text-primary">
+                    <span>Fee</span>
+                    <span>
+                      {selectedService?.price
+                        ? selectedService.price.startsWith("₹") ? selectedService.price : `₹${selectedService.price}`
+                        : `₹${displayDoctor?.consultation_fee || clinic.consultation_fee || 500}`}
+                    </span>
+                  </div>
                 </div>
               </Card>
               {clinic.public_phone && (

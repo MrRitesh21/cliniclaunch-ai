@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { X, Calendar, Clock, CheckCircle2, User, Phone, Mail, FileText, Video, Building2, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
+import { X, Calendar, Clock, CheckCircle2, User, Phone, Mail, FileText, Video, Building2, ShieldCheck, ArrowRight, Loader2, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 import type { SiteClinic } from "@/components/site/types";
-import { getClinicName, getDoctorName, getClinicPhone, getClinicWhatsAppUrl, getConsultationFee } from "./clinicDataHelpers";
+import { getClinicName, getDoctorName, getClinicPhone, getClinicWhatsAppUrl, getConsultationFee, getServices } from "./clinicDataHelpers";
+import { DpdpConsentBox } from "@/components/clinic/DpdpCompliance";
 
 interface AppointmentModalProps {
   clinic: SiteClinic;
@@ -15,8 +16,11 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
   const [step, setStep] = useState<"form" | "success">("form");
   const [submitting, setSubmitting] = useState(false);
 
+  const services = getServices(clinic);
+
   // Form State
   const [apptType, setApptType] = useState<"offline" | "online">("offline");
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(() => services[0]?.id || "");
   const [date, setDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -27,6 +31,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [problem, setProblem] = useState("");
+  const [dpdpConsent, setDpdpConsent] = useState(true);
   const [confirmedData, setConfirmedData] = useState<any>(null);
 
   if (!isOpen) return null;
@@ -34,7 +39,10 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
   const clinicName = getClinicName(clinic);
   const doctorName = getDoctorName(clinic);
   const clinicPhone = getClinicPhone(clinic);
-  const fee = getConsultationFee(clinic);
+  const baseFee = getConsultationFee(clinic);
+
+  const selectedService = services.find((s) => s.id === selectedServiceId) || services[0];
+  const fee = selectedService?.price ? selectedService.price.replace(/[^0-9]/g, "") || baseFee : baseFee;
 
   const availableSlots = [
     "09:30 AM", "10:30 AM", "11:30 AM", "01:00 PM",
@@ -48,9 +56,15 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
       return;
     }
 
+    if (!dpdpConsent) {
+      toast.error("Please agree to the DPDP Act 2023 statutory consent before booking.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const endpoint = "/api/public/submit-booking";
+      const servicePrefix = selectedService ? `[Service: ${selectedService.name}] ` : "";
       const payload = {
         clinic: clinic.slug,
         name,
@@ -59,7 +73,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
         date,
         time: timeSlot,
         appointment_type: apptType,
-        problem: problem || "Consultation Request",
+        problem: `${servicePrefix}${problem || "Consultation Request"}`.trim(),
       };
 
       const res = await fetch(endpoint, {
@@ -76,6 +90,8 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
           date,
           timeSlot,
           apptType,
+          serviceName: selectedService?.name,
+          fee,
           appointmentId: data.appointment_id || `CX-${Math.floor(100000 + Math.random() * 900000)}`,
         });
         setStep("success");
@@ -91,6 +107,8 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
         date,
         timeSlot,
         apptType,
+        serviceName: selectedService?.name,
+        fee,
         appointmentId: `CX-${Math.floor(100000 + Math.random() * 900000)}`,
       });
       setStep("success");
@@ -161,6 +179,26 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                   </button>
                 </div>
               </div>
+
+              {/* Service / Treatment Selection */}
+              {services.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Stethoscope className="size-3.5 text-primary" /> Select Service / Treatment *
+                  </label>
+                  <select
+                    value={selectedServiceId}
+                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                    className="w-full h-11 sm:h-10 px-3 text-base sm:text-xs rounded-xl border bg-background font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+                  >
+                    {services.map((svc) => (
+                      <option key={svc.id} value={svc.id}>
+                        {svc.name} {svc.price ? `(${svc.price})` : ""} {svc.duration ? `· ${svc.duration}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Date & Time Slot Picker */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -255,6 +293,14 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                 </div>
               </div>
 
+              {/* DPDP Act 2023 Statutory Patient Consent */}
+              <DpdpConsentBox
+                clinicName={clinicName}
+                checked={dpdpConsent}
+                onChange={setDpdpConsent}
+                accentColor={primaryColor}
+              />
+
               {/* Consultation Fee & Notice */}
               <div className="p-3 rounded-2xl bg-muted/40 border text-[11px] flex items-center justify-between text-muted-foreground">
                 <span className="flex items-center gap-1.5">
@@ -313,6 +359,12 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                   <span className="text-muted-foreground">Doctor:</span>
                   <span className="font-semibold text-foreground">{doctorName}</span>
                 </div>
+                {confirmedData?.serviceName && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Service:</span>
+                    <span className="font-semibold text-foreground">{confirmedData.serviceName}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Patient:</span>
                   <span className="font-semibold text-foreground">{confirmedData?.name}</span>
@@ -323,6 +375,15 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                     {confirmedData?.apptType === "online" ? "Video Consultation" : "In-Clinic Visit"}
                   </span>
                 </div>
+                <div className="flex justify-between pt-1.5 border-t text-muted-foreground">
+                  <span>Consultation Fee:</span>
+                  <span className="font-bold text-foreground">₹{confirmedData?.fee || fee} (Pay at clinic)</span>
+                </div>
+              </div>
+
+              <div className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
+                <ShieldCheck className="size-3.5 text-emerald-600" />
+                <span>Protected under Digital Personal Data Protection (DPDP) Act, 2023</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-2">

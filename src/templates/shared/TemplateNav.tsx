@@ -9,8 +9,10 @@ import {
   MapPin,
   ChevronRight,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import type { TemplatePage, TemplatePalette } from "./types";
+import { DpdpNoticeModal } from "@/components/clinic/DpdpCompliance";
 
 export const TEMPLATE_PAGES: Array<{
   id: TemplatePage;
@@ -233,36 +235,52 @@ export function TemplateFooterPages({
   palette,
   headingText = "Navigation",
 }: TemplateFooterPagesProps) {
+  const [showDpdp, setShowDpdp] = useState(false);
+
   return (
-    <div className="space-y-3 text-left">
-      <p className="text-xs font-bold uppercase tracking-wider opacity-60" style={{ color: palette.text }}>
-        {headingText}
-      </p>
-      <ul className="space-y-1 text-xs">
-        {TEMPLATE_PAGES.map((item) => {
-          const isActive = activePage === item.id;
-          return (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate(item.id);
-                  if (typeof window !== "undefined") {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                }}
-                className="min-h-[36px] py-1 hover:underline transition-all text-left flex items-center touch-manipulation"
-                style={{
-                  color: isActive ? (palette.accent || palette.primary) : palette.mutedText,
-                  fontWeight: isActive ? 700 : 400,
-                }}
-              >
-                {item.label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <>
+      <div className="space-y-3 text-left">
+        <p className="text-xs font-bold uppercase tracking-wider opacity-60" style={{ color: palette.text }}>
+          {headingText}
+        </p>
+        <ul className="space-y-1 text-xs">
+          {TEMPLATE_PAGES.map((item) => {
+            const isActive = activePage === item.id;
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate(item.id);
+                    if (typeof window !== "undefined") {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className="min-h-[36px] py-1 hover:underline transition-all text-left flex items-center touch-manipulation"
+                  style={{
+                    color: isActive ? (palette.accent || palette.primary) : palette.mutedText,
+                    fontWeight: isActive ? 700 : 400,
+                  }}
+                >
+                  {item.label}
+                </button>
+              </li>
+            );
+          })}
+          <li className="pt-2 border-t border-current/15 mt-2">
+            <button
+              type="button"
+              onClick={() => setShowDpdp(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] text-emerald-500 hover:text-emerald-400 font-semibold transition-colors py-1 touch-manipulation"
+            >
+              <ShieldCheck className="size-3.5" />
+              <span>DPDP Act 2023 Compliant</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <DpdpNoticeModal isOpen={showDpdp} onClose={() => setShowDpdp(false)} />
+    </>
   );
 }
