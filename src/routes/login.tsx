@@ -11,8 +11,32 @@ import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { guardAuthAttempt } from "@/lib/limits.functions";
 import { trackReferralSignup } from "@/lib/referral.functions";
+import { resolvePhoneIdentityFn } from "@/lib/phone-auth.functions";
+import { setDemoSessionFlags, DEMO_CREDENTIALS } from "@/lib/demo";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
+
+function isPhoneInput(input: string): boolean {
+  const clean = input.trim();
+  if (clean.includes("@")) return false;
+  const digits = clean.replace(/\D/g, "");
+  return digits.length >= 10;
+}
+
+function formatE164(input: string): string {
+  const clean = input.trim();
+  const digits = clean.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+${digits}`;
+  }
+  if (clean.startsWith("+")) {
+    return `+${digits}`;
+  }
+  return `+${digits}`;
+}
 
 export const Route = createFileRoute("/login")({
   validateSearch: (
@@ -60,6 +84,7 @@ function LoginPage() {
     queryFn: () => checkMaintenanceStatus(),
   });
   const platformName = mStatus?.platform_name || "ClinicX";
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -74,7 +99,10 @@ function LoginPage() {
   }, [searchTab]);
 
   useEffect(() => {
-    if (searchEmail) setEmail(searchEmail);
+    if (searchEmail) {
+      setIdentifier(searchEmail);
+      setEmail(searchEmail);
+    }
   }, [searchEmail]);
 
   useEffect(() => {
@@ -116,15 +144,94 @@ function LoginPage() {
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    const rawInput = (identifier || email).trim();
+    if (!rawInput) {
+      return toast.error("Please enter your email or mobile number");
+    }
+    if (!password) {
+      return toast.error("Please enter your password");
+    }
+
     setLoading(true);
+
     try {
-      await guardAuthAttempt({ data: { email } });
+      await guardAuthAttempt({ data: { email: rawInput } });
     } catch (err) {
       setLoading(false);
       return toast.error((err as Error).message);
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    const isPhone = isPhoneInput(rawInput);
+
+    // Flow A: Phone Number + Password Login
+    if (isPhone) {
+      const e164 = formatE164(rawInput);
+
+      // 1. Direct Supabase Phone login attempt
+      try {
+        const { data: phoneAuthData, error: phoneErr } = await supabase.auth.signInWithPassword({
+          phone: e164,
+          password,
+        });
+
+        if (!phoneErr && phoneAuthData?.session) {
+          setLoading(false);
+          toast.success("Welcome back");
+          return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+        }
+      } catch (err) {
+        console.warn("[signIn] Direct phone auth failed, checking registered clinic:", err);
+      }
+
+      // 2. Resolve Doctor / Clinic account by phone number
+      try {
+        const lookup = await resolvePhoneIdentityFn({ data: { phone: rawInput } });
+        if (lookup?.found && lookup?.email) {
+          // Check Demo Account
+          if (
+            lookup.email.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase() &&
+            password === DEMO_CREDENTIALS.password
+          ) {
+            setDemoSessionFlags();
+            setLoading(false);
+            toast.success(`Welcome back, ${lookup.doctorName || "Doctor"}!`);
+            return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+          }
+
+          // Sign in using registered email
+          const { error: emailSignInErr } = await supabase.auth.signInWithPassword({
+            email: lookup.email,
+            password,
+          });
+
+          if (!emailSignInErr) {
+            setLoading(false);
+            toast.success(`Welcome back, ${lookup.doctorName || "Doctor"}!`);
+            return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+          }
+
+          setLoading(false);
+          return toast.error("Incorrect password for this mobile number's account.");
+        }
+      } catch (lookupErr) {
+        console.warn("[signIn] Failed to resolve phone identity:", lookupErr);
+      }
+
+      setLoading(false);
+      return toast.error(
+        "No clinic account found matching this mobile number. Please check the number or use your email."
+      );
+    }
+
+    // Flow B: Standard Email + Password Login
+    const cleanEmail = rawInput.toLowerCase();
+    if (cleanEmail === DEMO_CREDENTIALS.email.toLowerCase() && password === DEMO_CREDENTIALS.password) {
+      setDemoSessionFlags();
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email: rawInput, password });
     setLoading(false);
+
     if (error) {
       // Map Supabase auth errors to clear, actionable messages.
       const code = (error as { code?: string }).code ?? "";
@@ -132,7 +239,7 @@ function LoginPage() {
       if (code === "email_not_confirmed" || /email.*not.*confirmed/i.test(error.message)) {
         message = "Your email isn't confirmed yet. Check your inbox for the confirmation link, then try again.";
       } else if (code === "invalid_credentials" || /invalid login credentials/i.test(error.message)) {
-        message = "Incorrect email or password. If you haven't registered on this local instance yet, switch to the Sign up tab.";
+        message = "Incorrect email/mobile number or password. If you haven't registered on this local instance yet, switch to the Sign up tab.";
       } else if (code === "over_request_rate_limit" || /too many requests/i.test(error.message)) {
         message = "Too many sign-in attempts. Please wait a minute and try again.";
       } else if (code === "user_not_found") {
@@ -140,6 +247,7 @@ function LoginPage() {
       }
       return toast.error(message);
     }
+
     toast.success("Welcome back");
     navigate({ to: redirect ? (redirect as any) : "/dashboard" });
   }
@@ -310,14 +418,20 @@ function LoginPage() {
               <TabsContent value="signin">
                 <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="identifier">Email or Mobile Number</Label>
                     <Input
-                      id="email"
-                      type="email"
+                      id="identifier"
+                      type="text"
+                      autoComplete="username"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@clinic.com"
+                      value={identifier || email}
+                      onChange={(e) => {
+                        setIdentifier(e.target.value);
+                        if (e.target.value.includes("@")) {
+                          setEmail(e.target.value);
+                        }
+                      }}
+                      placeholder="you@clinic.com or 9876543210"
                       className="h-11"
                     />
                   </div>

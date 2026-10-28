@@ -40,6 +40,10 @@ const PUBLIC_ALLOWLIST = new Set([
   "site-templates.functions.ts:getClinicSiteTemplate",
   // Public CRM lead capture
   "crm.functions.ts:submitPlatformLead",
+  // Public SSO token verification
+  "sso.functions.ts:verifySsoTokenFn",
+  // Public phone identity lookup for login
+  "phone-auth.functions.ts:resolvePhoneIdentityFn",
   // Public Creator Referral tracking & resolution
   "referral.functions.ts:getPublicReferralInfo",
   "referral.functions.ts:trackReferralClick",
