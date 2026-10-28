@@ -41,6 +41,17 @@ import { emailToDeterministicUuid, isValidUuid } from "@/lib/sso-uuid";
  */
 type State = { isReady: boolean; user: User | null };
 
+function sanitizeUser(u: User | null): User | null {
+  if (!u) return null;
+  if (!isValidUuid(u.id)) {
+    return {
+      ...u,
+      id: emailToDeterministicUuid(u.email || "doctor@clinicx.digiwil.com"),
+    };
+  }
+  return u;
+}
+
 function getLocalSsoUser(): User | null {
   if (typeof window === "undefined") return null;
   try {
@@ -49,6 +60,15 @@ function getLocalSsoUser(): User | null {
       const s = JSON.parse(raw);
       if (s?.email) {
         const validId = isValidUuid(s.id) ? s.id : emailToDeterministicUuid(s.email);
+        if (s.id !== validId) {
+          s.id = validId;
+          try {
+            localStorage.setItem("clinicx_sso_session", JSON.stringify(s));
+            // Remove legacy non-uuid cache keys
+            localStorage.removeItem("org_snapshot:sso_doctor_clinicx_digiwil_com");
+            localStorage.removeItem("clinic:sso_doctor_clinicx_digiwil_com");
+          } catch {}
+        }
         return {
           id: validId,
           email: s.email,
@@ -63,7 +83,7 @@ function getLocalSsoUser(): User | null {
   return null;
 }
 
-const initialSsoUser = getLocalSsoUser();
+const initialSsoUser = sanitizeUser(getLocalSsoUser());
 let state: State = { isReady: !!initialSsoUser, user: initialSsoUser };
 let started = false;
 const listeners = new Set<(s: State) => void>();
@@ -78,12 +98,12 @@ function start() {
   started = true;
 
   void supabase.auth.getSession().then(({ data }) => {
-    const u = data.session?.user ?? getLocalSsoUser();
+    const u = sanitizeUser(data.session?.user ?? getLocalSsoUser());
     publish({ isReady: true, user: u });
   });
 
   supabase.auth.onAuthStateChange((_event, session) => {
-    const u = session?.user ?? getLocalSsoUser();
+    const u = sanitizeUser(session?.user ?? getLocalSsoUser());
     publish({ isReady: true, user: u });
   });
 }

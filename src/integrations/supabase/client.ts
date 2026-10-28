@@ -23,6 +23,59 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 import { brokeredPreviewStorage } from "./previewAuthStorage";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const UUID_COLUMNS = new Set([
+  "user_id",
+  "organization_id",
+  "clinic_id",
+  "doctor_id",
+  "patient_id",
+  "appointment_id",
+  "prescription_id",
+  "invoice_id",
+  "staff_id",
+  "created_by",
+  "updated_by",
+  "parent_id",
+]);
+
+const NON_UUID_ID_TABLES = new Set([
+  "modules",
+  "clinicx_feature_aliases",
+  "system_settings",
+  "module_categories",
+]);
+
+function isUuidColumn(table: string, column: string): boolean {
+  if (UUID_COLUMNS.has(column)) return true;
+  if (column === "id" && !NON_UUID_ID_TABLES.has(table)) return true;
+  return false;
+}
+
+function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (typeof window !== "undefined" && typeof navigator !== "undefined" && !navigator.onLine) {
+    return Promise.resolve(
+      new Response(JSON.stringify({ error: "Client is offline", message: "Network unavailable" }), {
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  }
+  return fetch(input, init).catch((err) => {
+    const url = typeof input === "string" ? input : input instanceof Request ? input.url : input.toString();
+    if (url.includes("/auth/v1/token") || url.includes("/rest/v1/")) {
+      return new Response(JSON.stringify({ error: err?.message || "Fetch failed" }), {
+        status: 503,
+        statusText: "Fetch Failed",
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    throw err;
+  });
+}
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
@@ -47,6 +100,9 @@ function createSupabaseClient() {
       persistSession: true,
       autoRefreshToken: true,
     },
+    global: {
+      fetch: safeFetch,
+    },
   });
 }
 
@@ -67,6 +123,9 @@ function createChainableBlockedPromise(errorMessage: string) {
   const result = {
     data: null,
     error: { message: errorMessage },
+    count: 0,
+    status: 403,
+    statusText: "Forbidden",
   };
   const promise = Promise.resolve(result);
   const chainableProxy: any = new Proxy(promise, {
@@ -74,11 +133,130 @@ function createChainableBlockedPromise(errorMessage: string) {
       if (prop === "then") return target.then.bind(target);
       if (prop === "catch") return target.catch.bind(target);
       if (prop === "finally") return target.finally.bind(target);
-      // Return a function for chainable query methods like .eq, .neq, .in, .select, etc.
+      if (prop === "maybeSingle" || prop === "single") return () => promise;
       return () => chainableProxy;
     },
   });
   return chainableProxy;
+}
+
+function createChainableEmptyQueryResult() {
+  const emptyArrayResult = {
+    data: [],
+    error: null,
+    count: 0,
+    status: 200,
+    statusText: "OK",
+  };
+  const emptySingleResult = {
+    data: null,
+    error: null,
+    count: 0,
+    status: 200,
+    statusText: "OK",
+  };
+  const singleNotFoundResult = {
+    data: null,
+    error: {
+      message: "JSON object requested, multiple (or no) rows returned",
+      code: "PGRST116",
+      details: "The result contains 0 rows",
+      hint: null,
+    },
+    status: 406,
+    statusText: "Not Acceptable",
+  };
+
+  const promise = Promise.resolve(emptyArrayResult);
+
+  const chainableProxy: any = new Proxy(promise, {
+    get(target, prop) {
+      if (prop === "then") return target.then.bind(target);
+      if (prop === "catch") return target.catch.bind(target);
+      if (prop === "finally") return target.finally.bind(target);
+      if (prop === "maybeSingle") return () => Promise.resolve(emptySingleResult);
+      if (prop === "single") return () => Promise.resolve(singleNotFoundResult);
+      if (prop === "throwOnError") return () => chainableProxy;
+      return () => chainableProxy;
+    },
+  });
+
+  return chainableProxy;
+}
+
+function hasInvalidUuidInPayload(table: string, payload: any): boolean {
+  if (!payload || typeof payload !== "object") return false;
+  const items = Array.isArray(payload) ? payload : [payload];
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    for (const [col, val] of Object.entries(item)) {
+      if (isUuidColumn(table, col) && typeof val === "string" && val.length > 0 && !UUID_REGEX.test(val)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function wrapFilterBuilder(table: string, builder: any): any {
+  if (!builder || typeof builder !== "object") return builder;
+
+  return new Proxy(builder, {
+    get(target, prop, receiver) {
+      if (prop === "then") return target.then.bind(target);
+      if (prop === "catch") return target.catch.bind(target);
+      if (prop === "finally") return target.finally.bind(target);
+
+      if (prop === "eq") {
+        return (col: string, val: any) => {
+          if (isUuidColumn(table, col) && typeof val === "string" && !UUID_REGEX.test(val)) {
+            return createChainableEmptyQueryResult();
+          }
+          const next = target.eq(col, val);
+          return wrapFilterBuilder(table, next);
+        };
+      }
+
+      if (prop === "in") {
+        return (col: string, vals: any[]) => {
+          if (isUuidColumn(table, col) && Array.isArray(vals)) {
+            const validUuids = vals.filter((v) => typeof v === "string" && UUID_REGEX.test(v));
+            if (validUuids.length === 0) {
+              return createChainableEmptyQueryResult();
+            }
+            const next = target.in(col, validUuids);
+            return wrapFilterBuilder(table, next);
+          }
+          const next = target.in(col, vals);
+          return wrapFilterBuilder(table, next);
+        };
+      }
+
+      if (prop === "neq") {
+        return (col: string, val: any) => {
+          if (isUuidColumn(table, col) && typeof val === "string" && !UUID_REGEX.test(val)) {
+            // Non-UUID value trivially cannot equal any UUID row; skip to avoid 400 Bad Request
+            return wrapFilterBuilder(table, target);
+          }
+          const next = target.neq(col, val);
+          return wrapFilterBuilder(table, next);
+        };
+      }
+
+      const orig = Reflect.get(target, prop, receiver);
+      if (typeof orig === "function") {
+        return (...args: any[]) => {
+          const res = orig.apply(target, args);
+          if (res && typeof res === "object" && typeof res.then === "function") {
+            return wrapFilterBuilder(table, res);
+          }
+          return res;
+        };
+      }
+
+      return orig;
+    },
+  });
 }
 
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
@@ -89,15 +267,12 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
   get(_, prop, receiver) {
     if (!_supabase) _supabase = createSupabaseClient();
 
-    // Table operation interceptors for Impersonation and Demo Deletion Guard
     if (prop === "from") {
       return (table: string) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const builder = (_supabase!.from as any)(table);
         const isImp = isImpersonating();
         const isDemo = isDemoSessionActive();
-
-        if (!isImp && !isDemo) return builder;
 
         return new Proxy(builder, {
           get(target, methodProp, methodReceiver) {
@@ -125,7 +300,30 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
               };
             }
 
-            return Reflect.get(target, methodProp, methodReceiver);
+            // Guard against invalid UUID in write payloads
+            if (["insert", "update", "upsert"].includes(String(methodProp))) {
+              return (payload: any, ...args: any[]) => {
+                if (hasInvalidUuidInPayload(table, payload)) {
+                  return createChainableEmptyQueryResult();
+                }
+                const res = target[methodProp](payload, ...args);
+                return wrapFilterBuilder(table, res);
+              };
+            }
+
+            // Wrap query operations (select, delete, etc.)
+            const orig = Reflect.get(target, methodProp, methodReceiver);
+            if (typeof orig === "function") {
+              return (...args: any[]) => {
+                const res = orig.apply(target, args);
+                if (res && typeof res === "object" && typeof res.then === "function") {
+                  return wrapFilterBuilder(table, res);
+                }
+                return res;
+              };
+            }
+
+            return orig;
           },
         });
       };

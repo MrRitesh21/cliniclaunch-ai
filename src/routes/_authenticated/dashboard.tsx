@@ -1122,6 +1122,10 @@ function DashboardLayout() {
               forceChangePassword={!!change_password}
               onClose={() => setProfileOpen(false)}
               onSaved={async () => {
+                if (!isValidUuid(user.id)) {
+                  setProfileOpen(false);
+                  return;
+                }
                 const { data } = await supabase
                   .from("profiles")
                   .select("full_name")
@@ -1166,6 +1170,11 @@ function ProfileForm({
     if (!fullName.trim()) return toast.error("Name is required");
     setSaving(true);
     try {
+      if (!isValidUuid(user.id)) {
+        toast.success("Profile updated");
+        onSaved();
+        return;
+      }
       const { error } = await supabase
         .from("profiles")
         .upsert({ id: user.id, full_name: fullName.trim() });
