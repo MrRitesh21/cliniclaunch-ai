@@ -18,7 +18,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { buildIcsDataUrl, buildWhatsAppShareUrl } from "@/lib/booking-share";
-import { supabase } from "@/integrations/supabase/client";
 
 const MAX_SLOTS_SHOWN = 12;
 
@@ -137,17 +136,12 @@ function WalkinPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
 
   useEffect(() => {
-    supabase
-      .from("doctors")
-      .select("id, name, specialization")
-      .eq("clinic_id", clinic.id)
-      .eq("is_active", true)
-      .then(({ data }) => {
-        const list = (data ?? []) as any[];
-        setDoctors(list);
-        if (list[0]) setSelectedDoctorId(list[0].id);
-      });
-  }, [clinic.id]);
+    const list = Array.isArray((clinic as any).active_doctors)
+      ? ((clinic as any).active_doctors as any[])
+      : [];
+    setDoctors(list);
+    if (list[0]) setSelectedDoctorId(list[0].id);
+  }, [(clinic as any).active_doctors]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

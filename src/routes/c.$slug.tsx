@@ -56,11 +56,16 @@ export const Route = createFileRoute("/c/$slug")({
     if (!c) return {};
 
     const seo = typeof c.seo_config === "object" && c.seo_config ? (c.seo_config as any) : {};
-    const title = seo.meta_title || `${c.doctor_name} — ${c.specialization} | ${c.clinic_name}`;
-    const desc =
+    let title = seo.meta_title || `${c.doctor_name} — ${c.specialization} | ${c.clinic_name}`;
+    let desc =
       seo.meta_description ||
       c.bio ||
       `Book an appointment with ${c.doctor_name}, ${c.specialization} at ${c.clinic_name}.`;
+
+    if (c.doctor_name && c.doctor_name !== "Dr. Partner") {
+      title = title.replace(/Dr\.\s*Partner/gi, c.doctor_name);
+      desc = desc.replace(/Dr\.\s*Partner/gi, c.doctor_name);
+    }
     const keywords =
       seo.keywords ||
       `${c.specialization}, ${c.doctor_name}, ${c.clinic_name}, appointment booking`;

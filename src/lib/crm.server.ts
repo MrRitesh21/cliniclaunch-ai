@@ -1353,6 +1353,10 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
             doctor_name: docName,
             clinic_name: clinicName,
             specialization: specialty,
+            hero_headline: profile.hero_headline,
+            hero_subheadline: profile.hero_subheadline,
+            about_text: profile.about_text,
+            bio: profile.about_text,
             public_phone: phone,
             public_address: `${city}, India`,
             theme_color: profile.theme_color,
@@ -1360,6 +1364,21 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
             published_at: new Date().toISOString(),
           })
           .eq("id", exClinic.id);
+
+        if (exClinic.organization_id) {
+          try {
+            await (supabaseAdmin as any)
+              .from("doctors")
+              .update({ name: docName })
+              .eq("organization_id", exClinic.organization_id);
+          } catch {}
+        }
+
+        MEMORY_CLINIC_CACHE.delete(existingSlug);
+        try {
+          const { redisCache } = await import("./redis");
+          await redisCache.del(`clinic:slug:${existingSlug}`);
+        } catch {}
 
         return {
           ok: true,
@@ -2135,8 +2154,25 @@ export async function updateCrmLeadImpl(input: {
     if (slugMatch && slugMatch[1]) {
       const slug = slugMatch[1];
       try {
+        const { data: exClinic } = await (supabaseAdmin as any)
+          .from("clinics")
+          .select("id, organization_id, hero_subheadline, about_text, bio")
+          .eq("slug", slug)
+          .maybeSingle();
+
         const clinicUpdates: Record<string, any> = { updated_at: updates.updated_at };
-        if (updates.name) clinicUpdates.doctor_name = updates.name;
+        if (updates.name) {
+          clinicUpdates.doctor_name = updates.name;
+          if (typeof exClinic?.hero_subheadline === "string" && exClinic.hero_subheadline.includes("Dr. Partner")) {
+            clinicUpdates.hero_subheadline = exClinic.hero_subheadline.replace(/Dr\.\s*Partner/gi, updates.name);
+          }
+          if (typeof exClinic?.about_text === "string" && exClinic.about_text.includes("Dr. Partner")) {
+            clinicUpdates.about_text = exClinic.about_text.replace(/Dr\.\s*Partner/gi, updates.name);
+          }
+          if (typeof exClinic?.bio === "string" && exClinic.bio.includes("Dr. Partner")) {
+            clinicUpdates.bio = exClinic.bio.replace(/Dr\.\s*Partner/gi, updates.name);
+          }
+        }
         if (updates.clinic_name) clinicUpdates.clinic_name = updates.clinic_name;
         if (updates.specialty) clinicUpdates.specialization = updates.specialty;
         if (updates.phone) {
@@ -2148,10 +2184,20 @@ export async function updateCrmLeadImpl(input: {
           .update(clinicUpdates)
           .eq("slug", slug);
 
-        const cached = MEMORY_CLINIC_CACHE.get(slug);
-        if (cached) {
-          MEMORY_CLINIC_CACHE.set(slug, { ...cached, ...clinicUpdates });
+        if (updates.name && exClinic?.organization_id) {
+          try {
+            await (supabaseAdmin as any)
+              .from("doctors")
+              .update({ name: updates.name })
+              .eq("organization_id", exClinic.organization_id);
+          } catch {}
         }
+
+        MEMORY_CLINIC_CACHE.delete(slug);
+        try {
+          const { redisCache } = await import("./redis");
+          await redisCache.del(`clinic:slug:${slug}`);
+        } catch {}
       } catch (err) {
         console.warn("[CRM] Warning syncing clinic details:", err);
       }
@@ -2877,11 +2923,21 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
     input.theme_color !== undefined ? input.theme_color.trim() : current.theme_color || "#059669";
   const template =
     input.template !== undefined ? input.template.trim() : current.template || "modern";
-  const hero_headline =
+  let hero_headline =
     input.hero_headline !== undefined ? input.hero_headline.trim() : current.hero_headline;
-  const hero_subheadline =
+  let hero_subheadline =
     input.hero_subheadline !== undefined ? input.hero_subheadline.trim() : current.hero_subheadline;
-  const about_text = input.about_text !== undefined ? input.about_text.trim() : current.about_text;
+  let about_text = input.about_text !== undefined ? input.about_text.trim() : current.about_text;
+  
+  if (docName && docName !== "Dr. Partner") {
+    if (typeof hero_subheadline === "string" && hero_subheadline.includes("Dr. Partner")) {
+      hero_subheadline = hero_subheadline.replace(/Dr\.\s*Partner/gi, docName);
+    }
+    if (typeof about_text === "string" && about_text.includes("Dr. Partner")) {
+      about_text = about_text.replace(/Dr\.\s*Partner/gi, docName);
+    }
+  }
+
   const services = input.services !== undefined ? input.services : current.services;
   const lead_popup = input.lead_popup !== undefined ? input.lead_popup : current.lead_popup;
 
@@ -2902,6 +2958,7 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
     hero_headline,
     hero_subheadline,
     about_text,
+    bio: about_text,
     services,
     lead_popup,
     updated_at: nowIso,
@@ -2911,7 +2968,7 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
   // 1. Update in-memory cache immediately
   MEMORY_CLINIC_CACHE.set(slug, mergedClinic);
 
-  // 2. Update Redis cache with 30-day TTL
+  // 2. Update Redis cache
   try {
     const { redisCache } = await import("./redis");
     await redisCache.set(`clinic:slug:${slug}`, mergedClinic, 86400 * 30);
@@ -2944,6 +3001,7 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
           hero_headline,
           hero_subheadline,
           about_text,
+          bio: about_text,
           services,
           lead_popup,
           updated_at: nowIso,
@@ -2952,6 +3010,13 @@ export async function updateClinicWebsiteConfigImpl(input: UpdateClinicWebsiteIn
         .eq("id", existing.id);
 
       if (existing.organization_id) {
+        try {
+          await (supabaseAdmin as any)
+            .from("doctors")
+            .update({ name: docName })
+            .eq("organization_id", existing.organization_id);
+        } catch {}
+
         await (supabaseAdmin as any)
           .from("organizations")
           .update({
