@@ -39,7 +39,15 @@ export interface ActivationClinic {
   invoicing_configured?: boolean;
   consultation_fee?: number | null;
 }
-export function activationSteps(u: SubscriptionSnapshot["usage"], clinic: ActivationClinic | null) {
+export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | null, clinic: ActivationClinic | null) {
+  const usage = u ?? ({} as Partial<NonNullable<SubscriptionSnapshot["usage"]>>);
+  const doctorsCount = usage.doctors ?? 0;
+  const staffCount = usage.staff ?? 0;
+  const pendingStaffCount = usage.pending_staff_invites ?? 0;
+  const patientsCount = usage.patients ?? 0;
+  const appointmentsCount = usage.appointments ?? 0;
+  const prescriptionsCount = usage.prescriptions ?? 0;
+
   const wh = clinic?.working_hours as {
     start?: string;
     end?: string;
@@ -64,25 +72,25 @@ export function activationSteps(u: SubscriptionSnapshot["usage"], clinic: Activa
         !!clinic?.specialization?.trim(),
       to: "/dashboard/settings",
     },
-    { key: "doctor", label: "Add doctor", done: u.doctors > 0, to: "/dashboard/doctors" },
+    { key: "doctor", label: "Add doctor", done: doctorsCount > 0, to: "/dashboard/doctors" },
     {
       key: "staff",
       label: "Add staff (optional)",
-      done: u.staff > 0 || (u.pending_staff_invites ?? 0) > 0 || u.doctors > 0,
+      done: staffCount > 0 || pendingStaffCount > 0 || doctorsCount > 0,
       to: "/dashboard/staff",
     },
     { key: "hours", label: "Set clinic hours", done: hours, to: "/dashboard/settings" },
-    { key: "patient", label: "Add first patient", done: u.patients > 0, to: "/dashboard/patients" },
+    { key: "patient", label: "Add first patient", done: patientsCount > 0, to: "/dashboard/patients" },
     {
       key: "appointment",
       label: "Create appointment",
-      done: u.appointments > 0,
+      done: appointmentsCount > 0,
       to: "/dashboard/appointments",
     },
     {
       key: "prescription",
       label: "Create prescription",
-      done: u.prescriptions > 0,
+      done: prescriptionsCount > 0,
       to: "/dashboard/prescriptions",
     },
     {

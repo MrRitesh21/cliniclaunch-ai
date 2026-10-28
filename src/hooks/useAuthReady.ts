@@ -28,6 +28,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { emailToDeterministicUuid, isValidUuid } from "@/lib/sso-uuid";
 
 /**
  * Shared auth store. Previously every component that called useAuthReady()
@@ -47,8 +48,9 @@ function getLocalSsoUser(): User | null {
     if (raw) {
       const s = JSON.parse(raw);
       if (s?.email) {
+        const validId = isValidUuid(s.id) ? s.id : emailToDeterministicUuid(s.email);
         return {
-          id: s.id || `sso_${s.email.replace(/[^a-zA-Z0-9]/g, "_")}`,
+          id: validId,
           email: s.email,
           user_metadata: { full_name: s.name || "Doctor", role: s.role || "doctor" },
           app_metadata: { provider: "sso_waflow" },

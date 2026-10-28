@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { emailToDeterministicUuid, isValidUuid } from "@/lib/sso-uuid";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -17,8 +18,9 @@ export const Route = createFileRoute("/_authenticated")({
         if (rawSso) {
           const sso = JSON.parse(rawSso);
           if (sso?.email) {
+            const validId = isValidUuid(sso.id) ? sso.id : emailToDeterministicUuid(sso.email);
             user = {
-              id: sso.id || `sso_${sso.email.replace(/[^a-zA-Z0-9]/g, "_")}`,
+              id: validId,
               email: sso.email,
               user_metadata: { full_name: sso.name || "Doctor", role: sso.role || "doctor" },
               app_metadata: { provider: "sso_waflow" },

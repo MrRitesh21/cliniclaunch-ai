@@ -23,13 +23,13 @@ export function ClinicTrialJourney({
   hideWhenComplete = true,
   engagement: _engagement,
 }: {
-  snapshot: SubscriptionSnapshot;
+  snapshot?: SubscriptionSnapshot | null;
   clinic?: ActivationClinic | null;
   checklist?: boolean;
   hideWhenComplete?: boolean;
   engagement?: TrialEngagement;
 }) {
-  const steps = activationSteps(snapshot.usage, clinic ?? null);
+  const steps = activationSteps(snapshot?.usage, clinic ?? null);
   const completed = steps.filter((s) => s.done).length;
   const total = steps.length;
   const pct = Math.round((completed / total) * 100);

@@ -99,66 +99,84 @@ function publish(s: Snapshot) {
 let staticAliases: Array<{ alias: string; feature: string }> | null = null;
 let staticDisabledModules: Array<{ id: string }> | null = null;
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function fetchSnapshot(userId: string): Promise<Snapshot> {
+  // 1. If an active SSO doctor session is present, construct the local doctor snapshot directly
+  if (typeof window !== "undefined") {
+    try {
+      const rawSso = localStorage.getItem("clinicx_sso_session");
+      if (rawSso) {
+        const sso = JSON.parse(rawSso);
+        const orgId = "sso-org-001";
+        const coreMods = ["appointments", "consultation", "prescriptions", "whatsapp", "website_builder", "reviews", "analytics", "crm", "qr_appointment", "loyalty"];
+        return {
+          org: {
+            id: orgId,
+            name: sso.name ? `${sso.name}'s Practice` : "Doctor Clinic",
+            slug: sso.clinicSlug || "demo-clinic",
+            business_type: "clinic",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            billing_email: sso.email,
+            primary_color: "#059669",
+            tagline: "Healthcare Practice",
+          } as any,
+          role: "owner" as OrgRole,
+          installedModuleIds: coreMods,
+          planModuleIds: coreMods,
+          unavailableModuleIds: [],
+          subscription: {
+            id: "sso-sub-001",
+            organization_id: orgId,
+            plan_id: "growth",
+            status: "active",
+            billing_cycle: "monthly",
+            trial_started_at: null,
+            trial_ends_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any,
+          entitlement: {
+            organization_id: orgId,
+            role: "owner",
+            server_now: new Date().toISOString(),
+            effective_state: "active",
+            can_read: true,
+            can_write: true,
+            can_export: true,
+            usage: {
+              doctors: 1,
+              staff: 0,
+              patients: 0,
+              appointments: 0,
+              prescriptions: 0,
+              invoices: 0,
+              pending_staff_invites: 0,
+            },
+          } as any,
+          authorityUserId: userId,
+          authorityGeneration: 1,
+          authorityError: null,
+          authorityPending: false,
+          authorityScope: `1:${userId}:${orgId}:owner`,
+          isSubscriptionExpired: false,
+        };
+      }
+    } catch {}
+  }
+
+  // 2. Only query Supabase if userId is a valid UUID to prevent 400 Bad Request
+  if (!UUID_REGEX.test(userId)) {
+    return EMPTY;
+  }
+
   let membership: any;
   try {
     membership = await supabase.from("organization_members").select("organization_id, role").eq("user_id", userId).order("joined_at", { ascending: true }).limit(1);
   } catch {}
 
   if (!membership?.data?.length) {
-    if (typeof window !== "undefined") {
-      try {
-        const rawSso = localStorage.getItem("clinicx_sso_session");
-        if (rawSso) {
-          const sso = JSON.parse(rawSso);
-          const orgId = "sso-org-001";
-          const coreMods = ["appointments", "consultation", "prescriptions", "whatsapp", "website_builder", "reviews", "analytics", "crm", "qr_appointment", "loyalty"];
-          return {
-            org: {
-              id: orgId,
-              name: sso.name ? `${sso.name}'s Practice` : "Doctor Clinic",
-              slug: sso.clinicSlug || "demo-clinic",
-              business_type: "clinic",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              billing_email: sso.email,
-              primary_color: "#059669",
-              tagline: "Healthcare Practice",
-            } as any,
-            role: "owner" as OrgRole,
-            installedModuleIds: coreMods,
-            planModuleIds: coreMods,
-            unavailableModuleIds: [],
-            subscription: {
-              id: "sso-sub-001",
-              organization_id: orgId,
-              plan_id: "growth",
-              status: "active",
-              billing_cycle: "monthly",
-              trial_started_at: null,
-              trial_ends_at: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            } as any,
-            entitlement: {
-              organization_id: orgId,
-              role: "owner",
-              server_now: new Date().toISOString(),
-              effective_state: "active",
-              can_read: true,
-              can_write: true,
-              can_export: true,
-            } as any,
-            authorityUserId: userId,
-            authorityGeneration: 1,
-            authorityError: null,
-            authorityPending: false,
-            authorityScope: `1:${userId}:${orgId}:owner`,
-            isSubscriptionExpired: false,
-          };
-        }
-      } catch {}
-    }
     return EMPTY;
   }
   const orgId = membership.data[0].organization_id;

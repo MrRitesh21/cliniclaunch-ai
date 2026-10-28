@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Stethoscope, Sparkles, Loader2, ShieldCheck, AlertCircle, ArrowRight } from "lucide-react";
 import { verifySsoTokenFn } from "@/lib/sso.functions";
+import { emailToDeterministicUuid } from "@/lib/sso-uuid";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -117,7 +118,7 @@ function SsoAuthPage() {
         try {
           const activeSlug = verified.clinicSlug || "demo-clinic";
           const ssoSession = {
-            id: `sso_${email.replace(/[^a-zA-Z0-9]/g, "_")}`,
+            id: emailToDeterministicUuid(email),
             email,
             name,
             role: verified.role || "doctor",

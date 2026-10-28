@@ -128,16 +128,21 @@ export function useClinic() {
 
     (async () => {
       const targetId = getImpersonationCookie() || user.id;
+      const isTargetUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
 
-      // 1. Get the organization they belong to
-      const { data: mem, error: membershipError } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", targetId)
-        .limit(1);
+      // 1. Get the organization they belong to (only query Supabase if valid UUID)
+      let orgId: string | undefined = undefined;
+      if (isTargetUuid) {
+        const { data: mem, error: membershipError } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", targetId)
+          .limit(1);
 
-      if (membershipError) return; // Unknown membership must not create a workspace.
-      const orgId = mem?.[0]?.organization_id;
+        if (!membershipError) {
+          orgId = mem?.[0]?.organization_id;
+        }
+      }
 
       let clinicData: Clinic | null = null;
       if (orgId) {
@@ -556,6 +561,14 @@ function DashboardLayout() {
       setProfile(null);
       return;
     }
+    // If full_name is already known in metadata (e.g. SSO doctor session), use directly
+    if (user.user_metadata?.full_name) {
+      setProfile({ full_name: user.user_metadata.full_name });
+      return;
+    }
+    const isUserUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+    if (!isUserUuid) return;
+
     supabase
       .from("profiles")
       .select("full_name")
