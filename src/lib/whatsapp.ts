@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isValidUuid } from "@/lib/sso-uuid";
 
 export type WaTemplateKey =
   | "lead_alert"
@@ -287,22 +288,38 @@ export function waLink(phone: string, message: string): string {
 }
 
 export async function ensureDefaultTemplates(organizationId: string): Promise<void> {
-  const { data } = await supabase
+  if (!isValidUuid(organizationId)) return;
+  // If in local SSO session or demo, skip remote DB mutations to avoid FK constraint violations
+  if (
+    typeof window !== "undefined" &&
+    (localStorage.getItem("clinicx_sso_session") || document.cookie.includes("is_demo_session=true"))
+  ) {
+    return;
+  }
+
+  const { data, error } = await supabase
     .from("whatsapp_templates")
     .select("template_key")
     .eq("organization_id", organizationId);
-  const existing = new Set((data ?? []).map((r) => r.template_key));
+
+  if (error || !data) return;
+
+  const existing = new Set(data.map((r) => r.template_key));
   const missing = DEFAULT_TEMPLATES.filter((t) => !existing.has(t.key));
   if (missing.length === 0) return;
-  await supabase.from("whatsapp_templates").insert(
-    missing.map((t) => ({
-      organization_id: organizationId,
-      template_key: t.key,
-      name: t.name,
-      body: t.body,
-      is_active: true,
-    })),
-  );
+
+  await supabase
+    .from("whatsapp_templates")
+    .insert(
+      missing.map((t) => ({
+        organization_id: organizationId,
+        template_key: t.key,
+        name: t.name,
+        body: t.body,
+        is_active: true,
+      })),
+    )
+    .catch(() => {});
 }
 
 export type SendWaOptions = {
@@ -322,31 +339,53 @@ export type SendWaOptions = {
 export async function sendWhatsApp(
   opts: SendWaOptions,
 ): Promise<{ link: string | null; logged: boolean }> {
-  // Fetch active template
-  const { data: tpl } = await supabase
-    .from("whatsapp_templates")
-    .select("body, is_active")
-    .eq("organization_id", opts.organizationId)
-    .eq("template_key", opts.templateKey)
-    .maybeSingle();
+  let body: string | null = null;
 
-  if (!tpl || !tpl.is_active) {
+  if (isValidUuid(opts.organizationId)) {
+    // Fetch active template
+    const { data: tpl } = await supabase
+      .from("whatsapp_templates")
+      .select("body, is_active")
+      .eq("organization_id", opts.organizationId)
+      .eq("template_key", opts.templateKey)
+      .maybeSingle();
+
+    if (tpl) {
+      if (!tpl.is_active) {
+        return { link: null, logged: false };
+      }
+      body = tpl.body;
+    }
+  }
+
+  // Fallback to built-in default copy
+  if (!body) {
+    const def = DEFAULT_TEMPLATES.find((d) => d.key === opts.templateKey);
+    body = def ? def.body : null;
+  }
+
+  if (!body) {
     return { link: null, logged: false };
   }
 
-  const message = renderTemplate(tpl.body, opts.variables);
+  const message = renderTemplate(body, opts.variables);
   const link = waLink(opts.patientPhone, message);
 
-  await supabase.from("whatsapp_logs").insert({
-    organization_id: opts.organizationId,
-    appointment_id: opts.appointmentId ?? null,
-    patient_name: opts.patientName ?? null,
-    patient_phone: opts.patientPhone,
-    template_key: opts.templateKey,
-    message,
-    wa_link: link,
-    status: "sent",
-  });
+  if (isValidUuid(opts.organizationId)) {
+    await supabase
+      .from("whatsapp_logs")
+      .insert({
+        organization_id: opts.organizationId,
+        appointment_id: isValidUuid(opts.appointmentId) ? opts.appointmentId : null,
+        patient_name: opts.patientName ?? null,
+        patient_phone: opts.patientPhone,
+        template_key: opts.templateKey,
+        message,
+        wa_link: link,
+        status: "sent",
+      })
+      .catch(() => {});
+  }
 
   if (opts.openWindow && typeof window !== "undefined") {
     window.open(link, "_blank", "noopener,noreferrer");

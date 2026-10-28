@@ -146,7 +146,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){window.__clinicx_deferred_prompt=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__clinicx_deferred_prompt=e;window.dispatchEvent(new CustomEvent('clinicx:install-available',{detail:e}));});})();`,
+            __html: `(function(){window.__clinicx_deferred_prompt=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__clinicx_deferred_prompt=e;window.dispatchEvent(new CustomEvent('clinicx:install-available',{detail:e}));});window.addEventListener('unhandledrejection',function(e){var m=(e&&e.reason&&(e.reason.message||String(e.reason)))||'';if(m.indexOf('tabs:outgoing')!==-1||m.indexOf('No Listener: tabs')!==-1){e.preventDefault();e.stopImmediatePropagation&&e.stopImmediatePropagation();}});})();`,
           }}
         />
       </head>

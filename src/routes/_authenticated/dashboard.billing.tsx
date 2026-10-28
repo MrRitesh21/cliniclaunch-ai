@@ -161,7 +161,7 @@ function BillingPage() {
   >([]);
   const [syncing, setSyncing] = useState(false);
   const canManageBilling = role === "owner" || role === "admin";
-  const paidMandate = entitlement?.subscription.access_source === "verified_payment";
+  const paidMandate = entitlement?.subscription?.access_source === "verified_payment";
   const [renewal, setRenewal] = useState<RenewalQuote | null>(null);
   const [renewalError, setRenewalError] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -189,7 +189,7 @@ function BillingPage() {
       !!renewal.pending_change ||
       renewal.can_change === false ||
       (!!renewal.payment_method && renewal.payment_method !== "card") ||
-      !!entitlement?.subscription.cancel_at_period_end);
+      !!entitlement?.subscription?.cancel_at_period_end);
   const changeFn = useServerFn(changeRazorpaySubscription);
   const resumeFn = useServerFn(resumeRazorpaySubscription);
   const commandFn = useServerFn(reconcileRecurringSubscriptionCommand);
@@ -204,8 +204,8 @@ function BillingPage() {
   const historyFn = useServerFn(listSubscriptionBillingPage);
   const downgradeFn = useServerFn(checkSubscriptionDowngrade);
   const exportFn = useServerFn(exportClinicDataPage);
-  const currentPlan = plans.find((p) => p.id === entitlement?.subscription.plan_id);
-  const recommended = plans.find((p) => p.id === entitlement?.recommendation.plan_id);
+  const currentPlan = plans.find((p) => p.id === entitlement?.subscription?.plan_id);
+  const recommended = plans.find((p) => p.id === entitlement?.recommendation?.plan_id);
   const refreshBilling = useCallback(
     async function refreshBilling(orgId: string): Promise<RenewalQuote | null> {
       const token = workspace.current;
@@ -422,8 +422,9 @@ function BillingPage() {
   }, [org?.id, canManageBilling, refreshBilling]);
   useEffect(() => {
     if (!cycleInitialized.current && entitlement) {
-      if (["monthly", "yearly"].includes(entitlement.subscription.billing_cycle ?? ""))
-        setCycle(entitlement.subscription.billing_cycle as "monthly" | "yearly");
+      const bCycle = entitlement.subscription?.billing_cycle;
+      if (bCycle && ["monthly", "yearly"].includes(bCycle))
+        setCycle(bCycle as "monthly" | "yearly");
       cycleInitialized.current = true;
     }
   }, [entitlement]);
@@ -535,9 +536,9 @@ function BillingPage() {
               result.success &&
               latest.organization_id === org.id &&
               latest.effective_state === "active" &&
-              latest.subscription.access_source === "verified_payment" &&
-              latest.subscription.plan_id === pendingPlan.id &&
-              latest.subscription.billing_cycle === cycle
+              latest.subscription?.access_source === "verified_payment" &&
+              latest.subscription?.plan_id === pendingPlan.id &&
+              latest.subscription?.billing_cycle === cycle
             ) {
               setCheckoutMessage("Your ClinicX subscription is active.");
               toast.success("Subscription confirmed by the server.");
@@ -641,7 +642,7 @@ function BillingPage() {
       !renewal?.available ||
       renewal.provider_status !== "paused" ||
       renewal.can_resume === false ||
-      entitlement?.subscription.cancel_at_period_end
+      entitlement?.subscription?.cancel_at_period_end
     )
       return;
     const token = workspace.current;
@@ -817,9 +818,9 @@ function BillingPage() {
               {entitlement?.effective_state.replaceAll("_", " ") ?? "Checking access"}
             </Badge>
             <p className="text-sm text-muted-foreground mt-2">
-              Billing cycle: {entitlement?.subscription.billing_cycle ?? "Not configured"}
+              Billing cycle: {entitlement?.subscription?.billing_cycle ?? "Not configured"}
             </p>
-            {entitlement?.subscription.current_period_end && (
+            {entitlement?.subscription?.current_period_end && (
               <p className="text-sm mt-2">
                 {entitlement.subscription.cancel_at_period_end
                   ? "Paid access through"
@@ -897,7 +898,7 @@ function BillingPage() {
               disabled={
                 !canManageBilling ||
                 syncing ||
-                entitlement?.subscription.access_source !== "verified_payment"
+                entitlement?.subscription?.access_source !== "verified_payment"
               }
             >
               {syncing ? "Checking…" : "Check payment status"}
@@ -909,8 +910,8 @@ function BillingPage() {
               disabled={
                 !canManageBilling ||
                 cancelling ||
-                entitlement?.subscription.access_source !== "verified_payment" ||
-                !!entitlement?.subscription.cancel_at_period_end
+                entitlement?.subscription?.access_source !== "verified_payment" ||
+                !!entitlement?.subscription?.cancel_at_period_end
               }
             >
               Cancel future renewal
@@ -925,14 +926,14 @@ function BillingPage() {
                 !renewal?.available ||
                 renewal.provider_status !== "paused" ||
                 renewal.can_resume === false ||
-                !!entitlement?.subscription.cancel_at_period_end
+                !!entitlement?.subscription?.cancel_at_period_end
               }
             >
               Check & resume merchant-paused renewal
             </Button>
           </div>
         </div>
-        {entitlement?.subscription.cancel_at_period_end && (
+        {entitlement?.subscription?.cancel_at_period_end && (
           <p className="text-sm">
             Renewal is stopped. Cancelled mandates cannot resume. A new mandate can be considered
             only after canonical terminal confirmation and expiry of existing paid access.
@@ -1068,7 +1069,7 @@ function BillingPage() {
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((p) => {
-            const isCurrent = entitlement?.subscription.plan_id === p.id;
+            const isCurrent = entitlement?.subscription?.plan_id === p.id;
             const priceInfo = pricePresentation(p, cycle);
             const hasDiscount = priceInfo.discounted;
             const price = priceInfo.total;
@@ -1164,8 +1165,8 @@ function BillingPage() {
                     processing ||
                     (isCurrent &&
                       entitlement?.effective_state === "active" &&
-                      entitlement.subscription.billing_cycle === cycle &&
-                      !entitlement.subscription.cancel_at_period_end)
+                      entitlement.subscription?.billing_cycle === cycle &&
+                      !entitlement.subscription?.cancel_at_period_end)
                   }
                   onClick={() => setPendingPlan(p)}
                   className={`w-full mt-auto ${
@@ -1180,7 +1181,7 @@ function BillingPage() {
                 >
                   {isCurrent &&
                   entitlement?.effective_state === "active" &&
-                  entitlement.subscription.billing_cycle === cycle
+                  entitlement.subscription?.billing_cycle === cycle
                     ? "Current plan"
                     : isCurrent
                       ? "Continue / change cycle"
@@ -1202,7 +1203,7 @@ function BillingPage() {
           <PlanCompareTable
             plans={plans}
             modules={modules}
-            currentPlanId={entitlement?.subscription.plan_id}
+            currentPlanId={entitlement?.subscription?.plan_id}
             billingCycle={cycle}
             planLimits={catalogLimits}
             planFeatures={catalogFeatures}

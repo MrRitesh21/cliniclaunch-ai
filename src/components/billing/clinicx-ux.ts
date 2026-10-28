@@ -14,8 +14,8 @@ export function trialMessage(s: SubscriptionSnapshot): string {
   if (s.effective_state === "past_due")
     return "Payment failed. Please update your payment method to keep clinic operations active.";
   if (s.effective_state !== "trialing") return "Your ClinicX subscription";
-  const start = Date.parse(s.subscription.trial_started_at ?? "");
-  const end = Date.parse(s.subscription.trial_ends_at ?? "");
+  const start = Date.parse(s.subscription?.trial_started_at ?? "");
+  const end = Date.parse(s.subscription?.trial_ends_at ?? "");
   const now = Date.parse(s.server_now);
   if (![start, end, now].every(Number.isFinite)) return "Your ClinicX free trial";
   const day = Math.max(0, Math.floor((now - start) / 86400000));

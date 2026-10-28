@@ -11,6 +11,7 @@ import * as Icons from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SkeletonCards } from "@/components/ui/skeleton-rows";
+import { isValidUuid } from "@/lib/sso-uuid";
 import {
   Crown,
   Check,
@@ -200,7 +201,19 @@ const DEFAULT_BENEFIT = {
 };
 
 function ModulesPage() {
-  const { org, role, entitlement, authorityUserId, authorityGeneration, authorityError, unavailableModuleIds, installedModuleIds, planModuleIds, refresh } = useOrganization();
+  const {
+    org,
+    role,
+    subscription: orgSub,
+    entitlement,
+    authorityUserId,
+    authorityGeneration,
+    authorityError,
+    unavailableModuleIds,
+    installedModuleIds,
+    planModuleIds,
+    refresh,
+  } = useOrganization();
   const { user } = useAuthReady();
 
   const [modules, setModules] = useState<Module[]>([]);
@@ -273,10 +286,18 @@ function ModulesPage() {
     if (!org) return;
     (async () => {
       setLoading(true);
+      const subPromise =
+        !org?.id ||
+        !isValidUuid(org.id) ||
+        (typeof window !== "undefined" &&
+          (localStorage.getItem("clinicx_sso_session") || document.cookie.includes("is_demo_session=true")))
+          ? Promise.resolve({ data: orgSub ?? null })
+          : supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle();
+
       const [{ data: m }, { data: p }, { data: s }] = await Promise.all([
         supabase.from("modules").select("*").order("sort_order"),
         supabase.from("plans").select("*").order("sort_order"),
-        supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle(),
+        subPromise,
       ]);
       let modulesList = (m ?? []) as Module[];
       if (!modulesList.some((mod) => mod.id === "seo")) {
@@ -316,10 +337,10 @@ function ModulesPage() {
       }
       setModules(modulesList);
       setPlans((p ?? []) as Plan[]);
-      setSub((s ?? null) as Subscription | null);
+      setSub((s ?? orgSub ?? null) as Subscription | null);
       setLoading(false);
     })();
-  }, [org]);
+  }, [org, orgSub]);
 
   async function toggle(m: Module) {
     if (!org) return;

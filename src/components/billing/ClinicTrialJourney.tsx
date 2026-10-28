@@ -65,11 +65,11 @@ export function ClinicTrialJourney({
   }
 
   const stateLabel =
-    snapshot.effective_state === "active"
+    snapshot?.effective_state === "active"
       ? "Practice Active"
-      : snapshot.effective_state === "trialing"
+      : snapshot?.effective_state === "trialing"
         ? "Trial Active"
-        : snapshot.effective_state.replaceAll("_", " ");
+        : (snapshot?.effective_state?.replaceAll("_", " ") ?? "Active");
 
   return (
     <Card className="overflow-hidden border border-border/80 shadow-xs bg-card/90 transition-all">
@@ -92,7 +92,7 @@ export function ClinicTrialJourney({
                 <Badge
                   variant="outline"
                   className={`text-[11px] font-semibold px-2 py-0.5 capitalize ${
-                    snapshot.effective_state === "active"
+                    snapshot?.effective_state === "active"
                       ? "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
                       : "border-blue-500/30 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20"
                   }`}

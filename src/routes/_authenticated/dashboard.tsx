@@ -74,6 +74,7 @@ import { usePWAInstall } from "@/lib/pwa";
 import { isIos } from "@/lib/push-client";
 import { clearDemoSessionFlags, setDemoSessionFlags, CLEAN_DEMO_CLINIC_DATA } from "@/lib/demo";
 import { getClinicBySlug, ensureDoctorMembership } from "@/lib/clinic.functions";
+import { emailToDeterministicUuid, isValidUuid } from "@/lib/sso-uuid";
 import { DemoConversionWidget } from "@/components/demo/DemoConversionWidget";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
@@ -124,7 +125,9 @@ export function useClinic() {
       `clinic:${getImpersonationCookie() || user.id}`,
       24 * 60 * 60 * 1000,
     );
-    if (cachedClinic) setClinic(cachedClinic);
+    if (cachedClinic && (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))) {
+      setClinic(cachedClinic);
+    }
 
     (async () => {
       const targetId = getImpersonationCookie() || user.id;
@@ -169,9 +172,11 @@ export function useClinic() {
               ensureDoctorMembership({ data: { clinic_id: clinicData.id, user_id: targetId } }).catch(() => {});
             }
           } else {
+            const orgUuid = emailToDeterministicUuid(`org:${sso?.email || "demo-clinic"}`);
+            const clinicUuid = emailToDeterministicUuid(`clinic:${sso?.email || "demo-clinic"}`);
             clinicData = {
-              id: "sso-clinic-001",
-              organization_id: "sso-org-001",
+              id: clinicUuid,
+              organization_id: orgUuid,
               slug: slugToLoad,
               doctor_name: sso?.name || CLEAN_DEMO_CLINIC_DATA.doctor_name,
               clinic_name: sso?.name ? `${sso.name}'s Practice` : CLEAN_DEMO_CLINIC_DATA.clinic_name,

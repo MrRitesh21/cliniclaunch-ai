@@ -8,13 +8,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { isValidUuid } from "@/lib/sso-uuid";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 type Plan = Database["public"]["Tables"]["plans"]["Row"];
 type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 
 export function AppNotInstalled({ appKey }: { appKey: string }) {
-  const { org, planModuleIds, refresh } = useOrganization();
+  const { org, planModuleIds, refresh, subscription: orgSub } = useOrganization();
   const [mod, setMod] = useState<Module | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,17 +24,26 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
     if (!org) return;
     let active = true;
     (async () => {
+      const subPromise =
+        !org?.id ||
+        !isValidUuid(org.id) ||
+        (typeof window !== "undefined" &&
+          (localStorage.getItem("clinicx_sso_session") || document.cookie.includes("is_demo_session=true")))
+          ? Promise.resolve({ data: orgSub ?? null })
+          : supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle();
+
       const [{ data: m }, { data: s }] = await Promise.all([
         supabase.from("modules").select("*").eq("id", appKey).maybeSingle(),
-        supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle(),
+        subPromise,
       ]);
       if (!active) return;
       setMod((m ?? null) as Module | null);
-      if (s) {
+      const activeSub = (s as Subscription | null) ?? orgSub ?? null;
+      if (activeSub) {
         const { data: p } = await supabase
           .from("plans")
           .select("*")
-          .eq("id", (s as Subscription).plan_id)
+          .eq("id", activeSub.plan_id)
           .maybeSingle();
         if (active) setPlan((p ?? null) as Plan | null);
       }
@@ -41,7 +51,7 @@ export function AppNotInstalled({ appKey }: { appKey: string }) {
     return () => {
       active = false;
     };
-  }, [org, appKey]);
+  }, [org, appKey, orgSub]);
 
   async function install() {
     if (!org || !mod) return;

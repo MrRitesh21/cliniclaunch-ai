@@ -40,6 +40,7 @@ import { getClinicSubscription } from "@/lib/subscription.functions";
 import type { SubscriptionSnapshot } from "@/lib/subscription.server";
 import type { Database } from "@/integrations/supabase/types";
 import { readCache, writeCache } from "@/lib/persist-cache";
+import { emailToDeterministicUuid, isValidUuid } from "@/lib/sso-uuid";
 
 export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
 export type OrgRole = Database["public"]["Enums"]["org_role"];
@@ -108,7 +109,9 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
       const rawSso = localStorage.getItem("clinicx_sso_session");
       if (rawSso) {
         const sso = JSON.parse(rawSso);
-        const orgId = "sso-org-001";
+        const orgId = isValidUuid(sso.organizationId)
+          ? sso.organizationId
+          : emailToDeterministicUuid(`org:${sso.email || "doctor"}`);
         const coreMods = ["appointments", "consultation", "prescriptions", "whatsapp", "website_builder", "reviews", "analytics", "crm", "qr_appointment", "loyalty"];
         return {
           org: {
@@ -127,7 +130,7 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
           planModuleIds: coreMods,
           unavailableModuleIds: [],
           subscription: {
-            id: "sso-sub-001",
+            id: emailToDeterministicUuid(`sub:${sso.email || "doctor"}`),
             organization_id: orgId,
             plan_id: "growth",
             status: "active",
@@ -145,6 +148,18 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
             can_read: true,
             can_write: true,
             can_export: true,
+            subscription: {
+              id: null,
+              plan_id: "growth",
+              status: "active",
+              billing_cycle: "monthly",
+              trial_started_at: null,
+              trial_ends_at: null,
+              grace_ends_at: null,
+              current_period_end: null,
+              cancel_at_period_end: false,
+              access_source: "verified_payment",
+            },
             usage: {
               doctors: 1,
               staff: 0,
@@ -318,7 +333,10 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
 function loadShared(userId: string, force = false): Promise<Snapshot> {
   if (cacheUserId !== userId) {
     cacheUserId = userId;
-    const persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    let persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted?.org && !isValidUuid(persisted.org.id)) {
+      persisted = undefined;
+    }
     cache = persisted?.org ? ({
       ...EMPTY,
       ...persisted,
@@ -345,7 +363,10 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
     if (cache?.org && cache?.entitlement) {
       return cache;
     }
-    const persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    let persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted?.org && !isValidUuid(persisted.org.id)) {
+      persisted = undefined;
+    }
     return persisted?.org ? ({ ...EMPTY, ...persisted, authorityUserId: userId } as Snapshot) : unverified(null, null, false);
   }).then(s => {
     if (token === generation && userId === cacheUserId) return publish({ ...s, authorityScope: s.entitlement && s.org ? `${token}:${userId}:${s.org.id}:${s.role}` : null });
@@ -358,7 +379,10 @@ export function useOrganization(): OrgContext {
   const [, setSnapshot] = useState<Snapshot>(() => {
     if (!user) return { ...EMPTY, org: undefined };
     if (cacheUserId === user.id && cache) return cache;
-    const persisted = readCache<Partial<Snapshot>>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
+    let persisted = readCache<Partial<Snapshot>>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
+    if (persisted?.org && !isValidUuid(persisted.org.id)) {
+      persisted = undefined;
+    }
     if (persisted?.org) {
       return {
         ...EMPTY,

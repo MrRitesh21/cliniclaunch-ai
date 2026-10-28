@@ -63,6 +63,24 @@ function isDemoSessionActive() {
   );
 }
 
+function createChainableBlockedPromise(errorMessage: string) {
+  const result = {
+    data: null,
+    error: { message: errorMessage },
+  };
+  const promise = Promise.resolve(result);
+  const chainableProxy: any = new Proxy(promise, {
+    get(target, prop) {
+      if (prop === "then") return target.then.bind(target);
+      if (prop === "catch") return target.catch.bind(target);
+      if (prop === "finally") return target.finally.bind(target);
+      // Return a function for chainable query methods like .eq, .neq, .in, .select, etc.
+      return () => chainableProxy;
+    },
+  });
+  return chainableProxy;
+}
+
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 
 // Import the supabase client like this:
@@ -91,10 +109,7 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
                     toast.error("Cannot modify data in impersonation mode");
                   });
                 }
-                return Promise.resolve({
-                  data: null,
-                  error: { message: "ReadOnly: Impersonation Mode Active" },
-                });
+                return createChainableBlockedPromise("ReadOnly: Impersonation Mode Active");
               };
             }
 
@@ -106,12 +121,7 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
                     toast.error("Deletion is prohibited in Live Demo mode");
                   });
                 }
-                return Promise.resolve({
-                  data: null,
-                  error: {
-                    message: "DeletionProhibited: Deletion is prohibited in Live Demo mode",
-                  },
-                });
+                return createChainableBlockedPromise("DeletionProhibited: Deletion is prohibited in Live Demo mode");
               };
             }
 

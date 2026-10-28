@@ -59,6 +59,7 @@ import {
   waLink,
   type WaTemplateKey,
 } from "@/lib/whatsapp";
+import { isValidUuid } from "@/lib/sso-uuid";
 import { useServerFn } from "@tanstack/react-start";
 import { WhatsappConnectCard } from "@/components/whatsapp/ConnectCard";
 import {
@@ -309,6 +310,30 @@ function WhatsAppPage() {
     ).replace(/^custom_/, "custom_");
     const fullKey = key.startsWith("custom_") ? key : `custom_${key}`;
 
+    const isSsoOrDemo =
+      typeof window !== "undefined" &&
+      (!isValidUuid(org.id) ||
+        Boolean(localStorage.getItem("clinicx_sso_session")) ||
+        document.cookie.includes("is_demo_session=true"));
+
+    if (isSsoOrDemo) {
+      setTemplates((prev) => [
+        ...prev,
+        {
+          id: `custom-${Date.now()}`,
+          name: customForm.name.trim(),
+          template_key: fullKey,
+          body: customForm.body.trim(),
+          is_active: true,
+        },
+      ]);
+      setSavingCustom(false);
+      toast.success("Custom WhatsApp Template created!");
+      setCustomModalOpen(false);
+      setCustomForm({ name: "", template_key: "", body: "" });
+      return;
+    }
+
     const { error } = await supabase.from("whatsapp_templates").insert({
       organization_id: org.id,
       name: customForm.name.trim(),
@@ -328,26 +353,52 @@ function WhatsAppPage() {
   const load = useCallback(async () => {
     if (!org?.id) return;
     setLoading(true);
-    // Fetch templates & logs in parallel immediately without blocking on ensureDefaultTemplates
-    const [{ data: t }, { data: l }] = await Promise.all([
-      supabase
-        .from("whatsapp_templates")
-        .select("*")
-        .eq("organization_id", org.id)
-        .order("template_key"),
-      supabase
-        .from("whatsapp_logs")
-        .select("id, patient_name, patient_phone, template_key, message, wa_link, status, error, scheduled_for, sent_at, created_at")
-        .eq("organization_id", org.id)
-        .order("created_at", { ascending: false })
-        .limit(100),
-    ]);
-    setTemplates((t ?? []) as TemplateRow[]);
-    setLogs((l ?? []) as LogRow[]);
-    setLoading(false);
 
-    // Ensure templates in the background if missing without freezing initial render
-    ensureDefaultTemplates(org.id).catch(() => {});
+    const isSsoOrDemo =
+      typeof window !== "undefined" &&
+      (!isValidUuid(org.id) ||
+        Boolean(localStorage.getItem("clinicx_sso_session")) ||
+        document.cookie.includes("is_demo_session=true"));
+
+    if (isSsoOrDemo) {
+      setTemplates(
+        DEFAULT_TEMPLATES.map((t) => ({
+          id: `tpl-${t.key}`,
+          template_key: t.key,
+          name: t.name,
+          body: t.body,
+          is_active: true,
+        })),
+      );
+      setLogs([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch templates & logs in parallel immediately without blocking on ensureDefaultTemplates
+      const [{ data: t }, { data: l }] = await Promise.all([
+        supabase
+          .from("whatsapp_templates")
+          .select("*")
+          .eq("organization_id", org.id)
+          .order("template_key"),
+        supabase
+          .from("whatsapp_logs")
+          .select("id, patient_name, patient_phone, template_key, message, wa_link, status, error, scheduled_for, sent_at, created_at")
+          .eq("organization_id", org.id)
+          .order("created_at", { ascending: false })
+          .limit(100),
+      ]);
+      setTemplates((t ?? []) as TemplateRow[]);
+      setLogs((l ?? []) as LogRow[]);
+      // Ensure templates in the background if missing without freezing initial render
+      ensureDefaultTemplates(org.id).catch(() => {});
+    } catch (e) {
+      console.warn("[WhatsApp] Failed to fetch templates or logs:", e);
+    } finally {
+      setLoading(false);
+    }
   }, [org?.id]);
 
   useEffect(() => {
@@ -355,7 +406,23 @@ function WhatsAppPage() {
   }, [load]);
 
   async function saveTemplate(t: TemplateRow) {
+    if (!org?.id) return;
     setSavingId(t.id);
+
+    const isSsoOrDemo =
+      typeof window !== "undefined" &&
+      (!isValidUuid(org.id) ||
+        !isValidUuid(t.id) ||
+        Boolean(localStorage.getItem("clinicx_sso_session")) ||
+        document.cookie.includes("is_demo_session=true"));
+
+    if (isSsoOrDemo) {
+      updateLocal(t.id, { body: t.body, is_active: t.is_active });
+      setSavingId(null);
+      toast.success(`${t.name} saved`);
+      return;
+    }
+
     const { error } = await supabase
       .from("whatsapp_templates")
       .update({ body: t.body, is_active: t.is_active })
@@ -376,6 +443,31 @@ function WhatsAppPage() {
     if (!org?.id) return;
     const def = DEFAULT_TEMPLATES.find((d) => d.key === key);
     if (!def) return toast.error("No default copy available for this automation");
+
+    const isSsoOrDemo =
+      typeof window !== "undefined" &&
+      (!isValidUuid(org.id) ||
+        Boolean(localStorage.getItem("clinicx_sso_session")) ||
+        document.cookie.includes("is_demo_session=true"));
+
+    if (isSsoOrDemo) {
+      setTemplates((prev) => {
+        if (prev.some((x) => x.template_key === key)) return prev;
+        return [
+          ...prev,
+          {
+            id: `tpl-${def.key}`,
+            template_key: def.key,
+            name: def.name,
+            body: def.body,
+            is_active: true,
+          },
+        ];
+      });
+      toast.success(`${def.name} is now active`);
+      return;
+    }
+
     setCreatingKey(key);
     const { error } = await supabase.from("whatsapp_templates").insert({
       organization_id: org.id,
