@@ -383,7 +383,7 @@ export function TemplateContactPage({
                     placeholder="e.g. Priya Sharma"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                     style={{ backgroundColor: palette.background, borderColor: palette.border }}
                   />
                 </div>
@@ -399,7 +399,7 @@ export function TemplateContactPage({
                       placeholder="e.g. +91 98765 43210"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                      className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                       style={{ backgroundColor: palette.background, borderColor: palette.border }}
                     />
                   </div>
@@ -413,7 +413,7 @@ export function TemplateContactPage({
                       placeholder="e.g. priya@example.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                      className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                       style={{ backgroundColor: palette.background, borderColor: palette.border }}
                     />
                   </div>
@@ -426,7 +426,7 @@ export function TemplateContactPage({
                   <select
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                    className="w-full px-3 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                     style={{ backgroundColor: palette.background, borderColor: palette.border }}
                   >
                     <option value="Appointment Inquiry">Appointment & Slot Inquiry</option>
@@ -447,7 +447,7 @@ export function TemplateContactPage({
                     placeholder="Type your message, preferred days, or specific health inquiries here..."
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 resize-none"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 resize-none touch-manipulation"
                     style={{ backgroundColor: palette.background, borderColor: palette.border }}
                   />
                 </div>

@@ -29,52 +29,46 @@ export function TemplatePageRenderer({
     return <>{homeContent}</>;
   }
 
-  if (page === "about") {
-    return (
-      <TemplateAboutPage
-        clinic={clinic}
-        palette={palette}
-        typography={typography}
-        onNavigate={onNavigate}
-        onOpenBooking={onOpenBooking}
-      />
-    );
-  }
+  return (
+    <div className="pb-24 sm:pb-28 md:pb-12 animate-in fade-in duration-200">
+      {page === "about" && (
+        <TemplateAboutPage
+          clinic={clinic}
+          palette={palette}
+          typography={typography}
+          onNavigate={onNavigate}
+          onOpenBooking={onOpenBooking}
+        />
+      )}
 
-  if (page === "services") {
-    return (
-      <TemplateServicesPage
-        clinic={clinic}
-        palette={palette}
-        typography={typography}
-        onNavigate={onNavigate}
-        onOpenBooking={onOpenBooking}
-      />
-    );
-  }
+      {page === "services" && (
+        <TemplateServicesPage
+          clinic={clinic}
+          palette={palette}
+          typography={typography}
+          onNavigate={onNavigate}
+          onOpenBooking={onOpenBooking}
+        />
+      )}
 
-  if (page === "book") {
-    return (
-      <TemplateBookPage
-        clinic={clinic}
-        palette={palette}
-        typography={typography}
-        onNavigate={onNavigate}
-      />
-    );
-  }
+      {page === "book" && (
+        <TemplateBookPage
+          clinic={clinic}
+          palette={palette}
+          typography={typography}
+          onNavigate={onNavigate}
+        />
+      )}
 
-  if (page === "contact") {
-    return (
-      <TemplateContactPage
-        clinic={clinic}
-        palette={palette}
-        typography={typography}
-        onNavigate={onNavigate}
-        onOpenBooking={onOpenBooking}
-      />
-    );
-  }
-
-  return <>{homeContent}</>;
+      {page === "contact" && (
+        <TemplateContactPage
+          clinic={clinic}
+          palette={palette}
+          typography={typography}
+          onNavigate={onNavigate}
+          onOpenBooking={onOpenBooking}
+        />
+      )}
+    </div>
+  );
 }

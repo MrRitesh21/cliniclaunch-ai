@@ -23,35 +23,47 @@ export function useReducedMotion(): boolean {
 /**
  * Intersection Observer helper for scroll-triggered reveals
  */
-export function useInView(options: IntersectionObserverInit = { threshold: 0.15 }): [React.RefObject<HTMLDivElement | null>, boolean] {
+export function useInView(
+  options: IntersectionObserverInit = { threshold: 0.05, rootMargin: "0px 0px 80px 0px" }
+): [React.RefObject<HTMLDivElement | null>, boolean] {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isInView, setIsInView] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !ref.current) return;
     const el = ref.current;
+
+    // Safety timeout: on mobile devices or fast scrolls, ensure content is never stuck hidden
+    const timer = setTimeout(() => {
+      setIsInView(true);
+    }, 750);
+
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
+      if (entry && entry.isIntersecting) {
         setIsInView(true);
+        clearTimeout(timer);
         observer.unobserve(el);
       }
     }, options);
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
   }, [options.threshold]);
 
   return [ref, isInView];
 }
 
 /**
- * FadeUp component with subtle spring-like easing
+ * FadeUp component with subtle spring-like easing and mobile-optimized snappiness
  */
 export function FadeUp({
   children,
   delay = 0,
-  duration = 0.8,
-  y = 28,
+  duration = 0.6,
+  y = 20,
   className = "",
 }: {
   children: React.ReactNode;
@@ -67,16 +79,20 @@ export function FadeUp({
   useEffect(() => {
     if (!inView || !elRef.current || reduced) return;
 
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    const mobileY = isMobile ? Math.min(y, 12) : y;
+    const mobileDuration = isMobile ? Math.min(duration, 0.45) : duration;
+
     gsap.fromTo(
       elRef.current,
-      { opacity: 0, y },
+      { opacity: 0, y: mobileY },
       {
         opacity: 1,
         y: 0,
-        duration,
-        delay,
-        ease: "power3.out",
-        clearProps: "transform",
+        duration: mobileDuration,
+        delay: isMobile ? Math.min(delay, 0.15) : delay,
+        ease: "power2.out",
+        clearProps: "transform,opacity",
       }
     );
   }, [inView, delay, duration, y, reduced]);
@@ -88,7 +104,7 @@ export function FadeUp({
         elRef.current = node;
       }}
       className={className}
-      style={{ opacity: reduced ? 1 : 0 }}
+      style={{ opacity: reduced || inView ? 1 : 0 }}
     >
       {children}
     </div>
@@ -148,7 +164,13 @@ export function TextReveal({
     >
       {words.map((word, i) => (
         <span key={i} className="inline-block overflow-hidden mr-[0.25em] align-top">
-          <span className="word-item inline-block" style={{ opacity: 0, transform: "translateY(110%)" }}>
+          <span
+            className="word-item inline-block transition-transform duration-300"
+            style={{
+              opacity: inView ? 1 : 0,
+              transform: inView ? "none" : "translateY(110%)",
+            }}
+          >
             {word}
           </span>
         </span>
@@ -209,6 +231,7 @@ export function ImageMaskReveal({
         src={src}
         alt={alt}
         loading="lazy"
+        decoding="async"
         className="w-full h-full object-cover will-change-transform"
         style={{ transform: reduced ? "none" : "scale(1.14)" }}
       />

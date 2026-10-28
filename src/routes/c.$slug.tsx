@@ -240,14 +240,17 @@ function ClinicLayout() {
       <Footer clinic={c} />
 
       {showStickyBook && (
-        <div className="md:hidden fixed inset-x-0 bottom-0 z-40 bg-background/95 backdrop-blur border-t px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div
+          className="md:hidden fixed inset-x-0 bottom-0 z-40 bg-background/95 backdrop-blur border-t px-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] transform-gpu"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
+        >
           <Link
             to="/c/$slug/book"
             params={{ slug: c.slug }}
             search={{ preview: undefined }}
             className="block"
           >
-            <Button size="lg" className="w-full font-medium">
+            <Button size="lg" className="w-full font-medium min-h-[46px] touch-manipulation">
               Book appointment
             </Button>
           </Link>

@@ -138,7 +138,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                   <button
                     type="button"
                     onClick={() => setApptType("offline")}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-semibold transition-all ${
+                    className={`flex items-center justify-center gap-2 p-3 min-h-[44px] rounded-2xl border text-xs font-semibold transition-all touch-manipulation ${
                       apptType === "offline"
                         ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
                         : "border-border/80 hover:bg-muted/40 text-foreground"
@@ -150,7 +150,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                   <button
                     type="button"
                     onClick={() => setApptType("online")}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-semibold transition-all ${
+                    className={`flex items-center justify-center gap-2 p-3 min-h-[44px] rounded-2xl border text-xs font-semibold transition-all touch-manipulation ${
                       apptType === "online"
                         ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
                         : "border-border/80 hover:bg-muted/40 text-foreground"
@@ -175,7 +175,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                       value={date}
                       min={new Date().toISOString().split("T")[0]}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full h-10 px-3 text-xs rounded-xl border bg-background font-mono focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full h-11 sm:h-10 px-3 text-base sm:text-xs rounded-xl border bg-background font-mono focus:ring-2 focus:ring-primary/20 outline-none"
                     />
                   </div>
                 </div>
@@ -187,7 +187,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                   <select
                     value={timeSlot}
                     onChange={(e) => setTimeSlot(e.target.value)}
-                    className="w-full h-10 px-3 text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
+                    className="w-full h-11 sm:h-10 px-3 text-base sm:text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
                   >
                     {availableSlots.map((slot) => (
                       <option key={slot} value={slot}>
@@ -210,7 +210,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                     placeholder="e.g. Ramesh Verma"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full h-10 px-3.5 text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
+                    className="w-full h-11 sm:h-10 px-3.5 text-base sm:text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
                   />
                 </div>
 
@@ -224,7 +224,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                     placeholder="e.g. 9876543210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-10 px-3.5 text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
+                    className="w-full h-11 sm:h-10 px-3.5 text-base sm:text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
                   />
                 </div>
 
@@ -237,7 +237,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                     placeholder="e.g. name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-10 px-3.5 text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
+                    className="w-full h-11 sm:h-10 px-3.5 text-base sm:text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none"
                   />
                 </div>
 
@@ -250,7 +250,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
                     placeholder="Briefly describe what you would like to consult for..."
                     value={problem}
                     onChange={(e) => setProblem(e.target.value)}
-                    className="w-full p-3 text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                    className="w-full p-3 text-base sm:text-xs rounded-xl border bg-background focus:ring-2 focus:ring-primary/20 outline-none resize-none"
                   />
                 </div>
               </div>

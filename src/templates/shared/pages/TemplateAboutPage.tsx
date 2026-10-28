@@ -119,6 +119,8 @@ export function TemplateAboutPage({
               <img
                 src={doctorPhoto}
                 alt={doctorName}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700"
               />
               <div

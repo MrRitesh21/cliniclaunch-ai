@@ -458,7 +458,7 @@ export function TemplateBookPage({
                     placeholder="e.g. Ramesh Verma"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                     style={{ backgroundColor: palette.background, borderColor: palette.border }}
                   />
                 </div>
@@ -473,7 +473,7 @@ export function TemplateBookPage({
                     placeholder="e.g. +91 98765 43210"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                     style={{ backgroundColor: palette.background, borderColor: palette.border }}
                   />
                 </div>
@@ -487,7 +487,7 @@ export function TemplateBookPage({
                     placeholder="e.g. ramesh@example.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                     style={{ backgroundColor: palette.background, borderColor: palette.border }}
                   />
                 </div>
@@ -502,7 +502,7 @@ export function TemplateBookPage({
                       placeholder="e.g. 34"
                       value={formData.age}
                       onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                      className="w-full px-4 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                       style={{ backgroundColor: palette.background, borderColor: palette.border }}
                     />
                   </div>
@@ -513,7 +513,7 @@ export function TemplateBookPage({
                     <select
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2"
+                      className="w-full px-3 py-3 sm:py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 touch-manipulation"
                       style={{ backgroundColor: palette.background, borderColor: palette.border }}
                     >
                       <option value="male">Male</option>
