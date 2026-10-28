@@ -32,6 +32,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -80,7 +81,7 @@ export function LocalTrustTemplate(props: TemplateProps) {
   ];
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#059669",
     "secondary": "#047857",
     "accent": "#10b981",
@@ -89,7 +90,7 @@ export function LocalTrustTemplate(props: TemplateProps) {
     "text": "#1c1917",
     "mutedText": "#57534e",
     "border": "#e7e5e4"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "High-Legibility Accessible Sans",
     "bodyFont": "Inter / Sans-Serif",

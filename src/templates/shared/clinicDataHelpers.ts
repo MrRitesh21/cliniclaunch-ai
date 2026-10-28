@@ -1,4 +1,5 @@
 import type { SiteClinic } from "@/components/site/types";
+import type { TemplatePalette } from "./types";
 
 export type NormalizedService = {
   id: string;
@@ -278,3 +279,54 @@ export function getWorkingHours(clinic: SiteClinic): { days: DayHours[]; isOpenN
     return { days: defaultSchedule, isOpenNow: true, todayHours: "09:00 AM - 07:00 PM" };
   }
 }
+
+/**
+ * Dynamically resolves custom theme palette for any template.
+ * Merges clinic.theme_color, ?tc= URL parameter, session local storage, and custom palette tokens.
+ */
+export function resolveTemplatePalette(
+  basePalette: TemplatePalette,
+  clinic?: SiteClinic | any,
+  overrideColor?: string | null
+): TemplatePalette {
+  if (!clinic && !overrideColor) return basePalette;
+
+  let primaryColor = overrideColor;
+
+  if (typeof window !== "undefined" && !primaryColor) {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tc = urlParams.get("tc");
+      if (tc) primaryColor = tc;
+      else if (clinic?.slug) {
+        const stored = window.localStorage.getItem(`clinic_custom_color_${clinic.slug}`);
+        if (stored) primaryColor = stored;
+      }
+    } catch {}
+  }
+
+  const customPalette = (clinic?.section_content?.custom_palette || {}) as Partial<TemplatePalette>;
+  if (!primaryColor && customPalette.primary) {
+    primaryColor = customPalette.primary;
+  }
+
+  // If clinic has a customized theme_color that is not the generic default
+  if (!primaryColor && clinic?.theme_color && clinic.theme_color !== "#2563eb") {
+    primaryColor = clinic.theme_color;
+  }
+
+  const merged: TemplatePalette = {
+    ...basePalette,
+    ...customPalette,
+  };
+
+  if (primaryColor) {
+    merged.primary = primaryColor;
+    if (!customPalette.accent) {
+      merged.accent = primaryColor;
+    }
+  }
+
+  return merged;
+}
+

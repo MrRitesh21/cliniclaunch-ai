@@ -29,6 +29,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -59,7 +60,7 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#831843",
     "secondary": "#292524",
     "accent": "#be185d",
@@ -68,7 +69,7 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
     "text": "#292524",
     "mutedText": "#78716c",
     "border": "#e7e5e4"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Playfair Display / Serif",
     "bodyFont": "Inter / Sans-Serif",

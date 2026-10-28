@@ -33,6 +33,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -67,7 +68,7 @@ export function SwissMedicalTemplate(props: TemplateProps) {
   const charcoal = "#18181b";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#dc2626",
     "secondary": "#18181b",
     "accent": "#ef4444",
@@ -76,7 +77,7 @@ export function SwissMedicalTemplate(props: TemplateProps) {
     "text": "#18181b",
     "mutedText": "#71717a",
     "border": "#e4e4e7"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Plus Jakarta Sans / Bold",
     "bodyFont": "Inter / Sans-Serif",

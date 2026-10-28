@@ -33,6 +33,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -67,7 +68,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
   const clinicalRed = "#dc2626";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#0f172a",
     "secondary": "#dc2626",
     "accent": "#334155",
@@ -76,7 +77,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
     "text": "#0f172a",
     "mutedText": "#475569",
     "border": "#0f172a"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Structured Tabular Sans",
     "bodyFont": "Inter / Sans-Serif",

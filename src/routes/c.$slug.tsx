@@ -8,6 +8,8 @@ import { resolveVariants, getVariantComponent } from "@/components/site/registry
 import type { SiteClinic } from "@/components/site/types";
 import { SITE_URL } from "@/lib/marketing-data";
 import { isPremiumTemplate } from "@/templates/registry";
+import { UniversalFloatingContact } from "@/components/site/UniversalFloatingContact";
+import { TemplateCustomizer } from "@/templates/shared/TemplateCustomizer";
 
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (
@@ -220,6 +222,20 @@ function ClinicLayout() {
         <main className="flex-1">
           <Outlet />
         </main>
+        <UniversalFloatingContact clinic={c} themeColor={theme} />
+        <TemplateCustomizer
+          clinic={c}
+          currentPalette={{
+            primary: theme,
+            secondary: "#0f172a",
+            accent: theme,
+            background: "#ffffff",
+            surface: "#ffffff",
+            text: "#0f172a",
+            mutedText: "#64748b",
+            border: "#e2e8f0",
+          }}
+        />
       </div>
     );
   }
@@ -238,6 +254,21 @@ function ClinicLayout() {
         <Outlet />
       </main>
       <Footer clinic={c} />
+
+      <UniversalFloatingContact clinic={c} themeColor={theme} />
+      <TemplateCustomizer
+        clinic={c}
+        currentPalette={{
+          primary: theme,
+          secondary: "#0f172a",
+          accent: theme,
+          background: "#ffffff",
+          surface: "#ffffff",
+          text: "#0f172a",
+          mutedText: "#64748b",
+          border: "#e2e8f0",
+        }}
+      />
 
       {showStickyBook && (
         <div

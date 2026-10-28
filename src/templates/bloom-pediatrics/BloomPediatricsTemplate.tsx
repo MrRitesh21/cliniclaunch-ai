@@ -33,6 +33,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -82,7 +83,7 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
   ];
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#fb7185",
     "secondary": "#0284c7",
     "accent": "#facc15",
@@ -91,7 +92,7 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
     "text": "#1e293b",
     "mutedText": "#64748b",
     "border": "#ffe4e6"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Approachable Rounded Sans",
     "bodyFont": "Inter / Sans-Serif",

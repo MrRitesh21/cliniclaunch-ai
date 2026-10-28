@@ -29,6 +29,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -59,7 +60,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#52796f",
     "secondary": "#3f4f3e",
     "accent": "#b45309",
@@ -68,7 +69,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
     "text": "#2d372e",
     "mutedText": "#5c6b5d",
     "border": "#e9edc9"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Playfair Display / Serif",
     "bodyFont": "Plus Jakarta Sans",

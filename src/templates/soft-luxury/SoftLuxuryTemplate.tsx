@@ -27,6 +27,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -57,7 +58,7 @@ export function SoftLuxuryTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#1c1917",
     "secondary": "#c5a059",
     "accent": "#d4af37",
@@ -66,7 +67,7 @@ export function SoftLuxuryTemplate(props: TemplateProps) {
     "text": "#1c1917",
     "mutedText": "#78716c",
     "border": "#e7e5e4"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Playfair Display / Serif",
     "bodyFont": "Inter / Sans-Serif",

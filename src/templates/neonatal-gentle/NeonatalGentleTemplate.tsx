@@ -30,6 +30,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -60,7 +61,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#f43f5e",
     "secondary": "#881337",
     "accent": "#8b5cf6",
@@ -69,7 +70,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
     "text": "#1e293b",
     "mutedText": "#64748b",
     "border": "#ffe4e6"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Outfit / Light",
     "bodyFont": "Plus Jakarta Sans",

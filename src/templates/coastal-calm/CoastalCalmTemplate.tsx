@@ -30,6 +30,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -60,7 +61,7 @@ export function CoastalCalmTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#0d9488",
     "secondary": "#134e4a",
     "accent": "#14b8a6",
@@ -69,7 +70,7 @@ export function CoastalCalmTemplate(props: TemplateProps) {
     "text": "#134e4a",
     "mutedText": "#0f766e",
     "border": "#e6f0ed"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Outfit / Light",
     "bodyFont": "Inter / Sans-Serif",

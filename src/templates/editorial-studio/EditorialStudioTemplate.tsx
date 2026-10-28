@@ -30,6 +30,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -64,7 +65,7 @@ export function EditorialStudioTemplate(props: TemplateProps) {
   const cobalt = "#2563eb";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#111111",
     "secondary": "#2563eb",
     "accent": "#d97706",
@@ -73,7 +74,7 @@ export function EditorialStudioTemplate(props: TemplateProps) {
     "text": "#111111",
     "mutedText": "#444444",
     "border": "#e5e4de"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Avant-Garde Architectural Serif",
     "bodyFont": "Space Grotesk / Mono",

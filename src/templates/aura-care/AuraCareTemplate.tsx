@@ -34,6 +34,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, ImageMaskReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -68,7 +69,7 @@ export function AuraCareTemplate(props: TemplateProps) {
   const deepNavy = "#0a192f";
   const ivoryBg = "#faf9f5";
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     primary: deepNavy,
     secondary: "#1b2a41",
     accent: sageAccent,
@@ -77,7 +78,7 @@ export function AuraCareTemplate(props: TemplateProps) {
     text: "#1b2a41",
     mutedText: "#4a5568",
     border: "#e5dfd5",
-  };
+  }, clinic);
 
   const typography: TemplateTypography = {
     headingClass: "font-serif",

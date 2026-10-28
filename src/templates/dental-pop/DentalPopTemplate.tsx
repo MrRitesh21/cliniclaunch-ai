@@ -29,6 +29,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -59,7 +60,7 @@ export function DentalPopTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#06b6d4",
     "secondary": "#0f172a",
     "accent": "#f43f5e",
@@ -68,7 +69,7 @@ export function DentalPopTemplate(props: TemplateProps) {
     "text": "#0f172a",
     "mutedText": "#64748b",
     "border": "#cffafe"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Outfit / Bold",
     "bodyFont": "Plus Jakarta Sans",

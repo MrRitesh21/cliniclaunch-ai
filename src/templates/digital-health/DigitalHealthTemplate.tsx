@@ -35,6 +35,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -69,7 +70,7 @@ export function DigitalHealthTemplate(props: TemplateProps) {
   const cyanAqua = "#06b6d4";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#4f46e5",
     "secondary": "#06b6d4",
     "accent": "#a855f7",
@@ -78,7 +79,7 @@ export function DigitalHealthTemplate(props: TemplateProps) {
     "text": "#0f172a",
     "mutedText": "#475569",
     "border": "#e2e8f0"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Neo-Grotesque Tech Sans",
     "bodyFont": "Inter / Sans-Serif",

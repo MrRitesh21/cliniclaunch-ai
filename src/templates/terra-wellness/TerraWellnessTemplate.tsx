@@ -32,6 +32,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -66,7 +67,7 @@ export function TerraWellnessTemplate(props: TemplateProps) {
   const warmSand = "#f7f3eb";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#c2410c",
     "secondary": "#14532d",
     "accent": "#ea580c",
@@ -75,7 +76,7 @@ export function TerraWellnessTemplate(props: TemplateProps) {
     "text": "#292524",
     "mutedText": "#57534e",
     "border": "#e7e0d3"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Warm Literary Serif",
     "bodyFont": "Inter / Sans-Serif",

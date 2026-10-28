@@ -30,6 +30,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -64,7 +65,7 @@ export function NoirSignatureTemplate(props: TemplateProps) {
   const warmCream = "#faf8f5";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#18181b",
     "secondary": "#c5a059",
     "accent": "#d4af37",
@@ -73,7 +74,7 @@ export function NoirSignatureTemplate(props: TemplateProps) {
     "text": "#18181b",
     "mutedText": "#57534e",
     "border": "#e7e2d8"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "High-Fashion Editorial Serif",
     "bodyFont": "Inter / Sans-Serif",

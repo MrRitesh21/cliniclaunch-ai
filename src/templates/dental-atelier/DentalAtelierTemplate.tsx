@@ -31,6 +31,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,7 +64,7 @@ export function DentalAtelierTemplate(props: TemplateProps) {
   const porcelainTeal = "#0d9488";
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#0d9488",
     "secondary": "#0f172a",
     "accent": "#38bdf8",
@@ -72,7 +73,7 @@ export function DentalAtelierTemplate(props: TemplateProps) {
     "text": "#1e293b",
     "mutedText": "#64748b",
     "border": "#e2e8f0"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Modern Airy Sans",
     "bodyFont": "Inter / Sans-Serif",

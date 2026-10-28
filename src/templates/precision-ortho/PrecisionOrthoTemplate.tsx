@@ -30,6 +30,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -60,7 +61,7 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#0284c7",
     "secondary": "#0f172a",
     "accent": "#38bdf8",
@@ -69,7 +70,7 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
     "text": "#0f172a",
     "mutedText": "#64748b",
     "border": "#e2e8f0"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Plus Jakarta Sans / Black",
     "bodyFont": "Inter / Sans-Serif",

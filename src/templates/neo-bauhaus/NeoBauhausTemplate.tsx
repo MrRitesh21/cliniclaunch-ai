@@ -30,6 +30,7 @@ import {
   getReviews,
   getWorkingHours,
   FALLBACK_IMAGES,
+  resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -60,7 +61,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = {
+  const palette: TemplatePalette = resolveTemplatePalette({
     "primary": "#1d4ed8",
     "secondary": "#dc2626",
     "accent": "#f59e0b",
@@ -69,7 +70,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
     "text": "#171717",
     "mutedText": "#525252",
     "border": "#171717"
-};
+}, clinic);
   const typography: TemplateTypography = {
     "headingFont": "Space Grotesk / Black",
     "bodyFont": "Plus Jakarta Sans",
