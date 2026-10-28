@@ -8,9 +8,14 @@ function teamFrom(clinic: SiteClinic): Member[] {
   const activeDocs = (clinic as unknown as { active_doctors?: any[] }).active_doctors;
   if (Array.isArray(activeDocs) && activeDocs.length > 0) {
     const ownerName = clinic.doctor_name;
+    const sanitizedDocs = activeDocs.map((d) => {
+      const name =
+        d.name === "Dr. Partner" && ownerName && ownerName !== "Dr. Partner" ? ownerName : d.name;
+      return { ...d, name };
+    });
     const hasOwner =
       ownerName &&
-      activeDocs.some((d) => (d.name || "").toLowerCase().includes(ownerName.toLowerCase()));
+      sanitizedDocs.some((d) => (d.name || "").toLowerCase().includes(ownerName.toLowerCase()));
     const out: Member[] = [];
     if (ownerName && !hasOwner) {
       out.push({
@@ -19,7 +24,7 @@ function teamFrom(clinic: SiteClinic): Member[] {
         avatar: clinic.avatar_url,
       });
     }
-    activeDocs.forEach((d) => {
+    sanitizedDocs.forEach((d) => {
       out.push({ name: d.name, role: d.specialization || "Consultant", avatar: d.avatar_url });
     });
     return out;

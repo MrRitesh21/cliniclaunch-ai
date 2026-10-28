@@ -318,11 +318,42 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
     doctorQuery,
   ]);
 
+  // Proactively sanitize placeholder doctor name in copy if doctor_name was updated
+  if (clinic.doctor_name && clinic.doctor_name !== "Dr. Partner") {
+    const doc = clinic.doctor_name;
+    if (typeof clinic.hero_subheadline === "string" && clinic.hero_subheadline.includes("Dr. Partner")) {
+      clinic.hero_subheadline = clinic.hero_subheadline.replace(/Dr\.\s*Partner/gi, doc);
+    }
+    if (typeof clinic.about_text === "string" && clinic.about_text.includes("Dr. Partner")) {
+      clinic.about_text = clinic.about_text.replace(/Dr\.\s*Partner/gi, doc);
+    }
+    if (typeof clinic.bio === "string" && clinic.bio.includes("Dr. Partner")) {
+      clinic.bio = clinic.bio.replace(/Dr\.\s*Partner/gi, doc);
+    }
+    if (clinic.seo_config && typeof clinic.seo_config === "object") {
+      const seo = { ...clinic.seo_config } as any;
+      if (typeof seo.meta_title === "string" && seo.meta_title.includes("Dr. Partner")) {
+        seo.meta_title = seo.meta_title.replace(/Dr\.\s*Partner/gi, doc);
+      }
+      if (typeof seo.meta_description === "string" && seo.meta_description.includes("Dr. Partner")) {
+        seo.meta_description = seo.meta_description.replace(/Dr\.\s*Partner/gi, doc);
+      }
+      clinic.seo_config = seo;
+    }
+  }
+
+  const sanitizedDoctors = (dbDoctors ?? []).map((d: any) => {
+    if (d.name === "Dr. Partner" && clinic.doctor_name && clinic.doctor_name !== "Dr. Partner") {
+      return { ...d, name: clinic.doctor_name };
+    }
+    return d;
+  });
+
   return {
     ...clinic,
     installed_modules,
     db_reviews: dbReviews ?? [],
-    active_doctors: dbDoctors ?? [],
+    active_doctors: sanitizedDoctors,
   };
 }
 

@@ -35,6 +35,7 @@ import {
   Sun,
   Moon,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { buildIcsDataUrl, buildWhatsAppShareUrl } from "@/lib/booking-share";
 import { getServices } from "@/templates/shared/clinicDataHelpers";
@@ -372,8 +373,8 @@ function BookPage() {
 
     processDoctorList(activeFromLoader);
 
-    // Also fetch live doctors to bypass any stale server/redis cache
-    if (clinic.id) {
+    // Only fetch live doctors if loader provided none (avoids 401 on anon REST endpoint)
+    if (activeFromLoader.length === 0 && clinic.id) {
       const query = clinic.organization_id
         ? supabase
             .from("doctors")
