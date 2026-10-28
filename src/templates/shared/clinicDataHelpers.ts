@@ -56,6 +56,38 @@ export function getDoctorQualifications(clinic: SiteClinic): string {
   return clinic.qualification?.trim() || "MBBS, MD";
 }
 
+export function getDoctorAvatarUrl(clinic: SiteClinic): string {
+  if (clinic.avatar_url && clinic.avatar_url.trim().length > 5) {
+    return clinic.avatar_url.trim();
+  }
+  const spec = (clinic.specialization || "").toLowerCase();
+  if (spec.includes("dental") || spec.includes("dentist") || spec.includes("orthodont")) {
+    return FALLBACK_IMAGES.dentalCare;
+  }
+  if (
+    spec.includes("ayurved") ||
+    spec.includes("panchkarma") ||
+    spec.includes("wellness") ||
+    spec.includes("homeopath") ||
+    spec.includes("naturopath")
+  ) {
+    return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1000&q=80";
+  }
+  if (spec.includes("pediatric") || spec.includes("child") || spec.includes("neonatal")) {
+    return FALLBACK_IMAGES.pediatricCare;
+  }
+  if (spec.includes("physio") || spec.includes("ortho") || spec.includes("rehab")) {
+    return FALLBACK_IMAGES.physioActive;
+  }
+  if (spec.includes("cardio") || spec.includes("heart")) {
+    return "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80";
+  }
+  if (spec.includes("derma") || spec.includes("skin") || spec.includes("aesthetic")) {
+    return "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80";
+  }
+  return FALLBACK_IMAGES.doctorPortrait;
+}
+
 export function getDoctorExperience(clinic: SiteClinic): number {
   return Number(clinic.experience_years) || 10;
 }

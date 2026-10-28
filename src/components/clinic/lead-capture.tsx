@@ -65,11 +65,13 @@ export function LeadCapture({
   slug,
   doctorName,
   config,
+  hideFloatingButton = false,
 }: {
   clinicId: string;
   slug: string;
   doctorName: string;
   config?: unknown;
+  hideFloatingButton?: boolean;
 }) {
   const cfg = normalizeLeadPopup(config);
   const offer = cfg.offer;
@@ -119,7 +121,7 @@ export function LeadCapture({
 
   return (
     <>
-      {cfg.showFloatingButton && (
+      {cfg.showFloatingButton && !hideFloatingButton && (
         <button
           type="button"
           onClick={openCallback}

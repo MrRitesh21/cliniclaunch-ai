@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { CalendarCheck, Phone, Star, Award, CheckCircle2 } from "lucide-react";
 import type { SiteClinic } from "./types";
+import { getDoctorAvatarUrl } from "@/templates/shared/clinicDataHelpers";
 
 type Props = { clinic: SiteClinic };
 
@@ -58,21 +59,24 @@ export function HeroSplit({ clinic }: Props) {
           </div>
         </div>
         <div className="relative order-1 md:order-2">
-          <div className="aspect-square max-w-xs sm:max-w-sm md:max-w-none mx-auto rounded-2xl sm:rounded-3xl overflow-hidden bg-accent">
-            {clinic.avatar_url ? (
-              <img
-                src={clinic.avatar_url}
-                alt={clinic.doctor_name}
-                fetchPriority="high"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full grid place-items-center">
-                <span className="font-display text-6xl sm:text-7xl text-primary/30">
-                  {clinic.doctor_name[0]}
+          <div className="aspect-square max-w-xs sm:max-w-sm md:max-w-none mx-auto rounded-3xl overflow-hidden border border-border/80 shadow-2xl relative group bg-muted">
+            <img
+              src={getDoctorAvatarUrl(clinic)}
+              alt={clinic.doctor_name}
+              fetchPriority="high"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 bg-gradient-to-t from-black/85 via-black/45 to-transparent text-white">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs sm:text-sm font-bold tracking-tight">
+                  {clinic.doctor_name}
                 </span>
               </div>
-            )}
+              <p className="text-[11px] sm:text-xs text-white/80 mt-0.5 line-clamp-1">
+                {clinic.specialization} {clinic.qualification ? `· ${clinic.qualification}` : ""}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -86,16 +90,14 @@ export function HeroCentered({ clinic }: Props) {
   return (
     <section className="bg-[oklch(0.97_0.02_70)] dark:bg-[oklch(0.18_0.02_70)]">
       <div className="max-w-4xl mx-auto px-4 py-12 sm:py-16 md:py-24 text-center">
-        {clinic.avatar_url && (
-          <div className="size-24 sm:size-32 md:size-40 mx-auto rounded-full overflow-hidden border-4 border-background shadow-xl ring-4 ring-primary/10">
-            <img
-              src={clinic.avatar_url}
-              alt={clinic.doctor_name}
-              fetchPriority="high"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
+        <div className="size-28 sm:size-36 md:size-44 mx-auto rounded-full overflow-hidden border-4 border-background shadow-2xl ring-4 ring-primary/20 bg-muted">
+          <img
+            src={getDoctorAvatarUrl(clinic)}
+            alt={clinic.doctor_name}
+            fetchPriority="high"
+            className="w-full h-full object-cover"
+          />
+        </div>
         <p className="mt-5 sm:mt-6 text-xs sm:text-sm font-medium text-primary tracking-wider uppercase">
           {clinic.specialization}
         </p>
@@ -127,17 +129,15 @@ export function HeroEditorial({ clinic }: Props) {
   const { headline, sub } = copy(clinic);
   return (
     <section className="relative bg-foreground text-background overflow-hidden">
-      {clinic.avatar_url && (
-        <div className="absolute inset-0">
-          <img
-            src={clinic.avatar_url}
-            alt={clinic.doctor_name}
-            fetchPriority="high"
-            className="w-full h-full object-cover opacity-40"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b sm:bg-gradient-to-r from-foreground via-foreground/85 to-foreground/40 sm:to-transparent" />
-        </div>
-      )}
+      <div className="absolute inset-0">
+        <img
+          src={getDoctorAvatarUrl(clinic)}
+          alt={clinic.doctor_name}
+          fetchPriority="high"
+          className="w-full h-full object-cover opacity-35"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b sm:bg-gradient-to-r from-foreground via-foreground/85 to-foreground/40 sm:to-transparent" />
+      </div>
       <div className="relative max-w-6xl mx-auto px-4 py-16 sm:py-24 md:py-36">
         <p className="text-[11px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.3em] opacity-70">
           {clinic.clinic_name}
@@ -243,13 +243,11 @@ export function HeroBento({ clinic }: Props) {
         <div className="lg:col-span-5 grid grid-cols-2 gap-3.5">
           <div className="col-span-2 rounded-3xl border border-border/80 bg-background p-3 shadow-sm relative overflow-hidden group">
             <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-muted relative">
-              {clinic.avatar_url ? (
-                <img src={clinic.avatar_url} alt={clinic.doctor_name} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              ) : (
-                <div className="size-full grid place-items-center font-display text-5xl text-primary/25">
-                  {clinic.doctor_name[0]}
-                </div>
-              )}
+              <img
+                src={getDoctorAvatarUrl(clinic)}
+                alt={clinic.doctor_name}
+                className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
               <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
                 <div className="font-bold text-sm leading-tight">{clinic.doctor_name}</div>
                 <div className="text-[11px] text-slate-200">{clinic.specialization} · {clinic.qualification}</div>
@@ -314,13 +312,11 @@ export function HeroLuxuryConcierge({ clinic }: Props) {
         <div className="lg:col-span-5">
           <div className="relative rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur-xl shadow-2xl">
             <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-slate-800 relative">
-              {clinic.avatar_url ? (
-                <img src={clinic.avatar_url} alt={clinic.doctor_name} className="size-full object-cover" />
-              ) : (
-                <div className="size-full grid place-items-center font-display text-7xl text-white/20">
-                  {clinic.doctor_name[0]}
-                </div>
-              )}
+              <img
+                src={getDoctorAvatarUrl(clinic)}
+                alt={clinic.doctor_name}
+                className="size-full object-cover"
+              />
               <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/95 via-black/60 to-transparent">
                 <div className="text-white font-bold text-base leading-tight">{clinic.doctor_name}</div>
                 <div className="text-xs text-slate-300 mt-0.5">{clinic.specialization} · {clinic.qualification}</div>

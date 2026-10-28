@@ -28,6 +28,7 @@ function ClinicHome() {
             slug={c.slug}
             doctorName={c.doctor_name}
             config={(c as any).lead_popup}
+            hideFloatingButton={true}
           />
         </>
       );
@@ -46,6 +47,7 @@ function ClinicHome() {
           slug={c.slug}
           doctorName={c.doctor_name}
           config={(c as any).lead_popup}
+          hideFloatingButton={true}
         />
       </>
     );
@@ -82,6 +84,7 @@ function ClinicHome() {
         slug={c.slug}
         doctorName={c.doctor_name}
         config={(c as any).lead_popup}
+        hideFloatingButton={true}
       />
     </>
   );

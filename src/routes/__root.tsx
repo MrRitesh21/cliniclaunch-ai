@@ -199,7 +199,7 @@ function RootComponent() {
       <ThemeProvider>
         <PWASplashScreen />
         <RootContent />
-        <Toaster />
+        <Toaster position="top-right" closeButton richColors />
       </ThemeProvider>
     </QueryClientProvider>
   );

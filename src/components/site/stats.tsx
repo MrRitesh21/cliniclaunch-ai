@@ -4,11 +4,19 @@ import type { SiteClinic } from "./types";
 type Props = { clinic: SiteClinic };
 
 function buildStats(clinic: SiteClinic) {
+  // If qualification is very long (e.g. multiple degrees), keep primary degrees for the stat number
+  const rawQual = clinic.qualification?.trim();
+  const displayQual = rawQual
+    ? rawQual.length > 18
+      ? rawQual.split(",").slice(0, 2).join(", ")
+      : rawQual
+    : "Certified";
+
   return [
-    { icon: Clock, value: `${clinic.experience_years}+`, label: "Years experience" },
+    { icon: Clock, value: `${clinic.experience_years ? clinic.experience_years : 10}+`, label: "Years experience" },
     { icon: Users, value: "5,000+", label: "Patients treated" },
     { icon: Heart, value: "4.9★", label: "Patient rating" },
-    { icon: Award, value: clinic.qualification || "Certified", label: "Qualification" },
+    { icon: Award, value: displayQual, label: "Qualification" },
   ];
 }
 
@@ -18,12 +26,24 @@ export function StatsStrip({ clinic }: Props) {
   return (
     <section className="border-y bg-primary/5">
       <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
-        {items.map((s, i) => (
-          <div key={i} className="text-center">
-            <p className="font-display text-2xl sm:text-3xl md:text-4xl text-primary">{s.value}</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">{s.label}</p>
-          </div>
-        ))}
+        {items.map((s, i) => {
+          const isLong = s.value.length > 8;
+          return (
+            <div key={i} className="text-center px-2 flex flex-col justify-center items-center">
+              <p
+                className={`font-display text-primary tracking-tight ${
+                  isLong
+                    ? "text-lg sm:text-xl md:text-2xl font-bold line-clamp-1 max-w-[220px]"
+                    : "text-2xl sm:text-3xl md:text-4xl"
+                }`}
+                title={s.value}
+              >
+                {s.value}
+              </p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">{s.label}</p>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -37,10 +57,18 @@ export function StatsCards({ clinic }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {items.map((s, i) => {
           const Icon = s.icon;
+          const isLong = s.value.length > 8;
           return (
-            <div key={i} className="rounded-2xl border bg-card p-6 text-center">
+            <div key={i} className="rounded-2xl border bg-card p-6 text-center flex flex-col items-center justify-center">
               <Icon className="size-6 text-primary mx-auto" />
-              <p className="font-display text-2xl mt-3">{s.value}</p>
+              <p
+                className={`font-display mt-3 tracking-tight ${
+                  isLong ? "text-lg sm:text-xl font-bold line-clamp-1" : "text-2xl"
+                }`}
+                title={s.value}
+              >
+                {s.value}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
             </div>
           );
@@ -58,6 +86,7 @@ export function StatsFloatingPills({ clinic }: Props) {
       <div className="max-w-5xl mx-auto px-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         {items.map((s, i) => {
           const Icon = s.icon;
+          const isLong = s.value.length > 10;
           return (
             <div
               key={i}
@@ -67,7 +96,14 @@ export function StatsFloatingPills({ clinic }: Props) {
                 <Icon className="size-4" />
               </div>
               <div>
-                <div className="font-extrabold text-base text-foreground leading-none">{s.value}</div>
+                <div
+                  className={`font-extrabold text-foreground leading-tight ${
+                    isLong ? "text-xs sm:text-sm max-w-[180px] line-clamp-1" : "text-base"
+                  }`}
+                  title={s.value}
+                >
+                  {s.value}
+                </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">{s.label}</div>
               </div>
             </div>

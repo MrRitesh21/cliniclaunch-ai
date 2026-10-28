@@ -1,6 +1,7 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createFileRoute, Outlet, Link, useRouterState, notFound } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { getClinicBySlug, getClinicPublicSchema } from "@/lib/clinic.functions";
 import { getClinicSiteTemplate } from "@/lib/site-templates.functions";
 import { Button } from "@/components/ui/button";
@@ -14,14 +15,22 @@ import { TemplateCustomizer } from "@/templates/shared/TemplateCustomizer";
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (
     s: Record<string, unknown>,
-  ): { preview?: string; tpl?: string; tc?: string; embed?: string; source?: string } => ({
+  ): {
+    preview?: string;
+    tpl?: string;
+    tc?: string;
+    embed?: string;
+    source?: string;
+    customize?: string;
+    edit?: string;
+  } => ({
     preview: typeof s.preview === "string" ? s.preview : undefined,
-    // Live template preview (marketplace cards / preview modal): render this
-    // preset + theme colour without persisting anything on the clinic.
     tpl: typeof s.tpl === "string" ? s.tpl : undefined,
     tc: typeof s.tc === "string" ? s.tc : undefined,
     embed: typeof s.embed === "string" ? s.embed : undefined,
     source: typeof s.source === "string" ? s.source : undefined,
+    customize: typeof s.customize === "string" ? s.customize : undefined,
+    edit: typeof s.edit === "string" ? s.edit : undefined,
   }),
 
   loaderDeps: ({ search }) => ({ preview: search.preview, tpl: search.tpl }),
@@ -131,9 +140,31 @@ export const Route = createFileRoute("/c/$slug")({
 
 function ClinicLayout() {
   const data = Route.useLoaderData();
-  const { tpl, tc, embed } = Route.useSearch();
+  const search = Route.useSearch();
+  const { tpl, tc, embed, preview, customize, edit } = search;
   const isEmbed = embed === "true" || embed === "1";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Only show the live customization tool if in preview/editor mode or if logged in as clinic staff
+  const [canCustomize, setCanCustomize] = useState(false);
+
+  useEffect(() => {
+    // 1. Explicit editor or preview triggers
+    if (preview || tpl || customize === "true" || edit === "true") {
+      setCanCustomize(true);
+      return;
+    }
+
+    // 2. Only show customizer if current visitor is an authenticated user (doctor/admin)
+    supabase.auth
+      .getSession()
+      .then(({ data: sess }) => {
+        if (sess?.session?.user) {
+          setCanCustomize(true);
+        }
+      })
+      .catch(() => {});
+  }, [preview, tpl, customize, edit]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -222,20 +253,22 @@ function ClinicLayout() {
         <main className="flex-1">
           <Outlet />
         </main>
-        <UniversalFloatingContact clinic={c} themeColor={theme} />
-        <TemplateCustomizer
-          clinic={c}
-          currentPalette={{
-            primary: theme,
-            secondary: "#0f172a",
-            accent: theme,
-            background: "#ffffff",
-            surface: "#ffffff",
-            text: "#0f172a",
-            mutedText: "#64748b",
-            border: "#e2e8f0",
-          }}
-        />
+        <UniversalFloatingContact clinic={c} themeColor={theme} hasStickyBar={false} />
+        {canCustomize && (
+          <TemplateCustomizer
+            clinic={c}
+            currentPalette={{
+              primary: theme,
+              secondary: "#0f172a",
+              accent: theme,
+              background: "#ffffff",
+              surface: "#ffffff",
+              text: "#0f172a",
+              mutedText: "#64748b",
+              border: "#e2e8f0",
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -255,20 +288,22 @@ function ClinicLayout() {
       </main>
       <Footer clinic={c} />
 
-      <UniversalFloatingContact clinic={c} themeColor={theme} />
-      <TemplateCustomizer
-        clinic={c}
-        currentPalette={{
-          primary: theme,
-          secondary: "#0f172a",
-          accent: theme,
-          background: "#ffffff",
-          surface: "#ffffff",
-          text: "#0f172a",
-          mutedText: "#64748b",
-          border: "#e2e8f0",
-        }}
-      />
+      <UniversalFloatingContact clinic={c} themeColor={theme} hasStickyBar={showStickyBook} />
+      {canCustomize && (
+        <TemplateCustomizer
+          clinic={c}
+          currentPalette={{
+            primary: theme,
+            secondary: "#0f172a",
+            accent: theme,
+            background: "#ffffff",
+            surface: "#ffffff",
+            text: "#0f172a",
+            mutedText: "#64748b",
+            border: "#e2e8f0",
+          }}
+        />
+      )}
 
       {showStickyBook && (
         <div

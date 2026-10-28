@@ -9,6 +9,7 @@ interface UniversalFloatingContactProps {
   customMessage?: string;
   showWhatsApp?: boolean;
   showCall?: boolean;
+  hasStickyBar?: boolean;
   className?: string;
 }
 
@@ -18,6 +19,7 @@ export function UniversalFloatingContact({
   customMessage,
   showWhatsApp = true,
   showCall = true,
+  hasStickyBar = false,
   className = "",
 }: UniversalFloatingContactProps) {
   const [currentColor, setCurrentColor] = useState(themeColor);
@@ -157,7 +159,7 @@ export function UniversalFloatingContact({
 
       {/* ─── MOBILE FLOATING BUTTONS (< 768px) ───────────────────────── */}
       {/* Positioned right above the bottom bar so it never blocks navigation */}
-      <div className="md:hidden fixed bottom-20 right-3.5 flex flex-col items-end gap-2.5 pointer-events-auto transform-gpu">
+      <div className={`md:hidden fixed ${hasStickyBar ? "bottom-20" : "bottom-6"} right-3.5 flex flex-col items-end gap-2.5 pointer-events-auto transform-gpu`}>
         {canShowCall && (
           <a
             href={`tel:${phone}`}
