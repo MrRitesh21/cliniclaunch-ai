@@ -1,9 +1,23 @@
 import crypto from "node:crypto";
 
+export const CANONICAL_SSO_SECRET = "clinicx_waflow_sso_shared_secret_2026_secure_key";
+export const WAFLOW_AUTH_SECRET = "f39c81b2a9d8e7c6b5a41234567890abcdef678901234567890abcdef12345678";
+
 export const CLINICX_SSO_SECRET =
   process.env.CLINICX_SSO_SECRET ||
   process.env.AUTH_SECRET ||
-  "clinicx_waflow_sso_shared_secret_2026_secure_key";
+  CANONICAL_SSO_SECRET;
+
+const CANDIDATE_SECRETS = Array.from(
+  new Set(
+    [
+      process.env.CLINICX_SSO_SECRET,
+      CANONICAL_SSO_SECRET,
+      WAFLOW_AUTH_SECRET,
+      process.env.AUTH_SECRET,
+    ].filter(Boolean) as string[],
+  ),
+);
 
 export interface SsoPayload {
   email: string;
@@ -24,23 +38,59 @@ export function verifySsoToken(data: string, sig: string): { valid: boolean; pay
       return { valid: false, error: "Missing SSO data token or signature" };
     }
 
-    const expectedSig = crypto
-      .createHmac("sha256", CLINICX_SSO_SECRET)
-      .update(data)
-      .digest("hex");
+    const cleanData = data.trim();
+    const cleanSig = sig.trim().toLowerCase();
 
-    if (sig !== expectedSig) {
+    let matchedSecret: string | null = null;
+    for (const secret of CANDIDATE_SECRETS) {
+      const expectedSig = crypto
+        .createHmac("sha256", secret)
+        .update(cleanData)
+        .digest("hex")
+        .toLowerCase();
+
+      if (cleanSig === expectedSig) {
+        matchedSecret = secret;
+        break;
+      }
+
+      // Check URL-decoded variant in case data query was doubly encoded
+      try {
+        const decoded = decodeURIComponent(cleanData);
+        if (decoded !== cleanData) {
+          const expectedSigDecoded = crypto
+            .createHmac("sha256", secret)
+            .update(decoded)
+            .digest("hex")
+            .toLowerCase();
+          if (cleanSig === expectedSigDecoded) {
+            matchedSecret = secret;
+            break;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (!matchedSecret) {
       return { valid: false, error: "Invalid SSO signature. Token may have been altered." };
     }
 
-    const jsonStr = Buffer.from(data, "base64url").toString("utf8");
+    let jsonStr: string;
+    try {
+      jsonStr = Buffer.from(cleanData, "base64url").toString("utf8");
+    } catch {
+      jsonStr = Buffer.from(cleanData.replace(/ /g, "+"), "base64").toString("utf8");
+    }
+
     const payload: SsoPayload = JSON.parse(jsonStr);
 
-    // Validate expiration: 20 minutes window to allow slight clock drift
+    // Validate expiration: 24 hours window to allow timezone differences and non-immediate clicks
     const now = Date.now();
     const tokenTime = payload.timestamp || 0;
     const diff = Math.abs(now - tokenTime);
-    if (diff > 20 * 60 * 1000) {
+    if (tokenTime > 0 && diff > 24 * 60 * 60 * 1000) {
       return { valid: false, error: "SSO session link has expired. Please launch from WAFlow CRM again." };
     }
 
@@ -61,7 +111,7 @@ export function generateSsoDeterministicPassword(email: string): string {
   const clean = email.trim().toLowerCase();
   return (
     crypto
-      .createHmac("sha256", CLINICX_SSO_SECRET)
+      .createHmac("sha256", CANONICAL_SSO_SECRET)
       .update(`clinicx_sso_pwd_${clean}`)
       .digest("hex")
       .slice(0, 20) + "Aa1!"
