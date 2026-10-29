@@ -92,20 +92,20 @@ export function AuraCareTemplate(props: TemplateProps) {
     >
       {/* ─── LUXURY HEADER / NAV ────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-[#faf9f5]/90 border-b border-[#e5dfd5] transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActivePage("home")}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2 cursor-pointer" onClick={() => setActivePage("home")}>
             {clinic.logo_url ? (
-              <img src={clinic.logo_url} alt={clinicName} className="h-10 w-auto object-contain rounded-lg" />
+              <img src={clinic.logo_url} alt={clinicName} className="size-9 sm:size-10 object-contain rounded-lg shrink-0" />
             ) : (
-              <span className="size-10 rounded-full border border-[#52796f]/30 bg-[#52796f]/10 text-[#52796f] grid place-items-center font-serif text-lg font-bold">
+              <span className="size-9 sm:size-10 rounded-full border border-[#52796f]/30 bg-[#52796f]/10 text-[#52796f] grid place-items-center font-serif text-base sm:text-lg font-bold shrink-0">
                 {clinicName.charAt(0)}
               </span>
             )}
-            <div>
-              <span className="font-serif text-xl sm:text-2xl font-semibold tracking-tight text-[#0a192f] block leading-none">
+            <div className="min-w-0 flex-1">
+              <span className="font-serif text-sm sm:text-xl lg:text-2xl font-semibold tracking-tight text-[#0a192f] block truncate leading-tight">
                 {clinicName}
               </span>
-              <span className="text-[10px] uppercase tracking-widest text-[#52796f] font-semibold block mt-1">
+              <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-[#52796f] font-semibold block truncate mt-0.5">
                 Private Consultation Practice
               </span>
             </div>
@@ -113,7 +113,7 @@ export function AuraCareTemplate(props: TemplateProps) {
 
           <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {phone && (
               <a
                 href={`tel:${phone}`}
@@ -125,7 +125,7 @@ export function AuraCareTemplate(props: TemplateProps) {
             )}
             <button
               onClick={() => setActivePage("book")}
-              className="px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-98"
+              className="hidden sm:inline-flex px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-98"
               style={{ backgroundColor: sageAccent }}
             >
               Request Consultation

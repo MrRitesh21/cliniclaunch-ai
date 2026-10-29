@@ -102,16 +102,27 @@ export function TerraWellnessTemplate(props: TemplateProps) {
 
       {/* ─── TERRA NAVBAR ──────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-[#fcfbf7]/95 backdrop-blur-md border-b border-[#e7e0d3]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="size-10 rounded-full bg-[#faedcd] text-[#c2410c] grid place-items-center border border-[#e7e0d3]">
-              <Flower2 className="size-5" />
-            </span>
-            <div>
-              <span className="font-serif text-2xl font-normal tracking-tight text-[#1c1917] block leading-none">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+          <div
+            className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2 cursor-pointer"
+            onClick={() => setActivePage("home")}
+          >
+            {clinic.logo_url ? (
+              <img
+                src={clinic.logo_url}
+                alt={clinicName}
+                className="size-9 sm:size-10 rounded-full object-cover border border-[#e7e0d3] shrink-0"
+              />
+            ) : (
+              <span className="size-9 sm:size-10 rounded-full bg-[#faedcd] text-[#c2410c] grid place-items-center border border-[#e7e0d3] shrink-0">
+                <Flower2 className="size-4.5 sm:size-5" />
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <span className="font-serif text-sm sm:text-lg lg:text-2xl font-normal tracking-tight text-[#1c1917] block truncate leading-tight">
                 {clinicName}
               </span>
-              <span className="text-[10px] uppercase tracking-widest text-[#c2410c] font-bold block mt-1">
+              <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-[#c2410c] font-bold block truncate mt-0.5">
                 Integrative Health &amp; Recovery
               </span>
             </div>
@@ -119,7 +130,7 @@ export function TerraWellnessTemplate(props: TemplateProps) {
 
           <TemplateNavLinks activePage={activePage} onNavigate={setActivePage} palette={palette} />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {phone && (
               <a
                 href={`tel:${phone}`}
@@ -131,7 +142,7 @@ export function TerraWellnessTemplate(props: TemplateProps) {
             )}
             <button
               onClick={() => setBookingOpen(true)}
-              className="px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider text-white shadow-md hover:shadow-lg transition-all"
+              className="hidden sm:inline-flex px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider text-white shadow-md hover:shadow-lg transition-all touch-manipulation"
               style={{ backgroundColor: terracotta }}
             >
               Book Healing Session

@@ -88,16 +88,16 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
 
       {/* Main Header */}
       <header className="sticky top-0 z-40 bg-[#faf9f6]/95 backdrop-blur-md border-b border-[#e9edc9]/60">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between font-sans">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-[#52796f]/10 text-[#52796f] flex items-center justify-center">
-              <Flower2 className="size-5" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 font-sans">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2 cursor-pointer" onClick={() => setActivePage("home")}>
+            <div className="size-9 sm:size-10 rounded-full bg-[#52796f]/10 text-[#52796f] flex items-center justify-center shrink-0">
+              <Flower2 className="size-4.5 sm:size-5" />
             </div>
-            <div>
-              <a href="#" className="font-serif font-bold text-xl tracking-tight text-[#2d372e] block leading-tight">
+            <div className="min-w-0 flex-1">
+              <span className="font-serif font-bold text-sm sm:text-xl tracking-tight text-[#2d372e] block truncate leading-tight">
                 {clinicName}
-              </a>
-              <span className="text-xs text-[#52796f] tracking-wide block">{specialization}</span>
+              </span>
+              <span className="text-[10px] sm:text-xs text-[#52796f] tracking-wide block truncate">{specialization}</span>
             </div>
           </div>
 
@@ -105,7 +105,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
 
           <button
             onClick={() => setBookingOpen(true)}
-            className="h-10 px-6 rounded-full bg-[#52796f] hover:bg-[#3f5e56] text-white text-xs font-medium tracking-wide transition-all shadow-md shadow-[#52796f]/20 flex items-center gap-2"
+            className="hidden sm:inline-flex h-9 sm:h-10 px-4 sm:px-6 rounded-full bg-[#52796f] hover:bg-[#3f5e56] text-white text-xs font-medium tracking-wide transition-all shadow-md shadow-[#52796f]/20 items-center gap-2 shrink-0 touch-manipulation"
           >
             <Calendar className="size-3.5" /> Book Session
           </button>
