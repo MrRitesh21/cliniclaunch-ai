@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { TemplatePage, TemplatePalette } from "./types";
 import { DpdpNoticeModal } from "@/components/clinic/DpdpCompliance";
+import { cn } from "@/lib/utils";
 
 export const TEMPLATE_PAGES: Array<{
   id: TemplatePage;
@@ -222,33 +223,102 @@ export function TemplateNavLinks({
   );
 }
 
-interface TemplateFooterPagesProps {
+export interface TemplateFooterPagesProps {
   activePage: TemplatePage;
   onNavigate: (page: TemplatePage) => void;
-  palette: TemplatePalette;
+  palette?: TemplatePalette;
   headingText?: string;
+  layout?: "row" | "column" | "auto";
+  dark?: boolean;
+  className?: string;
 }
 
 export function TemplateFooterPages({
   activePage,
   onNavigate,
   palette,
-  headingText = "Navigation",
+  headingText,
+  layout,
+  dark = true,
+  className,
 }: TemplateFooterPagesProps) {
   const [showDpdp, setShowDpdp] = useState(false);
+  const isColumn = layout === "column" || (layout !== "row" && Boolean(headingText));
+  const isDark = dark ?? true;
 
   return (
     <>
-      <div className="space-y-3 text-left">
-        <p className="text-xs font-bold uppercase tracking-wider opacity-60" style={{ color: palette.text }}>
-          {headingText}
-        </p>
-        <ul className="space-y-1 text-xs">
-          {TEMPLATE_PAGES.map((item) => {
-            const isActive = activePage === item.id;
-            return (
-              <li key={item.id}>
+      {isColumn ? (
+        <div className={cn("space-y-3 text-left", className)}>
+          {headingText && (
+            <p
+              className={cn(
+                "text-xs font-bold uppercase tracking-wider",
+                isDark ? "text-white/80" : "text-stone-800"
+              )}
+            >
+              {headingText}
+            </p>
+          )}
+          <ul className="space-y-1.5 text-xs">
+            {TEMPLATE_PAGES.map((item) => {
+              const isActive = activePage === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onNavigate(item.id);
+                      if (typeof window !== "undefined") {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
+                    }}
+                    className={cn(
+                      "min-h-[32px] py-1 transition-colors text-left flex items-center touch-manipulation font-medium",
+                      isDark
+                        ? (isActive ? "text-white font-bold underline underline-offset-4 decoration-2" : "text-white/75 hover:text-white hover:underline")
+                        : (isActive ? "text-stone-950 font-bold underline underline-offset-4 decoration-2" : "text-stone-600 hover:text-stone-900 hover:underline")
+                    )}
+                    style={{
+                      color: isActive ? (palette?.accent || (isDark ? "#ffffff" : "#18181b")) : undefined,
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              );
+            })}
+            <li className={cn("pt-2 mt-2 border-t", isDark ? "border-white/10" : "border-stone-200")}>
+              <button
+                type="button"
+                onClick={() => setShowDpdp(true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[11px] font-semibold transition-colors py-1 touch-manipulation",
+                  isDark ? "text-emerald-400 hover:text-emerald-300" : "text-emerald-700 hover:text-emerald-800"
+                )}
+              >
+                <ShieldCheck className="size-3.5" />
+                <span>DPDP Act 2023 Compliant</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex flex-col sm:flex-row items-center justify-between gap-4 text-xs",
+            className
+          )}
+        >
+          <nav
+            aria-label="Footer Page Navigation"
+            className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2"
+          >
+            {TEMPLATE_PAGES.map((item) => {
+              const isActive = activePage === item.id;
+              return (
                 <button
+                  key={item.id}
                   type="button"
                   onClick={() => {
                     onNavigate(item.id);
@@ -256,29 +326,39 @@ export function TemplateFooterPages({
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }
                   }}
-                  className="min-h-[36px] py-1 hover:underline transition-all text-left flex items-center touch-manipulation"
+                  className={cn(
+                    "min-h-[32px] py-1 transition-colors text-left inline-flex items-center touch-manipulation font-medium",
+                    isDark
+                      ? (isActive ? "text-white font-bold underline underline-offset-4 decoration-2" : "text-white/75 hover:text-white hover:underline")
+                      : (isActive ? "text-stone-950 font-bold underline underline-offset-4 decoration-2" : "text-stone-600 hover:text-stone-900 hover:underline")
+                  )}
                   style={{
-                    color: isActive ? (palette.accent || palette.primary) : palette.mutedText,
-                    fontWeight: isActive ? 700 : 400,
+                    color: isActive ? (palette?.accent || (isDark ? "#ffffff" : "#18181b")) : undefined,
                   }}
                 >
                   {item.label}
                 </button>
-              </li>
-            );
-          })}
-          <li className="pt-2 border-t border-current/15 mt-2">
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setShowDpdp(true)}
-              className="inline-flex items-center gap-1.5 text-[11px] text-emerald-500 hover:text-emerald-400 font-semibold transition-colors py-1 touch-manipulation"
+              className={cn(
+                "inline-flex items-center gap-1.5 text-[11px] font-semibold transition-all py-1 px-3 rounded-full border touch-manipulation shadow-sm",
+                isDark
+                  ? "text-emerald-400 hover:text-emerald-300 border-emerald-500/30 bg-emerald-950/40 hover:bg-emerald-900/50"
+                  : "text-emerald-700 hover:text-emerald-800 border-emerald-600/30 bg-emerald-50 hover:bg-emerald-100"
+              )}
             >
               <ShieldCheck className="size-3.5" />
               <span>DPDP Act 2023 Compliant</span>
             </button>
-          </li>
-        </ul>
-      </div>
+          </div>
+        </div>
+      )}
 
       <DpdpNoticeModal isOpen={showDpdp} onClose={() => setShowDpdp(false)} />
     </>

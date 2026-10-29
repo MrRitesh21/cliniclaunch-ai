@@ -315,9 +315,9 @@ export function SoftLuxuryTemplate(props: TemplateProps) {
           <div>Medical Registry: {regNo}</div>
         </div>
       
-          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
-            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
-          </div>
+        <div className="mt-8 pt-4 border-t border-[#e7e5e4] w-full">
+          <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} dark={false} className="max-w-6xl" />
+        </div>
         </footer>
 
       {/* Booking Modal & Floating Bar */}

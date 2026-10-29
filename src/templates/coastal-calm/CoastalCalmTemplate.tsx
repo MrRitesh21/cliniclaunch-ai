@@ -347,9 +347,9 @@ export function CoastalCalmTemplate(props: TemplateProps) {
           <div className="text-teal-200">Registration Authority: {regNo}</div>
         </div>
       
-          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
-            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
-          </div>
+        <div className="mt-8 pt-4 border-t border-white/10 w-full">
+          <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+        </div>
         </footer>
 
       {/* Modal & Contact Bar */}

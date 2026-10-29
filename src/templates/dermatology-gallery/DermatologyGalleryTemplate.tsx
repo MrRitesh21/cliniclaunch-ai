@@ -338,9 +338,9 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
           <div>Medical Authority Registry: {regNo}</div>
         </div>
       
-          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
-            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
-          </div>
+        <div className="mt-8 pt-4 border-t border-white/10 w-full">
+          <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+        </div>
         </footer>
 
       {/* Booking Modal & Floating Bar */}

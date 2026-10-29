@@ -378,9 +378,9 @@ export function EditorialStudioTemplate(props: TemplateProps) {
           <p className="text-[10px] text-slate-400">© {new Date().getFullYear()} {clinicName}. Architecture &amp; Medicine.</p>
         </div>
       
-          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
-            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
-          </div>
+        <div className="mt-8 pt-4 border-t border-white/10 w-full">
+          <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+        </div>
         </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}

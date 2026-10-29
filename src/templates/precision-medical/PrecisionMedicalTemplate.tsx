@@ -405,9 +405,9 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
           <p className="text-[10px]">© {new Date().getFullYear()} {clinicName}. All clinical rights reserved.</p>
         </div>
       
-          <div className="py-4 border-t border-white/10 w-full flex justify-between items-center">
-            <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
-          </div>
+        <div className="mt-8 pt-4 border-t border-white/10 w-full">
+          <TemplateFooterPages activePage={activePage} onNavigate={setActivePage} palette={palette} />
+        </div>
         </footer>
 
       {/* Interactive Modal & Floating Contact Bar */}
