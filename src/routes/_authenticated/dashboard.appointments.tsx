@@ -37,6 +37,7 @@ import {
   MessageCircle,
   QrCode,
   Code2,
+  Loader2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus, createBooking, getClinicAppointments } from "@/lib/clinic.functions";
@@ -693,16 +694,21 @@ function AppointmentsPage() {
                           size="sm"
                           onClick={() => setStatus(r.id, "confirmed")}
                           disabled={isBusy}
-                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial"
+                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90"
                         >
-                          <Check className="size-3.5" /> {isBusy ? "Confirming…" : "Confirm Booking"}
+                          {isBusy ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Check className="size-3.5" />
+                          )}
+                          <span>{isBusy ? "Confirming…" : "Confirm Booking"}</span>
                         </Button>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => setStatus(r.id, "cancelled")}
                           disabled={isBusy}
-                          className="h-8 text-xs text-destructive hover:bg-destructive/10 px-2.5"
+                          className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 font-medium"
                         >
                           <X className="size-3.5 mr-1" /> Cancel
                         </Button>

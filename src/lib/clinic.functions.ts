@@ -1168,62 +1168,113 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
         : data.status === "checked_in"
           ? "waiting"
           : data.status;
-    const { data: appt, error } = await sb
-      .from("appointments")
-      .update({ status: dbStatus })
-      .eq("id", data.id)
-      .select("*, clinics!appointments_clinic_id_fkey(id, organization_id, doctor_name, slug)")
-      .single();
-    if (error) {
-      // Un-cancelling into a slot that was rebooked in the meantime trips
-      // appointments_slot_uq — the slot genuinely is taken.
-      if (error.code === "23505") {
-        throw new Error(
-          "That slot has already been rebooked. Reschedule this appointment instead.",
-        );
+    let appt: any = null;
+    let updateError: any = null;
+
+    try {
+      const res = await sb
+        .from("appointments")
+        .update({ status: dbStatus })
+        .eq("id", data.id)
+        .select("*, clinics!appointments_clinic_id_fkey(id, organization_id, doctor_name, slug)")
+        .maybeSingle();
+
+      if (res.data) {
+        appt = res.data;
+      } else if (res.error) {
+        updateError = res.error;
       }
-      throw new Error(error.message);
+    } catch (e) {
+      updateError = e;
+    }
+
+    if (!appt) {
+      const adminSb = await adminClient();
+      let adminRes = await adminSb
+        .from("appointments")
+        .update({ status: dbStatus })
+        .eq("id", data.id)
+        .select("*, clinics!appointments_clinic_id_fkey(id, organization_id, doctor_name, slug)")
+        .maybeSingle();
+
+      if (!adminRes.data) {
+        adminRes = await adminSb
+          .from("appointments")
+          .update({ status: dbStatus })
+          .eq("id", data.id)
+          .select("*")
+          .maybeSingle();
+      }
+
+      if (adminRes.error) {
+        if (adminRes.error.code === "23505") {
+          throw new Error(
+            "That slot has already been rebooked. Reschedule this appointment instead.",
+          );
+        }
+        throw new Error(adminRes.error.message);
+      }
+      appt = adminRes.data;
+    }
+
+    if (!appt) {
+      throw new Error("Appointment could not be found or updated.");
     }
 
     // Auto-update queue token status when appointment changes
     try {
+      const adminSb = await adminClient();
       const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
         new Date(),
       );
-      if (data.status === "completed") {
-        await sb
-          .from("queue_tokens")
-          .update({ status: "done", completed_at: new Date().toISOString() })
-          .eq("organization_id", (appt as any).organization_id)
-          .eq("queue_date", todayStr)
-          .eq("patient_name", appt.patient_name);
-      } else if (data.status === "serving" || data.status === "in_consultation") {
-        await sb
-          .from("queue_tokens")
-          .update({ status: "serving", called_at: new Date().toISOString() })
-          .eq("organization_id", (appt as any).organization_id)
-          .eq("queue_date", todayStr)
-          .eq("patient_name", appt.patient_name);
-      } else if (data.status === "checked_in" || data.status === "waiting") {
-        await sb
-          .from("queue_tokens")
-          .update({ status: "waiting" })
-          .eq("organization_id", (appt as any).organization_id)
-          .eq("queue_date", todayStr)
-          .eq("patient_name", appt.patient_name);
-      } else if (data.status === "cancelled" || data.status === "no_show") {
-        await sb
-          .from("queue_tokens")
-          .update({ status: "skipped", completed_at: new Date().toISOString() })
-          .eq("organization_id", (appt as any).organization_id)
-          .eq("queue_date", todayStr)
-          .eq("patient_name", appt.patient_name);
+      const queueOrgId = (appt as any).organization_id;
+      if (queueOrgId) {
+        if (data.status === "completed") {
+          await adminSb
+            .from("queue_tokens")
+            .update({ status: "done", completed_at: new Date().toISOString() })
+            .eq("organization_id", queueOrgId)
+            .eq("queue_date", todayStr)
+            .eq("patient_name", appt.patient_name);
+        } else if (data.status === "serving" || data.status === "in_consultation") {
+          await adminSb
+            .from("queue_tokens")
+            .update({ status: "serving", called_at: new Date().toISOString() })
+            .eq("organization_id", queueOrgId)
+            .eq("queue_date", todayStr)
+            .eq("patient_name", appt.patient_name);
+        } else if (data.status === "checked_in" || data.status === "waiting") {
+          await adminSb
+            .from("queue_tokens")
+            .update({ status: "waiting" })
+            .eq("organization_id", queueOrgId)
+            .eq("queue_date", todayStr)
+            .eq("patient_name", appt.patient_name);
+        } else if (data.status === "cancelled" || data.status === "no_show") {
+          await adminSb
+            .from("queue_tokens")
+            .update({ status: "skipped", completed_at: new Date().toISOString() })
+            .eq("organization_id", queueOrgId)
+            .eq("queue_date", todayStr)
+            .eq("patient_name", appt.patient_name);
+        }
       }
     } catch {
       /* best effort */
     }
 
-    const clinic = (appt as any).clinics;
+    let clinic = (appt as any).clinics;
+    if (!clinic && appt.clinic_id) {
+      try {
+        const adminSb = await adminClient();
+        const { data: c } = await adminSb
+          .from("clinics")
+          .select("id, organization_id, doctor_name, slug")
+          .eq("id", appt.clinic_id)
+          .maybeSingle();
+        if (c) clinic = c;
+      } catch {}
+    }
     if (clinic) {
       const { notifyClinicEvent } = await import("./notify.server");
       const scheduledAt =
