@@ -37,7 +37,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -228,27 +228,37 @@ export function SwissMedicalTemplate(props: TemplateProps) {
 
           {/* Hero Technical Visual */}
           <div className="lg:col-span-5 relative">
-            <div className="relative border-2 border-zinc-900 p-2 bg-white shadow-xl">
-              <div className="relative aspect-4/5 overflow-hidden bg-zinc-100">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top grayscale hover:grayscale-0 transition-all duration-700"
-                />
-                <div className="absolute top-3 left-3 bg-zinc-900 text-white text-[10px] font-mono px-2.5 py-1 uppercase tracking-wider">
-                  DIRECTOR // {doctorName.toUpperCase()}
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="relative border-2 border-zinc-900 p-2 bg-white shadow-xl group">
+                <div className="relative aspect-4/5 overflow-hidden bg-zinc-100">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                  />
+                  <div className="absolute top-3 left-3 bg-zinc-900 text-white text-[10px] font-mono px-2.5 py-1 uppercase tracking-wider">
+                    DIRECTOR // {doctorName.toUpperCase()}
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-zinc-900 text-white px-2 py-1 text-[10px] font-mono flex items-center gap-1.5 border border-zinc-700 shadow-md">
+                        <LivePulse size="xs" pulseColor="bg-red-500" />
+                        <span>ACTIVE</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-red-600 text-white text-[10px] font-mono px-2.5 py-1 uppercase tracking-wider">
+                    {specialization.toUpperCase()}
+                  </div>
                 </div>
-                <div className="absolute bottom-3 right-3 bg-red-600 text-white text-[10px] font-mono px-2.5 py-1 uppercase tracking-wider">
-                  {specialization.toUpperCase()}
-                </div>
-              </div>
 
-              {/* Technical Metadata Under Image */}
-              <div className="mt-2 pt-2 border-t border-zinc-200 flex justify-between text-[10px] font-mono text-zinc-500">
-                <span>LIC: {regNo}</span>
-                <span>STATUS: ACTIVE COUNCIL</span>
+                {/* Technical Metadata Under Image */}
+                <div className="mt-2 pt-2 border-t border-zinc-200 flex justify-between text-[10px] font-mono text-zinc-500">
+                  <span>LIC: {regNo}</span>
+                  <span>STATUS: ACTIVE COUNCIL</span>
+                </div>
               </div>
-            </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
@@ -256,17 +266,20 @@ export function SwissMedicalTemplate(props: TemplateProps) {
       {/* 3. Services: Swiss Tabular Index */}
       <section id="services" className="py-20 border-b border-zinc-200 bg-zinc-50/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 pb-6 border-b border-zinc-200 gap-4">
-            <div>
-              <div className="text-red-600 font-mono text-xs font-bold uppercase tracking-widest mb-1">
-                // SECTION 01
+          <FadeUp>
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 pb-6 border-b border-zinc-200 gap-4">
+              <div>
+                <div className="text-red-600 font-mono text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                  <LivePulse size="xs" pulseColor="bg-red-600" />
+                  // SECTION 01
+                </div>
+                <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Clinical Services Index</h2>
               </div>
-              <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Clinical Services Index</h2>
+              <p className="text-sm font-mono text-zinc-500 max-w-sm">
+                Structured diagnostic procedures and therapeutic protocols under Swiss-grade documentation.
+              </p>
             </div>
-            <p className="text-sm font-mono text-zinc-500 max-w-sm">
-              Structured diagnostic procedures and therapeutic protocols under Swiss-grade documentation.
-            </p>
-          </div>
+          </FadeUp>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Service Selection List */}
@@ -363,13 +376,15 @@ export function SwissMedicalTemplate(props: TemplateProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5">
-              <div className="border border-zinc-300 p-2 bg-zinc-50">
-                <img
-                  src={getDoctorAvatarUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full aspect-square object-cover object-top grayscale"
-                />
-              </div>
+              <ImageMaskReveal direction="left" delay={0.1}>
+                <div className="border border-zinc-300 p-2 bg-zinc-50">
+                  <img
+                    src={getDoctorAvatarUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full aspect-square object-cover object-top grayscale"
+                  />
+                </div>
+              </ImageMaskReveal>
             </div>
             <div className="lg:col-span-7 space-y-6">
               <div className="text-red-600 font-mono text-xs font-bold uppercase tracking-widest">

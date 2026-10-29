@@ -35,7 +35,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -177,11 +177,17 @@ export function DigitalAppointmentTemplate(props: TemplateProps) {
           </div>
 
           {/* Focal Interactive Booking Card Preview */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 relative">
+            <FloatMotion amplitude={4} duration={3} className="absolute -top-3 -right-2 z-10 hidden sm:block">
+              <div className="bg-blue-600 text-white font-mono text-[10px] font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5 border border-blue-400">
+                <LivePulse size="xs" pulseColor="bg-white" />
+                <span>INSTANT TOKEN</span>
+              </div>
+            </FloatMotion>
             <div className="rounded-3xl p-6 sm:p-8 border-2 border-blue-600/20 bg-gradient-to-b from-white to-blue-50/40 shadow-2xl relative">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                 <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
-                  <span className="size-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <LivePulse size="xs" pulseColor="bg-emerald-500" />
                   Live Doctor Availability
                 </div>
                 <span className="text-xs font-mono text-blue-700 font-bold bg-blue-100/70 px-2.5 py-1 rounded-full">
@@ -260,7 +266,7 @@ export function DigitalAppointmentTemplate(props: TemplateProps) {
           <span className="font-mono text-xs text-slate-500">{services.length} ACTIVE SERVICES</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => (
             <div
               key={idx}
@@ -285,20 +291,22 @@ export function DigitalAppointmentTemplate(props: TemplateProps) {
               </button>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Doctor Profile */}
       <section id="doctor" className="py-20 px-6 bg-slate-900 text-white">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5">
-            <div className="rounded-3xl overflow-hidden border-2 border-slate-700 p-2 bg-slate-800">
-              <img
-                src={getDoctorAvatarUrl(clinic)}
-                alt={doctorName}
-                className="w-full aspect-square object-cover rounded-2xl"
-              />
-            </div>
+            <ImageMaskReveal direction="left" delay={0.1}>
+              <div className="rounded-3xl overflow-hidden border-2 border-slate-700 p-2 bg-slate-800">
+                <img
+                  src={getDoctorAvatarUrl(clinic)}
+                  alt={doctorName}
+                  className="w-full aspect-square object-cover rounded-2xl"
+                />
+              </div>
+            </ImageMaskReveal>
           </div>
           <div className="lg:col-span-7 space-y-6">
             <span className="text-teal-400 font-mono text-xs font-bold uppercase tracking-widest block">

@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -188,24 +188,34 @@ export function FamilyFirstTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="rounded-[2.5rem] p-3 bg-gradient-to-tr from-sky-100 via-amber-50 to-rose-100 shadow-xl border border-sky-100">
-              <div className="rounded-[2rem] overflow-hidden aspect-4/5 bg-white">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
-              <div className="p-4 bg-white/95 backdrop-blur-md rounded-2xl mt-3 border border-slate-100 shadow-xs flex justify-between items-center">
-                <div>
-                  <div className="font-bold text-sm text-slate-900">{doctorName}</div>
-                  <div className="text-xs text-sky-700">{specialization} • {qualification}</div>
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="rounded-[2.5rem] p-3 bg-gradient-to-tr from-sky-100 via-amber-50 to-rose-100 shadow-xl border border-sky-100 group relative">
+                <div className="rounded-[2rem] overflow-hidden aspect-4/5 bg-white relative">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-4 right-4">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-full shadow-md border border-sky-100 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
+                        <LivePulse size="xs" pulseColor="bg-emerald-500" />
+                        <span>Accepting Families</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  Verified
-                </span>
+                <div className="p-4 bg-white/95 backdrop-blur-md rounded-2xl mt-3 border border-slate-100 shadow-xs flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-sm text-slate-900">{doctorName}</div>
+                    <div className="text-xs text-sky-700">{specialization} • {qualification}</div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Verified
+                  </span>
+                </div>
               </div>
-            </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
@@ -213,23 +223,25 @@ export function FamilyFirstTemplate(props: TemplateProps) {
       {/* Services for All Ages */}
       <section id="care" className="py-20 px-6 bg-white border-t border-b border-amber-100/60">
         <div className="max-w-6xl mx-auto space-y-12">
-          <div className="text-center max-w-xl mx-auto space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-sky-700">
-              COMPLETE FAMILY WELLNESS
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
-              Care Services for Every Stage of Life
-            </h2>
-            <p className="text-sm text-slate-600">
-              From early childhood immunization to elder chronic disease management.
-            </p>
-          </div>
+          <FadeUp>
+            <div className="text-center max-w-xl mx-auto space-y-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-sky-700">
+                COMPLETE FAMILY WELLNESS
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
+                Care Services for Every Stage of Life
+              </h2>
+              <p className="text-sm text-slate-600">
+                From early childhood immunization to elder chronic disease management.
+              </p>
+            </div>
+          </FadeUp>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((svc, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-3xl bg-[#fffdf9] border border-amber-100/80 hover:border-sky-300 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group"
+                className="p-6 rounded-3xl bg-[#fffdf9] border border-amber-100/80 hover:border-sky-300 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-4 group"
               >
                 <div className="space-y-3">
                   <div className="size-10 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
@@ -246,27 +258,29 @@ export function FamilyFirstTemplate(props: TemplateProps) {
                   </span>
                   <button
                     onClick={() => setBookingOpen(true)}
-                    className="text-xs font-semibold text-sky-700 hover:text-sky-900 flex items-center gap-1"
+                    className="text-xs font-semibold text-sky-700 hover:text-sky-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform"
                   >
                     Book This <ArrowRight className="size-3" />
                   </button>
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
       {/* Doctor Profile */}
       <section id="doctor" className="py-20 px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-sky-100 shadow-sm">
-            <img
-              src={getDoctorAvatarUrl(clinic)}
-              alt={doctorName}
-              className="w-full aspect-square object-cover rounded-[2rem]"
-            />
-          </div>
+          <ImageMaskReveal direction="left" delay={0.1}>
+            <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-sky-100 shadow-sm">
+              <img
+                src={getDoctorAvatarUrl(clinic)}
+                alt={doctorName}
+                className="w-full aspect-square object-cover rounded-[2rem]"
+              />
+            </div>
+          </ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-5">
           <span className="text-xs font-semibold uppercase tracking-wider text-sky-700">

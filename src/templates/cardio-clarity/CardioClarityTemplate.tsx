@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -191,14 +191,23 @@ export function CardioClarityTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-slate-950 via-slate-900 to-red-950 shadow-2xl">
-              <div className="rounded-2xl overflow-hidden aspect-4/5 bg-slate-100">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-slate-950 via-slate-900 to-red-950 shadow-2xl group">
+                <div className="rounded-2xl overflow-hidden aspect-4/5 bg-slate-100 relative">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-lg border border-red-900/50 text-[10px] font-mono flex items-center gap-1.5 shadow-md">
+                        <LivePulse size="xs" pulseColor="bg-red-500" />
+                        <span>OPD ACTIVE</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
+                </div>
               <div className="p-4 flex justify-between items-center text-white">
                 <div>
                   <div className="font-bold text-sm uppercase">{doctorName}</div>
@@ -209,6 +218,7 @@ export function CardioClarityTemplate(props: TemplateProps) {
                 </span>
               </div>
             </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
@@ -227,7 +237,7 @@ export function CardioClarityTemplate(props: TemplateProps) {
           <span className="font-mono text-xs text-slate-500">{services.length} ACTIVE PANELS</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => (
             <div
               key={idx}
@@ -252,7 +262,7 @@ export function CardioClarityTemplate(props: TemplateProps) {
               </button>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Emergency Alert Banner */}
@@ -275,13 +285,15 @@ export function CardioClarityTemplate(props: TemplateProps) {
       {/* Cardiologist Profile */}
       <section id="cardiologist" className="py-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
-            <img
-              src={getDoctorAvatarUrl(clinic)}
-              alt={doctorName}
-              className="w-full aspect-square object-cover rounded-2xl"
-            />
-          </div>
+          <ImageMaskReveal direction="left" delay={0.1}>
+            <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
+              <img
+                src={getDoctorAvatarUrl(clinic)}
+                alt={doctorName}
+                className="w-full aspect-square object-cover rounded-2xl"
+              />
+            </div>
+          </ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-6">
           <span className="font-mono text-xs font-bold text-red-600 uppercase tracking-widest block">

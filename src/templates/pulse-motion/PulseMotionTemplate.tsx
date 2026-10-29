@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -228,17 +228,20 @@ export function PulseMotionTemplate(props: TemplateProps) {
                   </div>
 
                   {/* Overlapping Performance Card */}
-                  <div className="absolute -bottom-8 -left-6 bg-slate-950 text-white p-5 rounded-2xl shadow-2xl border border-slate-800 max-w-xs text-left space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-lime-400 font-bold uppercase">
-                        // Verified Clinical Lead
-                      </span>
-                      <ShieldCheck className="size-4 text-lime-400" />
+                  <FloatMotion amplitude={4} duration={3} className="absolute -bottom-8 -left-6 z-10">
+                    <div className="bg-slate-950 text-white p-5 rounded-2xl shadow-2xl border border-slate-800 max-w-xs text-left space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-lime-400 font-bold uppercase flex items-center gap-1.5">
+                          <LivePulse size="xs" pulseColor="bg-lime-400" />
+                          // Verified Clinical Lead
+                        </span>
+                        <ShieldCheck className="size-4 text-lime-400" />
+                      </div>
+                      <p className="font-bold text-sm text-white">{doctorName}</p>
+                      <p className="text-xs text-slate-300">{qualification} · {specialization}</p>
+                      {regNo && <p className="text-[10px] font-mono text-slate-400">Reg: {regNo}</p>}
                     </div>
-                    <p className="font-bold text-sm text-white">{doctorName}</p>
-                    <p className="text-xs text-slate-300">{qualification} · {specialization}</p>
-                    {regNo && <p className="text-[10px] font-mono text-slate-400">Reg: {regNo}</p>}
-                  </div>
+                  </FloatMotion>
                 </div>
               </FadeUp>
             </div>

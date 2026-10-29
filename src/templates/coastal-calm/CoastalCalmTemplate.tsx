@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -188,19 +188,29 @@ export function CoastalCalmTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-[2.5rem] overflow-hidden p-3 bg-gradient-to-tr from-teal-100 to-sky-100 shadow-xl border border-teal-100">
-              <div className="rounded-[2rem] overflow-hidden aspect-4/5 bg-teal-50">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top"
-                />
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="relative rounded-[2.5rem] overflow-hidden p-3 bg-gradient-to-tr from-teal-100 to-sky-100 shadow-xl border border-teal-100 group">
+                <div className="rounded-[2rem] overflow-hidden aspect-4/5 bg-teal-50 relative">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-4 right-4">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full shadow-md border border-teal-100 flex items-center gap-1.5 text-[10px] font-semibold text-teal-800">
+                        <LivePulse size="xs" pulseColor="bg-teal-500" />
+                        <span>Accepting Patients</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
+                </div>
+                <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-teal-100/80 shadow-md">
+                  <div className="text-xs font-semibold text-teal-900">{doctorName}</div>
+                  <div className="text-[11px] text-teal-600">{qualification} • Reg: {regNo}</div>
+                </div>
               </div>
-              <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-teal-100/80 shadow-md">
-                <div className="text-xs font-semibold text-teal-900">{doctorName}</div>
-                <div className="text-[11px] text-teal-600">{qualification} • Reg: {regNo}</div>
-              </div>
-            </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
@@ -227,7 +237,7 @@ export function CoastalCalmTemplate(props: TemplateProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((svc, idx) => (
               <div
                 key={idx}
@@ -255,7 +265,7 @@ export function CoastalCalmTemplate(props: TemplateProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
@@ -263,13 +273,15 @@ export function CoastalCalmTemplate(props: TemplateProps) {
       <section id="about" className="py-20 px-6 bg-[#f2f7f5]">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5">
-            <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 shadow-sm border border-teal-100">
-              <img
-                src={getDoctorAvatarUrl(clinic)}
-                alt={doctorName}
-                className="w-full aspect-square object-cover rounded-[2rem]"
-              />
-            </div>
+            <ImageMaskReveal direction="left" delay={0.1}>
+              <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 shadow-sm border border-teal-100">
+                <img
+                  src={getDoctorAvatarUrl(clinic)}
+                  alt={doctorName}
+                  className="w-full aspect-square object-cover rounded-[2rem]"
+                />
+              </div>
+            </ImageMaskReveal>
           </div>
           <div className="lg:col-span-7 space-y-5">
             <span className="text-xs font-semibold text-teal-700 uppercase tracking-widest">

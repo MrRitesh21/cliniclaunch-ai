@@ -32,7 +32,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -188,18 +188,21 @@ export function EditorialSplitTemplate(props: TemplateProps) {
           </div>
 
           <div className="relative z-10 flex justify-between items-start text-xs font-mono text-slate-400">
-            <span>FIGURE 01 // PRINCIPAL CLINICIAN</span>
+            <span className="flex items-center gap-1.5">
+              <LivePulse size="xs" pulseColor="bg-cyan-400" />
+              FIGURE 01 // PRINCIPAL CLINICIAN
+            </span>
             <span>LICENSED COUNCIL: {regNo}</span>
           </div>
 
-          <div className="relative z-10 space-y-4 max-w-md bg-slate-950/80 backdrop-blur-md p-6 border border-slate-800">
+          <FadeUp delay={0.2} className="relative z-10 space-y-4 max-w-md bg-slate-950/80 backdrop-blur-md p-6 border border-slate-800 shadow-2xl">
             <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider block">
               PRACTICE DIRECTOR
             </span>
             <h3 className="text-2xl sm:text-3xl font-black tracking-tight">{doctorName}</h3>
             <div className="text-xs text-slate-300 font-mono">{qualification}</div>
             <p className="text-xs text-slate-400 leading-relaxed font-normal">{bio}</p>
-          </div>
+          </FadeUp>
 
           <div className="relative z-10 flex justify-between items-center text-xs font-mono text-slate-400 border-t border-slate-800 pt-4">
             <span>FACILITY // {address.split(",")[0]}</span>
@@ -227,7 +230,7 @@ export function EditorialSplitTemplate(props: TemplateProps) {
           <span className="font-mono text-xs text-slate-500">{services.length} ACTIVE DEPARTMENTS</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => (
             <div
               key={idx}
@@ -252,7 +255,7 @@ export function EditorialSplitTemplate(props: TemplateProps) {
               </button>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Timetable & Location Split */}

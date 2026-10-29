@@ -37,7 +37,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, ImageMaskReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, ImageMaskReveal, StaggerChildren , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -240,13 +240,19 @@ export function AuraCareTemplate(props: TemplateProps) {
                     className="shadow-2xl rounded-2xl"
                   />
                   {/* Floating Doctor Signature Badge */}
-                  <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-[#e5dfd5] max-w-xs text-left">
+                  <FloatMotion amplitude={5} duration={3.5} className="absolute -bottom-6 -left-6 z-10">
+                    <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-[#e5dfd5] max-w-xs text-left">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <LivePulse size="xs" pulseColor="bg-emerald-500" />
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Active OPD</span>
+                      </div>
                     <p className="font-serif text-sm font-semibold text-[#0a192f]">{doctorName}</p>
                     <p className="text-[11px] text-[#52796f] font-medium">{qualification}</p>
                     {regNo && (
                       <p className="text-[10px] text-[#8c9ba5] font-mono mt-1">Reg: {regNo}</p>
                     )}
-                  </div>
+                    </div>
+                  </FloatMotion>
                 </div>
               </FadeUp>
             </div>

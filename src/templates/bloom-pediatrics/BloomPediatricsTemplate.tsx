@@ -35,7 +35,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -245,11 +245,17 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
                     aspectRatio="aspect-4/3"
                     className="rounded-[2.5rem] shadow-2xl border-4 border-white"
                   />
-                  <div className="absolute -bottom-6 -right-4 bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-rose-100 text-left max-w-xs">
+                  <FloatMotion amplitude={5} duration={3.5} className="absolute -bottom-6 -right-4 z-10">
+                    <div className="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-rose-100 text-left max-w-xs">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <LivePulse size="xs" pulseColor="bg-rose-500" />
+                        <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Care Active</span>
+                      </div>
                     <p className="font-bold text-sm text-slate-900">{doctorName}</p>
                     <p className="text-xs text-rose-600 font-semibold">{qualification}</p>
                     <p className="text-[11px] text-slate-500 mt-0.5">{specialization}</p>
-                  </div>
+                    </div>
+                  </FloatMotion>
                 </div>
               </FadeUp>
             </div>

@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -192,47 +192,59 @@ export function ActiveRecoveryTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-800 shadow-2xl">
-              <div className="rounded-2xl overflow-hidden aspect-4/5 bg-slate-100">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
-              <div className="p-4 flex justify-between items-center text-white">
-                <div>
-                  <div className="font-bold text-sm uppercase">{doctorName}</div>
-                  <div className="text-xs text-orange-400 font-mono">{qualification}</div>
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-800 shadow-2xl group">
+                <div className="rounded-2xl overflow-hidden aspect-4/5 bg-slate-100 relative">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-lg border border-slate-700 text-[10px] font-mono flex items-center gap-1.5 shadow-md">
+                        <LivePulse size="xs" pulseColor="bg-orange-500" />
+                        <span>REHAB ACTIVE</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
                 </div>
-                <span className="px-2.5 py-1 bg-orange-600 text-white text-[10px] font-mono font-bold rounded-lg uppercase">
-                  LEAD REHAB
-                </span>
+                <div className="p-4 flex justify-between items-center text-white">
+                  <div>
+                    <div className="font-bold text-sm uppercase">{doctorName}</div>
+                    <div className="text-xs text-orange-400 font-mono">{qualification}</div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-orange-600 text-white text-[10px] font-mono font-bold rounded-lg uppercase">
+                    LEAD REHAB
+                  </span>
+                </div>
               </div>
-            </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
 
       {/* Recovery Protocols / Services */}
       <section id="protocols" className="py-20 px-6 max-w-7xl mx-auto space-y-12">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b-2 border-slate-950 pb-6 gap-4">
-          <div>
-            <span className="font-mono text-xs font-bold text-orange-600 uppercase tracking-widest block mb-1">
-              REHABILITATION DIRECTORY
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
-              Targeted Care Protocols
-            </h2>
+        <FadeUp>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b-2 border-slate-950 pb-6 gap-4">
+            <div>
+              <span className="font-mono text-xs font-bold text-orange-600 uppercase tracking-widest block mb-1">
+                REHABILITATION DIRECTORY
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
+                Targeted Care Protocols
+              </h2>
+            </div>
+            <span className="font-mono text-xs text-slate-500">{services.length} ACTIVE PATHWAYS</span>
           </div>
-          <span className="font-mono text-xs text-slate-500">{services.length} ACTIVE PATHWAYS</span>
-        </div>
+        </FadeUp>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => (
             <div
               key={idx}
-              className="p-6 rounded-2xl border border-slate-200 bg-white hover:border-orange-500 hover:shadow-xl transition-all flex flex-col justify-between space-y-4 group"
+              className="p-6 rounded-2xl border border-slate-200 bg-white hover:border-orange-500 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-4 group"
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-start font-mono text-xs font-bold">
@@ -247,61 +259,65 @@ export function ActiveRecoveryTemplate(props: TemplateProps) {
 
               <button
                 onClick={() => setBookingOpen(true)}
-                className="w-full h-10 rounded-xl bg-slate-100 hover:bg-orange-600 hover:text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                className="w-full h-10 rounded-xl bg-slate-100 group-hover:bg-orange-600 group-hover:text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
               >
                 Inquire Protocol <ChevronRight className="size-4" />
               </button>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Return-To-Play 3-Step Milestone */}
       <section id="roadmap" className="py-16 px-6 bg-slate-950 text-white border-t border-slate-800">
         <div className="max-w-7xl mx-auto space-y-12">
-          <div className="text-center max-w-xl mx-auto space-y-2">
-            <span className="font-mono text-xs font-bold text-orange-500 uppercase tracking-widest">
-              PERFORMANCE ROADMAP
-            </span>
-            <h2 className="text-3xl font-black tracking-tight">Structured Path to Recovery</h2>
-          </div>
+          <FadeUp>
+            <div className="text-center max-w-xl mx-auto space-y-2">
+              <span className="font-mono text-xs font-bold text-orange-500 uppercase tracking-widest">
+                PERFORMANCE ROADMAP
+              </span>
+              <h2 className="text-3xl font-black tracking-tight">Structured Path to Recovery</h2>
+            </div>
+          </FadeUp>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+          <StaggerChildren stagger={0.1} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-orange-500/50 transition-colors">
               <span className="text-3xl font-black text-orange-500 font-mono">01</span>
               <h3 className="font-bold text-lg">Biomechanical Assessment</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Comprehensive range-of-motion, strength testing, and gait analysis to locate the root cause.
               </p>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-orange-500/50 transition-colors">
               <span className="text-3xl font-black text-orange-500 font-mono">02</span>
               <h3 className="font-bold text-lg">Targeted Rehabilitation</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Supervised manual therapy, corrective loading, and neuromuscular re-education.
               </p>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 hover:border-orange-500/50 transition-colors">
               <span className="text-3xl font-black text-orange-500 font-mono">03</span>
               <h3 className="font-bold text-lg">Peak Functional Discharge</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Independent strength milestones, injury-proofing guidance, and safe return to full activity.
               </p>
             </div>
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
       {/* Specialist Dossier */}
       <section id="specialist" className="py-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
-            <img
-              src={getDoctorAvatarUrl(clinic)}
-              alt={doctorName}
-              className="w-full aspect-square object-cover rounded-2xl"
-            />
-          </div>
+          <ImageMaskReveal direction="left" delay={0.1}>
+            <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
+              <img
+                src={getDoctorAvatarUrl(clinic)}
+                alt={doctorName}
+                className="w-full aspect-square object-cover rounded-2xl"
+              />
+            </div>
+          </ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-6">
           <span className="font-mono text-xs font-bold text-orange-600 uppercase tracking-widest block">

@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -186,7 +186,8 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="rounded-[2.5rem] p-3 bg-gradient-to-tr from-rose-100 via-purple-50 to-amber-50 shadow-xl border border-rose-100">
+            <ImageMaskReveal direction="up" delay={0.2}>
+  <div className="rounded-[2.5rem] p-3 bg-gradient-to-tr from-rose-100 via-purple-50 to-amber-50 shadow-xl border border-rose-100 group">
               <div className="rounded-[2rem] overflow-hidden aspect-4/5 bg-white">
                 <img
                   src={getDoctorHeroImageUrl(clinic)}
@@ -194,6 +195,14 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
                   className="w-full h-full object-cover object-top"
                 />
               </div>
+                <div className="absolute top-4 right-4 z-10">
+                  <FloatMotion amplitude={4} duration={3}>
+                    <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-md border border-white/10">
+                      <LivePulse size="xs" pulseColor="bg-emerald-400" />
+                      <span>CLINIC ACTIVE</span>
+                    </div>
+                  </FloatMotion>
+                </div>
               <div className="p-4 bg-white/95 backdrop-blur-md rounded-2xl mt-3 border border-rose-100 flex justify-between items-center shadow-xs">
                 <div>
                   <div className="font-bold text-sm text-slate-900">{doctorName}</div>
@@ -204,9 +213,10 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
                 </span>
               </div>
             </div>
-          </div>
+          </ImageMaskReveal>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* Services Section */}
       <section id="services" className="py-20 px-6 bg-white border-t border-b border-rose-100/60">
@@ -223,7 +233,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((svc, idx) => (
               <div
                 key={idx}
@@ -251,20 +261,22 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
       {/* Pediatrician Profile */}
       <section id="doctor" className="py-20 px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-rose-100 shadow-sm">
+          <ImageMaskReveal direction="left" delay={0.1}>
+  <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-rose-100 shadow-sm">
             <img
               src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover rounded-[2rem]"
             />
           </div>
+</ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-5">
           <span className="text-xs font-semibold uppercase tracking-wider text-rose-600">

@@ -32,7 +32,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -184,7 +184,8 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="border-2 border-[#1e293b] p-3 bg-white shadow-2xl">
+            <ImageMaskReveal direction="up" delay={0.2}>
+  <div className="border-2 border-[#1e293b] p-3 bg-white shadow-2xl group">
               <div className="aspect-4/5 overflow-hidden bg-slate-100">
                 <img
                   src={getDoctorHeroImageUrl(clinic)}
@@ -192,6 +193,14 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
                   className="w-full h-full object-cover object-top"
                 />
               </div>
+                <div className="absolute top-4 right-4 z-10">
+                  <FloatMotion amplitude={4} duration={3}>
+                    <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-md border border-white/10">
+                      <LivePulse size="xs" pulseColor="bg-emerald-400" />
+                      <span>CLINIC ACTIVE</span>
+                    </div>
+                  </FloatMotion>
+                </div>
               <div className="p-4 text-center font-sans">
                 <div className="font-serif font-bold text-lg text-[#1e293b]">{doctorName}</div>
                 <div className="text-xs text-[#881337] font-medium tracking-wide mt-0.5">
@@ -199,7 +208,8 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
                 </div>
               </div>
             </div>
-          </div>
+          </ImageMaskReveal>
+        </div>
         </div>
       </section>
 
@@ -216,7 +226,7 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((svc, idx) => (
               <div
                 key={idx}
@@ -244,20 +254,22 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
       {/* Credentials / Doctor Profile */}
       <section id="credentials" className="py-20 px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="border-2 border-[#1e293b] p-3 bg-white">
+          <ImageMaskReveal direction="left" delay={0.1}>
+  <div className="border-2 border-[#1e293b] p-3 bg-white">
             <img
               src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover"
             />
           </div>
+</ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-5">
           <span className="font-sans text-xs font-bold uppercase tracking-widest text-[#ca8a04]">

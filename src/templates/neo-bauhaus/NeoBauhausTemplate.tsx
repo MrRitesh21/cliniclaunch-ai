@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -194,7 +194,8 @@ export function NeoBauhausTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="relative border-4 border-[#171717] bg-[#f59e0b] p-4 shadow-[8px_8px_0px_#171717]">
+            <ImageMaskReveal direction="up" delay={0.2}>
+  <div className="relative border-4 border-[#171717] bg-[#f59e0b] p-4 shadow-[8px_8px_0px_#171717] group">
               <div className="aspect-4/5 overflow-hidden border-2 border-[#171717] bg-white">
                 <img
                   src={getDoctorHeroImageUrl(clinic)}
@@ -202,6 +203,14 @@ export function NeoBauhausTemplate(props: TemplateProps) {
                   className="w-full h-full object-cover object-top"
                 />
               </div>
+                <div className="absolute top-4 right-4 z-10">
+                  <FloatMotion amplitude={4} duration={3}>
+                    <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-md border border-white/10">
+                      <LivePulse size="xs" pulseColor="bg-emerald-400" />
+                      <span>CLINIC ACTIVE</span>
+                    </div>
+                  </FloatMotion>
+                </div>
               <div className="mt-3 p-3 bg-white border-2 border-[#171717] flex justify-between items-center">
                 <div>
                   <div className="font-black text-sm uppercase text-[#171717]">{doctorName}</div>
@@ -212,9 +221,10 @@ export function NeoBauhausTemplate(props: TemplateProps) {
                 </span>
               </div>
             </div>
-          </div>
+          </ImageMaskReveal>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* Services Grid: Bauhaus Color Block Units */}
       <section id="construct" className="py-20 px-6 max-w-7xl mx-auto space-y-12">
@@ -232,7 +242,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => {
             const colors = ["#1d4ed8", "#dc2626", "#f59e0b"];
             const color = colors[idx % colors.length];
@@ -266,20 +276,22 @@ export function NeoBauhausTemplate(props: TemplateProps) {
               </div>
             );
           })}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Directorate / Doctor Profile */}
       <section id="directorate" className="py-20 bg-[#1d4ed8] text-white px-6 border-b-4 border-[#171717]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5">
-            <div className="border-4 border-[#171717] p-2 bg-[#f59e0b] shadow-[6px_6px_0px_#171717]">
+            <ImageMaskReveal direction="left" delay={0.1}>
+  <div className="border-4 border-[#171717] p-2 bg-[#f59e0b] shadow-[6px_6px_0px_#171717]">
               <img
                 src={getDoctorAvatarUrl(clinic)}
                 alt={doctorName}
                 className="w-full aspect-square object-cover border-2 border-[#171717]"
               />
             </div>
+</ImageMaskReveal>
           </div>
           <div className="lg:col-span-7 space-y-6">
             <span className="text-[#f59e0b] font-bold text-xs uppercase tracking-widest block">

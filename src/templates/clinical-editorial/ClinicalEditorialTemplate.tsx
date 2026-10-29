@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -92,15 +92,23 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
       {/* Main Journal Masthead */}
       <header className="border-b-2 border-[#1c1917] bg-[#faf8f5] py-8 px-6 text-center">
         <div className="max-w-7xl mx-auto flex flex-col items-center space-y-2">
-          <span className="font-sans text-[10px] font-bold tracking-[0.3em] uppercase text-[#78716c]">
-            PRACTICE OF RECORD
-          </span>
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-[#1c1917] uppercase">
+          <FadeUp delay={0.05}>
+            <span className="font-sans text-[10px] font-bold tracking-[0.3em] uppercase text-[#78716c] inline-flex items-center gap-2">
+              <LivePulse size="xs" pulseColor="bg-amber-600" />
+              PRACTICE OF RECORD • OPEN TODAY
+            </span>
+          </FadeUp>
+          <TextReveal
+            as="h1"
+            className="text-4xl sm:text-6xl font-black tracking-tight text-[#1c1917] uppercase"
+          >
             {clinicName}
-          </h1>
-          <p className="font-sans text-xs tracking-wider text-[#57534e] max-w-lg">
-            Directed by {doctorName} • {qualification}
-          </p>
+          </TextReveal>
+          <FadeUp delay={0.2}>
+            <p className="font-sans text-xs tracking-wider text-[#57534e] max-w-lg">
+              Directed by {doctorName} • {qualification}
+            </p>
+          </FadeUp>
         </div>
 
         {/* Newspaper Sub-Navigation */}
@@ -144,7 +152,7 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
       <section id="cover-story" className="py-16 px-6 max-w-7xl mx-auto border-b border-[#e7e5e4]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           {/* Left Column: Lead Story */}
-          <div className="lg:col-span-4 space-y-5 border-b lg:border-b-0 lg:border-r border-[#e7e5e4] pb-8 lg:pb-0 lg:pr-8">
+          <FadeUp delay={0.1} className="lg:col-span-4 space-y-5 border-b lg:border-b-0 lg:border-r border-[#e7e5e4] pb-8 lg:pb-0 lg:pr-8">
             <span className="font-sans text-[11px] font-bold text-amber-800 uppercase tracking-widest block">
               // CHIEF PHYSICIAN PROFILE
             </span>
@@ -154,30 +162,43 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
             <p className="font-sans text-xs text-[#57534e] leading-relaxed">
               With {experience} in active patient care, {doctorName} blends evidence-backed diagnostics with meticulous patient attention.
             </p>
-            <div className="p-4 bg-[#f5f2eb] border border-[#e7e5e4] font-sans text-xs space-y-2">
+            <div className="p-4 bg-[#f5f2eb] border border-[#e7e5e4] font-sans text-xs space-y-2 rounded-sm shadow-xs">
               <div className="font-semibold text-[#1c1917]">Credential Highlights:</div>
               <div className="text-[#57534e]">• {qualification}</div>
               <div className="text-[#57534e]">• Medical Council Reg: {regNo}</div>
               <div className="text-[#57534e]">• Fixed Evaluation OPD: ₹{fee}</div>
             </div>
-          </div>
+          </FadeUp>
 
           {/* Center Column: Portrait Photograph */}
           <div className="lg:col-span-5 relative">
-            <div className="border border-[#1c1917] p-2 bg-white shadow-md">
-              <img
-                src={getDoctorHeroImageUrl(clinic)}
-                alt={doctorName}
-                className="w-full aspect-4/5 object-cover object-top grayscale hover:grayscale-0 transition-all duration-500"
-              />
-              <div className="pt-2 text-center font-sans text-[11px] text-[#78716c] italic">
-                Fig 1.0 — {doctorName}, Lead Specialist at {clinicName}
+            <ImageMaskReveal direction="up" delay={0.15}>
+              <div className="border border-[#1c1917] p-2 bg-white shadow-md relative overflow-hidden group">
+                <img
+                  src={getDoctorHeroImageUrl(clinic)}
+                  alt={doctorName}
+                  className="w-full aspect-4/5 object-cover object-top grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
+                />
+                <div className="pt-2 text-center font-sans text-[11px] text-[#78716c] italic">
+                  Fig 1.0 — {doctorName}, Lead Specialist at {clinicName}
+                </div>
+
+                <div className="absolute top-4 right-4">
+                  <FloatMotion amplitude={4} duration={3}>
+                    <div className="bg-white/95 backdrop-blur-xs border border-stone-800 px-3 py-1.5 shadow-md flex items-center gap-2">
+                      <LivePulse size="xs" pulseColor="bg-emerald-600" />
+                      <span className="font-sans text-[10px] font-bold uppercase tracking-wider text-stone-900">
+                        Consultation Active
+                      </span>
+                    </div>
+                  </FloatMotion>
+                </div>
               </div>
-            </div>
+            </ImageMaskReveal>
           </div>
 
           {/* Right Column: Editorial Manifesto & Call to Action */}
-          <div className="lg:col-span-3 space-y-6 font-sans">
+          <FadeUp delay={0.25} className="lg:col-span-3 space-y-6 font-sans">
             <div className="border-l-2 border-amber-800 pl-4 space-y-2">
               <Quote className="size-5 text-amber-800" />
               <p className="font-serif italic text-sm text-[#1c1917] leading-relaxed">
@@ -193,40 +214,42 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
             <div className="pt-4 border-t border-[#e7e5e4] space-y-3">
               <button
                 onClick={() => setBookingOpen(true)}
-                className="w-full h-11 bg-[#1c1917] hover:bg-[#44403c] text-white text-xs uppercase font-bold tracking-wider transition-colors"
+                className="w-full h-11 bg-[#1c1917] hover:bg-[#44403c] text-white text-xs uppercase font-bold tracking-wider transition-all duration-200 hover:shadow-lg active:scale-[0.99]"
               >
                 Schedule Examination
               </button>
               <a
                 href={`tel:${phone}`}
-                className="w-full h-11 border border-[#1c1917] text-[#1c1917] text-xs uppercase font-bold tracking-wider hover:bg-[#f5f2eb] flex items-center justify-center gap-2 transition-colors"
+                className="w-full h-11 border border-[#1c1917] text-[#1c1917] text-xs uppercase font-bold tracking-wider hover:bg-[#f5f2eb] flex items-center justify-center gap-2 transition-all duration-200"
               >
                 <Phone className="size-3.5" /> Call {phone}
               </a>
             </div>
-          </div>
+          </FadeUp>
         </div>
       </section>
 
       {/* Clinical Disciplines / Services */}
       <section id="clinical-disciplines" className="py-20 px-6 max-w-7xl mx-auto border-b border-[#e7e5e4]">
-        <div className="mb-12 pb-4 border-b-2 border-[#1c1917] flex justify-between items-end">
-          <div>
-            <span className="font-sans text-[11px] font-bold text-amber-800 uppercase tracking-widest block">
-              SECTION II // CLINICAL DISCIPLINES
+        <FadeUp>
+          <div className="mb-12 pb-4 border-b-2 border-[#1c1917] flex justify-between items-end">
+            <div>
+              <span className="font-sans text-[11px] font-bold text-amber-800 uppercase tracking-widest block">
+                SECTION II // CLINICAL DISCIPLINES
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-[#1c1917]">Departmental Offerings</h2>
+            </div>
+            <span className="font-sans text-xs text-[#78716c] hidden sm:block">
+              Standardized Evaluation Protocols
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-[#1c1917]">Departmental Offerings</h2>
           </div>
-          <span className="font-sans text-xs text-[#78716c] hidden sm:block">
-            Standardized Evaluation Protocols
-          </span>
-        </div>
+        </FadeUp>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((svc, idx) => (
             <div
               key={idx}
-              className="border border-[#e7e5e4] bg-white p-6 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group"
+              className="border border-[#e7e5e4] bg-white p-6 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between space-y-4 group"
             >
               <div className="space-y-3">
                 <span className="font-sans text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
@@ -244,66 +267,78 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
                 </span>
                 <button
                   onClick={() => setBookingOpen(true)}
-                  className="text-amber-900 font-semibold hover:underline flex items-center gap-1"
+                  className="text-amber-900 font-semibold hover:underline flex items-center gap-1 group-hover:translate-x-1 transition-transform"
                 >
                   Book Slot <ChevronRight className="size-3" />
                 </button>
               </div>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Consultation Desk & Location */}
       <section id="consultation-desk" className="py-20 px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 font-sans">
           {/* Hours */}
-          <div className="border border-[#1c1917] p-8 bg-white space-y-6">
-            <div className="flex items-center gap-3 text-xl font-serif font-bold text-[#1c1917]">
-              <Clock className="size-5 text-amber-900" />
-              <span>Consultation Hours</span>
-            </div>
-            <div className="divide-y divide-[#e7e5e4] text-xs">
-              {days.map((item, idx) => (
-                <div key={idx} className="py-2.5 flex justify-between">
-                  <span className="font-semibold text-[#1c1917]">{item.day}</span>
-                  <span className="text-[#57534e]">{item.hours}</span>
+          <FadeUp delay={0.1}>
+            <div className="border border-[#1c1917] p-8 bg-white space-y-6 hover:shadow-lg transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 text-xl font-serif font-bold text-[#1c1917]">
+                  <Clock className="size-5 text-amber-900" />
+                  <span>Consultation Hours</span>
                 </div>
-              ))}
+                {isOpenNow && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 border border-emerald-200">
+                    <LivePulse size="xs" pulseColor="bg-emerald-500" />
+                    Open Today
+                  </div>
+                )}
+              </div>
+              <div className="divide-y divide-[#e7e5e4] text-xs">
+                {days.map((item, idx) => (
+                  <div key={idx} className="py-2.5 flex justify-between">
+                    <span className="font-semibold text-[#1c1917]">{item.day}</span>
+                    <span className="text-[#57534e]">{item.hours}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 bg-[#f5f2eb] text-xs text-[#57534e]">
+                Appointments are strictly scheduled to ensure zero hallway congestion.
+              </div>
             </div>
-            <div className="p-3 bg-[#f5f2eb] text-xs text-[#57534e]">
-              Appointments are strictly scheduled to ensure zero hallway congestion.
-            </div>
-          </div>
+          </FadeUp>
 
           {/* Location Dispatch */}
-          <div id="dispatch" className="border border-[#1c1917] p-8 bg-white flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-xl font-serif font-bold text-[#1c1917]">
-                <MapPin className="size-5 text-amber-900" />
-                <span>Clinic Dispatch Address</span>
+          <FadeUp delay={0.2}>
+            <div id="dispatch" className="border border-[#1c1917] p-8 bg-white flex flex-col justify-between space-y-6 hover:shadow-lg transition-shadow duration-300 h-full">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-xl font-serif font-bold text-[#1c1917]">
+                  <MapPin className="size-5 text-amber-900" />
+                  <span>Clinic Dispatch Address</span>
+                </div>
+                <p className="text-sm text-[#44403c] leading-relaxed">{address}</p>
+                <div className="text-xs text-[#78716c]">Direct Helpline: {phone}</div>
               </div>
-              <p className="text-sm text-[#44403c] leading-relaxed">{address}</p>
-              <div className="text-xs text-[#78716c]">Direct Helpline: {phone}</div>
-            </div>
 
-            <div className="flex gap-3">
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 h-11 border border-[#1c1917] text-[#1c1917] text-xs uppercase font-bold tracking-wider hover:bg-[#f5f2eb] flex items-center justify-center gap-2 transition-colors"
-              >
-                Route Map
-              </a>
-              <button
-                onClick={() => setBookingOpen(true)}
-                className="flex-1 h-11 bg-[#1c1917] hover:bg-[#44403c] text-white text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-colors"
-              >
-                Book Session
-              </button>
+              <div className="flex gap-3">
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 h-11 border border-[#1c1917] text-[#1c1917] text-xs uppercase font-bold tracking-wider hover:bg-[#f5f2eb] flex items-center justify-center gap-2 transition-colors"
+                >
+                  Route Map
+                </a>
+                <button
+                  onClick={() => setBookingOpen(true)}
+                  className="flex-1 h-11 bg-[#1c1917] hover:bg-[#44403c] text-white text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-colors"
+                >
+                  Book Session
+                </button>
+              </div>
             </div>
-          </div>
+          </FadeUp>
         </div>
       </section>
 

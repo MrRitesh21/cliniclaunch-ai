@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal } from "../shared/motion";
+import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -235,11 +235,17 @@ export function TerraWellnessTemplate(props: TemplateProps) {
                       className="w-full aspect-4/5 object-cover"
                     />
                   </div>
-                  <div className="absolute -bottom-6 -left-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-[#e7e0d3] max-w-xs text-left">
+                  <FloatMotion amplitude={5} duration={3.5} className="absolute -bottom-6 -left-6 z-10">
+                    <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-[#e7e0d3] max-w-xs text-left">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <LivePulse size="xs" pulseColor="bg-[#588157]" />
+                        <span className="text-[10px] font-bold text-[#588157] uppercase tracking-wider">Wellness Open</span>
+                      </div>
                     <p className="font-serif text-sm font-bold text-[#1c1917]">{doctorName}</p>
                     <p className="text-[11px] text-[#c2410c]">{qualification} · {specialization}</p>
                     {regNo && <p className="text-[10px] text-[#a8a29e] font-mono mt-0.5">Reg: {regNo}</p>}
-                  </div>
+                    </div>
+                  </FloatMotion>
                 </div>
               </FadeUp>
             </div>

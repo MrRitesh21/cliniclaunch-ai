@@ -37,7 +37,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -239,12 +239,14 @@ export function DigitalHealthTemplate(props: TemplateProps) {
                 <div className="relative p-6 rounded-3xl bg-white border border-slate-200 shadow-xl space-y-4 text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
-                      <span className="size-3 rounded-full bg-emerald-500 animate-ping" />
+                      <LivePulse size="xs" pulseColor="bg-emerald-500" />
                       <span className="text-xs font-mono font-bold text-slate-900">DIGITAL CLINIC PROTOCOL</span>
                     </div>
-                    <span className="text-[10px] font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md font-bold">
-                      v4.2 CERTIFIED
-                    </span>
+                    <FloatMotion amplitude={3} duration={3}>
+                      <span className="text-[10px] font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md font-bold shadow-xs">
+                        v4.2 CERTIFIED
+                      </span>
+                    </FloatMotion>
                   </div>
 
                   <div className="aspect-4/3 rounded-2xl overflow-hidden border border-slate-100">

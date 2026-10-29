@@ -34,7 +34,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -192,7 +192,8 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-slate-900 to-cyan-950 shadow-2xl">
+            <ImageMaskReveal direction="up" delay={0.2}>
+  <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-slate-900 to-cyan-950 shadow-2xl group">
               <div className="rounded-2xl overflow-hidden aspect-4/5 bg-slate-100">
                 <img
                   src={getDoctorHeroImageUrl(clinic)}
@@ -200,6 +201,14 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
                   className="w-full h-full object-cover object-top"
                 />
               </div>
+                <div className="absolute top-4 right-4 z-10">
+                  <FloatMotion amplitude={4} duration={3}>
+                    <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-md border border-white/10">
+                      <LivePulse size="xs" pulseColor="bg-emerald-400" />
+                      <span>CLINIC ACTIVE</span>
+                    </div>
+                  </FloatMotion>
+                </div>
               <div className="p-4 flex justify-between items-center text-white">
                 <div>
                   <div className="font-bold text-sm uppercase">{doctorName}</div>
@@ -210,9 +219,10 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
                 </span>
               </div>
             </div>
-          </div>
+          </ImageMaskReveal>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* Orthodontic Treatments / Services */}
       <section id="treatments" className="py-20 px-6 max-w-7xl mx-auto space-y-12">
@@ -228,7 +238,7 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
           <span className="font-mono text-xs text-slate-500">{services.length} TREATMENT PLANS</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => (
             <div
               key={idx}
@@ -253,7 +263,7 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
               </button>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* 3-Step Smile Pathway */}
@@ -295,13 +305,15 @@ export function PrecisionOrthoTemplate(props: TemplateProps) {
       {/* Orthodontist Profile */}
       <section id="specialist" className="py-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
+          <ImageMaskReveal direction="left" delay={0.1}>
+  <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
             <img
               src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover rounded-2xl"
             />
           </div>
+</ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-6">
           <span className="font-mono text-xs font-bold text-cyan-600 uppercase tracking-widest block">

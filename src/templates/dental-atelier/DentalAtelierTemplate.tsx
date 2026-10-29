@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal } from "../shared/motion";
+import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -204,14 +204,20 @@ export function DentalAtelierTemplate(props: TemplateProps) {
                     aspectRatio="aspect-square"
                     className="rounded-3xl shadow-2xl border-4 border-white"
                   />
-                  <div className="absolute -bottom-6 -right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100 text-left max-w-xs">
+                  <FloatMotion amplitude={5} duration={3.5} className="absolute -bottom-6 -right-4 z-10">
+                    <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100 text-left max-w-xs">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <LivePulse size="xs" pulseColor="bg-amber-600" />
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Studio Active</span>
+                      </div>
                     <div className="flex items-center gap-1.5 text-teal-600 font-bold text-xs">
                       <Gem className="size-4" />
                       <span>{doctorName}</span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">{qualification} · {specialization}</p>
                     {regNo && <p className="text-[10px] text-slate-400 font-mono">Reg: {regNo}</p>}
-                  </div>
+                    </div>
+                  </FloatMotion>
                 </div>
               </FadeUp>
             </div>

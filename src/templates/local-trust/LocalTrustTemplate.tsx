@@ -35,7 +35,15 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, StaggerChildren } from "../shared/motion";
+import {
+  FadeUp,
+  TextReveal,
+  ImageMaskReveal,
+  StaggerChildren,
+  LivePulse,
+  FloatMotion,
+  MotionButton,
+} from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -172,90 +180,114 @@ export function LocalTrustTemplate(props: TemplateProps) {
 
 
       {/* ─── HERO: DIRECT LOCAL TRUST & QUICK ACTIONS ──────────────────── */}
-      <section className="py-12 md:py-20 bg-white border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-12 md:py-20 bg-white border-b border-stone-200 overflow-hidden relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             {/* Left Column */}
             <div className="lg:col-span-7 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                <ShieldCheck className="size-4 text-emerald-600" />
-                <span>Verified Local Healthcare · {experience}+ Years Serving Patients</span>
-              </div>
+              <FadeUp delay={0.1}>
+                <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200/80 shadow-xs">
+                  <LivePulse color="emerald" />
+                  <ShieldCheck className="size-4 text-emerald-600" />
+                  <span>Verified Healthcare · {experience}+ Years Serving Patients</span>
+                </div>
+              </FadeUp>
 
               <div className="space-y-3">
-                <h1 className="text-3xl sm:text-5xl font-black text-stone-900 tracking-tight leading-tight">
-                  {clinic.hero_headline || "Compassionate, Accessible Healthcare for Your Family."}
-                </h1>
-                <p className="text-base sm:text-lg text-stone-600 leading-relaxed font-normal">
-                  {clinic.hero_subheadline ||
-                    `Consult with ${doctorName} for reliable, transparent, and experienced diagnosis in ${specialization}. Walk-ins and pre-booked appointments welcome.`}
-                </p>
+                <TextReveal
+                  text={clinic.hero_headline || "Compassionate, Accessible Healthcare for Your Family."}
+                  as="h1"
+                  className="text-3xl sm:text-5xl font-black text-stone-900 tracking-tight leading-tight"
+                />
+                <FadeUp delay={0.2}>
+                  <p className="text-base sm:text-lg text-stone-600 leading-relaxed font-normal">
+                    {clinic.hero_subheadline ||
+                      `Consult with ${doctorName} for reliable, transparent, and experienced diagnosis in ${specialization}. Walk-ins and pre-booked appointments welcome.`}
+                  </p>
+                </FadeUp>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => setBookingOpen(true)}
-                  className="px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white shadow-lg transition-all hover:bg-emerald-700"
-                  style={{ backgroundColor: emeraldGreen }}
-                >
-                  Book Appointment Slot · ₹{fee}
-                </button>
-                {phone && (
-                  <a
-                    href={`tel:${phone}`}
-                    className="px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-stone-800 border-2 border-stone-300 hover:border-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-2"
+              <FadeUp delay={0.3}>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <MotionButton
+                    onClick={() => setBookingOpen(true)}
+                    className="px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white shadow-lg transition-all hover:bg-emerald-700"
+                    type="button"
                   >
-                    <Phone className="size-4 text-emerald-600" />
-                    <span>Call Clinic</span>
-                  </a>
-                )}
-                {getClinicWhatsAppUrl(clinic) && (
-                  <a
-                    href={getClinicWhatsAppUrl(clinic)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-5 py-3.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center gap-2"
-                  >
-                    <MessageCircle className="size-4 text-emerald-600" />
-                    <span>WhatsApp</span>
-                  </a>
-                )}
-              </div>
+                    <span style={{ backgroundColor: emeraldGreen }} className="absolute inset-0 rounded-xl -z-10" />
+                    Book Appointment Slot · ₹{fee}
+                  </MotionButton>
+                  {phone && (
+                    <a
+                      href={`tel:${phone}`}
+                      className="px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-stone-800 border-2 border-stone-300 hover:border-emerald-600 hover:bg-emerald-50 transition-all flex items-center gap-2 hover:-translate-y-0.5"
+                    >
+                      <Phone className="size-4 text-emerald-600" />
+                      <span>Call Clinic</span>
+                    </a>
+                  )}
+                  {getClinicWhatsAppUrl(clinic) && (
+                    <a
+                      href={getClinicWhatsAppUrl(clinic)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-3.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-all flex items-center gap-2 border border-emerald-200 hover:-translate-y-0.5"
+                    >
+                      <MessageCircle className="size-4 text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              </FadeUp>
 
               {/* Practical Info Pill */}
-              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <span className="text-stone-500 block text-[11px]">Consultation Fee</span>
-                  <span className="font-bold text-stone-900 text-sm">₹{fee} Standard</span>
+              <FadeUp delay={0.4}>
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs shadow-xs">
+                  <div>
+                    <span className="text-stone-500 block text-[11px]">Consultation Fee</span>
+                    <span className="font-bold text-stone-900 text-sm">₹{fee} Standard</span>
+                  </div>
+                  <div>
+                    <span className="text-stone-500 block text-[11px]">Today's Status</span>
+                    <span className={`font-bold flex items-center gap-1.5 ${isOpenNow ? "text-emerald-600" : "text-stone-600"}`}>
+                      <LivePulse color={isOpenNow ? "emerald" : "amber"} />
+                      {isOpenNow ? "Open Today" : "Closed"}
+                    </span>
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <span className="text-stone-500 block text-[11px]">Doctor Qualification</span>
+                    <span className="font-bold text-stone-900 truncate block">{qualification}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-stone-500 block text-[11px]">Today's Status</span>
-                  <span className={isOpenNow ? "font-bold text-emerald-600" : "font-bold text-stone-600"}>
-                    {isOpenNow ? "Open Today" : "Closed"}
-                  </span>
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <span className="text-stone-500 block text-[11px]">Doctor Qualification</span>
-                  <span className="font-bold text-stone-900 truncate block">{qualification}</span>
-                </div>
-              </div>
+              </FadeUp>
             </div>
 
-            {/* Right Column: Doctor Portrait */}
-            <div className="lg:col-span-5">
-              <div className="rounded-3xl overflow-hidden border-2 border-stone-200 shadow-xl bg-white p-2">
-                <img
-                  src={getDoctorAvatarUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full aspect-4/3 object-cover rounded-2xl"
-                />
-                <div className="p-4 text-left space-y-1">
-                  <p className="font-extrabold text-base text-stone-900">{doctorName}</p>
-                  <p className="text-xs text-emerald-700 font-bold">{qualification} · {specialization}</p>
-                  {regNo && <p className="text-[11px] text-stone-500 font-mono">Reg. No: {regNo}</p>}
+            {/* Right Column: Doctor Portrait with Motion Framing */}
+            <div className="lg:col-span-5 relative">
+              <FadeUp delay={0.25}>
+                <div className="rounded-3xl overflow-hidden border-2 border-stone-200 shadow-xl bg-white p-2.5 relative group hover:shadow-2xl transition-all duration-500">
+                  <ImageMaskReveal
+                    src={getDoctorAvatarUrl(clinic)}
+                    alt={doctorName}
+                    aspectRatio="aspect-4/3"
+                    className="rounded-2xl"
+                  />
+                  <FloatMotion duration={5} y={5} className="mt-3">
+                    <div className="p-4 text-left space-y-1 bg-stone-50 rounded-2xl border border-stone-200/80 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <p className="font-extrabold text-base text-stone-900">{doctorName}</p>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-300">
+                          <LivePulse color="emerald" />
+                          <span>OPD Active</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-700 font-bold">{qualification} · {specialization}</p>
+                      {regNo && <p className="text-[11px] text-stone-500 font-mono">Reg. No: {regNo}</p>}
+                    </div>
+                  </FloatMotion>
                 </div>
-              </div>
+              </FadeUp>
             </div>
           </div>
         </div>
@@ -264,29 +296,31 @@ export function LocalTrustTemplate(props: TemplateProps) {
       {/* ─── SERVICES & TREATMENTS ─────────────────────────────────────── */}
       <section id="services" className="py-16 md:py-24 border-b border-stone-200 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-2 mb-14">
-            <span className="text-xs uppercase tracking-widest text-emerald-700 font-bold">
-              Available Treatments
-            </span>
-            <h2 className="text-3xl font-extrabold text-stone-900">
-              Clinic Services &amp; Consultations
-            </h2>
-            <p className="text-sm text-stone-600">
-              Reliable, prompt, and affordable care for all age groups.
-            </p>
-          </div>
+          <FadeUp>
+            <div className="text-center max-w-2xl mx-auto space-y-2 mb-14">
+              <span className="text-xs uppercase tracking-widest text-emerald-700 font-bold">
+                Available Treatments
+              </span>
+              <h2 className="text-3xl font-extrabold text-stone-900">
+                Clinic Services &amp; Consultations
+              </h2>
+              <p className="text-sm text-stone-600">
+                Reliable, prompt, and affordable care for all age groups.
+              </p>
+            </div>
+          </FadeUp>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {services.map((s, i) => (
               <div
                 key={s.id || i}
-                className="p-6 rounded-2xl bg-white border border-stone-200 shadow-xs hover:border-emerald-600 transition-all flex flex-col justify-between text-left"
+                className="p-6 rounded-2xl bg-white border border-stone-200 shadow-xs hover:border-emerald-600 hover:-translate-y-2 hover:shadow-xl transition-all duration-300 flex flex-col justify-between text-left group"
               >
                 <div className="space-y-3">
-                  <div className="size-10 rounded-xl bg-emerald-50 text-emerald-700 grid place-items-center font-bold">
+                  <div className="size-10 rounded-xl bg-emerald-50 text-emerald-700 grid place-items-center font-bold group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
                     <Stethoscope className="size-5" />
                   </div>
-                  <h3 className="font-bold text-base text-stone-900">{s.name}</h3>
+                  <h3 className="font-bold text-base text-stone-900 group-hover:text-emerald-700 transition-colors">{s.name}</h3>
                   <p className="text-xs text-stone-600 leading-relaxed line-clamp-3">
                     {s.description}
                   </p>
@@ -296,7 +330,7 @@ export function LocalTrustTemplate(props: TemplateProps) {
                   <span className="font-bold text-stone-900">{s.price || `₹${fee}`}</span>
                   <button
                     onClick={() => setBookingOpen(true)}
-                    className="font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                    className="font-bold text-emerald-700 hover:underline flex items-center gap-1 group-hover:translate-x-1 transition-transform"
                   >
                     <span>Book</span>
                     <ArrowRight className="size-3.5" />
@@ -304,7 +338,7 @@ export function LocalTrustTemplate(props: TemplateProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 

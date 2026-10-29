@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -180,21 +180,31 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="border border-[#e7e5e4] p-3 bg-[#fafaf9] shadow-lg">
-              <div className="aspect-4/5 overflow-hidden bg-white">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
-              <div className="p-4 text-center font-sans">
-                <div className="font-serif font-bold text-base text-[#292524]">{doctorName}</div>
-                <div className="text-xs text-[#831843] font-medium tracking-wide mt-0.5">
-                  {specialization} • {qualification}
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="border border-[#e7e5e4] p-3 bg-[#fafaf9] shadow-lg group">
+                <div className="aspect-4/5 overflow-hidden bg-white relative">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-4 right-4">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-white/95 backdrop-blur-xs px-3 py-1.5 shadow-md border border-rose-100 flex items-center gap-1.5 text-[10px] font-sans font-semibold text-[#831843]">
+                        <LivePulse size="xs" pulseColor="bg-[#831843]" />
+                        <span>Aesthetics Active</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
+                </div>
+                <div className="p-4 text-center font-sans">
+                  <div className="font-serif font-bold text-base text-[#292524]">{doctorName}</div>
+                  <div className="text-xs text-[#831843] font-medium tracking-wide mt-0.5">
+                    {specialization} • {qualification}
+                  </div>
                 </div>
               </div>
-            </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
@@ -215,7 +225,7 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((svc, idx) => (
             <div
               key={idx}
@@ -244,20 +254,22 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
               </div>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Dermatologist Profile */}
       <section id="dermatologist" className="py-20 px-6 bg-[#f5f5f4] border-t border-b border-[#e7e5e4]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5">
-            <div className="border border-[#e7e5e4] p-3 bg-white">
-              <img
-                src={getDoctorAvatarUrl(clinic)}
-                alt={doctorName}
-                className="w-full aspect-square object-cover"
-              />
-            </div>
+            <ImageMaskReveal direction="left" delay={0.1}>
+              <div className="border border-[#e7e5e4] p-3 bg-white">
+                <img
+                  src={getDoctorAvatarUrl(clinic)}
+                  alt={doctorName}
+                  className="w-full aspect-square object-cover"
+                />
+              </div>
+            </ImageMaskReveal>
           </div>
           <div className="lg:col-span-7 space-y-5">
             <span className="font-sans text-[11px] font-bold text-[#831843] uppercase tracking-widest block">

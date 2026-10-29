@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -196,7 +196,8 @@ export function RuralCommunityTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="border-4 border-slate-900 bg-white p-3 shadow-xl">
+            <ImageMaskReveal direction="up" delay={0.2}>
+  <div className="border-4 border-slate-900 bg-white p-3 shadow-xl group">
               <div className="aspect-4/5 overflow-hidden bg-slate-100">
                 <img
                   src={getDoctorHeroImageUrl(clinic)}
@@ -204,6 +205,14 @@ export function RuralCommunityTemplate(props: TemplateProps) {
                   className="w-full h-full object-cover object-top"
                 />
               </div>
+                <div className="absolute top-4 right-4 z-10">
+                  <FloatMotion amplitude={4} duration={3}>
+                    <div className="bg-slate-950/85 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1.5 shadow-md border border-white/10">
+                      <LivePulse size="xs" pulseColor="bg-emerald-400" />
+                      <span>CLINIC ACTIVE</span>
+                    </div>
+                  </FloatMotion>
+                </div>
               <div className="p-3 bg-slate-100 mt-2 flex justify-between items-center text-xs">
                 <div>
                   <div className="font-bold text-slate-950">{doctorName}</div>
@@ -212,7 +221,8 @@ export function RuralCommunityTemplate(props: TemplateProps) {
                 <div className="font-mono text-[11px] font-bold text-green-800">REG: {regNo}</div>
               </div>
             </div>
-          </div>
+          </ImageMaskReveal>
+        </div>
         </div>
       </section>
 
@@ -228,7 +238,7 @@ export function RuralCommunityTemplate(props: TemplateProps) {
           <span className="text-xs font-mono font-bold text-green-800">{services.length} SERVICES</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((svc, idx) => (
             <div
               key={idx}
@@ -251,7 +261,7 @@ export function RuralCommunityTemplate(props: TemplateProps) {
               </button>
             </div>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* Doctor Story */}

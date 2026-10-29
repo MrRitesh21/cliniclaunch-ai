@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -187,19 +187,25 @@ export function EditorialStudioTemplate(props: TemplateProps) {
 
             <div className="lg:col-span-4">
               <FadeUp delay={0.25}>
-                <div className="border border-[#111111] p-3 bg-white shadow-xl">
-                  <ImageMaskReveal
-                    src={getDoctorAvatarUrl(clinic)}
-                    alt={doctorName}
-                    aspectRatio="aspect-4/5"
-                  />
-                  <div className="p-4 text-left font-mono text-xs space-y-1">
-                    <p className="font-bold text-sm text-[#111111]">{doctorName}</p>
-                    <p className="text-blue-600">{qualification}</p>
-                    <p className="text-slate-500">{specialization}</p>
-                    {regNo && <p className="text-[10px] text-slate-400">Reg: {regNo}</p>}
+                <FloatMotion amplitude={3} duration={4}>
+                  <div className="border border-[#111111] p-3 bg-white shadow-xl">
+                    <ImageMaskReveal
+                      src={getDoctorAvatarUrl(clinic)}
+                      alt={doctorName}
+                      aspectRatio="aspect-4/5"
+                    />
+                    <div className="p-4 text-left font-mono text-xs space-y-1">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <LivePulse size="xs" pulseColor="bg-emerald-500" />
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Active Folio</span>
+                      </div>
+                      <p className="font-bold text-sm text-[#111111]">{doctorName}</p>
+                      <p className="text-blue-600">{qualification}</p>
+                      <p className="text-slate-500">{specialization}</p>
+                      {regNo && <p className="text-[10px] text-slate-400">Reg: {regNo}</p>}
+                    </div>
                   </div>
-                </div>
+                </FloatMotion>
               </FadeUp>
             </div>
           </div>

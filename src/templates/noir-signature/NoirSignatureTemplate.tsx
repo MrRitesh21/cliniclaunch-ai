@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -232,11 +232,17 @@ export function NoirSignatureTemplate(props: TemplateProps) {
                     aspectRatio="aspect-4/5"
                     className="rounded-2xl shadow-2xl"
                   />
-                  <div className="absolute -bottom-6 -right-6 bg-white p-5 rounded-2xl shadow-xl border border-[#e7e2d8] text-left max-w-xs space-y-1">
+                  <FloatMotion amplitude={5} duration={3.5} className="absolute -bottom-6 -right-6 z-10">
+                    <div className="bg-white p-5 rounded-2xl shadow-xl border border-[#e7e2d8] text-left max-w-xs space-y-1">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <LivePulse size="xs" pulseColor="bg-amber-600" />
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Bespoke Active</span>
+                      </div>
                     <p className="font-serif text-sm font-semibold text-[#18181b]">{doctorName}</p>
                     <p className="text-[11px] text-[#c5a059] font-mono">{qualification}</p>
                     <p className="text-[10px] text-[#78716c]">{specialization}</p>
-                  </div>
+                    </div>
+                  </FloatMotion>
                 </div>
               </FadeUp>
             </div>

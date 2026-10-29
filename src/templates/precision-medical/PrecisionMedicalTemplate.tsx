@@ -36,7 +36,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -163,10 +163,11 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
             {/* Left Primary Information Block */}
-            <div className="lg:col-span-8 p-8 md:p-12 bg-white border-2 border-slate-900 flex flex-col justify-between text-left space-y-6">
+            <FadeUp delay={0.1} className="lg:col-span-8 p-8 md:p-12 bg-white border-2 border-slate-900 flex flex-col justify-between text-left space-y-6 shadow-sm">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600 text-white text-[11px] font-mono font-bold uppercase">
-                  <span>Clinical Department Index</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600 text-white text-[11px] font-mono font-bold uppercase tracking-wider">
+                  <LivePulse size="xs" pulseColor="bg-white" />
+                  <span>Clinical Department Index • Active</span>
                 </div>
 
                 <TextReveal
@@ -204,7 +205,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
               <div className="flex flex-wrap gap-4 pt-2">
                 <button
                   onClick={() => setBookingOpen(true)}
-                  className="px-8 py-3.5 bg-slate-900 text-white font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-colors flex items-center gap-2"
+                  className="px-8 py-3.5 bg-slate-900 text-white font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-all duration-200 hover:shadow-lg flex items-center gap-2"
                 >
                   <span>Request Patient Slot</span>
                   <ArrowRight className="size-4" />
@@ -220,22 +221,34 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
                   </a>
                 )}
               </div>
-            </div>
+            </FadeUp>
 
             {/* Right Doctor Portrait & Affiliation Box */}
             <div className="lg:col-span-4 flex flex-col gap-4">
-              <div className="border-2 border-slate-900 overflow-hidden bg-slate-100 flex-1">
-                <img
-                  src={getDoctorAvatarUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover min-h-[300px]"
-                />
-              </div>
-              <div className="p-4 bg-slate-900 text-white text-xs space-y-1">
-                <p className="font-bold text-sm">{doctorName}</p>
-                <p className="text-slate-300 font-mono text-[11px]">{qualification}</p>
-                <p className="text-red-400 text-[11px] font-semibold">{specialization}</p>
-              </div>
+              <ImageMaskReveal direction="up" delay={0.2} className="flex-1">
+                <div className="border-2 border-slate-900 overflow-hidden bg-slate-100 h-full relative group">
+                  <img
+                    src={getDoctorAvatarUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover min-h-[300px] group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <FloatMotion amplitude={4} duration={3.5}>
+                      <div className="bg-slate-950/90 text-white font-mono text-[10px] px-2.5 py-1 border border-slate-700 flex items-center gap-1.5 shadow-md">
+                        <LivePulse size="xs" pulseColor="bg-emerald-400" />
+                        <span>VERIFIED CLINICIAN</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
+                </div>
+              </ImageMaskReveal>
+              <FadeUp delay={0.3}>
+                <div className="p-4 bg-slate-900 text-white text-xs space-y-1">
+                  <p className="font-bold text-sm">{doctorName}</p>
+                  <p className="text-slate-300 font-mono text-[11px]">{qualification}</p>
+                  <p className="text-red-400 text-[11px] font-semibold">{specialization}</p>
+                </div>
+              </FadeUp>
             </div>
           </div>
         </div>
@@ -244,32 +257,34 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
       {/* ─── CLINICAL SERVICE DIRECTORY ─────────────────────────────────── */}
       <section id="directory" className="py-20 border-b border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between pb-6 border-b-2 border-slate-900 mb-10">
-            <div>
-              <span className="font-mono text-xs text-red-600 font-bold uppercase tracking-wider">
-                [SECTION 02]
+          <FadeUp>
+            <div className="flex items-center justify-between pb-6 border-b-2 border-slate-900 mb-10">
+              <div>
+                <span className="font-mono text-xs text-red-600 font-bold uppercase tracking-wider">
+                  [SECTION 02]
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 uppercase tracking-tight">
+                  Clinical Services &amp; Diagnostic Directory
+                </h2>
+              </div>
+              <span className="hidden sm:inline font-mono text-xs text-slate-400">
+                Total Services: {services.length}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 uppercase tracking-tight">
-                Clinical Services &amp; Diagnostic Directory
-              </h2>
             </div>
-            <span className="hidden sm:inline font-mono text-xs text-slate-400">
-              Total Services: {services.length}
-            </span>
-          </div>
+          </FadeUp>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StaggerChildren stagger={0.07} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {services.map((s, i) => (
               <div
                 key={s.id || i}
-                className="p-6 border-2 border-slate-200 hover:border-slate-900 transition-colors text-left flex flex-col justify-between space-y-4"
+                className="p-6 border-2 border-slate-200 hover:border-slate-900 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 text-left flex flex-col justify-between space-y-4 group bg-white"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between font-mono text-xs text-slate-400">
                     <span>CODE: CS-0{i + 1}</span>
                     <span className="text-slate-900 font-bold">{s.duration || "30 MINS"}</span>
                   </div>
-                  <h3 className="font-bold text-lg text-slate-950">{s.name}</h3>
+                  <h3 className="font-bold text-lg text-slate-950 group-hover:text-red-600 transition-colors">{s.name}</h3>
                   <p className="text-xs text-slate-600 leading-relaxed font-normal">
                     {s.description}
                   </p>
@@ -281,7 +296,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
                   </span>
                   <button
                     onClick={() => setBookingOpen(true)}
-                    className="text-xs font-bold uppercase tracking-wider text-red-600 hover:text-slate-900 flex items-center gap-1"
+                    className="text-xs font-bold uppercase tracking-wider text-red-600 hover:text-slate-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform"
                   >
                     <span>Request Slot</span>
                     <ChevronRight className="size-4" />
@@ -289,7 +304,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
@@ -297,7 +312,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
       <section id="credentials" className="py-20 border-b border-slate-200 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-4 border-2 border-slate-900 bg-white p-6 space-y-4 text-left">
+            <FadeUp delay={0.1} className="lg:col-span-4 border-2 border-slate-900 bg-white p-6 space-y-4 text-left shadow-sm">
               <div className="size-12 bg-slate-900 text-white grid place-items-center">
                 <FileCheck2 className="size-6" />
               </div>
@@ -309,9 +324,9 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
                 <p>Registration: <strong>{regNo || "Verified Practitioner"}</strong></p>
                 <p className="text-slate-500 mt-1">Council Accreditation</p>
               </div>
-            </div>
+            </FadeUp>
 
-            <div className="lg:col-span-8 space-y-4 text-left">
+            <FadeUp delay={0.2} className="lg:col-span-8 space-y-4 text-left">
               <span className="font-mono text-xs text-red-600 font-bold uppercase tracking-wider">
                 [PRACTITIONER BACKGROUND]
               </span>
@@ -321,7 +336,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
               <p className="text-sm text-slate-600 leading-relaxed font-normal whitespace-pre-line">
                 {bio}
               </p>
-            </div>
+            </FadeUp>
           </div>
         </div>
       </section>
@@ -330,64 +345,69 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
       <section id="timetable" className="py-20 border-b border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-            <div className="border-2 border-slate-900 p-8 space-y-5">
-              <div className="flex items-center justify-between pb-4 border-b-2 border-slate-900">
-                <h3 className="font-extrabold text-lg text-slate-950 uppercase">Clinical Hours</h3>
-                <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-900 text-white">
-                  {isOpenNow ? "ACTIVE TODAY" : "OFF-DUTY"}
-                </span>
-              </div>
-              <div className="divide-y divide-slate-100 text-xs font-mono">
-                {days.map((d) => (
-                  <div key={d.day} className="py-2.5 flex items-center justify-between">
-                    <span className="font-bold text-slate-800">{d.day.toUpperCase()}</span>
-                    <span className={d.isClosed ? "text-slate-400" : "font-bold text-slate-900"}>
-                      {d.isClosed ? "CLOSED" : `${d.open} - ${d.close}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-2 border-slate-900 p-8 space-y-6 flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className="pb-4 border-b-2 border-slate-900">
-                  <h3 className="font-extrabold text-lg text-slate-950 uppercase">Facility Address</h3>
-                  <p className="text-xs text-slate-500 font-mono">Direct patient transit &amp; parking accessible</p>
+            <FadeUp delay={0.1}>
+              <div className="border-2 border-slate-900 p-8 space-y-5 h-full">
+                <div className="flex items-center justify-between pb-4 border-b-2 border-slate-900">
+                  <h3 className="font-extrabold text-lg text-slate-950 uppercase">Clinical Hours</h3>
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-900 text-white flex items-center gap-1.5">
+                    <LivePulse size="xs" pulseColor={isOpenNow ? "bg-emerald-400" : "bg-slate-400"} />
+                    {isOpenNow ? "ACTIVE TODAY" : "OFF-DUTY"}
+                  </span>
                 </div>
-                <div className="space-y-3 text-xs text-slate-700">
-                  <div className="flex items-start gap-2.5">
-                    <MapPin className="size-4 text-red-600 shrink-0 mt-0.5" />
-                    <p className="font-medium">{address}</p>
-                  </div>
-                  {phone && (
-                    <div className="flex items-center gap-2.5 font-mono">
-                      <Phone className="size-4 text-red-600 shrink-0" />
-                      <a href={`tel:${phone}`} className="font-bold hover:underline">
-                        {phone}
-                      </a>
+                <div className="divide-y divide-slate-100 text-xs font-mono">
+                  {days.map((d) => (
+                    <div key={d.day} className="py-2.5 flex items-center justify-between">
+                      <span className="font-bold text-slate-800">{d.day.toUpperCase()}</span>
+                      <span className={d.isClosed ? "text-slate-400" : "font-bold text-slate-900"}>
+                        {d.isClosed ? "CLOSED" : `${d.open} - ${d.close}`}
+                      </span>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
+            </FadeUp>
 
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-3 border-2 border-slate-900 font-bold text-xs uppercase tracking-wider text-slate-900 hover:bg-slate-100 transition-colors"
-                >
-                  Driving Coordinates
-                </a>
-                <button
-                  onClick={() => setBookingOpen(true)}
-                  className="px-6 py-3 bg-red-600 text-white font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-colors"
-                >
-                  Book Official Slot
-                </button>
+            <FadeUp delay={0.2}>
+              <div className="border-2 border-slate-900 p-8 space-y-6 flex flex-col justify-between h-full">
+                <div className="space-y-4">
+                  <div className="pb-4 border-b-2 border-slate-900">
+                    <h3 className="font-extrabold text-lg text-slate-950 uppercase">Facility Address</h3>
+                    <p className="text-xs text-slate-500 font-mono">Direct patient transit &amp; parking accessible</p>
+                  </div>
+                  <div className="space-y-3 text-xs text-slate-700">
+                    <div className="flex items-start gap-2.5">
+                      <MapPin className="size-4 text-red-600 shrink-0 mt-0.5" />
+                      <p className="font-medium">{address}</p>
+                    </div>
+                    {phone && (
+                      <div className="flex items-center gap-2.5 font-mono">
+                        <Phone className="size-4 text-red-600 shrink-0" />
+                        <a href={`tel:${phone}`} className="font-bold hover:underline">
+                          {phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 border-2 border-slate-900 font-bold text-xs uppercase tracking-wider text-slate-900 hover:bg-slate-100 transition-colors"
+                  >
+                    Driving Coordinates
+                  </a>
+                  <button
+                    onClick={() => setBookingOpen(true)}
+                    className="px-6 py-3 bg-red-600 text-white font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition-colors"
+                  >
+                    Book Official Slot
+                  </button>
+                </div>
               </div>
-            </div>
+            </FadeUp>
           </div>
         </div>
       </section>

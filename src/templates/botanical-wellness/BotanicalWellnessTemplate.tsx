@@ -33,7 +33,7 @@ import {
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
-import { FadeUp, TextReveal, StaggerChildren } from "../shared/motion";
+import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
 import { FloatingContactBar } from "../shared/FloatingContactBar";
 import { useTemplatePage } from "../shared/useTemplatePage";
@@ -185,19 +185,29 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
           </div>
 
           <div className="lg:col-span-5 relative">
-            <div className="rounded-[3rem] p-3 bg-gradient-to-b from-[#e9edc9] to-[#ccd5ae] shadow-xl">
-              <div className="rounded-[2.5rem] overflow-hidden aspect-4/5 bg-white">
-                <img
-                  src={getDoctorHeroImageUrl(clinic)}
-                  alt={doctorName}
-                  className="w-full h-full object-cover object-top"
-                />
+            <ImageMaskReveal direction="up" delay={0.2}>
+              <div className="rounded-[3rem] p-3 bg-gradient-to-b from-[#e9edc9] to-[#ccd5ae] shadow-xl group">
+                <div className="rounded-[2.5rem] overflow-hidden aspect-4/5 bg-white relative">
+                  <img
+                    src={getDoctorHeroImageUrl(clinic)}
+                    alt={doctorName}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-4 right-4">
+                    <FloatMotion amplitude={4} duration={3}>
+                      <div className="bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full shadow-md border border-[#ccd5ae] flex items-center gap-1.5 text-[10px] font-sans font-semibold text-[#52796f]">
+                        <LivePulse size="xs" pulseColor="bg-[#52796f]" />
+                        <span>Holistic OPD Active</span>
+                      </div>
+                    </FloatMotion>
+                  </div>
+                </div>
+                <div className="p-4 text-center font-sans">
+                  <div className="font-bold text-sm text-[#2d372e]">{doctorName}</div>
+                  <div className="text-xs text-[#52796f]">{specialization} • {qualification}</div>
+                </div>
               </div>
-              <div className="p-4 text-center font-sans">
-                <div className="font-bold text-sm text-[#2d372e]">{doctorName}</div>
-                <div className="text-xs text-[#52796f]">{specialization} • {qualification}</div>
-              </div>
-            </div>
+            </ImageMaskReveal>
           </div>
         </div>
       </section>
@@ -215,7 +225,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
+          <StaggerChildren stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
             {services.map((svc, idx) => (
               <div
                 key={idx}
@@ -243,20 +253,22 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
                 </div>
               </div>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
       {/* Practitioner Spotlight */}
       <section id="practitioner" className="py-20 px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5">
-          <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-[#ccd5ae]">
-            <img
-              src={getDoctorAvatarUrl(clinic)}
-              alt={doctorName}
-              className="w-full aspect-square object-cover rounded-[2rem]"
-            />
-          </div>
+          <ImageMaskReveal direction="left" delay={0.1}>
+            <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-[#ccd5ae]">
+              <img
+                src={getDoctorAvatarUrl(clinic)}
+                alt={doctorName}
+                className="w-full aspect-square object-cover rounded-[2rem]"
+              />
+            </div>
+          </ImageMaskReveal>
         </div>
         <div className="lg:col-span-7 space-y-5">
           <span className="font-sans text-xs uppercase font-bold tracking-widest text-[#52796f]">
