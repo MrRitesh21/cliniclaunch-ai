@@ -45,38 +45,26 @@ export function registerPWA() {
 }
 
 /**
- * Safe update flow: a new worker waits until the user accepts, then we ask it
- * to activate and reload once. Prevents mid-session chunk mismatches.
+ * Silent background update flow: new service workers activate immediately
+ * without interrupting the user with intrusive popups or unwanted page reloads.
  */
 function watchForUpdates(reg: ServiceWorkerRegistration) {
-  let reloading = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloading) return;
-    const lastReload = sessionStorage.getItem("clinicx_sw_reload");
-    const now = Date.now();
-    if (lastReload && now - Number(lastReload) < 60000) return;
-    sessionStorage.setItem("clinicx_sw_reload", String(now));
-    reloading = true;
-    window.location.reload();
-  });
-
-  const promptUpdate = (worker: ServiceWorker) => {
-    import("sonner").then(({ toast }) => {
-      toast("A new version of ClinicX is ready", {
-        duration: Infinity,
-        action: { label: "Update", onClick: () => worker.postMessage({ type: "SKIP_WAITING" }) },
-      });
-    });
+  const activateSilently = (worker: ServiceWorker) => {
+    try {
+      worker.postMessage({ type: "SKIP_WAITING" });
+    } catch {
+      /* ignore */
+    }
   };
 
-  if (reg.waiting && navigator.serviceWorker.controller) promptUpdate(reg.waiting);
+  if (reg.waiting) activateSilently(reg.waiting);
 
   reg.addEventListener("updatefound", () => {
     const installing = reg.installing;
     if (!installing) return;
     installing.addEventListener("statechange", () => {
-      if (installing.state === "installed" && navigator.serviceWorker.controller) {
-        promptUpdate(installing);
+      if (installing.state === "installed") {
+        activateSilently(installing);
       }
     });
   });

@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "clinicx-pwa-";
-const CACHE_NAME = `${CACHE_PREFIX}v9`;
+const CACHE_NAME = `${CACHE_PREFIX}v10`;
 const STATIC_ASSETS = [
   "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/pwa-192.png", "/pwa-512.png", "/logo-icon.png", "/logo.png",
 ];
@@ -24,6 +24,7 @@ function cacheableResponse(response) {
 
 // Never precache HTML: even '/' can depend on a session cookie.
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await Promise.all(STATIC_ASSETS.map(async (path) => {
