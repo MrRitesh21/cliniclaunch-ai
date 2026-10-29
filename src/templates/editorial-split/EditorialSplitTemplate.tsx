@@ -27,6 +27,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -179,7 +181,7 @@ export function EditorialSplitTemplate(props: TemplateProps) {
         <div className="w-full lg:w-1/2 bg-slate-900 relative min-h-[450px] lg:min-h-screen flex flex-col justify-between p-8 sm:p-12 lg:p-16 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-40 mix-blend-overlay">
             <img
-              src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+              src={getDoctorHeroImageUrl(clinic)}
               alt={doctorName}
               className="w-full h-full object-cover object-top"
             />

@@ -30,15 +30,162 @@ export type DayHours = {
 export const FALLBACK_IMAGES = {
   clinicInterior: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=80",
   consultationRoom: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80",
-  doctorPortrait: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80",
+  // Standard Indian / South Asian male doctor portrait (steth, white labcoat, clinical setting)
+  doctorPortrait: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=800&q=80",
+  doctorPortraitMale: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=800&q=80",
+  doctorPortraitFemale: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80",
+  heroDoctor: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=1200&q=80",
+  aboutDoctor: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=1200&q=80",
   dentalSmile: "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=1200&q=80",
   dentalCare: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80",
+  dentalCareMale: "https://images.unsplash.com/photo-1629909615184-74f495363b67?auto=format&fit=crop&w=1200&q=80",
   pediatricCare: "https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=1200&q=80",
+  pediatricCareMale: "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&w=1200&q=80",
   wellnessCare: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1200&q=80",
+  wellnessCareMale: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80",
   physioActive: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=1200&q=80",
   modernDiagnostic: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1200&q=80",
   medicalTeam: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=1200&q=80",
 };
+
+const COMMON_MALE_FIRST_NAMES = new Set([
+  "rakesh", "rajesh", "ramesh", "suresh", "mahesh", "dinesh", "naresh", "mukesh",
+  "amit", "aniket", "rahul", "rohit", "anil", "sunil", "manoj", "sanjay", "ajay",
+  "vijay", "deepak", "alok", "ashok", "pankaj", "pradeep", "pramod", "sachin",
+  "gaurav", "saurabh", "varun", "arun", "kunal", "mohit", "sumit", "vivek",
+  "abhishek", "aditya", "mayank", "harsh", "vishal", "nitin", "nikhil", "ravi",
+  "tarun", "chetan", "manish", "hemant", "kamal", "vinod", "sanjeev", "rajiv",
+  "satish", "yogesh", "lokesh", "akhilesh", "brijesh", "umesh", "hitesh", "ritesh",
+  "praveen", "parveen", "naveen", "jaspreet", "gurpreet", "harpreet", "inder",
+  "jagdish", "krishna", "shiva", "vishnu", "govind", "gopal", "anand", "ashish",
+  "anurag", "tushar", "piyush", "ayush", "shubham", "akash", "pawan", "suraj",
+  "chandan", "sohan", "mohan", "rohan", "karan", "arjun", "dhruv", "kabir",
+  "shashank", "rishabh", "shivam", "kartik", "chirag", "tanmay", "pranav",
+  "sameer", "samir", "salman", "irfan", "imran", "arshad", "tariq", "farhan",
+  "asif", "wasim", "arif", "rashid", "zahid", "shahid", "sohail", "danish",
+  "vikram", "devendra", "surendra", "jitendra", "dharmendra", "bhupendra",
+  "john", "david", "michael", "james", "robert", "william", "richard", "thomas",
+  "charles", "daniel", "matthew", "anthony", "mark", "donald", "steven", "paul",
+  "andrew", "joshua", "kevin", "brian", "george", "edward", "ronald", "timothy",
+  "jason", "jeffrey", "ryan", "jacob", "gary", "nicholas", "eric", "jonathan",
+  "stephen", "larry", "justin", "scott", "brandon", "benjamin", "samuel", "gregory"
+]);
+
+const COMMON_FEMALE_FIRST_NAMES = new Set([
+  "priya", "anjali", "pooja", "puja", "neha", "sunita", "kavita", "rekha", "sneha",
+  "aarti", "arti", "swati", "shweta", "divya", "megha", "ritu", "seema", "geeta",
+  "sita", "radha", "laxmi", "lakshmi", "anita", "sarita", "mamta", "monika",
+  "archana", "vandana", "anupama", "pallavi", "rashmi", "poonam", "shilpa", "deepa",
+  "deepika", "preeti", "priti", "jyoti", "sonam", "sonia", "priyanka", "tanvi",
+  "kriti", "kritika", "ishita", "ananya", "aaradhya", "diya", "riya", "siya",
+  "tanya", "simran", "jasleen", "harleen", "gurleen", "kiran", "suman", "shalini",
+  "shreya", "shristi", "mansi", "garima", "sakshi", "nidhi", "richa", "roshni",
+  "parul", "komal", "payal", "smriti", "shruti", "kanika", "vidhi", "bhavna",
+  "tanu", "anu", "chhaya", "barkha", "sapna", "madhu", "usha", "asha", "shanti",
+  "kamla", "sudha", "uma", "veena", "pushpa", "sushma", "meena", "renu", "neelam",
+  "sharda", "santosh", "fatima", "ayesha", "zainab", "mariam", "sana", "saba",
+  "heena", "hina", "shabnam", "yasmin", "farzana", "nazia", "rubina", "afreen",
+  "mary", "patricia", "jennifer", "linda", "elizabeth", "barbara", "susan", "jessica",
+  "sarah", "karen", "nancy", "lisa", "betty", "margaret", "sandra", "ashley",
+  "kimberly", "emily", "donna", "michelle", "dorothy", "carol", "amanda", "melissa"
+]);
+
+const OLD_GENERIC_STOCK_IDS = [
+  "photo-1622253692010-333f2da6031d",
+  "photo-1559839734-2b71ea197ec2"
+];
+
+export function isGenericStockPlaceholder(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return true;
+  return OLD_GENERIC_STOCK_IDS.some((stockId) => url.includes(stockId));
+}
+
+export function detectDoctorGender(doctorName?: string | null): "male" | "female" {
+  if (!doctorName || !doctorName.trim()) return "male";
+  const nameLower = doctorName.toLowerCase();
+
+  // Explicit title checks
+  if (/\b(mrs|ms|miss|smt|dr\.\s*mrs|dr\.\s*ms)\b/i.test(nameLower)) return "female";
+  if (/\b(mr|shri|dr\.\s*mr)\b/i.test(nameLower)) return "male";
+
+  // Clean title & specialty keywords (e.g., 'Dr. Rakesh piles fistula specialist')
+  const cleaned = nameLower
+    .replace(/^(dr\.?|doctor)\s+/i, "")
+    .replace(
+      /\b(piles|fistula|specialist|clinic|hospital|ayurveda|ayurvedic|dental|dentist|consultant|care|centre|center|diet|lifestyle|lifestyles|management|health|healthcare|skin|derma|ortho|surgeon|pediatric|physio|cardio|ent|neuro|gp|opd)\b/gi,
+      ""
+    )
+    .trim();
+
+  const tokens = cleaned.match(/[a-z]+/gi) || [];
+  for (const token of tokens) {
+    const t = token.toLowerCase();
+    if (COMMON_MALE_FIRST_NAMES.has(t)) return "male";
+    if (COMMON_FEMALE_FIRST_NAMES.has(t)) return "female";
+  }
+
+  return "male";
+}
+
+export function resolveDoctorImageUrl(
+  doctorName?: string | null,
+  specialization?: string | null,
+  existingAvatarUrl?: string | null
+): string {
+  const gender = detectDoctorGender(doctorName);
+  const spec = (specialization || "").toLowerCase();
+
+  // If a real custom image was uploaded by user (e.g. Supabase storage or Cloudinary), preserve it
+  if (existingAvatarUrl && existingAvatarUrl.trim().length > 5) {
+    const isOldPlaceholder = isGenericStockPlaceholder(existingAvatarUrl);
+    // If it's a real custom user upload, return it
+    if (!isOldPlaceholder) {
+      return existingAvatarUrl.trim();
+    }
+    // If it was the generic female placeholder but doctor is female, it's acceptable
+    if (gender === "female" && existingAvatarUrl.includes("photo-1622253692010-333f2da6031d")) {
+      return existingAvatarUrl.trim();
+    }
+    // Otherwise it was an improperly assigned female stock photo for a male doctor! Fall through to resolve correct photo.
+  }
+
+  if (spec.includes("dental") || spec.includes("dentist") || spec.includes("orthodont")) {
+    return gender === "female" ? FALLBACK_IMAGES.dentalCare : FALLBACK_IMAGES.dentalCareMale;
+  }
+
+  if (
+    spec.includes("ayurved") ||
+    spec.includes("panchkarma") ||
+    spec.includes("wellness") ||
+    spec.includes("homeopath") ||
+    spec.includes("naturopath")
+  ) {
+    return gender === "female" ? FALLBACK_IMAGES.wellnessCare : FALLBACK_IMAGES.wellnessCareMale;
+  }
+
+  if (spec.includes("pediatric") || spec.includes("child") || spec.includes("neonatal")) {
+    return gender === "female" ? FALLBACK_IMAGES.pediatricCare : FALLBACK_IMAGES.pediatricCareMale;
+  }
+
+  if (spec.includes("physio") || spec.includes("ortho") || spec.includes("rehab") || spec.includes("spine")) {
+    return FALLBACK_IMAGES.physioActive;
+  }
+
+  if (spec.includes("cardio") || spec.includes("heart")) {
+    return "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80";
+  }
+
+  if (spec.includes("derma") || spec.includes("skin") || spec.includes("aesthetic") || spec.includes("cosmet")) {
+    return gender === "female"
+      ? "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80"
+      : "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=1000&q=80";
+  }
+
+  // General Medicine, Surgery, Piles/Fistula, Physician
+  return gender === "female"
+    ? FALLBACK_IMAGES.doctorPortraitFemale
+    : FALLBACK_IMAGES.doctorPortraitMale;
+}
 
 export function getClinicName(clinic: SiteClinic): string {
   return clinic.clinic_name?.trim() || "ClinicX Healthcare";
@@ -57,35 +204,18 @@ export function getDoctorQualifications(clinic: SiteClinic): string {
 }
 
 export function getDoctorAvatarUrl(clinic: SiteClinic): string {
-  if (clinic.avatar_url && clinic.avatar_url.trim().length > 5) {
-    return clinic.avatar_url.trim();
-  }
-  const spec = (clinic.specialization || "").toLowerCase();
-  if (spec.includes("dental") || spec.includes("dentist") || spec.includes("orthodont")) {
-    return FALLBACK_IMAGES.dentalCare;
-  }
+  return resolveDoctorImageUrl(clinic.doctor_name, clinic.specialization, clinic.avatar_url);
+}
+
+export function getDoctorHeroImageUrl(clinic: SiteClinic): string {
   if (
-    spec.includes("ayurved") ||
-    spec.includes("panchkarma") ||
-    spec.includes("wellness") ||
-    spec.includes("homeopath") ||
-    spec.includes("naturopath")
+    clinic.hero_image_url &&
+    clinic.hero_image_url.trim().length > 5 &&
+    !isGenericStockPlaceholder(clinic.hero_image_url)
   ) {
-    return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1000&q=80";
+    return clinic.hero_image_url.trim();
   }
-  if (spec.includes("pediatric") || spec.includes("child") || spec.includes("neonatal")) {
-    return FALLBACK_IMAGES.pediatricCare;
-  }
-  if (spec.includes("physio") || spec.includes("ortho") || spec.includes("rehab")) {
-    return FALLBACK_IMAGES.physioActive;
-  }
-  if (spec.includes("cardio") || spec.includes("heart")) {
-    return "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80";
-  }
-  if (spec.includes("derma") || spec.includes("skin") || spec.includes("aesthetic")) {
-    return "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=80";
-  }
-  return FALLBACK_IMAGES.doctorPortrait;
+  return getDoctorAvatarUrl(clinic);
 }
 
 export function getDoctorExperience(clinic: SiteClinic): number {

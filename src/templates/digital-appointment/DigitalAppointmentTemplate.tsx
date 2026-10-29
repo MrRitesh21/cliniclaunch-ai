@@ -30,6 +30,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -292,7 +294,7 @@ export function DigitalAppointmentTemplate(props: TemplateProps) {
           <div className="lg:col-span-5">
             <div className="rounded-3xl overflow-hidden border-2 border-slate-700 p-2 bg-slate-800">
               <img
-                src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+                src={getDoctorAvatarUrl(clinic)}
                 alt={doctorName}
                 className="w-full aspect-square object-cover rounded-2xl"
               />

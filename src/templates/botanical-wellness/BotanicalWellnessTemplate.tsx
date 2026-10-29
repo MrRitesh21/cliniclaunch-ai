@@ -28,6 +28,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -186,7 +188,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
             <div className="rounded-[3rem] p-3 bg-gradient-to-b from-[#e9edc9] to-[#ccd5ae] shadow-xl">
               <div className="rounded-[2.5rem] overflow-hidden aspect-4/5 bg-white">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top"
                 />
@@ -250,7 +252,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
         <div className="lg:col-span-5">
           <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-[#ccd5ae]">
             <img
-              src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+              src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover rounded-[2rem]"
             />

@@ -28,6 +28,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -164,7 +166,7 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
           <div className="lg:col-span-5 relative">
             <div className="border border-[#1c1917] p-2 bg-white shadow-md">
               <img
-                src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                src={getDoctorHeroImageUrl(clinic)}
                 alt={doctorName}
                 className="w-full aspect-4/5 object-cover object-top grayscale hover:grayscale-0 transition-all duration-500"
               />

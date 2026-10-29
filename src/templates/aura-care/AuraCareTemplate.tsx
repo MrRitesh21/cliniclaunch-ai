@@ -33,6 +33,7 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -233,7 +234,7 @@ export function AuraCareTemplate(props: TemplateProps) {
                   {/* Decorative Frame Line */}
                   <div className="absolute -inset-3 rounded-3xl border border-[#52796f]/20 -rotate-1 pointer-events-none" />
                   <ImageMaskReveal
-                    src={clinic.avatar_url || FALLBACK_IMAGES.doctorPortrait}
+                    src={getDoctorAvatarUrl(clinic)}
                     alt={doctorName}
                     aspectRatio="aspect-4/5"
                     className="shadow-2xl rounded-2xl"

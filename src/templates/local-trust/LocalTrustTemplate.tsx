@@ -31,6 +31,7 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -245,7 +246,7 @@ export function LocalTrustTemplate(props: TemplateProps) {
             <div className="lg:col-span-5">
               <div className="rounded-3xl overflow-hidden border-2 border-stone-200 shadow-xl bg-white p-2">
                 <img
-                  src={clinic.avatar_url || FALLBACK_IMAGES.doctorPortrait}
+                  src={getDoctorAvatarUrl(clinic)}
                   alt={doctorName}
                   className="w-full aspect-4/3 object-cover rounded-2xl"
                 />

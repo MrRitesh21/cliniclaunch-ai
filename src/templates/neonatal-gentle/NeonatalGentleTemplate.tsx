@@ -29,6 +29,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -187,7 +189,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
             <div className="rounded-[2.5rem] p-3 bg-gradient-to-tr from-rose-100 via-purple-50 to-amber-50 shadow-xl border border-rose-100">
               <div className="rounded-[2rem] overflow-hidden aspect-4/5 bg-white">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top"
                 />
@@ -258,7 +260,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
         <div className="lg:col-span-5">
           <div className="rounded-[2.5rem] overflow-hidden bg-white p-3 border border-rose-100 shadow-sm">
             <img
-              src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+              src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover rounded-[2rem]"
             />

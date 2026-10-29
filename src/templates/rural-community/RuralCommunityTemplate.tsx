@@ -28,6 +28,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -197,7 +199,7 @@ export function RuralCommunityTemplate(props: TemplateProps) {
             <div className="border-4 border-slate-900 bg-white p-3 shadow-xl">
               <div className="aspect-4/5 overflow-hidden bg-slate-100">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top"
                 />
@@ -258,7 +260,7 @@ export function RuralCommunityTemplate(props: TemplateProps) {
           <div className="lg:col-span-4">
             <div className="border-2 border-slate-300 p-2 bg-white">
               <img
-                src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+                src={getDoctorAvatarUrl(clinic)}
                 alt={doctorName}
                 className="w-full aspect-square object-cover"
               />

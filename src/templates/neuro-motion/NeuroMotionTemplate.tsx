@@ -29,6 +29,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -193,7 +195,7 @@ export function NeuroMotionTemplate(props: TemplateProps) {
             <div className="relative rounded-3xl overflow-hidden p-3 bg-gradient-to-tr from-indigo-950 via-slate-900 to-indigo-900 shadow-2xl">
               <div className="rounded-2xl overflow-hidden aspect-4/5 bg-slate-100">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top"
                 />
@@ -259,7 +261,7 @@ export function NeuroMotionTemplate(props: TemplateProps) {
         <div className="lg:col-span-5">
           <div className="rounded-3xl overflow-hidden border-2 border-slate-200 p-2 bg-slate-50">
             <img
-              src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+              src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover rounded-2xl"
             />

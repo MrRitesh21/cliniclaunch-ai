@@ -32,6 +32,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -229,7 +231,7 @@ export function SwissMedicalTemplate(props: TemplateProps) {
             <div className="relative border-2 border-zinc-900 p-2 bg-white shadow-xl">
               <div className="relative aspect-4/5 overflow-hidden bg-zinc-100">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top grayscale hover:grayscale-0 transition-all duration-700"
                 />
@@ -363,7 +365,7 @@ export function SwissMedicalTemplate(props: TemplateProps) {
             <div className="lg:col-span-5">
               <div className="border border-zinc-300 p-2 bg-zinc-50">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+                  src={getDoctorAvatarUrl(clinic)}
                   alt={doctorName}
                   className="w-full aspect-square object-cover object-top grayscale"
                 />

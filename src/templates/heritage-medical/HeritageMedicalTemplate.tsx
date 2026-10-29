@@ -27,6 +27,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -185,7 +187,7 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
             <div className="border-2 border-[#1e293b] p-3 bg-white shadow-2xl">
               <div className="aspect-4/5 overflow-hidden bg-slate-100">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top"
                 />
@@ -251,7 +253,7 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
         <div className="lg:col-span-5">
           <div className="border-2 border-[#1e293b] p-3 bg-white">
             <img
-              src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+              src={getDoctorAvatarUrl(clinic)}
               alt={doctorName}
               className="w-full aspect-square object-cover"
             />

@@ -28,6 +28,7 @@ import {
   getConsultationFee,
   getClinicAddress,
   getClinicPhone,
+  getDoctorAvatarUrl,
   FALLBACK_IMAGES,
 } from "../clinicDataHelpers";
 import { FadeUp, StaggerChildren } from "../motion";
@@ -58,8 +59,7 @@ export function TemplateAboutPage({
   const address = getClinicAddress(clinic);
   const phone = getClinicPhone(clinic);
 
-  const doctorPhoto =
-    clinic.avatar_url || (Array.isArray(clinic.gallery) && clinic.gallery[0]) || FALLBACK_IMAGES.doctorPortrait;
+  const doctorPhoto = getDoctorAvatarUrl(clinic);
 
   return (
     <div

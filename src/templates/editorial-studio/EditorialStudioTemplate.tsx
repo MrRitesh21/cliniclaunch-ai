@@ -29,6 +29,7 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -188,7 +189,7 @@ export function EditorialStudioTemplate(props: TemplateProps) {
               <FadeUp delay={0.25}>
                 <div className="border border-[#111111] p-3 bg-white shadow-xl">
                   <ImageMaskReveal
-                    src={clinic.avatar_url || FALLBACK_IMAGES.doctorPortrait}
+                    src={getDoctorAvatarUrl(clinic)}
                     alt={doctorName}
                     aspectRatio="aspect-4/5"
                   />

@@ -20,6 +20,7 @@ import {
   getSpecialtyClinicProfile,
   MEMORY_CLINIC_CACHE,
 } from "./crm.server";
+import { resolveDoctorImageUrl } from "@/templates/shared/clinicDataHelpers";
 
 export interface ParsedClinicRow {
   id: string;
@@ -845,7 +846,7 @@ export async function createFullClinicFromParsedRow(
     is_published: true,
     published_at: nowIso,
     updated_at: nowIso,
-    avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    avatar_url: resolveDoctorImageUrl(doctorName, specialty),
     gallery: [],
     section_variants: {},
     section_order: [],

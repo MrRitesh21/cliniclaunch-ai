@@ -28,6 +28,7 @@ import {
   publicNameSchema,
   publicTimestampSchema,
 } from "./public-form-validation";
+import { resolveDoctorImageUrl } from "@/templates/shared/clinicDataHelpers";
 
 /** Creates an anonymous (publishable-key) Supabase client for public booking operations. */
 function serverClient() {
@@ -221,8 +222,7 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
           saturday: { start: "10:00", end: "16:00", enabled: true },
           sunday: { start: "10:00", end: "13:00", enabled: false },
         },
-        avatar_url:
-          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        avatar_url: resolveDoctorImageUrl("Dr. Rohit Sharma", "General Physician & Cardiologist"),
         logo_url: null,
         gallery: [],
         theme_color: "#059669",

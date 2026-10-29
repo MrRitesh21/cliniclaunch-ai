@@ -29,6 +29,8 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
+  getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -195,7 +197,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
             <div className="relative border-4 border-[#171717] bg-[#f59e0b] p-4 shadow-[8px_8px_0px_#171717]">
               <div className="aspect-4/5 overflow-hidden border-2 border-[#171717] bg-white">
                 <img
-                  src={clinic.hero_image_url || FALLBACK_IMAGES.heroDoctor}
+                  src={getDoctorHeroImageUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover object-top"
                 />
@@ -273,7 +275,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
           <div className="lg:col-span-5">
             <div className="border-4 border-[#171717] p-2 bg-[#f59e0b] shadow-[6px_6px_0px_#171717]">
               <img
-                src={clinic.hero_image_url || FALLBACK_IMAGES.aboutDoctor}
+                src={getDoctorAvatarUrl(clinic)}
                 alt={doctorName}
                 className="w-full aspect-square object-cover border-2 border-[#171717]"
               />

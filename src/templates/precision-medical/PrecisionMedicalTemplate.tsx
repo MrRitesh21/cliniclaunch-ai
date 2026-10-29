@@ -32,6 +32,7 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -225,7 +226,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
             <div className="lg:col-span-4 flex flex-col gap-4">
               <div className="border-2 border-slate-900 overflow-hidden bg-slate-100 flex-1">
                 <img
-                  src={clinic.avatar_url || FALLBACK_IMAGES.doctorPortrait}
+                  src={getDoctorAvatarUrl(clinic)}
                   alt={doctorName}
                   className="w-full h-full object-cover min-h-[300px]"
                 />

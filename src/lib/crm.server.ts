@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { serverEnv } from "./env.server";
 import { baileysSend, baileysStatus, PLATFORM_ADMIN_SESSION } from "./baileys.server";
 import { getInstantFounderPitch, type PitchToneKey } from "./crm.shared";
+import { resolveDoctorImageUrl } from "@/templates/shared/clinicDataHelpers";
 
 export type CrmLeadStage =
   | "new"
@@ -1132,8 +1133,7 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
     ),
     faqs: profile.faqs || [],
     gallery: [],
-    avatar_url:
-      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    avatar_url: resolveDoctorImageUrl(docName, specialty),
     logo_url: null,
     theme_color: profile.theme_color,
     template: profile.template || "modern",
@@ -1177,8 +1177,7 @@ export async function resolveDynamicClinicWebsite(slug: string): Promise<any | n
         specialization: specialty,
         qualification: profile.qualification,
         consultation_fee: profile.consultation_fee,
-        avatar_url:
-          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        avatar_url: resolveDoctorImageUrl(docName, specialty),
         bio: profile.about_text.slice(0, 240),
         experience_years: profile.experience_years,
         is_active: true,
@@ -1674,8 +1673,7 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
     ),
     faqs: profile.faqs || [],
     gallery: [],
-    avatar_url:
-      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+    avatar_url: resolveDoctorImageUrl(docName, specialty),
     logo_url: null,
     theme_color: profile.theme_color,
     template: profile.template || "modern",
@@ -1719,8 +1717,7 @@ export async function setupCompleteClinicFromLeadImpl(opts: {
         specialization: specialty,
         qualification: profile.qualification,
         consultation_fee: profile.consultation_fee,
-        avatar_url:
-          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+        avatar_url: resolveDoctorImageUrl(docName, specialty),
         bio: profile.about_text.slice(0, 240),
         experience_years: profile.experience_years,
         is_active: true,

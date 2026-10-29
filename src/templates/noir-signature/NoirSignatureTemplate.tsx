@@ -29,6 +29,7 @@ import {
   getServices,
   getReviews,
   getWorkingHours,
+  getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
 } from "../shared/clinicDataHelpers";
@@ -226,7 +227,7 @@ export function NoirSignatureTemplate(props: TemplateProps) {
                 <div className="relative mx-auto max-w-md">
                   <div className="absolute -inset-2 border border-[#c5a059]/40 rounded-3xl pointer-events-none" />
                   <ImageMaskReveal
-                    src={clinic.avatar_url || FALLBACK_IMAGES.doctorPortrait}
+                    src={getDoctorAvatarUrl(clinic)}
                     alt={doctorName}
                     aspectRatio="aspect-4/5"
                     className="rounded-2xl shadow-2xl"
