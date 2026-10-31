@@ -15,7 +15,24 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Check, AlertTriangle } from "lucide-react";
+import {
+  Check,
+  AlertTriangle,
+  RefreshCw,
+  Download,
+  Calendar,
+  CreditCard,
+  ShieldCheck,
+  Zap,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Clock,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Database } from "@/integrations/supabase/types";
 import { ClinicTrialJourney } from "@/components/billing/ClinicTrialJourney";
 import {
@@ -166,6 +183,8 @@ function BillingPage() {
   const [renewalError, setRenewalError] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [commandId, setCommandId] = useState("");
+  const [showCompareTable, setShowCompareTable] = useState(false);
+  const [showAdvancedSupport, setShowAdvancedSupport] = useState(false);
   const [invoice, setInvoice] = useState<Awaited<ReturnType<typeof getSubscriptionInvoice>> | null>(
     null,
   );
@@ -758,11 +777,40 @@ function BillingPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="font-display text-3xl">Billing & Plans</h1>
-        <p className="text-muted-foreground">Manage your subscription, payment, and invoices.</p>
-      </header>
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Billing & Subscription</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage your clinic plan, quotas, and payment invoices.
+          </p>
+        </div>
+        {canManageBilling && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void refresh()}
+              disabled={syncing}
+              className="h-8 gap-1.5 text-xs font-medium"
+            >
+              <RefreshCw className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={exporting || !entitlement?.can_export}
+              className="h-8 gap-1.5 text-xs font-medium"
+            >
+              <Download className="size-3.5" />
+              {exporting ? "Exporting…" : "Export Data"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Billing reminders (autopay halted, payment failed, etc.) */}
       {reminders.length > 0 && (
@@ -772,20 +820,27 @@ function BillingPage() {
             return (
               <div
                 key={r.id}
-                className={`rounded-lg border p-4 flex items-start gap-3 ${
+                className={`rounded-xl border p-4 flex items-start justify-between gap-3 shadow-xs ${
                   critical
-                    ? "border-rose-200 bg-rose-50 dark:border-rose-900/30 dark:bg-rose-950/30"
-                    : "border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-950/30"
+                    ? "border-rose-200 bg-rose-50/70 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200"
+                    : "border-amber-200 bg-amber-50/70 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
                 }`}
               >
-                <AlertTriangle
-                  className={`size-5 mt-0.5 ${critical ? "text-rose-600" : "text-amber-600"}`}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">{r.title}</div>
-                  {r.body && <p className="text-xs text-muted-foreground mt-1">{r.body}</p>}
+                <div className="flex items-start gap-3">
+                  <AlertTriangle
+                    className={`size-5 mt-0.5 shrink-0 ${critical ? "text-rose-600" : "text-amber-600"}`}
+                  />
+                  <div>
+                    <h4 className="font-semibold text-sm">{r.title}</h4>
+                    {r.body && <p className="text-xs opacity-90 mt-0.5">{r.body}</p>}
+                  </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => handleDismiss(r.id)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDismiss(r.id)}
+                  className="h-7 px-2.5 text-xs hover:bg-black/5 dark:hover:bg-white/10"
+                >
                   Dismiss
                 </Button>
               </div>
@@ -795,278 +850,290 @@ function BillingPage() {
       )}
 
       {authorityError && (
-        <Card className="p-5" role="alert">
-          <p>{authorityError}</p>
-          <Button variant="outline" onClick={() => void refresh()}>
-            Retry access check
+        <Card className="p-4 border-rose-200 bg-rose-50/50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <AlertTriangle className="size-4 shrink-0 text-rose-600" />
+            <span>{authorityError}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void refresh()} className="h-8 text-xs">
+            Retry
           </Button>
         </Card>
       )}
+
       {checkoutMessage && (
-        <Card className="p-4" role="status">
-          {checkoutMessage}
+        <Card className="p-4 bg-muted/50 border-border/60 text-sm flex items-center gap-2">
+          <Sparkles className="size-4 text-primary shrink-0" />
+          <span>{checkoutMessage}</span>
         </Card>
       )}
+
+      {/* Trial Journey (for trialing clinics) */}
       {entitlement && <ClinicTrialJourney snapshot={entitlement} clinic={clinic} />}
-      <Card className="p-6 space-y-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="font-display text-xl">
-              Current subscription · {currentPlan?.name ?? "Not configured"}
-            </h2>
-            <Badge variant="outline" className="mt-2">
-              {entitlement?.effective_state.replaceAll("_", " ") ?? "Checking access"}
-            </Badge>
-            <p className="text-sm text-muted-foreground mt-2">
-              Billing cycle: {entitlement?.subscription?.billing_cycle ?? "Not configured"}
-            </p>
-            {entitlement?.subscription?.current_period_end && (
-              <p className="text-sm mt-2">
-                {entitlement?.subscription?.cancel_at_period_end
-                  ? "Paid access through"
-                  : "Current paid period ends"}
-                : {new Date(entitlement.subscription.current_period_end).toLocaleString()}
-              </p>
-            )}
-            {renewal?.available ? (
-              <div className="text-sm mt-2 space-y-1">
-                <p>
-                  Provider mandate: {renewal.provider_status} ·{" "}
-                  {renewal.payment_method ??
-                    "Payment method checked server-side when changing billing"}
-                </p>
-                <p>
-                  Next renewal:{" "}
-                  {renewal.will_renew && renewal.next_charge_at
-                    ? new Date(renewal.next_charge_at * 1000).toLocaleString()
-                    : "Not renewing"}
-                </p>
-                <p>
-                  Verified next charge:{" "}
-                  {renewal.amount_paise !== null
-                    ? `₹${(renewal.amount_paise / 100).toLocaleString("en-IN")} (${renewal.billing_cycle})`
-                    : "No renewal charge scheduled"}
-                </p>
-                {renewal.pending_change && (
-                  <div className="border rounded-lg p-3 mt-3">
-                    <strong>Scheduled change — not current access</strong>
-                    <p>
-                      {renewal.pending_change.plan_id} · {renewal.pending_change.billing_cycle} · ₹
-                      {(renewal.pending_change.amount_paise / 100).toLocaleString("en-IN")}
-                    </p>
-                    <p>
-                      Provider schedule:{" "}
-                      {new Date(renewal.pending_change.effective_at).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      The boundary charge may still use the current amount. Only a captured,
-                      verified invoice applies the new plan.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-2">
-                Renewal quote: {renewal?.reason ?? "not loaded"}. Catalog prices below are not a
-                renewal quote.
-              </p>
-            )}
-            {renewalError && (
-              <p role="alert" className="text-sm mt-2">
-                {renewalError}
-              </p>
-            )}
+
+      {/* Current Subscription Hero Card */}
+      <Card className="p-6 rounded-2xl border-border/60 bg-gradient-to-br from-card to-muted/20 shadow-xs relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
+                Current Plan
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-xs px-2.5 py-0.5 font-medium rounded-full ${
+                  entitlement?.effective_state === "active"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                    : entitlement?.effective_state === "trialing"
+                      ? "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                      : "border-border bg-muted text-foreground"
+                }`}
+              >
+                {entitlement?.effective_state === "trialing"
+                  ? "Free Trial"
+                  : entitlement?.effective_state?.replaceAll("_", " ") ?? "Active"}
+              </Badge>
+              {entitlement?.subscription?.billing_cycle && (
+                <Badge variant="secondary" className="text-xs capitalize font-normal">
+                  {entitlement.subscription.billing_cycle}
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-baseline gap-3">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
+                {currentPlan?.name ?? "Growth Plan"}
+              </h2>
+              {renewal?.available && renewal.amount_paise !== null && (
+                <span className="text-base text-muted-foreground font-medium">
+                  ₹{(renewal.amount_paise / 100).toLocaleString("en-IN")}/{renewal.billing_cycle === "yearly" ? "yr" : "mo"}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+              {entitlement?.subscription?.current_period_end && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-primary" />
+                  <span>
+                    {entitlement?.subscription?.cancel_at_period_end
+                      ? "Cancels on "
+                      : "Renews on "}
+                    <strong>
+                      {new Date(entitlement.subscription.current_period_end).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </span>
+                </div>
+              )}
+              {renewal?.available && renewal.payment_method && (
+                <div className="flex items-center gap-1.5">
+                  <CreditCard className="size-3.5" />
+                  <span>Mandate: {renewal.payment_method}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap items-center gap-2.5">
             {entitlement?.effective_state === "past_due" && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={handleRetryPayment}
                 disabled={processing || syncing}
+                className="gap-1.5 shadow-sm"
               >
-                Retry payment
+                <Zap className="size-4" />
+                Retry Payment
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={syncing}>
-              Refresh access
-            </Button>
+            {entitlement?.subscription?.access_source === "verified_payment" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSync}
+                disabled={!canManageBilling || syncing}
+                className="text-xs h-9"
+              >
+                {syncing ? "Checking…" : "Verify Mandate"}
+              </Button>
+            )}
+            {paidMandate && !entitlement?.subscription?.cancel_at_period_end && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={!canManageBilling || cancelling}
+                className="text-xs h-9 text-muted-foreground hover:text-destructive"
+              >
+                Cancel Renewal
+              </Button>
+            )}
+            {renewal?.available && renewal.provider_status === "paused" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResume}
+                disabled={!canManageBilling || processing}
+                className="text-xs h-9"
+              >
+                Resume Renewal
+              </Button>
+            )}
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              onClick={handleSync}
-              disabled={
-                !canManageBilling ||
-                syncing ||
-                entitlement?.subscription?.access_source !== "verified_payment"
-              }
+              onClick={() => {
+                const el = document.getElementById("choose-plan-section");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="text-xs h-9 gap-1.5 shadow-xs font-medium"
             >
-              {syncing ? "Checking…" : "Check payment status"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCancelDialog(true)}
-              disabled={
-                !canManageBilling ||
-                cancelling ||
-                entitlement?.subscription?.access_source !== "verified_payment" ||
-                !!entitlement?.subscription?.cancel_at_period_end
-              }
-            >
-              Cancel future renewal
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleResume}
-              disabled={
-                !canManageBilling ||
-                processing ||
-                !renewal?.available ||
-                renewal.provider_status !== "paused" ||
-                renewal.can_resume === false ||
-                !!entitlement?.subscription?.cancel_at_period_end
-              }
-            >
-              Check & resume merchant-paused renewal
+              <span>Change Plan</span>
+              <ArrowRight className="size-3.5" />
             </Button>
           </div>
         </div>
+
         {entitlement?.subscription?.cancel_at_period_end && (
-          <p className="text-sm">
-            Renewal is stopped. Cancelled mandates cannot resume. A new mandate can be considered
-            only after canonical terminal confirmation and expiry of existing paid access.
-          </p>
-        )}
-        {!canManageBilling && (
-          <p className="text-sm text-muted-foreground">
-            Only clinic owners and admins can manage subscription payments or export data.
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Paid plan/cycle changes use a cycle-end schedule on an active card mandate, not a new
-          checkout. UPI/eMandate, offers, unknown methods and unsupported states are blocked by
-          server checks. Resume supports merchant-paused mandates only, never cancelled or
-          customer-paused mandates.
-        </p>
-        {canManageBilling && (
-          <div className="space-y-2 border-t pt-3">
-            <label htmlFor="recurring-command" className="text-sm">
-              Outstanding command ID (from billing support)
-            </label>
-            <input
-              id="recurring-command"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              value={commandId}
-              onChange={(e) => setCommandId(e.target.value)}
-              placeholder="Command UUID"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!commandId || syncing}
-              onClick={handleReconcileCommand}
-            >
-              Check existing command — no resend
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Ambiguous changes stay blocked. This checks provider evidence only and never resends
-              the financial request.
-            </p>
+          <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+            <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+            <span>
+              Your subscription renewal is cancelled. Paid access remains active until{" "}
+              <strong>
+                {entitlement?.subscription?.current_period_end
+                  ? new Date(entitlement.subscription.current_period_end).toLocaleDateString()
+                  : "the end of current period"}
+              </strong>
+              .
+            </span>
           </div>
         )}
       </Card>
+
+      {/* Plan Limits & Quotas */}
       {entitlement && (
-        <Card className="p-6 space-y-4">
-          <h3 className="font-display font-semibold">Plan Limits</h3>
-          <div className="grid sm:grid-cols-3 gap-5">
-            {(
-              [
-                ["Patient Records", entitlement.usage?.patients ?? 0, entitlement.limits?.patients],
-                [
-                  "Staff Seats (including pending invitations)",
-                  (entitlement.usage?.staff ?? 0) + (entitlement.usage?.pending_staff_invites ?? 0),
-                  entitlement.limits?.staff,
-                ],
-                ["Doctors", entitlement.usage?.doctors ?? 0, entitlement.limits?.doctors],
-              ] as Array<[string, number, number | null | undefined]>
-            ).map(([label, used, limit]) => {
-              const display = limitPresentation(used, limit);
-              return (
-                <div key={label} className="space-y-2">
-                  <div className="flex justify-between gap-2 text-sm">
-                    <span>{label}</span>
-                    <span className="text-muted-foreground">{display.text}</span>
-                  </div>
-                  {display.percent !== null && (
-                    <div
-                      role="progressbar"
-                      aria-label={label}
-                      aria-valuenow={display.percent}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      className="h-2 rounded-full overflow-hidden bg-muted"
-                    >
-                      <div className="h-full bg-primary" style={{ width: `${display.percent}%` }} />
+        <div className="grid sm:grid-cols-3 gap-4">
+          {(
+            [
+              {
+                label: "Patient Records",
+                used: entitlement.usage?.patients ?? 0,
+                limit: entitlement.limits?.patients,
+                icon: FileText,
+              },
+              {
+                label: "Staff Seats",
+                used: (entitlement.usage?.staff ?? 0) + (entitlement.usage?.pending_staff_invites ?? 0),
+                limit: entitlement.limits?.staff,
+                icon: Users,
+              },
+              {
+                label: "Doctor Profiles",
+                used: entitlement.usage?.doctors ?? 1,
+                limit: entitlement.limits?.doctors,
+                icon: ShieldCheck,
+              },
+            ] as const
+          ).map((item) => {
+            const display = limitPresentation(item.used, item.limit);
+            const Icon = item.icon;
+            const percent = display.percent ?? 0;
+            return (
+              <Card key={item.label} className="p-4 rounded-xl border-border/60 space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                      <Icon className="size-4" />
                     </div>
-                  )}
+                    <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold">{display.text}</span>
                 </div>
-              );
-            })}
-          </div>
-        </Card>
+                {display.percent !== null && (
+                  <div className="space-y-1">
+                    <div className="h-1.5 rounded-full overflow-hidden bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          percent > 90 ? "bg-rose-500" : percent > 75 ? "bg-amber-500" : "bg-primary"
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(percent, 4))}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
       )}
-      {recommended && entitlement && (
-        <Card className="p-5 space-y-3">
-          <h3 className="font-display text-lg">Recommended for your clinic · {recommended.name}</h3>
-          <p className="text-sm text-muted-foreground">
-            Based on {entitlement.usage?.patients ?? 0} patient records, {entitlement.usage?.doctors ?? 1}{" "}
-            doctors, {entitlement.usage?.staff ?? 0} staff and {entitlement.usage?.pending_staff_invites ?? 0}{" "}
-            pending invitations. Recorded feature use:{" "}
-            {entitlement.usage?.features_used?.join(", ") || "none yet"}. This recommendation is
-            advisory; choose any plan that fits your clinic.
-          </p>
+
+      {/* Recommended Plan Alert */}
+      {recommended && entitlement && recommended.id !== entitlement?.subscription?.plan_id && (
+        <Card className="p-4 rounded-xl border-primary/30 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+              <Sparkles className="size-4" />
+              <span>Recommended Upgrade · {recommended.name}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Based on your clinic's patient growth and active feature usage.
+            </p>
+          </div>
           <Button
+            size="sm"
             onClick={() => setPendingPlan(recommended)}
             disabled={!canManageBilling || processing}
+            className="text-xs h-8 shrink-0"
           >
-            Continue with {recommended.name}
+            Upgrade to {recommended.name}
           </Button>
         </Card>
       )}
-      {catalogError && <p role="alert">{catalogError}</p>}
-      {entitlement?.configuration_requires_reconciliation && (
-        <Card className="p-4 text-sm">
-          Your historical subscription requires pricing and entitlement reconciliation. No
-          historical price has been assumed verified. Contact support before changing billing.
-        </Card>
-      )}
-      {/* Plans */}
-      <div>
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+
+      {/* Choose a Plan Section */}
+      <div id="choose-plan-section" className="space-y-5 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl">Choose a plan</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Configured catalog prices, not verified renewal quotes. Checkout confirms provider
-              pricing; historical configuration may require reconciliation.
+            <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">Available Plans</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Select the best tier for your clinic. Upgrade or downgrade anytime.
             </p>
           </div>
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg text-sm">
+
+          {/* Billing Cycle Switch */}
+          <div className="flex items-center gap-1 p-1 bg-muted/80 rounded-xl text-xs font-medium border border-border/40 self-start sm:self-auto">
             <button
               onClick={() => setCycle("monthly")}
-              className={`px-3 py-1.5 rounded-md transition ${cycle === "monthly" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                cycle === "monthly"
+                  ? "bg-background text-foreground shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setCycle("yearly")}
-              className={`px-3 py-1.5 rounded-md transition ${cycle === "yearly" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                cycle === "yearly"
+                  ? "bg-background text-foreground shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              Yearly · see actual savings
+              <span>Annual</span>
+              <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-500/15 text-emerald-600 font-bold">
+                Save ~20%
+              </span>
             </button>
           </div>
         </div>
+
+        {/* Plans Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((p) => {
             const isCurrent = entitlement?.subscription?.plan_id === p.id;
@@ -1074,72 +1141,71 @@ function BillingPage() {
             const hasDiscount = priceInfo.discounted;
             const price = priceInfo.total;
             const originalPrice = priceInfo.original;
-
             const isPopular = p.is_popular;
             const isEnterprise = p.id === "enterprise";
 
             return (
               <Card
                 key={p.id}
-                className={`p-6 flex flex-col transition-all relative border ${
-                  isPopular ? "border-primary" : isEnterprise ? "border-amber-300" : "border-border"
-                } ${isCurrent ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                className={`p-5 rounded-2xl flex flex-col transition-all relative border bg-card/60 backdrop-blur-xs ${
+                  isPopular
+                    ? "border-primary/80 ring-2 ring-primary/20 shadow-sm"
+                    : isEnterprise
+                      ? "border-amber-400/80 ring-1 ring-amber-400/20"
+                      : "border-border/60"
+                } ${isCurrent ? "bg-muted/10 border-primary" : ""}`}
               >
                 {isPopular && (
-                  <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-semibold py-0.5 px-2 border-none whitespace-nowrap">
-                    Popular
+                  <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-semibold py-0.5 px-2.5 border-none shadow-xs">
+                    Most Popular
                   </Badge>
                 )}
                 {isEnterprise && (
-                  <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[10px] font-semibold py-0.5 px-2 border-none whitespace-nowrap">
-                    Premium
+                  <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[10px] font-semibold py-0.5 px-2.5 border-none shadow-xs">
+                    Enterprise
                   </Badge>
                 )}
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <div className="font-display text-base font-semibold">{p.name}</div>
-                  {isCurrent && entitlement?.effective_state === "trialing" && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] border-amber-200 bg-amber-50 text-amber-700 font-medium"
-                    >
-                      Trial
-                    </Badge>
-                  )}
-                  {isCurrent && entitlement?.effective_state === "active" && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-medium"
-                    >
-                      Active
-                    </Badge>
-                  )}
+
+                <div className="space-y-1 mb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-display text-lg font-bold">{p.name}</h3>
+                    {isCurrent && (
+                      <span className="text-[10px] font-semibold text-primary px-2 py-0.5 rounded-full bg-primary/10">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">{p.tagline}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">{p.tagline}</p>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1 flex-wrap">
-                    <span className="font-display text-2xl font-bold">
-                      {price === 0 ? "Free" : `₹${price.toLocaleString()}`}
+
+                {/* Price Display */}
+                <div className="py-3 border-y border-border/40 my-1">
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="font-display text-3xl font-extrabold tracking-tight">
+                      {price === 0 ? "Free" : `₹${price.toLocaleString("en-IN")}`}
                     </span>
                     {price > 0 && (
-                      <span className="text-sm text-muted-foreground">
-                        /{cycle === "yearly" ? "year" : "month"}
+                      <span className="text-xs text-muted-foreground font-medium">
+                        /{cycle === "yearly" ? "year" : "mo"}
                       </span>
                     )}
                     {hasDiscount && (
-                      <span className="text-xs text-muted-foreground line-through ml-1.5">
-                        ₹{originalPrice.toLocaleString()}/{cycle === "yearly" ? "year" : "month"}
+                      <span className="text-xs text-muted-foreground line-through ml-1">
+                        ₹{originalPrice.toLocaleString("en-IN")}
                       </span>
                     )}
                   </div>
                   {cycle === "yearly" && priceInfo.savings > 0 && (
-                    <span className="text-xs text-emerald-600 font-medium block mt-1">
-                      {`Saves ₹${priceInfo.savings.toLocaleString("en-IN")} compared with 12 monthly payments`}
+                    <span className="text-[11px] text-emerald-600 font-semibold block mt-1">
+                      Save ₹{priceInfo.savings.toLocaleString("en-IN")} / year
                     </span>
                   )}
                 </div>
-                <ul className="space-y-2 text-sm flex-1 mb-6 border-t pt-4">
-                  {(catalogFeatures[p.id] ?? []).map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-foreground">
+
+                {/* Feature List */}
+                <ul className="space-y-2 text-xs flex-1 my-4">
+                  {(catalogFeatures[p.id] ?? []).slice(0, 6).map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-foreground/90">
                       <Check
                         className={`size-3.5 mt-0.5 shrink-0 ${isEnterprise ? "text-amber-500" : "text-primary"}`}
                       />
@@ -1149,17 +1215,16 @@ function BillingPage() {
                       </span>
                     </li>
                   ))}
+                  {(catalogFeatures[p.id] ?? []).length > 6 && (
+                    <li className="text-[11px] text-muted-foreground pt-1">
+                      + {(catalogFeatures[p.id] ?? []).length - 6} more modules
+                    </li>
+                  )}
                 </ul>
+
+                {/* Action CTA */}
                 <Button
-                  variant={
-                    isCurrent && !isSubscriptionExpired
-                      ? "outline"
-                      : isPopular
-                        ? "default"
-                        : isEnterprise
-                          ? "default"
-                          : "secondary"
-                  }
+                  variant={isCurrent && !isSubscriptionExpired ? "outline" : isPopular ? "default" : "secondary"}
                   disabled={
                     !canManageBilling ||
                     processing ||
@@ -1169,23 +1234,23 @@ function BillingPage() {
                       !entitlement.subscription?.cancel_at_period_end)
                   }
                   onClick={() => setPendingPlan(p)}
-                  className={`w-full mt-auto ${
+                  className={`w-full mt-auto h-9 text-xs font-semibold ${
                     isCurrent && !isSubscriptionExpired
-                      ? "border-border text-muted-foreground bg-muted"
+                      ? "border-border/60 text-muted-foreground"
                       : isPopular
-                        ? "bg-primary text-white hover:bg-primary/90"
+                        ? "bg-primary text-white hover:bg-primary/90 shadow-xs"
                         : isEnterprise
-                          ? "bg-amber-500 text-white hover:bg-amber-600"
+                          ? "bg-amber-500 text-white hover:bg-amber-600 shadow-xs"
                           : ""
                   }`}
                 >
                   {isCurrent &&
                   entitlement?.effective_state === "active" &&
                   entitlement.subscription?.billing_cycle === cycle
-                    ? "Current plan"
+                    ? "Current Plan"
                     : isCurrent
-                      ? "Continue / change cycle"
-                      : "Select plan"}
+                      ? "Change Cycle"
+                      : `Get ${p.name}`}
                 </Button>
               </Card>
             );
@@ -1193,135 +1258,216 @@ function BillingPage() {
         </div>
       </div>
 
-      {/* Full feature comparison */}
+      {/* Feature Comparison Accordion */}
       {modules.length > 0 && (
-        <div>
-          <h2 className="font-display text-xl mb-1">Compare plans in detail</h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            Every module included in each plan, side by side.
-          </p>
-          <PlanCompareTable
-            plans={plans}
-            modules={modules}
-            currentPlanId={entitlement?.subscription?.plan_id}
-            billingCycle={cycle}
-            planLimits={catalogLimits}
-            planFeatures={catalogFeatures}
-            featureAliases={featureAliases}
-            onSelectPlan={
-              canManageBilling
-                ? (planId) => {
-                    const p = plans.find((x) => x.id === planId);
-                    if (p) setPendingPlan(p);
-                  }
-                : undefined
-            }
-          />
+        <div className="border border-border/60 rounded-2xl overflow-hidden bg-card/60 backdrop-blur-xs">
+          <button
+            onClick={() => setShowCompareTable(!showCompareTable)}
+            className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-muted/40 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <span className="text-sm font-semibold">Compare all features side-by-side</span>
+            </div>
+            {showCompareTable ? (
+              <ChevronUp className="size-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="size-4 text-muted-foreground" />
+            )}
+          </button>
+          {showCompareTable && (
+            <div className="p-5 border-t border-border/60">
+              <PlanCompareTable
+                plans={plans}
+                modules={modules}
+                currentPlanId={entitlement?.subscription?.plan_id}
+                billingCycle={cycle}
+                planLimits={catalogLimits}
+                planFeatures={catalogFeatures}
+                featureAliases={featureAliases}
+                onSelectPlan={
+                  canManageBilling
+                    ? (planId) => {
+                        const p = plans.find((x) => x.id === planId);
+                        if (p) setPendingPlan(p);
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          )}
         </div>
       )}
 
-      <Card className="p-5 space-y-3">
-        <h2 className="font-display text-lg">Export Clinic Data</h2>
-        <p className="text-sm text-muted-foreground">
-          JSON backup of patients, appointments, visits, attachments metadata, prescriptions and
-          items, clinical invoices and items, clinical payments, clinic settings and doctors. Keep
-          the download secure: it contains sensitive clinical information. Export is available after
-          expiry to authorized owners/admins.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          This paginated export is not a transactionally consistent point-in-time snapshot. It
-          doesn't download attachment files or include SaaS payment history.
-        </p>
-        <Button onClick={handleExport} disabled={exporting || !entitlement?.can_export}>
-          {exporting ? "Preparing complete backup…" : "Export JSON backup"}
-        </Button>
-      </Card>
-      <div className="space-y-3">
-        <h2 className="font-display text-xl">Payment history & invoices</h2>
-        <p className="text-xs text-muted-foreground">
-          Verified INR charges are in paise. Load older entries separately for each list; historical
-          amounts remain unclassified.
-        </p>
-        {historyError && <p role="alert">{historyError}</p>}
-        {canManageBilling && (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!!historyBusy}
-            onClick={() => org && void refreshBilling(org.id)}
-          >
-            Refresh billing history
-          </Button>
-        )}
-        {(["payments", "invoices", "legacy_invoices"] as const).map((kind) => (
-          <Card key={kind} className="divide-y">
-            <h3 className="p-4 font-medium">
-              {kind === "legacy_invoices"
-                ? "Historical / unverified invoices"
-                : kind === "payments"
-                  ? "Verified payments"
-                  : "Verified invoices"}
-            </h3>
-            {history?.[kind] ? (
-              <>
-                {!history[kind]!.entries.length && (
-                  <p className="p-4 text-sm text-muted-foreground">No entries in this page.</p>
-                )}
-                {history[kind]!.entries.map((row) => (
-                  <div
-                    key={String(row.id)}
-                    className="p-4 flex flex-wrap items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="min-w-0 break-all">
-                      {String(row.invoice_number ?? row.payment_id ?? row.id)} ·{" "}
-                      {new Date(String(row.created_at)).toLocaleDateString()}
-                    </span>
-                    {kind === "legacy_invoices" ? (
-                      <span>
-                        Recorded amount {String(row.historical_amount)} (unit unclassified)
-                      </span>
-                    ) : (
-                      <>
-                        <Badge variant="outline">{String(row.status)}</Badge>
-                        <span>₹{(Number(row.amount_paise) / 100).toLocaleString("en-IN")}</span>
-                      </>
-                    )}
-                    {kind === "invoices" && (
+      {/* Payment History & Invoices - Unified Clean Tabbed View */}
+      <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-display text-lg font-bold">Billing History & Invoices</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              View your verified receipts and download official invoices.
+            </p>
+          </div>
+          {canManageBilling && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!!historyBusy}
+              onClick={() => org && void refreshBilling(org.id)}
+              className="h-8 text-xs gap-1.5 self-start sm:self-auto"
+            >
+              <RefreshCw className={`size-3.5 ${historyBusy ? "animate-spin" : ""}`} />
+              Refresh History
+            </Button>
+          )}
+        </div>
+
+        <Tabs defaultValue="invoices" className="w-full">
+          <div className="px-5 pt-3 border-b border-border/40">
+            <TabsList className="h-8 p-0.5 bg-muted/60">
+              <TabsTrigger value="invoices" className="text-xs px-3 h-7">
+                Invoices
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="text-xs px-3 h-7">
+                Payments
+              </TabsTrigger>
+              <TabsTrigger value="legacy_invoices" className="text-xs px-3 h-7">
+                Archived
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {(["invoices", "payments", "legacy_invoices"] as const).map((kind) => (
+            <TabsContent key={kind} value={kind} className="m-0 focus-visible:outline-none">
+              {history?.[kind] ? (
+                <>
+                  {!history[kind]!.entries.length ? (
+                    <div className="p-8 text-center text-xs text-muted-foreground">
+                      No {kind.replaceAll("_", " ")} recorded yet.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/40">
+                      {history[kind]!.entries.map((row) => (
+                        <div
+                          key={String(row.id)}
+                          className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 text-sm hover:bg-muted/20 transition-colors"
+                        >
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="font-medium text-xs sm:text-sm">
+                              {String(row.invoice_number ?? row.payment_id ?? row.id)}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                              <Calendar className="size-3" />
+                              <span>{new Date(String(row.created_at)).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {kind === "legacy_invoices" ? (
+                              <span className="text-xs text-muted-foreground">
+                                {String(row.historical_amount)}
+                              </span>
+                            ) : (
+                              <>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] font-medium px-2 py-0.5 capitalize bg-muted/50"
+                                >
+                                  {String(row.status)}
+                                </Badge>
+                                <span className="font-semibold text-sm">
+                                  ₹{(Number(row.amount_paise) / 100).toLocaleString("en-IN")}
+                                </span>
+                              </>
+                            )}
+
+                            {kind === "invoices" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={invoiceBusy}
+                                onClick={() => void previewInvoice(String(row.id))}
+                                className="h-7 text-xs px-2.5 gap-1"
+                              >
+                                <FileText className="size-3" />
+                                <span>Invoice</span>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {history[kind]!.has_more && (
+                    <div className="p-3 text-center border-t border-border/40">
                       <Button
+                        variant="ghost"
                         size="sm"
-                        variant="outline"
-                        disabled={invoiceBusy}
-                        onClick={() => void previewInvoice(String(row.id))}
+                        disabled={!!historyBusy}
+                        onClick={() => void loadMoreHistory(kind)}
+                        className="text-xs h-7"
                       >
-                        View invoice
+                        {historyBusy === kind ? "Loading…" : `Load older entries`}
                       </Button>
-                    )}
-                  </div>
-                ))}
-                {history[kind]!.has_more && (
-                  <div className="p-4">
-                    <Button
-                      variant="outline"
-                      disabled={!!historyBusy}
-                      onClick={() => void loadMoreHistory(kind)}
-                    >
-                      {historyBusy === kind
-                        ? "Loading…"
-                        : `Load older ${kind.replaceAll("_", " ")}`}
-                    </Button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="p-4 text-sm text-muted-foreground">
-                {canManageBilling
-                  ? "History is not loaded yet."
-                  : "History is available to owners/admins."}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-8 text-center text-xs text-muted-foreground">
+                  {canManageBilling ? "Loading billing history…" : "Billing history is accessible to owners."}
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </Card>
+
+      {/* Advanced Support & Reconciliation (Minimal Collapsible at Bottom) */}
+      {canManageBilling && (
+        <div className="border border-border/40 rounded-xl overflow-hidden bg-muted/20">
+          <button
+            onClick={() => setShowAdvancedSupport(!showAdvancedSupport)}
+            className="w-full px-4 py-2.5 flex items-center justify-between text-left text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="size-3.5" />
+              <span>Billing Support Tools & Manual Command Reconciliation</span>
+            </div>
+            {showAdvancedSupport ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          </button>
+          {showAdvancedSupport && (
+            <div className="p-4 border-t border-border/40 space-y-3 bg-card/40 text-xs">
+              <p className="text-muted-foreground">
+                If you were provided an outstanding reconciliation command ID by ClinicX Billing Support,
+                enter it below to reconcile your mandate without reprocessing payments.
               </p>
-            )}
-          </Card>
-        ))}
-      </div>
+              <div className="flex gap-2 max-w-md">
+                <input
+                  id="recurring-command"
+                  className="flex-1 rounded-md border bg-background px-3 py-1.5 text-xs"
+                  value={commandId}
+                  onChange={(e) => setCommandId(e.target.value)}
+                  placeholder="Command UUID"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!commandId || syncing}
+                  onClick={handleReconcileCommand}
+                  className="h-8 text-xs shrink-0"
+                >
+                  Verify Command
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <Dialog
         open={!!invoice}
         onOpenChange={(open) => {
