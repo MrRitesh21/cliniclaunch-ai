@@ -992,6 +992,21 @@ export async function createFullClinicFromParsedRow(
     );
   } catch {}
 
+  // 8b. Authoritatively provision Doctor account in auth.users, profiles & organization_members
+  try {
+    const { provisionOrSyncDoctorAccount } = await import("./sso.server");
+    const doctorEmail = `doctor@${slug}.clinicx.in`;
+    await provisionOrSyncDoctorAccount({
+      email: doctorEmail,
+      name: doctorName,
+      phone,
+      clinicSlug: slug,
+      role: "doctor",
+    });
+  } catch (provErr) {
+    console.warn("[createFullClinicFromParsedRow] Doctor account provisioning notice:", provErr);
+  }
+
   if (content.sampleReviews?.length) {
     try {
       await (supabaseAdmin as any).from("reviews").insert(

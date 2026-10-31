@@ -67,58 +67,29 @@ function SsoAuthPage() {
         const name = verified.name || "Doctor";
         const password = verified.password;
         const target = search.redirect || verified.target || "/dashboard";
+        const userId = (verified as any).userId || emailToDeterministicUuid(email);
         setTargetUrl(target);
 
         setStatus("signing_in");
         setStatusMessage(`Authenticating ${name} (${email})...`);
 
-        // 1. Attempt Supabase Sign In with deterministic SSO credentials
-        let sessionEstablished = false;
+        // 1. Authenticate Supabase session
         try {
-          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+          await supabase.auth.signInWithPassword({
             email,
             password,
           });
-
-          if (!signInErr && signInData.session) {
-            sessionEstablished = true;
-          } else {
-            // User might not exist yet in Supabase Auth, let's create/sign up
-            const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  full_name: name,
-                  role: verified.role || "doctor",
-                },
-              },
-            });
-
-            if (!signUpErr && signUpData.session) {
-              sessionEstablished = true;
-            } else {
-              // Retry sign in in case user was already created
-              const { data: retryData } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-              });
-              if (retryData?.session) {
-                sessionEstablished = true;
-              }
-            }
-          }
         } catch (authErr) {
           console.warn("[SSO] Supabase network auth attempt notice:", authErr);
         }
 
         if (isCancelled) return;
 
-        // 2. Always persist the authenticated SSO session locally so _authenticated route & dashboard grant instant access
+        // 2. Persist the authenticated SSO session locally with valid UUID
         try {
           const activeSlug = verified.clinicSlug || "demo-clinic";
           const ssoSession = {
-            id: emailToDeterministicUuid(email),
+            id: userId,
             email,
             name,
             role: verified.role || "doctor",

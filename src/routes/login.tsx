@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { guardAuthAttempt } from "@/lib/limits.functions";
 import { trackReferralSignup } from "@/lib/referral.functions";
-import { resolvePhoneIdentityFn } from "@/lib/phone-auth.functions";
+import { resolvePhoneIdentityFn, authenticatePhoneLoginFn } from "@/lib/phone-auth.functions";
 import { setDemoSessionFlags, DEMO_CREDENTIALS } from "@/lib/demo";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
@@ -183,43 +183,63 @@ function LoginPage() {
         console.warn("[signIn] Direct phone auth failed, checking registered clinic:", err);
       }
 
-      // 2. Resolve Doctor / Clinic account by phone number
+      // 2. Resolve Doctor / Clinic account & authenticate via mobile number
       try {
-        const lookup = await resolvePhoneIdentityFn({ data: { phone: rawInput } });
-        if (lookup?.found && lookup?.email) {
-          // Check Demo Account
+        const authRes = await authenticatePhoneLoginFn({
+          data: { phone: rawInput, password },
+        });
+
+        if (authRes?.ok && authRes.email) {
           if (
-            lookup.email.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase() &&
+            authRes.email.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase() &&
             password === DEMO_CREDENTIALS.password
           ) {
             setDemoSessionFlags();
             setLoading(false);
-            toast.success(`Welcome back, ${lookup.doctorName || "Doctor"}!`);
+            toast.success(`Welcome back, ${authRes.doctorName || "Doctor"}!`);
             return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
           }
 
-          // Sign in using registered email
-          const { error: emailSignInErr } = await supabase.auth.signInWithPassword({
-            email: lookup.email,
-            password,
+          // Sign in using registered email and resolved credentials
+          const { data: signInData, error: emailSignInErr } = await supabase.auth.signInWithPassword({
+            email: authRes.email,
+            password: authRes.password || password,
           });
 
-          if (!emailSignInErr) {
+          if (!emailSignInErr && signInData?.session) {
+            if (authRes.clinicSlug) {
+              try {
+                localStorage.setItem("clinicx_active_clinic_slug", authRes.clinicSlug);
+                const ssoSession = {
+                  id: signInData.session.user.id,
+                  email: authRes.email,
+                  name: authRes.doctorName || "Doctor",
+                  role: "doctor",
+                  clinicSlug: authRes.clinicSlug,
+                  authenticatedAt: new Date().toISOString(),
+                };
+                localStorage.setItem("clinicx_sso_session", JSON.stringify(ssoSession));
+              } catch {}
+            }
             setLoading(false);
-            toast.success(`Welcome back, ${lookup.doctorName || "Doctor"}!`);
+            toast.success(`Welcome back, ${authRes.doctorName || "Doctor"}!`);
             return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
           }
 
+          if (emailSignInErr) {
+            console.warn("[signIn] Phone-associated email auth error:", emailSignInErr);
+          }
+        } else if (authRes?.error) {
           setLoading(false);
-          return toast.error("Incorrect password for this mobile number's account.");
+          return toast.error(authRes.error);
         }
       } catch (lookupErr) {
-        console.warn("[signIn] Failed to resolve phone identity:", lookupErr);
+        console.warn("[signIn] Failed to authenticate phone login:", lookupErr);
       }
 
       setLoading(false);
       return toast.error(
-        "No clinic account found matching this mobile number. Please check the number or use your email."
+        "Incorrect password or no clinic account found matching this mobile number."
       );
     }
 

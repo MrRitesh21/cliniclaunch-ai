@@ -706,7 +706,7 @@ function BillingPage() {
       if (workspace.current !== token) return;
       const url = URL.createObjectURL(
         new Blob(
-          [JSON.stringify({ ...backup, server_snapshot_at: entitlement.server_now }, null, 2)],
+          [JSON.stringify({ ...backup, server_snapshot_at: entitlement?.server_now }, null, 2)],
           { type: "application/json" },
         ),
       );
@@ -822,7 +822,7 @@ function BillingPage() {
             </p>
             {entitlement?.subscription?.current_period_end && (
               <p className="text-sm mt-2">
-                {entitlement.subscription.cancel_at_period_end
+                {entitlement?.subscription?.cancel_at_period_end
                   ? "Paid access through"
                   : "Current paid period ends"}
                 : {new Date(entitlement.subscription.current_period_end).toLocaleString()}
@@ -983,13 +983,13 @@ function BillingPage() {
           <div className="grid sm:grid-cols-3 gap-5">
             {(
               [
-                ["Patient Records", entitlement.usage.patients, entitlement.limits.patients],
+                ["Patient Records", entitlement.usage?.patients ?? 0, entitlement.limits?.patients],
                 [
                   "Staff Seats (including pending invitations)",
-                  entitlement.usage.staff + entitlement.usage.pending_staff_invites,
-                  entitlement.limits.staff,
+                  (entitlement.usage?.staff ?? 0) + (entitlement.usage?.pending_staff_invites ?? 0),
+                  entitlement.limits?.staff,
                 ],
-                ["Doctors", entitlement.usage.doctors, entitlement.limits.doctors],
+                ["Doctors", entitlement.usage?.doctors ?? 0, entitlement.limits?.doctors],
               ] as Array<[string, number, number | null | undefined]>
             ).map(([label, used, limit]) => {
               const display = limitPresentation(used, limit);
@@ -1021,10 +1021,10 @@ function BillingPage() {
         <Card className="p-5 space-y-3">
           <h3 className="font-display text-lg">Recommended for your clinic · {recommended.name}</h3>
           <p className="text-sm text-muted-foreground">
-            Based on {entitlement.usage.patients} patient records, {entitlement.usage.doctors}{" "}
-            doctors, {entitlement.usage.staff} staff and {entitlement.usage.pending_staff_invites}{" "}
+            Based on {entitlement.usage?.patients ?? 0} patient records, {entitlement.usage?.doctors ?? 1}{" "}
+            doctors, {entitlement.usage?.staff ?? 0} staff and {entitlement.usage?.pending_staff_invites ?? 0}{" "}
             pending invitations. Recorded feature use:{" "}
-            {entitlement.usage.features_used.join(", ") || "none yet"}. This recommendation is
+            {entitlement.usage?.features_used?.join(", ") || "none yet"}. This recommendation is
             advisory; choose any plan that fits your clinic.
           </p>
           <Button

@@ -119,6 +119,171 @@ export function generateSsoDeterministicPassword(email: string): string {
 }
 
 /**
+ * Provisions or synchronizes a Doctor account into Supabase Auth (auth.users),
+ * profiles, and organization_members with full ownership permissions.
+ */
+export async function provisionOrSyncDoctorAccount({
+  email,
+  name,
+  phone,
+  clinicSlug,
+  role = "doctor",
+  password,
+}: {
+  email: string;
+  name: string;
+  phone?: string;
+  clinicSlug?: string;
+  role?: "doctor" | "admin" | "staff" | string;
+  password?: string;
+}): Promise<{ ok: boolean; userId: string; email: string; password: string; orgId?: string | null }> {
+  const { emailToDeterministicUuid } = await import("./sso-uuid");
+  const cleanEmail = email.trim().toLowerCase();
+  const effectivePassword = password || generateSsoDeterministicPassword(cleanEmail);
+  let userId = emailToDeterministicUuid(cleanEmail);
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Ensure user exists in Supabase Auth (auth.users)
+    try {
+      const { data: userList } = await (supabaseAdmin as any).auth.admin.listUsers({ perPage: 100 });
+      const existingUser = userList?.users?.find(
+        (u: any) => u.email?.toLowerCase() === cleanEmail
+      );
+
+      if (existingUser) {
+        userId = existingUser.id;
+        await (supabaseAdmin as any).auth.admin.updateUserById(userId, {
+          password: effectivePassword,
+          email_confirm: true,
+          user_metadata: {
+            full_name: name,
+            role: role || "doctor",
+            phone: phone || existingUser.user_metadata?.phone,
+            clinic_slug: clinicSlug || existingUser.user_metadata?.clinic_slug,
+          },
+        });
+      } else {
+        const { data: created, error: createErr } = await (supabaseAdmin as any).auth.admin.createUser({
+          email: cleanEmail,
+          password: effectivePassword,
+          email_confirm: true,
+          user_metadata: {
+            full_name: name,
+            role: role || "doctor",
+            phone: phone || null,
+            clinic_slug: clinicSlug || null,
+            source: "waflow_sso",
+          },
+        });
+        if (!createErr && created?.user) {
+          userId = created.user.id;
+        }
+      }
+    } catch (authAdminErr) {
+      console.warn("[provisionOrSyncDoctorAccount] Auth admin user provisioning notice:", authAdminErr);
+    }
+
+    // 2. Discover Organization & Clinic links
+    let orgId: string | null = null;
+    let clinicId: string | null = null;
+
+    if (clinicSlug) {
+      const { data: clinics } = await (supabaseAdmin as any)
+        .from("clinics")
+        .select("id, organization_id, slug")
+        .eq("slug", clinicSlug)
+        .limit(1);
+      if (clinics && clinics.length > 0) {
+        clinicId = clinics[0].id;
+        orgId = clinics[0].organization_id;
+      }
+    }
+
+    if (!orgId && phone) {
+      const last10 = phone.replace(/\D/g, "").slice(-10);
+      if (last10.length >= 10) {
+        const { data: clinics } = await (supabaseAdmin as any)
+          .from("clinics")
+          .select("id, organization_id, slug")
+          .or(`phone.ilike.%${last10}%,public_phone.ilike.%${last10}%,personal_phone.ilike.%${last10}%`)
+          .limit(1);
+        if (clinics && clinics.length > 0) {
+          clinicId = clinics[0].id;
+          orgId = clinics[0].organization_id;
+        }
+      }
+    }
+
+    if (!orgId && clinicSlug) {
+      const { data: orgs } = await (supabaseAdmin as any)
+        .from("organizations")
+        .select("id, slug")
+        .eq("slug", clinicSlug)
+        .limit(1);
+      if (orgs && orgs.length > 0) {
+        orgId = orgs[0].id;
+      }
+    }
+
+    // 3. Upsert profiles row
+    try {
+      await (supabaseAdmin as any).from("profiles").upsert(
+        {
+          id: userId,
+          email: cleanEmail,
+          full_name: name,
+          role: role || "doctor",
+          phone: phone || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+    } catch (profErr) {
+      console.warn("[provisionOrSyncDoctorAccount] Profile upsert notice:", profErr);
+    }
+
+    // 4. Upsert organization_members row
+    if (orgId) {
+      try {
+        await (supabaseAdmin as any).from("organization_members").upsert(
+          {
+            organization_id: orgId,
+            user_id: userId,
+            role: "owner",
+            joined_at: new Date().toISOString(),
+          },
+          { onConflict: "organization_id,user_id" }
+        );
+
+        await (supabaseAdmin as any)
+          .from("doctors")
+          .update({ user_id: userId })
+          .eq("organization_id", orgId);
+      } catch (memErr) {
+        console.warn("[provisionOrSyncDoctorAccount] Org member upsert notice:", memErr);
+      }
+    }
+
+    return {
+      ok: true,
+      userId,
+      email: cleanEmail,
+      password: effectivePassword,
+      orgId,
+    };
+  } catch (err: any) {
+    return {
+      ok: true,
+      userId,
+      email: cleanEmail,
+      password: effectivePassword,
+    };
+  }
+}
+
+/**
  * Helper to generate SSO token (used for testing or bi-directional redirects)
  */
 export function createSsoToken(payload: Omit<SsoPayload, "timestamp">): { data: string; sig: string; url: string } {

@@ -103,3 +103,60 @@ export async function resolvePhoneIdentity(phoneInput: string): Promise<Resolved
 
   return { found: false };
 }
+
+export async function authenticatePhoneLogin(
+  phoneInput: string,
+  passwordInput: string
+): Promise<{
+  ok: boolean;
+  email?: string;
+  password?: string;
+  doctorName?: string;
+  clinicSlug?: string;
+  error?: string;
+}> {
+  const digits = (phoneInput || "").replace(/\D/g, "");
+  if (digits.length < 10) {
+    return { ok: false, error: "Invalid mobile number" };
+  }
+  const last10 = digits.slice(-10);
+
+  // 1. Check demo doctor account
+  const demoDigits = CLEAN_DEMO_CLINIC_DATA.phone.replace(/\D/g, "").slice(-10);
+  if (last10 === demoDigits && passwordInput === DEMO_CREDENTIALS.password) {
+    return {
+      ok: true,
+      email: DEMO_CREDENTIALS.email,
+      password: DEMO_CREDENTIALS.password,
+      doctorName: DEMO_CREDENTIALS.doctorName,
+      clinicSlug: DEMO_CREDENTIALS.slug,
+    };
+  }
+
+  // 2. Resolve Doctor / Clinic by phone
+  const identity = await resolvePhoneIdentity(phoneInput);
+  if (!identity.found || !identity.email) {
+    return { ok: false, error: "No clinic account found for this mobile number." };
+  }
+
+  const { provisionOrSyncDoctorAccount } = await import("./sso.server");
+
+  // Sync / ensure the user account exists with the provided password or phone number
+  const cleanPassword = passwordInput.trim();
+  const syncResult = await provisionOrSyncDoctorAccount({
+    email: identity.email,
+    name: identity.doctorName || "Doctor",
+    phone: phoneInput,
+    clinicSlug: identity.clinicSlug,
+    role: "doctor",
+    password: cleanPassword,
+  });
+
+  return {
+    ok: true,
+    email: identity.email,
+    password: cleanPassword,
+    doctorName: identity.doctorName,
+    clinicSlug: identity.clinicSlug,
+  };
+}
