@@ -78,20 +78,30 @@ export function DpdpConsentBox({
 }
 
 interface DpdpNoticeModalProps {
-  clinicName: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  clinicName?: string;
+  open?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
   accentColor?: string;
 }
 
 export function DpdpNoticeModal({
-  clinicName,
+  clinicName = "The Clinic",
   open,
+  isOpen,
   onOpenChange,
+  onClose,
   accentColor = "#059669",
 }: DpdpNoticeModalProps) {
+  const isEffectiveOpen = open ?? isOpen ?? false;
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (onOpenChange) onOpenChange(nextOpen);
+    if (!nextOpen && onClose) onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isEffectiveOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
         <DialogHeader className="text-left space-y-2">
           <div className="flex items-center gap-2">
@@ -173,7 +183,7 @@ export function DpdpNoticeModal({
         <div className="pt-4 flex justify-end">
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-all active:scale-95"
             style={{ backgroundColor: accentColor }}
           >

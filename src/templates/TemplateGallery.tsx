@@ -203,7 +203,7 @@ export function TemplateGallery({
                       title="Accent Color"
                     />
                     <span className="text-[9px] font-mono text-muted-foreground ml-auto">
-                      {tpl.typography.headingFont.split("/")[0]?.trim()}
+                      {tpl.typography.headingFont?.split("/")[0]?.trim() || "Modern Sans"}
                     </span>
                   </div>
                 </div>

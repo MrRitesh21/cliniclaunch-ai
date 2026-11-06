@@ -42,7 +42,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
   const baseFee = getConsultationFee(clinic);
 
   const selectedService = services.find((s) => s.id === selectedServiceId) || services[0];
-  const fee = selectedService?.price ? selectedService.price.replace(/[^0-9]/g, "") || baseFee : baseFee;
+  const fee = selectedService?.price ? String(selectedService.price).replace(/[^0-9]/g, "") || baseFee : baseFee;
 
   const availableSlots = [
     "09:30 AM", "10:30 AM", "11:30 AM", "01:00 PM",

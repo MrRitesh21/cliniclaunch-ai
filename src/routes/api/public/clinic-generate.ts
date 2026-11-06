@@ -82,6 +82,8 @@ export const Route = createFileRoute("/api/public/clinic-generate")({
 
           const row = {
             id: `api_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            rawTitle: clinicName,
+            category: body.category || body.specialty || "general",
             doctorName: resolvedDoctor,
             clinicName: resolvedClinic,
             specialty: resolvedSpecialty,

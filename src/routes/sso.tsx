@@ -75,10 +75,14 @@ function SsoAuthPage() {
 
         // 1. Authenticate Supabase session
         try {
-          await supabase.auth.signInWithPassword({
+          await supabase.auth.signOut().catch(() => {});
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
+          if (signInErr) {
+            console.warn("[SSO] Supabase signInWithPassword notice:", signInErr);
+          }
         } catch (authErr) {
           console.warn("[SSO] Supabase network auth attempt notice:", authErr);
         }
@@ -94,6 +98,7 @@ function SsoAuthPage() {
             name,
             role: verified.role || "doctor",
             clinicSlug: activeSlug,
+            organizationId: (verified as any).orgId || undefined,
             authenticatedAt: new Date().toISOString(),
           };
           localStorage.setItem("clinicx_sso_session", JSON.stringify(ssoSession));

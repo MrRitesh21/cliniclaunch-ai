@@ -24,6 +24,7 @@ export type DayHours = {
   open: string;
   close: string;
   isClosed: boolean;
+  hours?: string;
 };
 
 // Curated high-resolution healthcare stock imagery for template placeholders
@@ -396,13 +397,13 @@ export function getWorkingHours(clinic: SiteClinic): { days: DayHours[]; isOpenN
   const raw = clinic.working_hours;
 
   const defaultSchedule: DayHours[] = [
-    { day: "Monday", open: "09:00 AM", close: "07:00 PM", isClosed: false },
-    { day: "Tuesday", open: "09:00 AM", close: "07:00 PM", isClosed: false },
-    { day: "Wednesday", open: "09:00 AM", close: "07:00 PM", isClosed: false },
-    { day: "Thursday", open: "09:00 AM", close: "07:00 PM", isClosed: false },
-    { day: "Friday", open: "09:00 AM", close: "07:00 PM", isClosed: false },
-    { day: "Saturday", open: "09:00 AM", close: "04:00 PM", isClosed: false },
-    { day: "Sunday", open: "10:00 AM", close: "01:00 PM", isClosed: true },
+    { day: "Monday", open: "09:00 AM", close: "07:00 PM", isClosed: false, hours: "09:00 AM - 07:00 PM" },
+    { day: "Tuesday", open: "09:00 AM", close: "07:00 PM", isClosed: false, hours: "09:00 AM - 07:00 PM" },
+    { day: "Wednesday", open: "09:00 AM", close: "07:00 PM", isClosed: false, hours: "09:00 AM - 07:00 PM" },
+    { day: "Thursday", open: "09:00 AM", close: "07:00 PM", isClosed: false, hours: "09:00 AM - 07:00 PM" },
+    { day: "Friday", open: "09:00 AM", close: "07:00 PM", isClosed: false, hours: "09:00 AM - 07:00 PM" },
+    { day: "Saturday", open: "09:00 AM", close: "04:00 PM", isClosed: false, hours: "09:00 AM - 04:00 PM" },
+    { day: "Sunday", open: "10:00 AM", close: "01:00 PM", isClosed: true, hours: "Closed" },
   ];
 
   if (!raw || typeof raw !== "object") {
@@ -414,16 +415,26 @@ export function getWorkingHours(clinic: SiteClinic): { days: DayHours[]; isOpenN
     const days: DayHours[] = daysOrder.map((d) => {
       const entry = obj[d.toLowerCase()] || obj[d];
       if (!entry) {
-        return { day: d, open: "09:00 AM", close: "07:00 PM", isClosed: d === "Sunday" };
+        const isSun = d === "Sunday";
+        return {
+          day: d,
+          open: isSun ? "10:00 AM" : "09:00 AM",
+          close: isSun ? "01:00 PM" : "07:00 PM",
+          isClosed: isSun,
+          hours: isSun ? "Closed" : "09:00 AM - 07:00 PM",
+        };
       }
       if (entry.closed || entry.is_closed || entry === "closed") {
-        return { day: d, open: "-", close: "-", isClosed: true };
+        return { day: d, open: "-", close: "-", isClosed: true, hours: "Closed" };
       }
+      const openTime = entry.open || entry.start || "09:00 AM";
+      const closeTime = entry.close || entry.end || "07:00 PM";
       return {
         day: d,
-        open: entry.open || entry.start || "09:00 AM",
-        close: entry.close || entry.end || "07:00 PM",
+        open: openTime,
+        close: closeTime,
         isClosed: false,
+        hours: `${openTime} - ${closeTime}`,
       };
     });
 

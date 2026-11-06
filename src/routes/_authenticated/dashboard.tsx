@@ -175,12 +175,12 @@ export function useClinic() {
             const orgUuid = emailToDeterministicUuid(`org:${sso?.email || "demo-clinic"}`);
             const clinicUuid = emailToDeterministicUuid(`clinic:${sso?.email || "demo-clinic"}`);
             clinicData = {
+              ...CLEAN_DEMO_CLINIC_DATA,
               id: clinicUuid,
               organization_id: orgUuid,
               slug: slugToLoad,
               doctor_name: sso?.name || CLEAN_DEMO_CLINIC_DATA.doctor_name,
               clinic_name: sso?.name ? `${sso.name}'s Practice` : CLEAN_DEMO_CLINIC_DATA.clinic_name,
-              ...CLEAN_DEMO_CLINIC_DATA,
               is_published: true,
               published_at: new Date().toISOString(),
             } as any;

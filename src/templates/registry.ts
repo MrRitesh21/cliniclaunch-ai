@@ -1,5 +1,6 @@
 import React from "react";
 import type { SiteClinic } from "@/components/site/types";
+export type { PremiumTemplateId, TemplateDefinition, TemplateProps } from "./shared/types";
 import type { PremiumTemplateId, TemplateDefinition, TemplateProps } from "./shared/types";
 
 // Import all 10 dedicated premium templates

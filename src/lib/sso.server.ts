@@ -145,12 +145,37 @@ export async function provisionOrSyncDoctorAccount({
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 1. Ensure user exists in Supabase Auth (auth.users)
+    // 1. Ensure user exists in Supabase Auth (auth.users) & password matches
     try {
-      const { data: userList } = await (supabaseAdmin as any).auth.admin.listUsers({ perPage: 100 });
-      const existingUser = userList?.users?.find(
-        (u: any) => u.email?.toLowerCase() === cleanEmail
-      );
+      let existingUser: any = null;
+
+      // Try magiclink generation first (fastest user lookup by email in Supabase Admin)
+      try {
+        const { data: linkData } = await (supabaseAdmin as any).auth.admin.generateLink({
+          type: "magiclink",
+          email: cleanEmail,
+        });
+        if (linkData?.user) {
+          existingUser = linkData.user;
+        }
+      } catch {}
+
+      // Fallback: check userList pages if magiclink didn't return
+      if (!existingUser) {
+        let page = 1;
+        while (page <= 5) {
+          const { data: userList } = await (supabaseAdmin as any).auth.admin.listUsers({ page, perPage: 100 });
+          const found = userList?.users?.find(
+            (u: any) => u.email?.toLowerCase() === cleanEmail
+          );
+          if (found) {
+            existingUser = found;
+            break;
+          }
+          if (!userList?.users?.length || userList.users.length < 100) break;
+          page++;
+        }
+      }
 
       if (existingUser) {
         userId = existingUser.id;
@@ -177,8 +202,30 @@ export async function provisionOrSyncDoctorAccount({
             source: "waflow_sso",
           },
         });
+
         if (!createErr && created?.user) {
           userId = created.user.id;
+        } else if (createErr) {
+          // If already registered, fetch again via magiclink and update password
+          try {
+            const { data: linkData } = await (supabaseAdmin as any).auth.admin.generateLink({
+              type: "magiclink",
+              email: cleanEmail,
+            });
+            if (linkData?.user) {
+              userId = linkData.user.id;
+              await (supabaseAdmin as any).auth.admin.updateUserById(userId, {
+                password: effectivePassword,
+                email_confirm: true,
+                user_metadata: {
+                  full_name: name,
+                  role: role || "doctor",
+                  phone: phone,
+                  clinic_slug: clinicSlug,
+                },
+              });
+            }
+          } catch {}
         }
       }
     } catch (authAdminErr) {
@@ -192,8 +239,20 @@ export async function provisionOrSyncDoctorAccount({
     if (clinicSlug) {
       const { data: clinics } = await (supabaseAdmin as any)
         .from("clinics")
-        .select("id, organization_id, slug")
-        .eq("slug", clinicSlug)
+        .select("id, organization_id, slug, clinic_name")
+        .ilike("slug", clinicSlug)
+        .limit(1);
+      if (clinics && clinics.length > 0) {
+        clinicId = clinics[0].id;
+        orgId = clinics[0].organization_id;
+      }
+    }
+
+    if (!orgId) {
+      const { data: clinics } = await (supabaseAdmin as any)
+        .from("clinics")
+        .select("id, organization_id, slug, clinic_name")
+        .or(`email.ilike.${cleanEmail},public_email.ilike.${cleanEmail}`)
         .limit(1);
       if (clinics && clinics.length > 0) {
         clinicId = clinics[0].id;
@@ -206,7 +265,7 @@ export async function provisionOrSyncDoctorAccount({
       if (last10.length >= 10) {
         const { data: clinics } = await (supabaseAdmin as any)
           .from("clinics")
-          .select("id, organization_id, slug")
+          .select("id, organization_id, slug, clinic_name")
           .or(`phone.ilike.%${last10}%,public_phone.ilike.%${last10}%,personal_phone.ilike.%${last10}%`)
           .limit(1);
         if (clinics && clinics.length > 0) {
@@ -220,10 +279,35 @@ export async function provisionOrSyncDoctorAccount({
       const { data: orgs } = await (supabaseAdmin as any)
         .from("organizations")
         .select("id, slug")
-        .eq("slug", clinicSlug)
+        .ilike("slug", clinicSlug)
         .limit(1);
       if (orgs && orgs.length > 0) {
         orgId = orgs[0].id;
+      }
+    }
+
+    // If clinic exists without organization_id, create organization now
+    if (clinicId && !orgId) {
+      try {
+        const { data: createdOrg } = await (supabaseAdmin as any)
+          .from("organizations")
+          .insert({
+            name: name ? `${name}'s Practice` : "Clinic Practice",
+            slug: clinicSlug || `clinic-${Date.now()}`,
+            business_type: "clinic",
+          })
+          .select("id")
+          .maybeSingle();
+
+        if (createdOrg?.id) {
+          orgId = createdOrg.id;
+          await (supabaseAdmin as any)
+            .from("clinics")
+            .update({ organization_id: orgId })
+            .eq("id", clinicId);
+        }
+      } catch (createOrgErr) {
+        console.warn("[provisionOrSyncDoctorAccount] Org creation notice:", createOrgErr);
       }
     }
 
@@ -244,7 +328,7 @@ export async function provisionOrSyncDoctorAccount({
       console.warn("[provisionOrSyncDoctorAccount] Profile upsert notice:", profErr);
     }
 
-    // 4. Upsert organization_members row
+    // 4. Upsert organization_members row with OWNER permissions
     if (orgId) {
       try {
         await (supabaseAdmin as any).from("organization_members").upsert(
@@ -257,10 +341,40 @@ export async function provisionOrSyncDoctorAccount({
           { onConflict: "organization_id,user_id" }
         );
 
+        // Ensure all core modules exist for this organization
+        const coreMods = [
+          "appointments",
+          "consultation",
+          "prescriptions",
+          "whatsapp",
+          "website_builder",
+          "reviews",
+          "analytics",
+          "crm",
+          "qr_appointment",
+          "loyalty",
+        ];
+        await (supabaseAdmin as any)
+          .from("organization_modules")
+          .upsert(
+            coreMods.map((m) => ({ organization_id: orgId, module_id: m })),
+            { onConflict: "organization_id,module_id" }
+          )
+          .catch(() => {});
+
+        if (clinicId) {
+          await (supabaseAdmin as any)
+            .from("clinics")
+            .update({ owner_id: userId, organization_id: orgId })
+            .eq("id", clinicId)
+            .catch(() => {});
+        }
+
         await (supabaseAdmin as any)
           .from("doctors")
-          .update({ user_id: userId })
-          .eq("organization_id", orgId);
+          .update({ user_id: userId, is_active: true })
+          .eq("organization_id", orgId)
+          .catch(() => {});
       } catch (memErr) {
         console.warn("[provisionOrSyncDoctorAccount] Org member upsert notice:", memErr);
       }

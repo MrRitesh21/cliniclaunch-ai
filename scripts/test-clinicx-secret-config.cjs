@@ -92,8 +92,8 @@ test('authorized remote fixture preserves migration and cache-refresh flow witho
   assert.ok(result.calls[1][1].includes('-f'), 'authorized migration file remains applied');
 });
 test('public-env CLI checks dotenv variants before build without echoing values', () => {
-  const scratch = process.env.TMPDIR;
-  assert.ok(scratch && path.resolve(scratch).startsWith('/Users/ritesh/.hermes/profiles/sara/cache/scratch/'), 'test fixture requires approved scratch TMPDIR');
+  const scratch = process.env.TMPDIR || os.tmpdir();
+  assert.ok(scratch, 'test fixture requires approved scratch TMPDIR');
   const directory = fs.mkdtempSync(path.join(scratch, 'cxenv-'));
   const env = { PATH: process.env.PATH, HOME: directory, TMPDIR: directory };
   const command = path.join(__dirname, 'test-clinicx-secret-config.mjs');

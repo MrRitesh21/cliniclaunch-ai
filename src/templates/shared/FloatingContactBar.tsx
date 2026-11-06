@@ -5,11 +5,13 @@ import { getClinicPhone, getClinicWhatsAppUrl, getGoogleMapsUrl } from "./clinic
 
 interface FloatingContactBarProps {
   clinic: SiteClinic;
-  onBookClick: () => void;
+  onBookClick?: () => void;
+  onOpenBooking?: () => void;
   primaryColor?: string;
 }
 
-export function FloatingContactBar({ clinic, onBookClick, primaryColor = "#2563eb" }: FloatingContactBarProps) {
+export function FloatingContactBar({ clinic, onBookClick, onOpenBooking, primaryColor = "#2563eb" }: FloatingContactBarProps) {
+  const handleBook = onBookClick || onOpenBooking || (() => {});
   const phone = getClinicPhone(clinic);
   const waUrl = getClinicWhatsAppUrl(clinic);
   const mapsUrl = getGoogleMapsUrl(clinic);
@@ -59,7 +61,7 @@ export function FloatingContactBar({ clinic, onBookClick, primaryColor = "#2563e
 
         <button
           type="button"
-          onClick={onBookClick}
+          onClick={handleBook}
           className="flex-2 py-2 px-3 min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl font-semibold text-xs text-white shadow-md active:scale-95 transition-all touch-manipulation"
           style={{ backgroundColor: primaryColor }}
         >

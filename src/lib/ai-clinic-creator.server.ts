@@ -20,6 +20,7 @@ import {
   getSpecialtyClinicProfile,
   MEMORY_CLINIC_CACHE,
 } from "./crm.server";
+export { cleanDoctorName };
 import { resolveDoctorImageUrl } from "@/templates/shared/clinicDataHelpers";
 
 export interface ParsedClinicRow {

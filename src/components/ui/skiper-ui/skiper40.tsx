@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import React from "react";
 
 import { cn } from "@/lib/utils";
@@ -31,7 +30,7 @@ const Link000 = ({
   className?: string;
 }) => {
   return (
-    <Link
+    <a
       href={href}
       className={cn(
         "group relative flex items-center",
@@ -42,7 +41,7 @@ const Link000 = ({
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 };
 const Link001 = ({

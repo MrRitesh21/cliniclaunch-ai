@@ -203,6 +203,11 @@ function loadCrmServer(behavior) {
     if (name === "./env.server") return { serverEnv: { APP_URL: APP_URL } };
     if (name === "./baileys.server") return behavior.baileys;
     if (name === "./crm.shared") return SHARED;
+    if (name === "@/templates/shared/clinicDataHelpers") {
+      return {
+        resolveDoctorImageUrl: () => "https://images.unsplash.com/photo-1622253692010-333f2da6031d",
+      };
+    }
     if (name === "./redis") {
       return {
         redisCache: {

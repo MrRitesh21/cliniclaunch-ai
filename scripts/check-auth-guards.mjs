@@ -44,8 +44,9 @@ const PUBLIC_ALLOWLIST = new Set([
   "crm.functions.ts:submitPlatformLead",
   // Public SSO token verification
   "sso.functions.ts:verifySsoTokenFn",
-  // Public phone identity lookup for login
+  // Public phone identity lookup & authentication for login
   "phone-auth.functions.ts:resolvePhoneIdentityFn",
+  "phone-auth.functions.ts:authenticatePhoneLoginFn",
   // Public Creator Referral tracking & resolution
   "referral.functions.ts:getPublicReferralInfo",
   "referral.functions.ts:trackReferralClick",

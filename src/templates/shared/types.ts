@@ -46,10 +46,13 @@ export type TemplatePalette = {
 };
 
 export type TemplateTypography = {
-  headingClass: string;
-  bodyClass: string;
+  headingClass?: string;
+  bodyClass?: string;
+  headingFont?: string;
+  bodyFont?: string;
   accentClass?: string;
   fontFamilyStyle?: React.CSSProperties;
+  styleDescription?: string;
 };
 
 export type TemplateDefinition = {
@@ -65,6 +68,7 @@ export type TemplateDefinition = {
     | "orthopedics"
     | "mental_health"
     | "ayurvedic"
+    | "cardiology"
     | "all";
   categoryLabel: string;
   recommendedSpecialties: string[];

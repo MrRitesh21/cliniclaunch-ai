@@ -308,18 +308,19 @@ export async function ensureDefaultTemplates(organizationId: string): Promise<vo
   const missing = DEFAULT_TEMPLATES.filter((t) => !existing.has(t.key));
   if (missing.length === 0) return;
 
-  await supabase
-    .from("whatsapp_templates")
-    .insert(
-      missing.map((t) => ({
-        organization_id: organizationId,
-        template_key: t.key,
-        name: t.name,
-        body: t.body,
-        is_active: true,
-      })),
-    )
-    .catch(() => {});
+  try {
+    await supabase
+      .from("whatsapp_templates")
+      .insert(
+        missing.map((t) => ({
+          organization_id: organizationId,
+          template_key: t.key,
+          name: t.name,
+          body: t.body,
+          is_active: true,
+        })),
+      );
+  } catch {}
 }
 
 export type SendWaOptions = {
@@ -372,19 +373,20 @@ export async function sendWhatsApp(
   const link = waLink(opts.patientPhone, message);
 
   if (isValidUuid(opts.organizationId)) {
-    await supabase
-      .from("whatsapp_logs")
-      .insert({
-        organization_id: opts.organizationId,
-        appointment_id: isValidUuid(opts.appointmentId) ? opts.appointmentId : null,
-        patient_name: opts.patientName ?? null,
-        patient_phone: opts.patientPhone,
-        template_key: opts.templateKey,
-        message,
-        wa_link: link,
-        status: "sent",
-      })
-      .catch(() => {});
+    try {
+      await supabase
+        .from("whatsapp_logs")
+        .insert({
+          organization_id: opts.organizationId,
+          appointment_id: isValidUuid(opts.appointmentId) ? opts.appointmentId : null,
+          patient_name: opts.patientName ?? null,
+          patient_phone: opts.patientPhone,
+          template_key: opts.templateKey,
+          message,
+          wa_link: link,
+          status: "sent",
+        });
+    } catch {}
   }
 
   if (opts.openWindow && typeof window !== "undefined") {

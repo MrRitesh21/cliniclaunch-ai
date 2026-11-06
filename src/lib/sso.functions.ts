@@ -36,6 +36,7 @@ export const verifySsoTokenFn = createServerFn({ method: "POST" })
       role: role || "doctor",
       password,
       clinicSlug: clinicSlug || undefined,
+      orgId: provisioned.orgId || undefined,
       target: target || "/dashboard",
     } as const;
   });

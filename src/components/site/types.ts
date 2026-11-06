@@ -49,6 +49,10 @@ export type SiteClinic = {
     created_at: string;
   }>;
   medical_registration_no?: string | null;
+  hero_image_url?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
 };
 
 export function hasModule(

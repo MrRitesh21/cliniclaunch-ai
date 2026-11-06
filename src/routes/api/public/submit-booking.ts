@@ -272,6 +272,40 @@ export const Route = createFileRoute("/api/public/submit-booking")({
               if (existingAppt) {
                 appointmentId = existingAppt.id;
               } else {
+                // Mutual Exclusion & Slot Collision Prevention
+                const slotStart = new Date(scheduledAt.getTime() - 14 * 60 * 1000).toISOString();
+                const slotEnd = new Date(scheduledAt.getTime() + 14 * 60 * 1000).toISOString();
+                const { data: slotTaken } = await sb
+                  .from("appointments")
+                  .select("id")
+                  .eq("clinic_id", clinicId)
+                  .gte("scheduled_at", slotStart)
+                  .lte("scheduled_at", slotEnd)
+                  .neq("status", "cancelled")
+                  .maybeSingle();
+
+                if (slotTaken) {
+                  // Slot occupied: auto-allocate next available 15-min OPD window (up to 1 hour ahead)
+                  let candidate = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
+                  for (let i = 0; i < 4; i++) {
+                    const cStart = new Date(candidate.getTime() - 14 * 60 * 1000).toISOString();
+                    const cEnd = new Date(candidate.getTime() + 14 * 60 * 1000).toISOString();
+                    const { data: cTaken } = await sb
+                      .from("appointments")
+                      .select("id")
+                      .eq("clinic_id", clinicId)
+                      .gte("scheduled_at", cStart)
+                      .lte("scheduled_at", cEnd)
+                      .neq("status", "cancelled")
+                      .maybeSingle();
+                    if (!cTaken) {
+                      scheduledAt = candidate;
+                      break;
+                    }
+                    candidate = new Date(candidate.getTime() + 15 * 60 * 1000);
+                  }
+                }
+
                 // 8. Create Appointment
                 const { data: appt, error: apptErr } = await sb
                   .from("appointments")

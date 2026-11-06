@@ -116,11 +116,13 @@ export function FadeUp({
  */
 export function TextReveal({
   text,
+  children,
   className = "",
   delay = 0,
   as: Component = "h2",
 }: {
-  text: string;
+  text?: string;
+  children?: React.ReactNode;
   className?: string;
   delay?: number;
   as?: any;
@@ -128,7 +130,8 @@ export function TextReveal({
   const [ref, inView] = useInView();
   const containerRef = useRef<HTMLElement | null>(null);
   const reduced = useReducedMotion();
-  const words = text.split(" ");
+  const effectiveText = text ?? (typeof children === "string" ? children : "");
+  const words = effectiveText ? effectiveText.split(" ") : [];
 
   useEffect(() => {
     if (!inView || !containerRef.current || reduced) return;

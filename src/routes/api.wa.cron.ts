@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/wa/cron")({
 
         const { data: pendingLogs } = await sb
           .from("whatsapp_logs")
-          .select("id, appointment_id, template_key, patient_phone, patient_name, scheduled_for")
+          .select("id, appointment_id, template_key, patient_phone, patient_name, scheduled_for, metadata")
           .eq("status", "scheduled")
           .lte("scheduled_for", new Date(now).toISOString())
           .limit(100);
@@ -48,6 +48,7 @@ export const Route = createFileRoute("/api/wa/cron")({
           template_key: string;
           patient_phone: string;
           patient_name: string | null;
+          metadata?: Record<string, any>;
         }>;
         const appointmentIds = [
           ...new Set(logs.map((l) => l.appointment_id).filter((id): id is string => !!id)),
@@ -107,16 +108,35 @@ export const Route = createFileRoute("/api/wa/cron")({
               consult_link: a.appointment_type === "online" ? `${origin}/consult/${a.id}` : "",
             },
           });
-          await sb
-            .from("whatsapp_logs")
-            .update({
-              status: res.ok ? "sent" : "failed",
-              error: res.error ?? null,
-              sent_at: res.ok ? new Date().toISOString() : null,
-            })
-            .eq("id", log.id);
-          if (res.ok) pendingSummary.sent++;
-          else pendingSummary.failed++;
+          const meta = (log.metadata && typeof log.metadata === "object") ? log.metadata : {};
+          const attempts = Number(meta.attempts || 0) + 1;
+
+          if (!res.ok && attempts < 3) {
+            // Exponential backoff: 2^attempts * 5 minutes (max 3 retries)
+            const backoffMs = Math.pow(2, attempts) * 5 * 60 * 1000;
+            await sb
+              .from("whatsapp_logs")
+              .update({
+                status: "scheduled",
+                error: res.error ?? "dispatch failed",
+                scheduled_for: new Date(now + backoffMs).toISOString(),
+                metadata: { ...meta, attempts, last_failed_at: new Date().toISOString() },
+              })
+              .eq("id", log.id);
+            pendingSummary.failed++;
+          } else {
+            await sb
+              .from("whatsapp_logs")
+              .update({
+                status: res.ok ? "sent" : "failed",
+                error: res.error ?? null,
+                sent_at: res.ok ? new Date().toISOString() : null,
+                metadata: { ...meta, attempts },
+              })
+              .eq("id", log.id);
+            if (res.ok) pendingSummary.sent++;
+            else pendingSummary.failed++;
+          }
         }
 
         const ranges = [

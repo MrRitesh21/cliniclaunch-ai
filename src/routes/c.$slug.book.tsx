@@ -1323,7 +1323,7 @@ function BookPage() {
                     <span>Fee</span>
                     <span>
                       {selectedService?.price
-                        ? selectedService.price.startsWith("₹") ? selectedService.price : `₹${selectedService.price}`
+                        ? String(selectedService.price).startsWith("₹") ? selectedService.price : `₹${selectedService.price}`
                         : `₹${displayDoctor?.consultation_fee || clinic.consultation_fee || 500}`}
                     </span>
                   </div>

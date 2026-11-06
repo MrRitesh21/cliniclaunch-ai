@@ -371,7 +371,7 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
     cacheUserId = userId;
     let persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
     if (persisted?.org && !isValidUuid(persisted.org.id)) {
-      persisted = undefined;
+      persisted = null;
     }
     cache = persisted?.org ? ({
       ...EMPTY,
@@ -401,7 +401,7 @@ function loadShared(userId: string, force = false): Promise<Snapshot> {
     }
     let persisted = readCache<Partial<Snapshot>>(`org_snapshot:${userId}`, 7 * 24 * 60 * 60 * 1000);
     if (persisted?.org && !isValidUuid(persisted.org.id)) {
-      persisted = undefined;
+      persisted = null;
     }
     return persisted?.org ? ({ ...EMPTY, ...persisted, authorityUserId: userId } as Snapshot) : unverified(null, null, false);
   }).then(s => {
@@ -417,7 +417,7 @@ export function useOrganization(): OrgContext {
     if (cacheUserId === user.id && cache) return cache;
     let persisted = readCache<Partial<Snapshot>>(`org_snapshot:${user.id}`, 7 * 24 * 60 * 60 * 1000);
     if (persisted?.org && !isValidUuid(persisted.org.id)) {
-      persisted = undefined;
+      persisted = null;
     }
     if (persisted?.org) {
       return {

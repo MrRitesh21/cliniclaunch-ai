@@ -1653,22 +1653,24 @@ export const ensureDoctorMembership = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!existing) {
-      await sb
-        .from("organization_members")
-        .insert({
-          organization_id: clinic.organization_id,
-          user_id: data.user_id,
-          role: "owner",
-        })
-        .catch(() => {});
+      try {
+        await sb
+          .from("organization_members")
+          .insert({
+            organization_id: clinic.organization_id,
+            user_id: data.user_id,
+            role: "owner",
+          });
+      } catch {}
     }
 
-    await sb
-      .from("doctors")
-      .update({ user_id: data.user_id, is_active: true })
-      .eq("clinic_id", clinic.id)
-      .is("user_id", null)
-      .catch(() => {});
+    try {
+      await sb
+        .from("doctors")
+        .update({ user_id: data.user_id, is_active: true })
+        .eq("clinic_id", clinic.id)
+        .is("user_id", null);
+    } catch {}
 
     return { ok: true, organization_id: clinic.organization_id };
   });
