@@ -2,13 +2,13 @@
 
 **NOT READY FOR PRODUCTION.** This is an evidence-backed stop-ship checklist, not permission to deploy. Owner pricing remains Starter ₹999/month, Growth ₹2,999/month (primary/popular), Professional ₹8,599/month, Enterprise ₹19,999/month. Preferred annual ₹9,990 / ₹29,990 / ₹85,990 / ₹1,99,990; actually deployed annual prices/IDs are unknown and must be preserved/reconciled read-only before any authorized change. Trial is 30 UTC calendar days, then seven read/export grace days, then commercial suspension without silent healthcare-data deletion.
 
-Evidence: [testing report](clinicx-testing.md), [all49 DoD acceptance rows](clinicx-acceptance-matrix.md), baseline JSON `/Users/ritesh/.hermes/profiles/sara/cache/scratch/cxqa-baseline-final-20261007/report.json`. A local pass is not a production checkmark. No production environment, remote database/provider, real messages or deployment were used.
+Evidence: [testing report](clinicx-testing.md), [all 49 DoD acceptance rows](clinicx-acceptance-matrix.md), baseline JSON `/Users/ritesh/.hermes/profiles/sara/cache/scratch/cxqa-baseline-final-20261007/report.json`. A local pass is not a production checkmark. No production environment, remote database/provider, real messages or deployment were used.
 
-## Owner §56 — all22 explicit release checks
+## Owner §56 — all 22 explicit release checks
 
 | Exact owner check | State | Evidence / condition before release |
 |---|---|---|
-| production build passes | LOCAL PASS / RELEASE PENDING | Network-denied frozen production-mode build exit0. Full tsc fails; final integrated Node24 hosting/runtime/build parity required. |
+| production build passes | LOCAL PASS / RELEASE PENDING | Network-denied frozen production-mode build exit 0. Full tsc fails; final integrated Node24 hosting/runtime/build parity required. |
 | migrations pass | PENDING | Selected fragments/enum/13*/14* files pass only. Docker daemon stopped; full chronological replay and sanitized deployed upgrade/15*/16*/17* acceptance not performed. |
 | database constraints pass | PARTIAL | Real local FK/unique/status/quota and enum assertions pass; legacy inventory and complete resulting schema/constraint validation pending. |
 | RLS verified | PARTIAL | Selected PG17 authenticated/service_role RLS tests pass. Full resulting policies/grants/Auth/PostgREST/Storage and production read-only audit pending. |
@@ -40,24 +40,24 @@ Full frozen TypeScript still exits 2: three TS2769 billing catalog calls at `src
 ## Historical engineering stop-ship repairs (baseline attribution)
 
 1. Fix the six baseline `unknown` route-error TypeScript sites listed in testing evidence. Do not downgrade types or silently bypass tsc because Vite transpilation passes. Recheck final concurrent payment/admin/engagement DTO and route-generation changes.
-2. Repair `scripts/clinicx-security-db.py --with-subscriptions` fixture prerequisites with the actual historical `organization_module_overrides` migration/helper schema before applying `20261007130200`. It currently aborts at line81, so combined security acceptance is not zero failures; it has not executed assertions.
-3. Integrate/review the payment recurring coordination, factual admin analytics and period/activation/notification additions. Audit their actual tests/imports before including them in `clinicx-release-verify.py`. SHA-pinned reviewed runners intentionally prevent automatic execution of changed tests. Baseline's migration prefix globs do not include new15*/16*/17* acceptance.
+2. Repair `scripts/clinicx-security-db.py --with-subscriptions` fixture prerequisites with the actual historical `organization_module_overrides` migration/helper schema before applying `20261007130200`. It currently aborts at line 81, so combined security acceptance is not zero failures; it has not executed assertions.
+3. Integrate/review the payment recurring coordination, factual admin analytics and period/activation/notification additions. Audit their actual tests/imports before including them in `clinicx-release-verify.py`. SHA-pinned reviewed runners intentionally prevent automatic execution of changed tests. Baseline's migration prefix globs do not include new 15*/16*/17* acceptance.
 4. Independently rerun aggregate on the completed tree and preserve new absolute artifacts. Regression command from repository:
 
 ```sh
 python3 scripts/clinicx-release-verify.py --label integrated --python /usr/local/bin/python3
 ```
 
-Exit1 is failed subprocess(es); exit2 means all local commands passed but mandatory external gates remain pending. A pending-gate exit cannot be overridden by a local all-pass count. No commit/push/deploy is authorized here.
+Exit 1 indicates failed subprocesses; exit 2 means all local commands passed but mandatory external gates remain pending. A pending-gate exit cannot be overridden by a local all-pass count. No commit/push/deploy is authorized here.
 
 ## Isolated migration/upgrade rehearsal — still required
 
-Docker CLI and Supabase2.109.1 are installed; the initial capability probe could not connect to `unix:///Users/ritesh/.colima/default/docker.sock`, while the isolated aggregate with scratch HOME could not connect to `unix:///var/run/docker.sock`. This QA run did NOT start a daemon. An operator must explicitly provision a disposable, isolated local Supabase environment, with unique ports, scratch data, non-production credentials, isolated Auth/Storage/PostgREST, test fixtures and no live messaging/provider network. Do not invoke `supabase db reset`, `db push --linked` or linked/remote commands in the existing project as a substitute.
+Docker CLI and Supabase 2.109.1 are installed; the initial capability probe could not connect to `unix:///Users/ritesh/.colima/default/docker.sock`, while the isolated aggregate with scratch HOME could not connect to `unix:///var/run/docker.sock`. This QA run did not start a daemon. An operator must explicitly provision a disposable, isolated local Supabase environment, with unique ports, scratch data, non-production credentials, isolated Auth/Storage/PostgREST, test fixtures and no live messaging/provider network. Do not invoke `supabase db reset`, `db push --linked` or linked/remote commands in the existing project as a substitute.
 
 Required evidence:
 
 - Read-only inventory of sanctioned deployed migration ledger, public/auth/storage schemas, policies/grants, extensions, catalog/prices/provider IDs, subscription provenance/periods, duplicate payments/invoices, ambiguous amount units and healthcare row/ID relationships. No secrets/PHI in the report; record counts and anonymized identifiers/hashes as appropriate.
-- Chronological clean replay of the **entire** migration history inside that disposable stack, recording each filename/hash/transaction/result. Historical destructive DROP/reset/global unlock migrations must be identified and reviewed; they are not upgrade instructions. If the authoritative history cannot replay, record the first exact migration/error and repair by an approved forward strategy, not deleting/reseeding real records.
+- Chronological clean replay of the full migration history inside that disposable stack, recording each filename/hash/transaction/result. Historical destructive DROP/reset/global unlock migrations must be identified and reviewed; they are not upgrade instructions. If the authoritative history cannot replay, record the first exact migration/error and repair by an approved forward strategy, not deleting/reseeding real records.
 - A separate sanitized deployed-backup upgrade rehearsal using only unapplied approved forward migrations. Prove clinic/patient/appointment/prescription/invoice/payment IDs and rows, authoritative paid/trial periods/provider links and legitimate overrides survive. Confirm enum extensions commit before consumption and least-privilege constraints/policies after upgrade. New tenant constraints and uniqueness must inventory legacy conflicts before validation.
 - Real JWT/session/PostgREST/Storage permission tests for owner/admin/doctor/staff/anon, multi-clinic membership selection, A→B record denial, children/links/definer triggers and service-worker paths. SQL `SET ROLE` fixtures cannot substitute for this.
 - Re-run A–E and every plan/monthly/yearly/payment/security/regression case. Capture sanitized HTTP/status/browser traces and test-mode provider evidence, not real patient records or secret headers.
@@ -65,7 +65,7 @@ Required evidence:
 ## Payment/provider acceptance — not exercised live
 
 - Inventory existing Razorpay mode and every four-plan/two-cycle configured provider ID/amount/currency/interval without creating duplicates. Reconcile required owner monthly pricing and valid existing annual configuration. Preserve legitimate reviewed annual IDs, historical unverified amount rows and payment links; do not bulk rescale legacy amounts.
-- Use owner-authorized provider **test mode**, distinct keys/secrets and dedicated disposable clinics. Exercise captured subscription payment, mandate-only authorization, wrong signature, wrong clinic/attempt, wrong amount/currency/plan/invoice linkage, timeout/provider outage, failed retry, recurring renewal, duplicate/out-of-order webhooks, missing event ID handling and durable reconciliation recovery.
+- Use owner-authorized provider test mode, distinct keys/secrets and dedicated disposable clinics. Exercise captured subscription payment, mandate-only authorization, wrong signature, wrong clinic/attempt, wrong amount/currency/plan/invoice linkage, timeout/provider outage, failed retry, recurring renewal, duplicate/out-of-order webhooks, missing event ID handling and durable reconciliation recovery.
 - Prove upgrade/downgrade/cycle switch/cancel/resume prevents overlapping active mandates, explains effective date/proration, enforces target capacity without deletion, preserves paid-through access and does not locally activate on checkout callback. Validate actual provider readback, scheduled changes/reversal/new mandate policy and recover uncertain failures.
 - Test hosted raw webhook delivery to the configured endpoint; preserve signed/idempotent processing, provider-event uniqueness and one financial row/invoice per canonical capture. Observe job retries and alert stuck work.
 - Verify current plan/status/cycle/trial remaining/next renewal/renewal amount from authoritative contract, complete accessible history/downloads, paid failures/recovery actions and exact readback after every state change.
@@ -73,12 +73,12 @@ Required evidence:
 ## Real clinical/engagement acceptance
 
 - Execute doctor scenario A without manual database intervention: signup/setup/profile/doctor/staff/patient/appointment/visit/prescription/invoice/dashboard/real usage. Confirm actual existing public booking/queue/reports/finance/inventory/lab where supported remain functional.
-- Execute B through trial equality, seven-day grace, post-grace billing/account/export/support, verified payment and restored access; C failed-payment recovery; D multi-doctor permissions/analytics/quotas; E real HTTP/browser cross-tenant403.
-- Confirm day0/1–6/7/15/21/25/28/30 copy/CTA and actual period-scoped metrics. No invented patients/revenue/days-active/staff activity/time savings. Late jobs must not present today's all-time counts as historical first-week snapshots.
+- Execute B through trial equality, seven-day grace, post-grace billing/account/export/support, verified payment and restored access; C failed-payment recovery; D multi-doctor permissions/analytics/quotas; E real HTTP/browser cross-tenant 403.
+- Confirm day 0, 1–6, 7, 15, 21, 25, 28, and 30 copy/CTA and actual period-scoped metrics. No invented patients/revenue/days-active/staff activity/time savings. Late jobs must not present today's all-time counts as historical first-week snapshots.
 - Verify admin totals, trials ending/expired, paid customers/MRR/ARR/churn/failed payments/distribution/conversion/ARPC, cohorts excluding test/internal/fraud clinics, real clinic-owner-detail/usage/payments/events, bounded/paginated results and no provider reconciliation side effects on GET.
 - Install an authenticated scheduler only after verifying route/cron token/role bounds. Exercise trial/grace expiry, reminder dedupe, recovery/reconciliation/renewal and consent-aware notification delivery. Repeating work may not double-charge/invoice/event/extend trial. Configure retry/backoff/lease fencing/idempotency and inspect acknowledgements before marking delivery.
 - Email delivery requires configured existing provider and user/contact permissions. WhatsApp is opt-in only with the existing consent/bridge/provider configuration; absent consent/config must not be treated as delivered or bypassed. No outbound delivery is authorized by this checklist.
-- Browser-verify major empty states and contextual CTAs, feature-price/benefit gating without clinical-work disruption, actual Unlimited displays, desktop/tablet/mobile search/appointment/profile/prescription/billing, layout/accessibility and error handling. Component fixtures at390px do not certify complete mobile UX.
+- Browser-verify major empty states and contextual CTAs, feature-price/benefit gating without clinical-work disruption, actual Unlimited displays, desktop/tablet/mobile search/appointment/profile/prescription/billing, layout/accessibility and error handling. Component fixtures at 390px do not certify complete mobile UX.
 - Record realistic query plans/index coverage, pagination/data loading, no N+1, critical-flow timings and agreed performance budgets before any production load test.
 
 ## Backup/recovery/retention runbook requirements (unverified)
@@ -118,6 +118,6 @@ Local QA-only controls (`PG_BIN`, `CLINICX_TEST_TMPDIR`, `CLINICX_FRONTEND_SCRAT
 
 ## Release authorization and final status
 
-Each PENDING/PARTIAL/FAIL must have exact target, executed evidence and independent review before it can change. Parent must read back the completed integrated tree, confirm every49 Definition-of-Done row and every22 release gate, preserve final test counts/paths and obtain explicit production rollout approval. A complete final report uses the owner's prescribed sections and actual configured annual prices; unknown live values must stay unknown.
+Each PENDING/PARTIAL/FAIL requires an exact target, executed evidence, and independent review before status can change. Rollout authorization requires reading back the integrated tree, verifying all 49 Definition-of-Done rows and 22 release gates, and archiving test artifacts with exact paths and counts.
 
 Current status: **NOT READY FOR PRODUCTION**.
