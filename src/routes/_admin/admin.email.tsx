@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Mail, Plus, Send } from "lucide-react";
 
@@ -98,23 +105,24 @@ function EmailCampaignsPage() {
             </div>
             <div className="space-y-1">
               <Label>Segment Recipients</Label>
-              <select
-                className="w-full h-9 border rounded-md px-2 text-sm bg-background"
-                value={targetSegment}
-                onChange={(e) => setTargetSegment(e.target.value)}
-              >
-                <option value="all">All Doctors</option>
-                <option value="free">Free Tier Only</option>
-                <option value="pro">Pro Tier Only</option>
-                <option value="trial">Trial Accounts Only</option>
-                <option value="expired">Expired Trial / Cancelled</option>
-              </select>
+              <Select value={targetSegment} onValueChange={setTargetSegment}>
+                <SelectTrigger className="w-full h-9 text-sm bg-background">
+                  <SelectValue placeholder="Select segment..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Doctors</SelectItem>
+                  <SelectItem value="free">Free Tier Only</SelectItem>
+                  <SelectItem value="pro">Pro Tier Only</SelectItem>
+                  <SelectItem value="trial">Trial Accounts Only</SelectItem>
+                  <SelectItem value="expired">Expired Trial / Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="campBody">HTML Body Content</Label>
               <textarea
                 id="campBody"
-                className="w-full text-sm border rounded-md p-2 h-40 font-mono text-xs"
+                className="w-full text-sm border border-input rounded-md p-2 h-40 font-mono text-xs bg-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 placeholder="<h1>Hello Doctor!</h1><p>We launched advanced EHR today...</p>"
                 value={bodyHtml}
                 onChange={(e) => setBodyHtml(e.target.value)}

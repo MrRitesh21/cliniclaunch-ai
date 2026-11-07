@@ -149,34 +149,29 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground flex font-sans antialiased">
-      {/* Sidebar — deep ocean rail */}
+      {/* Sidebar — Enterprise Slate Command Rail */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 shrink-0 flex flex-col transform transition-transform duration-300 lg:transform-none ${
+        className={`fixed inset-y-0 left-0 z-40 w-72 shrink-0 flex flex-col bg-slate-950 text-slate-200 border-r border-slate-800/80 transform transition-transform duration-300 lg:transform-none ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
-        style={{
-          background:
-            "linear-gradient(180deg, oklch(0.19 0.05 250) 0%, oklch(0.15 0.045 250) 100%)",
-          color: "oklch(0.92 0.015 220)",
-        }}
       >
-        <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800/80">
           <Link to="/admin/dashboard" className="flex items-center gap-2.5 group">
-            <div className="size-8 rounded-lg bg-slate-50 dark:bg-slate-900 p-1 flex items-center justify-center border border-white/10 overflow-hidden group-hover:scale-105 transition-transform">
+            <div className="size-8 rounded-lg bg-slate-900 p-1 flex items-center justify-center border border-slate-800 overflow-hidden group-hover:scale-105 transition-transform">
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
               <span className="font-display font-semibold text-white text-[15px] tracking-tight">
                 ClinicX
               </span>
-              <span className="text-[10px] uppercase tracking-[0.18em] text-white/50 mt-0.5">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400 mt-0.5 font-medium">
                 Admin Console
               </span>
             </div>
           </Link>
           <button
             onClick={() => setOpen(false)}
-            className="lg:hidden text-white/60 hover:text-white transition-colors"
+            className="lg:hidden text-slate-400 hover:text-white transition-colors p-1"
             aria-label="Close menu"
           >
             <X className="size-5" />
@@ -186,7 +181,7 @@ function AdminLayout() {
         <nav className="flex-1 overflow-y-auto py-5 px-3 space-y-6">
           {NAV.map((section) => (
             <div key={section.title}>
-              <div className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.16em] text-white/40 font-semibold">
+              <div className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.16em] text-slate-400 font-semibold">
                 {section.title}
               </div>
               <div className="space-y-0.5">
@@ -199,15 +194,17 @@ function AdminLayout() {
                       to={item.to}
                       className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative ${
                         active
-                          ? "bg-white/[0.08] text-white shadow-sm"
-                          : "text-white/60 hover:bg-white/[0.04] hover:text-white"
+                          ? "bg-slate-800/90 text-white shadow-xs font-semibold"
+                          : "text-slate-400 hover:bg-slate-900 hover:text-slate-100"
                       }`}
                     >
                       {active && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-gradient-to-b from-teal-300 to-cyan-500" />
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-primary" />
                       )}
                       <Icon
-                        className={`size-[15px] shrink-0 ${active ? "text-teal-300" : "text-white/50 group-hover:text-white/80"}`}
+                        className={`size-[15px] shrink-0 transition-colors ${
+                          active ? "text-primary" : "text-slate-500 group-hover:text-slate-300"
+                        }`}
                       />
                       <span className="truncate">{item.label}</span>
                     </Link>
@@ -218,20 +215,20 @@ function AdminLayout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-slate-800/80">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center text-foreground font-semibold text-sm shrink-0">
+            <div className="size-9 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
               {(adminUser?.name || adminUser?.email || "A").charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-medium text-white truncate">
                 {adminUser?.name || "Admin"}
               </div>
-              <div className="text-[11px] text-white/50 truncate">{adminUser?.email}</div>
+              <div className="text-[11px] text-slate-400 truncate">{adminUser?.email}</div>
             </div>
             <button
               onClick={signOut}
-              className="text-white/50 hover:text-white transition-colors p-1.5 rounded-md hover:bg-white/10"
+              className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-md hover:bg-slate-800"
               title="Sign out"
               aria-label="Sign out"
             >

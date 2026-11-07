@@ -19,6 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   User,
@@ -392,8 +399,7 @@ function DoctorDetailPage() {
 
         {activeTab === "subscription" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <p className="text-sm text-muted-foreground" role="note">Legacy grants, trial extensions, raw cancellation/reactivation and refunds are disabled. Ask the clinic owner to use /dashboard/billing. Medical data is retained; deletion requires approved retention, export and legal-hold review.</p>
-      {/* Subscription Manager */}
+            {/* Subscription Manager */}
             <Card className="p-4 sm:p-6 space-y-4">
               <h3 className="text-lg font-semibold text-foreground font-display">
                 Manage Subscription
@@ -418,17 +424,16 @@ function DoctorDetailPage() {
               <div className="border-t pt-4 space-y-4">
                 <div className="space-y-1.5">
                   <Label>Modify Plan Level</Label>
-                  <select
-                    className="w-full h-9 border rounded-md px-2 text-sm bg-background"
-                    value={selectedPlan}
-                    onChange={(e) => setSelectedPlan(e.target.value)}
-                  >
-                    <option value="">Select new plan...</option>
-                    {/* Standard seeds IDs */}
-                    <option value="pro_plan">Pro Plan</option>
-                    <option value="clinic_plan">Clinic Plan</option>
-                    <option value="free_plan">Free Plan</option>
-                  </select>
+                  <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                    <SelectTrigger className="w-full h-9 text-sm bg-background">
+                      <SelectValue placeholder="Select new plan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pro_plan">Pro Plan</SelectItem>
+                      <SelectItem value="clinic_plan">Clinic Plan</SelectItem>
+                      <SelectItem value="free_plan">Free Plan</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     size="sm"
                     className="mt-2"

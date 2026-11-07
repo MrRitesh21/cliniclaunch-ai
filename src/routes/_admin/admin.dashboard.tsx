@@ -283,13 +283,7 @@ function AdminDashboard() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1700px] mx-auto animate-in fade-in-50 duration-200">
       {/* ─── Hero Executive Header ─── */}
       <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 shadow-xl">
-        <div
-          className="absolute inset-0 opacity-40 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(700px circle at 100% 0%, oklch(0.65 0.22 260 / 0.35), transparent 70%), radial-gradient(500px circle at 0% 100%, oklch(0.6 0.18 190 / 0.2), transparent 70%)",
-          }}
-        />
+        <div className="absolute inset-0 opacity-25 pointer-events-none bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500 via-transparent to-transparent" />
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -1338,11 +1332,14 @@ function SparkBars({ data }: { data: Array<{ date: string; count: number }> }) {
   return (
     <div className="h-40 flex items-end gap-1.5 pt-4">
       {data.map((d) => (
-        <div key={d.date} className="flex-1 group relative flex flex-col justify-end">
+        <div key={d.date} className="flex-1 group relative flex flex-col justify-end h-full">
+          {/* Tooltip on hover */}
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-mono whitespace-nowrap shadow-md z-20 pointer-events-none border border-slate-700">
+            {d.count} {d.count === 1 ? "signup" : "signups"} ({d.date.slice(5)})
+          </div>
           <div
-            className="bg-gradient-to-t from-primary to-primary/60 hover:from-primary hover:to-primary/90 rounded-t-sm transition-all cursor-pointer"
+            className="w-full bg-gradient-to-t from-primary/80 to-primary group-hover:from-primary group-hover:to-cyan-400 rounded-t-sm transition-all duration-150 cursor-pointer"
             style={{ height: `${Math.max(6, (d.count / max) * 100)}%` }}
-            title={`${d.date}: ${d.count} signups`}
           />
         </div>
       ))}

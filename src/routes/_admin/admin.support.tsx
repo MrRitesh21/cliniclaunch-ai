@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, LifeBuoy, Send, MessageSquare } from "lucide-react";
 
@@ -144,39 +151,47 @@ function SupportPage() {
             <>
               {/* Ticket Details Header */}
               <div className="border-b pb-4 space-y-2">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <h3 className="font-bold text-lg text-foreground">{detail?.ticket.subject}</h3>
-                  <div className="flex gap-2">
-                    <select
-                      className="border rounded px-1.5 py-0.5 text-xs bg-background"
+                  <div className="flex items-center gap-2">
+                    <Select
                       value={detail?.ticket.status}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         updateStatusMut.mutate({
-                          status: e.target.value,
+                          status: val,
                           priority: detail?.ticket.priority,
                         })
                       }
                     >
-                      <option value="open">Open</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                    <select
-                      className="border rounded px-1.5 py-0.5 text-xs bg-background"
+                      <SelectTrigger className="h-8 w-28 text-xs bg-background">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
                       value={detail?.ticket.priority}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         updateStatusMut.mutate({
                           status: detail?.ticket.status,
-                          priority: e.target.value,
+                          priority: val,
                         })
                       }
                     >
-                      <option value="low">Low</option>
-                      <option value="normal">Normal</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
+                      <SelectTrigger className="h-8 w-28 text-xs bg-background">
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -191,11 +206,11 @@ function SupportPage() {
               {/* Message Thread */}
               <div className="flex-1 overflow-y-auto my-4 space-y-4 pr-2">
                 {/* Doctor Initial Ticket Body */}
-                <div className="flex flex-col items-start bg-indigo-50/50 border border-indigo-100 p-3 rounded-lg max-w-[85%]">
-                  <span className="text-[10px] text-indigo-700 font-semibold mb-1">
+                <div className="flex flex-col items-start bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 p-3.5 rounded-lg max-w-[85%]">
+                  <span className="text-[10px] text-indigo-700 dark:text-indigo-300 font-semibold mb-1">
                     Doctor (Initial Ticket)
                   </span>
-                  <p className="text-sm text-indigo-950 whitespace-pre-wrap">
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                     {detail?.ticket.body}
                   </p>
                 </div>

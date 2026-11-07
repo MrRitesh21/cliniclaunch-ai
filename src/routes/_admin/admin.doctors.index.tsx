@@ -46,13 +46,19 @@ function planVariant(plan: string) {
 }
 
 function statusColor(s: string) {
-  if (s === "active") return "bg-emerald-100 text-emerald-700";
-  if (s === "trialing") return "bg-amber-100 text-amber-700";
-  if (s === "past_due") return "bg-orange-100 text-orange-700";
-  if (s === "canceled" || s === "cancelled" || s === "expired") return "bg-rose-100 text-rose-700";
-  if (s === "suspended") return "bg-red-100 text-red-700 font-semibold";
-  if (s === "unpaid") return "bg-slate-100 text-slate-700";
-  return "bg-muted text-muted-foreground";
+  if (s === "active")
+    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/40";
+  if (s === "trialing")
+    return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-300 dark:border-amber-800/40";
+  if (s === "past_due")
+    return "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-400 border border-orange-300 dark:border-orange-800/40";
+  if (s === "canceled" || s === "cancelled" || s === "expired")
+    return "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-300 dark:border-rose-800/40";
+  if (s === "suspended")
+    return "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-400 font-semibold border border-red-300 dark:border-red-800/40";
+  if (s === "unpaid")
+    return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700";
+  return "bg-muted text-muted-foreground border border-border";
 }
 
 function DoctorsPage() {
@@ -209,9 +215,8 @@ function DoctorsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-display">All Doctors</h1>
-          <p className="text-sm text-muted-foreground" role="note">Legacy subscription editing is disabled. Profile-only corrections remain available from doctor details. Ask the clinic owner to use /dashboard/billing.</p>
           <p className="text-sm text-muted-foreground">
-            {rows.length} result{rows.length === 1 ? "" : "s"}
+            Directory of registered clinics and doctor profiles ({rows.length} {rows.length === 1 ? "doctor" : "doctors"}).
           </p>
         </div>
         <Button onClick={exportCsv} variant="outline">

@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -489,15 +496,15 @@ function AdminAiGatewayPage() {
                 <Label htmlFor="ai_fallback" className="text-xs font-medium">
                   Multi-Provider Fallback
                 </Label>
-                <select
-                  id="ai_fallback"
-                  value={fallbackEnabled}
-                  onChange={(e) => setFallbackEnabled(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
-                >
-                  <option value="true">Enabled (Auto-fallback to OpenRouter/Gemini)</option>
-                  <option value="false">Disabled (Strict primary provider only)</option>
-                </select>
+                <Select value={fallbackEnabled} onValueChange={setFallbackEnabled}>
+                  <SelectTrigger id="ai_fallback" className="w-full h-9 bg-background text-sm">
+                    <SelectValue placeholder="Fallback mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Enabled (Auto-fallback to OpenRouter/Gemini)</SelectItem>
+                    <SelectItem value="false">Disabled (Strict primary provider only)</SelectItem>
+                  </SelectContent>
+                </Select>
                 <span className="text-[10px] text-muted-foreground">
                   Prevents downtime if a provider hits temporary rate limits.
                 </span>

@@ -18,6 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Plus, Tag, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 
@@ -314,7 +321,7 @@ function PlansPage() {
                         <div>
                           <Label>Features (One per line)</Label>
                           <textarea
-                            className="w-full text-xs border rounded p-1.5 h-20"
+                            className="w-full text-xs border border-input rounded-md p-2 h-20 bg-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             value={featuresText}
                             onChange={(e) => setFeaturesText(e.target.value)}
                           />
@@ -471,7 +478,7 @@ function PlansPage() {
         )}
       </div>
 
-      <hr />
+      <div className="border-t border-border" />
 
       {/* Coupons Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -494,14 +501,18 @@ function PlansPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Type</Label>
-                <select
-                  className="w-full h-9 border rounded-md px-2 text-sm bg-background mt-1"
+                <Select
                   value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value as any)}
+                  onValueChange={(val) => setDiscountType(val as "percent" | "fixed")}
                 >
-                  <option value="percent">Percentage (%)</option>
-                  <option value="fixed">Fixed INR</option>
-                </select>
+                  <SelectTrigger className="w-full h-9 text-sm bg-background mt-1">
+                    <SelectValue placeholder="Discount Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percent">Percentage (%)</SelectItem>
+                    <SelectItem value="fixed">Fixed INR</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="discountVal">Value</Label>

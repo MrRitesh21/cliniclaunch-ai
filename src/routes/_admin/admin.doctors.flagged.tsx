@@ -68,7 +68,7 @@ function FlaggedDoctorsPage() {
                 <tr key={r.id} className="hover:bg-muted/50">
                   <td className="px-3 py-2 font-medium text-foreground">
                     <div className="flex items-center gap-2">
-                      <div className="size-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xs font-semibold">
+                      <div className="size-8 rounded-full bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center text-xs font-semibold">
                         <ShieldAlert className="size-4" />
                       </div>
                       <div>

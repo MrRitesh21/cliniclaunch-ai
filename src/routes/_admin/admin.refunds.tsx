@@ -84,7 +84,7 @@ function RefundsPage() {
                   <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                     {t.razorpayId || "—"}
                   </td>
-                  <td className="px-4 py-3 font-bold text-rose-600">{inr(Math.abs(t.amount))}</td>
+                  <td className="px-4 py-3 font-bold text-rose-600 dark:text-rose-400">{inr(Math.abs(t.amount))}</td>
                   <td className="px-4 py-3 text-foreground/80 capitalize">
                     {t.plan || "Manual Refund"}
                   </td>

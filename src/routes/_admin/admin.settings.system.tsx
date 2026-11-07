@@ -7,6 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Settings2, Key, MessageSquare, ShieldAlert, PlugZap } from "lucide-react";
 
@@ -143,14 +150,18 @@ function SystemSettingsPage() {
           <div className="space-y-3">
             <div>
               <Label>Maintenance Lockout Active</Label>
-              <select
-                className="w-full h-9 border rounded-md px-2 text-sm bg-background mt-1"
+              <Select
                 value={form.maintenance_mode || "false"}
-                onChange={(e) => handleChange("maintenance_mode", e.target.value)}
+                onValueChange={(val) => handleChange("maintenance_mode", val)}
               >
-                <option value="false">Inactive (System Online)</option>
-                <option value="true">Active (Lock Out Doctors)</option>
-              </select>
+                <SelectTrigger className="w-full h-9 text-sm bg-background mt-1">
+                  <SelectValue placeholder="Maintenance status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="false">Inactive (System Online)</SelectItem>
+                  <SelectItem value="true">Active (Lock Out Doctors)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="maintenance_message">Lockout Display Banner</Label>

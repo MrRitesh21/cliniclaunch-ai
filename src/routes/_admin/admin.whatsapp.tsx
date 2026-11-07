@@ -227,7 +227,7 @@ function AdminWhatsApp() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">WhatsApp Engine Command</h1>
-            <Badge variant="outline" className="text-xs font-mono border-emerald-500/30 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
+            <Badge variant="outline" className="text-xs font-mono border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30">
               Gateway & AI Diagnostics
             </Badge>
           </div>

@@ -18,6 +18,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LayoutTemplate, Plus, Save, Trash2, Loader2, Eye, Link2, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin/templates")({
@@ -325,33 +332,33 @@ function AdminTemplates() {
                     className="pl-8"
                   />
                 </div>
-                <select
-                  value={assignClinic}
-                  onChange={(e) => setAssignClinic(e.target.value)}
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                >
-                  <option value="">Select a clinic…</option>
-                  {clinics.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.doctor_name} — {c.clinic_name} (/{c.slug})
-                    </option>
-                  ))}
-                </select>
+                <Select value={assignClinic} onValueChange={setAssignClinic}>
+                  <SelectTrigger className="w-full h-9 bg-background text-sm">
+                    <SelectValue placeholder="Select a clinic…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clinics.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.doctor_name} — {c.clinic_name} (/{c.slug})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">Template</Label>
-                <select
-                  value={assignTemplate}
-                  onChange={(e) => setAssignTemplate(e.target.value)}
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                >
-                  <option value="">Select a template…</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} {t.is_global ? "" : "(assigned only)"}
-                    </option>
-                  ))}
-                </select>
+                <Select value={assignTemplate} onValueChange={setAssignTemplate}>
+                  <SelectTrigger className="w-full h-9 bg-background text-sm">
+                    <SelectValue placeholder="Select a template…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} {t.is_global ? "" : "(assigned only)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   value={assignNote}
                   onChange={(e) => setAssignNote(e.target.value)}

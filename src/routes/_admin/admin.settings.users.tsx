@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Shield, Plus, Trash2 } from "lucide-react";
 
@@ -97,14 +104,15 @@ function AdminUsersPage() {
             </div>
             <div>
               <Label>Access Role</Label>
-              <select
-                className="w-full h-9 border rounded-md px-2 text-sm bg-background mt-1"
-                value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-              >
-                <option value="support">Support Agent</option>
-                <option value="super_admin">Super Admin (Full Access)</option>
-              </select>
+              <Select value={role} onValueChange={(val) => setRole(val as any)}>
+                <SelectTrigger className="w-full h-9 text-sm bg-background mt-1">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="support">Support Agent</SelectItem>
+                  <SelectItem value="super_admin">Super Admin (Full Access)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button
               className="w-full bg-primary hover:bg-primary/90"

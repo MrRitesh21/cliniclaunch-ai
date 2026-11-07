@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Megaphone, Plus, ToggleLeft, ToggleRight } from "lucide-react";
 
@@ -105,7 +112,7 @@ function AnnouncementsPage() {
               <Label htmlFor="annBody">Message Body</Label>
               <textarea
                 id="annBody"
-                className="w-full text-sm border rounded-md p-2 h-24"
+                className="w-full text-sm border border-input rounded-md p-2 h-24 bg-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 placeholder="We will be undergoing scheduled database updates at 10 PM IST."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
@@ -114,16 +121,20 @@ function AnnouncementsPage() {
             <div className="grid grid-cols-1 gap-2">
               <div>
                 <Label>Type</Label>
-                <select
-                  className="w-full h-9 border rounded-md px-2 text-sm bg-background mt-1"
+                <Select
                   value={type}
-                  onChange={(e) => setType(e.target.value as any)}
+                  onValueChange={(val) => setType(val as "info" | "warning" | "success" | "maintenance")}
                 >
-                  <option value="info">Info (Blue)</option>
-                  <option value="warning">Warning (Yellow)</option>
-                  <option value="success">Success (Green)</option>
-                  <option value="maintenance">Maintenance (Red)</option>
-                </select>
+                  <SelectTrigger className="w-full h-9 text-sm bg-background mt-1">
+                    <SelectValue placeholder="Announcement Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">Info (Blue)</SelectItem>
+                    <SelectItem value="warning">Warning (Yellow)</SelectItem>
+                    <SelectItem value="success">Success (Green)</SelectItem>
+                    <SelectItem value="maintenance">Maintenance (Red)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="mt-1">
                 <Label htmlFor="targetPlans">Target Plans (comma separated)</Label>

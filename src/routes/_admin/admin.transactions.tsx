@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listTransactions } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowDownRight, ArrowUpRight, IndianRupee } from "lucide-react";
+import { Loader2, ArrowUpRight, CreditCard, IndianRupee } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -101,27 +101,27 @@ function TransactionsPage() {
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
               Gross Sales Volume
             </span>
-            <div className="text-2xl font-extrabold text-emerald-600 mt-1">{inr(totalRevenue)}</div>
+            <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{inr(totalRevenue)}</div>
           </div>
-          <ArrowUpRight className="size-5 text-emerald-500" />
+          <ArrowUpRight className="size-5 text-emerald-500 dark:text-emerald-400" />
         </Card>
         <Card className="p-4 flex items-center justify-between border-l-4 border-l-indigo-500">
           <div>
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
               Average Ticket Value
             </span>
-            <div className="text-2xl font-extrabold text-indigo-600 mt-1">{inr(avgValue)}</div>
+            <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">{inr(avgValue)}</div>
           </div>
-          <IndianRupee className="size-5 text-indigo-500" />
+          <IndianRupee className="size-5 text-indigo-500 dark:text-indigo-400" />
         </Card>
-        <Card className="p-4 flex items-center justify-between border-l-4 border-l-rose-500">
+        <Card className="p-4 flex items-center justify-between border-l-4 border-l-sky-500">
           <div>
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Total Actions
+              Total Transactions
             </span>
-            <div className="text-2xl font-extrabold text-rose-600 mt-1">{sorted.length} items</div>
+            <div className="text-2xl font-extrabold text-foreground mt-1">{sorted.length}</div>
           </div>
-          <ArrowDownRight className="size-5 text-rose-500" />
+          <CreditCard className="size-5 text-sky-500 dark:text-sky-400" />
         </Card>
       </div>
 

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { listAdminDoctors } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,5 +120,3 @@ function NewSignupsPage() {
     </div>
   );
 }
-
-import { useMemo } from "react";

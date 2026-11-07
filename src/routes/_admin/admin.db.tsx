@@ -101,7 +101,7 @@ function DbToolsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-orange-600 border-orange-200"
+                className="text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800/50 hover:bg-orange-500/10"
                 disabled={cleanupMut.isPending}
                 onClick={() => cleanupMut.mutate("sessions")}
               >
@@ -119,7 +119,7 @@ function DbToolsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-orange-600 border-orange-200"
+                className="text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800/50 hover:bg-orange-500/10"
                 disabled={cleanupMut.isPending}
                 onClick={() => cleanupMut.mutate("unverified")}
               >

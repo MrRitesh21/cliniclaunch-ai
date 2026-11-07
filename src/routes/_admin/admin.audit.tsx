@@ -235,7 +235,7 @@ function AuditLogsPage() {
             <tbody className="divide-y divide-border/40">
               {filteredLogs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
+                  <td colSpan={7} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center grayscale opacity-60">
                       <ScrollText className="size-12 mb-4 text-muted-foreground" />
                       <p className="text-lg font-medium">No records found</p>

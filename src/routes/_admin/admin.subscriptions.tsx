@@ -353,12 +353,10 @@ function SubscriptionsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground font-display">Subscriptions</h1>
         <p className="text-sm text-muted-foreground">
-          Read current subscriptions, canonical SaaS payments and usage without provider
-          reconciliation.
+          Monitor clinic subscription lifecycles, active trial periods, and verified SaaS payment statuses.
         </p>
       </div>
 
-      <p className="text-sm text-muted-foreground" role="note">Legacy grants, trial extensions, raw cancellation/reactivation and refunds are disabled. Ask the clinic owner to use /dashboard/billing. Medical data is retained; deletion requires approved retention, export and legal-hold review.</p>
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="p-4 flex items-center justify-between">
@@ -408,24 +406,29 @@ function SubscriptionsPage() {
         </Card>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label htmlFor="billing-filter">Customer filter</Label>
-        <select
-          id="billing-filter"
-          className="border rounded-md p-2 bg-background"
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value as typeof filter);
-            setPage(0);
-          }}
-        >
-          <option value="all">All clinics (including excluded)</option>
-          <option value="trialing">Active trials</option>
-          <option value="ending_soon">Trials ending in 7 days</option>
-          <option value="paid">Verified paid</option>
-          <option value="expired_trial">Expired unpaid trials</option>
-          <option value="past_due">Payment recovery</option>
-          <option value="excluded">Excluded test/internal/fraud</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="billing-filter" className="text-xs text-muted-foreground">Filter by status:</Label>
+          <Select
+            value={filter}
+            onValueChange={(v) => {
+              setFilter(v as typeof filter);
+              setPage(0);
+            }}
+          >
+            <SelectTrigger id="billing-filter" className="w-[240px] h-9 text-xs">
+              <SelectValue placeholder="All clinics" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All clinics (including excluded)</SelectItem>
+              <SelectItem value="trialing">Active trials</SelectItem>
+              <SelectItem value="ending_soon">Trials ending in 7 days</SelectItem>
+              <SelectItem value="paid">Verified paid</SelectItem>
+              <SelectItem value="expired_trial">Expired unpaid trials</SelectItem>
+              <SelectItem value="past_due">Payment recovery</SelectItem>
+              <SelectItem value="excluded">Excluded test/internal/fraud</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <span className="text-xs text-muted-foreground">
           {data ? utcDate(data.asOf) : "Snapshot unavailable"}
         </span>
