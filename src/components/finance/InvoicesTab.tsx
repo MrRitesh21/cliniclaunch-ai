@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Receipt, Plus, Trash2, Pencil, IndianRupee, Printer, CreditCard, Search } from "lucide-react";
+import { Receipt, Plus, Trash2, Pencil, IndianRupee, Printer, CreditCard, Search, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { EmptyState } from "@/components/app/EmptyState";
 import { StatsCard } from "@/components/app/StatsCard";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -323,6 +324,7 @@ function FinancePage({ initialNew }: { initialNew?: boolean }) {
         <PaymentDialog
           invoice={paying}
           orgId={orgId!}
+          clinic={clinic}
           onClose={() => setPaying(null)}
           onSaved={() => {
             setPaying(null);
@@ -879,11 +881,13 @@ function InvoiceSheet({
 function PaymentDialog({
   invoice,
   orgId,
+  clinic,
   onClose,
   onSaved,
 }: {
   invoice: Invoice;
   orgId: string;
+  clinic?: any;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -892,6 +896,13 @@ function PaymentDialog({
   const [method, setMethod] = useState<"cash" | "card" | "upi" | "bank" | "other">("cash");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const upiId = (clinic?.working_hours as any)?.billing_settings?.upi_id || "";
+  const payableAmount = amount > 0 ? amount : due;
+  const clinicTitle = clinic?.clinic_name || "Medical Clinic";
+  const upiUri = upiId
+    ? `upi://pay?pa=${upiId}&pn=${encodeURIComponent(clinicTitle)}&am=${payableAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(invoice.invoice_number)}`
+    : "";
 
   async function save() {
     if (amount <= 0) return toast.error("Amount must be > 0");
@@ -913,11 +924,11 @@ function PaymentDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle>Record payment · {invoice.invoice_number}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <p className="text-sm text-muted-foreground">Due: ₹{due.toFixed(2)}</p>
           <div>
             <Label>Amount</Label>
@@ -944,9 +955,45 @@ function PaymentDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {method === "upi" && (
+            <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/[0.03] space-y-2.5 text-center">
+              {upiId ? (
+                <>
+                  <div className="flex justify-center pt-1">
+                    <div className="bg-white p-2.5 rounded-xl border shadow-xs inline-block">
+                      <QRCodeSVG
+                        value={upiUri}
+                        size={144}
+                        level="M"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground">
+                      Scan to Pay ₹{payableAmount.toFixed(2)}
+                    </p>
+                    <p className="font-mono text-xs text-primary font-medium">{upiId}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Google Pay · PhonePe · Paytm · BHIM · Any UPI App
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-amber-600 dark:text-amber-400 p-1">
+                  ⚠️ No UPI ID configured in Clinic Billing Settings yet. You can still record UPI reference in the note below.
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
-            <Label>Note</Label>
-            <Input value={note} onChange={(e) => setNote(e.target.value)} />
+            <Label>Note / Transaction Ref</Label>
+            <Input
+              placeholder={method === "upi" ? "e.g. UTR / UPI Ref 4123..." : "Optional reference note"}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
           </div>
         </div>
         <DialogFooter>
@@ -1115,14 +1162,30 @@ function PrintDialog({
                 </div>
               )}
               {(clinic?.working_hours as any)?.billing_settings?.upi_id && (
-                <div className="mt-3 p-2 rounded-lg border border-slate-200 bg-slate-50 text-[10px]">
-                  <span className="font-bold text-slate-600 block uppercase tracking-wider text-[9px]">
-                    Scan &amp; Pay via UPI
-                  </span>
-                  <div className="font-mono font-semibold text-slate-800 mt-0.5">
-                    {(clinic?.working_hours as any)?.billing_settings?.upi_id}
+                <div className="mt-3 p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[10px] flex items-center gap-3">
+                  {Number(invoice.total) - Number(invoice.amount_paid) > 0 && (
+                    <div className="bg-white p-1 rounded border shadow-xs shrink-0">
+                      <QRCodeSVG
+                        value={`upi://pay?pa=${(clinic?.working_hours as any)?.billing_settings?.upi_id}&pn=${encodeURIComponent(clinic?.clinic_name || orgName)}&am=${(Number(invoice.total) - Number(invoice.amount_paid)).toFixed(2)}&cu=INR&tn=${encodeURIComponent(invoice.invoice_number)}`}
+                        size={64}
+                        level="M"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-bold text-slate-700 block uppercase tracking-wider text-[9px]">
+                      Scan &amp; Pay via UPI
+                    </span>
+                    <div className="font-mono font-semibold text-slate-800 mt-0.5">
+                      {(clinic?.working_hours as any)?.billing_settings?.upi_id}
+                    </div>
+                    <span className="text-[9px] text-slate-500">
+                      {Number(invoice.total) - Number(invoice.amount_paid) > 0
+                        ? `Due: ₹${(Number(invoice.total) - Number(invoice.amount_paid)).toFixed(2)} · `
+                        : ""}
+                      GPay, PhonePe, Paytm, BHIM
+                    </span>
                   </div>
-                  <span className="text-[9px] text-slate-400">Accepted: GPay, PhonePe, Paytm, BHIM</span>
                 </div>
               )}
             </div>

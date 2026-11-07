@@ -910,6 +910,8 @@ export const createBooking = createServerFn({ method: "POST" })
       // the DB uniqueness check still rejects a double booking.
     }
 
+    let assignedTokenNumber: number | null = null;
+
     // Queue Token Auto-Sync for today's offline/walk-in appointments
     try {
       if (orgId && (data.appointment_type === "offline" || data.source === "walkin")) {
@@ -931,6 +933,7 @@ export const createBooking = createServerFn({ method: "POST" })
             .maybeSingle();
 
           const nextTokenNum = (maxToken?.token_number ?? 0) + 1;
+          assignedTokenNumber = nextTokenNum;
           await sb.from("queue_tokens").insert({
             organization_id: orgId,
             appointment_id: appt.id,
@@ -1115,7 +1118,10 @@ export const createBooking = createServerFn({ method: "POST" })
       }
     })();
 
-    return appt;
+    return {
+      ...appt,
+      token_number: assignedTokenNumber,
+    };
   });
 
 // Public-safe appointment lookup for the patient consult join page.

@@ -190,8 +190,17 @@ function ConsultRoom() {
     };
     pc.onconnectionstatechange = () => {
       const s = pc.connectionState;
-      if (s === "connected") setStatus("connected");
-      else if (s === "disconnected" || s === "failed") setStatus("ended");
+      if (s === "connected") {
+        setStatus("connected");
+      } else if (s === "disconnected") {
+        setStatus("connecting");
+        toast.info("Connection unstable. Reconnecting video call...");
+        try {
+          pc.restartIce();
+        } catch {}
+      } else if (s === "failed") {
+        setStatus("ended");
+      }
     };
     pc.onnegotiationneeded = async () => {
       try {
@@ -269,10 +278,26 @@ function ConsultRoom() {
 
   async function join() {
     setErrorMsg(null);
+    let stream: MediaStream | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    } catch (vidErr) {
+      console.warn("Camera request failed, trying audio-only fallback:", vidErr);
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        setCamOn(false);
+        toast.info("Camera unavailable. Joined consultation with audio only.");
+      } catch (audErr) {
+        console.warn("Audio request failed, joining in text-only consultation:", audErr);
+        setCamOn(false);
+        setMicOn(false);
+        toast.warning("Camera & Microphone unavailable. Joined consultation via text chat.");
+      }
+    }
+
+    try {
       localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      if (localVideoRef.current && stream) localVideoRef.current.srcObject = stream;
       setJoined(true);
       setStatus("waiting");
 

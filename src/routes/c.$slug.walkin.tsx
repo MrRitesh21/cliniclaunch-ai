@@ -63,7 +63,7 @@ function WalkinPage() {
   const [bookedAt, setBookedAt] = useState<Record<string, number>>({});
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState<{ id: string; at: Date } | null>(null);
+  const [confirmed, setConfirmed] = useState<{ id: string; at: Date; tokenNumber?: number | null } | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", problem: "" });
 
   useEffect(() => {
@@ -164,7 +164,8 @@ function WalkinPage() {
           source: "walkin",
         },
       });
-      setConfirmed({ id: appt.id, at: selectedSlot });
+      const tokenNum = (appt as any)?.token_number ?? null;
+      setConfirmed({ id: appt.id, at: selectedSlot, tokenNumber: tokenNum });
     } catch (err) {
       const msg = (err as Error).message;
       let friendly = msg;
@@ -188,48 +189,84 @@ function WalkinPage() {
 
   if (confirmed) {
     const clinicName = clinic.clinic_name || clinic.doctor_name || "the clinic";
+    const tokenStr = confirmed.tokenNumber
+      ? `OPD-${String(confirmed.tokenNumber).padStart(3, "0")}`
+      : `OPD-${confirmed.id.slice(0, 4).toUpperCase()}`;
+
     const icsHref = buildIcsDataUrl({
-      title: `Walk-in at ${clinicName}`,
-      description: `Ref: ${confirmed.id}${form.problem ? `\nReason: ${form.problem}` : ""}`,
+      title: `Walk-in at ${clinicName} (${tokenStr})`,
+      description: `Token: ${tokenStr}\nRef: ${confirmed.id}${form.problem ? `\nReason: ${form.problem}` : ""}`,
       location: clinic.public_address || clinic.address || "",
       start: confirmed.at,
       durationMinutes: 15,
       uid: `${confirmed.id}@clinicx`,
     });
-    const waMessage = `Hi ${clinicName}, I've checked in for a walk-in at ${confirmed.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Name: ${form.name}. Ref: ${confirmed.id.slice(0, 8)}.`;
+    const waMessage = `Hi ${clinicName}, I've checked in for a walk-in at ${confirmed.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. My Token is *${tokenStr}*. Name: ${form.name}.`;
     const waHref = buildWhatsAppShareUrl({ phone: clinic.public_phone, message: waMessage });
+
     return (
       <main className="min-h-screen bg-muted/30 grid place-items-center px-4 py-10">
-        <Card className="max-w-md w-full p-8 text-center space-y-4">
-          <div className="size-14 rounded-full bg-emerald-500/10 text-emerald-600 grid place-items-center mx-auto">
-            <CheckCircle2 className="size-7" />
+        <Card className="max-w-md w-full p-6 sm:p-8 text-center space-y-5 rounded-3xl shadow-xl border-border/80 relative overflow-hidden bg-card">
+          {/* Animated Green Radar Pulse Header */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold mx-auto">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-reduce:hidden" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            LIVE OPD TOKEN ISSUED
           </div>
-          <div>
-            <h1 className="font-display text-2xl">You're checked in!</h1>
-            <p className="text-muted-foreground mt-1">
-              {clinic.doctor_name} will see you at{" "}
-              <b>{confirmed.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b>.
+
+          {/* Big Monospace Token Hero Card */}
+          <div className="py-4 px-6 rounded-2xl bg-muted/50 border border-border/80 space-y-1">
+            <p className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground">Your Token Number</p>
+            <h2 className="font-mono text-4xl sm:text-5xl font-black text-foreground tracking-widest">{tokenStr}</h2>
+            <p className="text-xs text-muted-foreground pt-1">
+              Estimated appointment at <b>{confirmed.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b>
             </p>
           </div>
-          {clinic.public_address && (
-            <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
-              <MapPin className="size-3.5" /> {clinic.public_address}
-            </p>
-          )}
-          <div className="grid grid-cols-2 gap-2 pt-2">
-            <a href={icsHref} download={`walkin-${confirmed.id.slice(0, 8)}.ics`}>
-              <Button variant="outline" size="sm" className="w-full gap-1.5">
-                <CalendarPlus className="size-4" /> Calendar
+
+          {/* Queue Status Matrix */}
+          <div className="grid grid-cols-2 gap-2.5 text-left">
+            <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-0.5">
+              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Estimated Wait</div>
+              <div className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <Clock className="size-3.5 text-primary" /> ~10–15 mins
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-0.5">
+              <div className="text-[10px] font-medium text-amber-800 dark:text-amber-300 uppercase tracking-wider">Queue Status</div>
+              <div className="text-sm font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                <CheckCircle2 className="size-3.5 text-amber-600" /> Token Active
+              </div>
+            </div>
+          </div>
+
+          {/* Doctor & Location Info */}
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">Consulting: {clinic.doctor_name}</p>
+            {clinic.public_address && (
+              <p className="flex items-center justify-center gap-1.5 text-[11px]">
+                <MapPin className="size-3 text-muted-foreground" /> {clinic.public_address}
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <a href={icsHref} download={`walkin-${tokenStr}.ics`}>
+              <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-xl h-10 text-xs font-semibold">
+                <CalendarPlus className="size-4" /> Add to Calendar
               </Button>
             </a>
             <a href={waHref} target="_blank" rel="noreferrer">
-              <Button variant="outline" size="sm" className="w-full gap-1.5">
-                <MessageCircle className="size-4" /> WhatsApp
+              <Button size="sm" className="w-full gap-1.5 rounded-xl h-10 text-xs font-semibold bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-md shadow-emerald-600/20">
+                <MessageCircle className="size-4" /> WhatsApp Slip
               </Button>
             </a>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Please have a seat — the front desk will call you in.
+
+          <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+            Please have a seat in the waiting area. Your token number will be called when it is your turn.
           </p>
         </Card>
       </main>

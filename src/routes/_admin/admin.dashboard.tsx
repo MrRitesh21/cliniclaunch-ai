@@ -1237,21 +1237,31 @@ function Kpi({
 }) {
   return (
     <Card
-      className={`p-4 border-border/70 transition-all hover:shadow-md hover:-translate-y-0.5 ${
-        accent ? "bg-gradient-to-br from-primary/[0.04] to-transparent border-primary/25" : ""
+      className={`relative overflow-hidden p-4 border-border/70 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${
+        accent
+          ? "bg-gradient-to-br from-primary/[0.07] via-background to-transparent border-primary/30"
+          : danger
+            ? "bg-destructive/[0.03] border-destructive/30"
+            : "bg-card/80 hover:border-border"
       }`}
     >
       <div className="flex items-start justify-between">
-        <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">
+          {accent && (
+            <span className="relative flex size-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex rounded-full size-1.5 bg-primary" />
+            </span>
+          )}
           {label}
         </div>
         <div
-          className={`size-7 rounded-lg flex items-center justify-center ${
+          className={`size-7 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105 ${
             accent
-              ? "bg-primary/10 text-primary"
+              ? "bg-primary/10 text-primary border border-primary/20"
               : danger
-                ? "bg-destructive/10 text-destructive"
-                : "bg-muted text-muted-foreground/80"
+                ? "bg-destructive/10 text-destructive border border-destructive/20"
+                : "bg-muted text-muted-foreground/80 border border-border/50"
           }`}
         >
           <Icon className="size-3.5" />
@@ -1266,7 +1276,7 @@ function Kpi({
       </div>
       {hint && (
         <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-          {trend === "up" && <TrendingUp className="size-3 text-emerald-500" />}
+          {trend === "up" && <TrendingUp className="size-3 text-emerald-500 shrink-0" />}
           {hint}
         </div>
       )}

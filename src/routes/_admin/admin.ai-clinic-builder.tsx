@@ -18,6 +18,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -43,6 +50,10 @@ import {
   Building2,
   Filter,
   Bot,
+  Smartphone,
+  Monitor,
+  MessageCircle,
+  Share2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin/ai-clinic-builder")({
@@ -73,6 +84,9 @@ function AdminAiClinicBuilderPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<"input" | "preview" | "results">("input");
+
+  const [previewClinic, setPreviewClinic] = useState<{ slug: string; name: string } | null>(null);
+  const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
 
   // Load sample dataset on mount
   useEffect(() => {
@@ -225,6 +239,21 @@ function AdminAiClinicBuilderPage() {
     toast.success(`Copied ${label} to clipboard!`);
   };
 
+  const handleWhatsAppPitch = (r: CreatedClinicResult) => {
+    const liveUrl = `${window.location.origin}/c/${r.slug}`;
+    const cleanPhone = (r.phone || "").replace(/\D/g, "");
+    const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const msg = `Namaste Dr. ${r.doctorName},\n\nWe have created your official online clinic website for *${r.clinicName}* with instant appointment booking, walk-in OPD token queue, and AI WhatsApp receptionist:\n\n🌐 View your live website: ${liveUrl}\n\nWould you like us to activate your personalized WhatsApp automated receptionist for patient bookings?`;
+
+    const encoded = encodeURIComponent(msg);
+    if (fullPhone && fullPhone.length >= 10) {
+      window.open(`https://wa.me/${fullPhone}?text=${encoded}`, "_blank");
+    } else {
+      navigator.clipboard.writeText(msg);
+      toast.success("Outreach pitch copied to clipboard! (Phone number incomplete)");
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -318,6 +347,36 @@ function AdminAiClinicBuilderPage() {
           </p>
         </Card>
       </div>
+
+      {/* Batch Generation Shimmer Progress Banner */}
+      {isGenerating && (
+        <Card className="p-4 sm:p-5 rounded-2xl border-primary/30 bg-gradient-to-r from-primary/10 via-background to-primary/5 shadow-md space-y-3 animate-in fade-in-50 duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="relative flex size-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full size-2.5 bg-primary" />
+              </span>
+              <span className="font-bold text-foreground">
+                AI Clinic Synthesizer Active · Creating {totalToGenerate} Full Clinic Websites
+              </span>
+            </div>
+            <span className="font-mono text-xs text-primary font-medium animate-pulse">
+              Provisioning &amp; Publishing Live...
+            </span>
+          </div>
+
+          <div className="relative overflow-hidden h-2.5 bg-muted rounded-full">
+            <div className="h-full bg-gradient-to-r from-primary via-indigo-500 to-primary rounded-full w-full animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_1.8s_infinite]" />
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[11px] text-muted-foreground">
+            <span>Synthesizing doctor bios, clinic specialties, SEO canonical URLs, and OPD token counters</span>
+            <span className="font-medium text-foreground">Zero-wait async execution</span>
+          </div>
+        </Card>
+      )}
 
       {/* Main Tabs Container */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
@@ -676,6 +735,27 @@ function AdminAiClinicBuilderPage() {
                       <td className="p-2.5 text-right whitespace-nowrap">
                         {r.ok && (
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setPreviewClinic({ slug: r.slug, name: r.clinicName })}
+                              className="inline-flex items-center gap-1 h-7 px-2 text-xs"
+                              title="Interactive Live Preview"
+                            >
+                              <Smartphone className="size-3 text-primary" />
+                              <span>Preview</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              onClick={() => handleWhatsAppPitch(r)}
+                              className="inline-flex items-center gap-1 h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                              title="Send WhatsApp Outreach Pitch"
+                            >
+                              <MessageCircle className="size-3" />
+                              <span>Pitch</span>
+                            </Button>
+
                             <a
                               href={`/c/${r.slug}`}
                               target="_blank"
@@ -683,7 +763,7 @@ function AdminAiClinicBuilderPage() {
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                             >
                               <Globe className="size-3" />
-                              <span>View Website</span>
+                              <span>Open</span>
                               <ExternalLink className="size-3 ml-0.5 opacity-70" />
                             </a>
 
@@ -717,6 +797,81 @@ function AdminAiClinicBuilderPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dual-Viewport Interactive Website Preview Modal */}
+      {previewClinic && (
+        <Dialog open onOpenChange={(o) => !o && setPreviewClinic(null)}>
+          <DialogContent className="max-w-5xl h-[88vh] flex flex-col p-4 sm:p-6">
+            <DialogHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-3">
+              <div>
+                <DialogTitle className="text-base font-bold flex items-center gap-2">
+                  <Globe className="size-4 text-primary" />
+                  <span>{previewClinic.name}</span>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    /c/{previewClinic.slug}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Live interactive preview with appointment booking, OPD walk-in queue, and WhatsApp receptionist.
+                </DialogDescription>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center rounded-lg border bg-muted p-0.5 text-xs">
+                  <button
+                    onClick={() => setPreviewViewport("desktop")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      previewViewport === "desktop"
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Monitor className="size-3.5" />
+                    <span>Desktop</span>
+                  </button>
+                  <button
+                    onClick={() => setPreviewViewport("mobile")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      previewViewport === "mobile"
+                        ? "bg-background text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Smartphone className="size-3.5" />
+                    <span>Mobile</span>
+                  </button>
+                </div>
+
+                <a
+                  href={`/c/${previewClinic.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <ExternalLink className="size-3.5" />
+                  <span>Open Full</span>
+                </a>
+              </div>
+            </DialogHeader>
+
+            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950/50 rounded-xl overflow-hidden flex items-center justify-center p-2">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  previewViewport === "mobile"
+                    ? "w-[375px] max-w-full rounded-2xl border-4 border-slate-800 shadow-2xl overflow-hidden bg-background"
+                    : "w-full rounded-lg border shadow-sm bg-background"
+                }`}
+              >
+                <iframe
+                  src={`/c/${previewClinic.slug}`}
+                  className="w-full h-full border-0"
+                  title="Live Clinic Website Preview"
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

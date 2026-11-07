@@ -469,6 +469,48 @@ function ConsultCockpitPage() {
     void loadData();
   }, [loadData]);
 
+  // Real-time subscription: auto-refresh OPD queue and play chime when new walk-in / booking arrives
+  useEffect(() => {
+    if (!orgId) return () => {};
+    const channel = supabase
+      .channel(`consult-queue-live-${orgId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "queue_tokens",
+          filter: `organization_id=eq.${orgId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            playAudioChime("call");
+            const newPatient = (payload.new as any)?.patient_name || "Patient";
+            const newTok = (payload.new as any)?.token_number ? `#${(payload.new as any).token_number}` : "";
+            toast.info(`🔔 New OPD Token ${newTok}: ${newPatient} checked in`);
+          }
+          void loadData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "appointments",
+          filter: clinicId ? `clinic_id=eq.${clinicId}` : `organization_id=eq.${orgId}`,
+        },
+        () => {
+          void loadData();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orgId, clinicId, loadData]);
+
   // Load previous consultations for currently active patient
   const loadPatientPastConsults = useCallback(async (pName: string, pPhone?: string | null) => {
     if (!pName || !pName.trim()) {
@@ -749,8 +791,57 @@ function ConsultCockpitPage() {
       };
 
       // 1. Save Consultation
-      const { error: cErr } = await supabase.from("consultations" as any).insert(payload);
+      const { data: cData, error: cErr } = await supabase
+        .from("consultations" as any)
+        .insert(payload)
+        .select("id")
+        .single();
       if (cErr) throw cErr;
+
+      // 1b. Write structured prescriptions and prescription_items for pharmacy & billing
+      const effectiveOrgId = orgId || clinic?.organization_id;
+      if (effectiveOrgId) {
+        try {
+          const { data: rxData, error: rxErr } = await supabase
+            .from("prescriptions")
+            .insert({
+              organization_id: effectiveOrgId,
+              patient_id: patientId || null,
+              patient_name: patientName.trim(),
+              appointment_id: appointmentId || null,
+              consultation_id: (cData as any)?.id || null,
+              notes: diagnosis.trim() || null,
+            })
+            .select("id")
+            .single();
+
+          if (!rxErr && rxData?.id && treatmentPlan.trim()) {
+            const rawLines = treatmentPlan
+              .split("\n")
+              .map((l) => l.replace(/^[•\-\*\d\.\s]+/, "").trim())
+              .filter(Boolean);
+
+            if (rawLines.length > 0) {
+              const rxItems = rawLines.map((line, idx) => {
+                const parts = line.split("—").map((p) => p.trim());
+                const drugName = parts[0] || line;
+                const doseOrInstructions = parts[1] || "";
+                return {
+                  prescription_id: rxData.id,
+                  organization_id: effectiveOrgId,
+                  drug_name: drugName.slice(0, 100),
+                  dose: doseOrInstructions ? doseOrInstructions.slice(0, 100) : null,
+                  instructions: doseOrInstructions || null,
+                  position: idx + 1,
+                };
+              });
+              await supabase.from("prescription_items").insert(rxItems);
+            }
+          }
+        } catch (rxWriteErr) {
+          console.warn("Structured prescription write failed silently:", rxWriteErr);
+        }
+      }
 
       // 2. Mark appointment completed
       if (appointmentId) {
