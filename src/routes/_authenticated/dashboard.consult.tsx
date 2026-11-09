@@ -836,6 +836,46 @@ function ConsultCockpitPage() {
                 };
               });
               await supabase.from("prescription_items").insert(rxItems);
+
+              // Sync to Patient Universal Health Timeline cache
+              if (typeof window !== "undefined") {
+                try {
+                  const savedRecs = JSON.parse(localStorage.getItem("clinicx_patient_records") || "[]");
+                  const newTimelineRec = {
+                    id: "rec-" + Date.now(),
+                    memberId: "fam-1",
+                    type: "prescription",
+                    title: "OPD Digital Prescription",
+                    doctorName: clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Consulting Doctor",
+                    doctorRegNo: clinic?.medical_registration_no ? `Reg No: ${clinic.medical_registration_no}` : "",
+                    clinicName: clinic?.clinic_name || org?.name || "Medical Clinic",
+                    date: new Date().toISOString().split("T")[0],
+                    trustTier: "verified_doctor",
+                    summary: `Consultation notes: ${diagnosis.trim() || "Regular clinical review"}`,
+                    diagnosis: diagnosis.trim() || undefined,
+                    vitals: {
+                      bp: bpSystolic && bpDiastolic ? `${bpSystolic}/${bpDiastolic} mmHg` : undefined,
+                      pulse: pulse ? Number(pulse) : undefined,
+                      spo2: spo2 ? Number(spo2) : undefined,
+                      bloodSugar: bloodSugar ? Number(bloodSugar) : undefined,
+                      weight: weight ? Number(weight) : undefined,
+                    },
+                    medicines: rawLines.map((line) => {
+                      const parts = line.split("—").map((p) => p.trim());
+                      return {
+                        name: parts[0] || line,
+                        dosage: "1 Tab",
+                        frequency: "1-0-1",
+                        duration: "5 Days",
+                        instructions: parts[1] || "As advised by doctor",
+                      };
+                    }),
+                  };
+                  localStorage.setItem("clinicx_patient_records", JSON.stringify([newTimelineRec, ...savedRecs]));
+                } catch (cacheErr) {
+                  console.warn("Timeline cache sync note:", cacheErr);
+                }
+              }
             }
           }
         } catch (rxWriteErr) {

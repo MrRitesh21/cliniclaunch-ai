@@ -11,12 +11,14 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
+  HeartPulse,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { CommandPalette } from "./CommandPalette";
 
 const MARKETING_NAV = [
+  { label: "Patient Health Hub", to: "/patient" as const },
   { label: "Features", to: "/features" as const },
   { label: "How it works", to: "/how-it-works" as const },
   { label: "Pricing", to: "/pricing" as const },
@@ -138,6 +140,15 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               {themeIcon()}
             </Button>
 
+            <Link to="/patient">
+              <Button
+                variant="outline"
+                className="font-bold border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 gap-1.5 h-9"
+              >
+                <HeartPulse className="size-3.5 text-blue-600 dark:text-blue-400" /> Patient Portal
+              </Button>
+            </Link>
+
             <Link to="/login">
               <Button variant="ghost" className="font-semibold text-sm">
                 Sign in
@@ -193,9 +204,14 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className="pt-2 border-t flex flex-col gap-2">
+            <Link to="/patient" onClick={() => setOpen(false)}>
+              <Button variant="outline" className="w-full font-bold border-blue-500/40 text-blue-600 dark:text-blue-400 gap-1.5">
+                <HeartPulse className="size-4" /> Patient Health Portal (ABHA & Rx)
+              </Button>
+            </Link>
             <Link to="/login" onClick={() => setOpen(false)}>
               <Button variant="outline" className="w-full font-bold">
-                Sign in
+                Doctor / Clinic Sign in
               </Button>
             </Link>
             <Link to="/contact" onClick={() => setOpen(false)}>

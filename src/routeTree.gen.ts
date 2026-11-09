@@ -23,6 +23,7 @@ import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as InstallRouteImport } from './routes/install'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as PatientRouteImport } from './routes/patient'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
@@ -194,6 +195,11 @@ const LoginRoute = LoginRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientRoute = PatientRouteImport.update({
+  id: '/patient',
+  path: '/patient',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -772,6 +778,7 @@ export interface FileRoutesByFullPath {
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/patient': typeof PatientRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -890,6 +897,7 @@ export interface FileRoutesByTo {
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/patient': typeof PatientRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -1007,6 +1015,7 @@ export interface FileRoutesById {
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/patient': typeof PatientRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -1127,6 +1136,7 @@ export interface FileRouteTypes {
     | '/install'
     | '/login'
     | '/mcp'
+    | '/patient'
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
@@ -1245,6 +1255,7 @@ export interface FileRouteTypes {
     | '/install'
     | '/login'
     | '/mcp'
+    | '/patient'
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
@@ -1361,6 +1372,7 @@ export interface FileRouteTypes {
     | '/install'
     | '/login'
     | '/mcp'
+    | '/patient'
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
@@ -1482,6 +1494,7 @@ export interface RootRouteChildren {
   InstallRoute: typeof InstallRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
+  PatientRoute: typeof PatientRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
@@ -1619,6 +1632,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patient': {
+      id: '/patient'
+      path: '/patient'
+      fullPath: '/patient'
+      preLoaderRoute: typeof PatientRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -2581,6 +2601,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstallRoute: InstallRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
+  PatientRoute: PatientRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RefundPolicyRoute: RefundPolicyRoute,

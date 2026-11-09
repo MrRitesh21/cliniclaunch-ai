@@ -479,6 +479,29 @@ function LandingContent() {
                 </span>
               </div>
 
+              {/* Patient Super App Callout */}
+              <div className="pt-1">
+                <Link to="/patient">
+                  <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 transition-all flex items-center justify-between text-left group">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+                        <HeartPulse className="size-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-blue-100 flex items-center gap-1.5">
+                          Are you a Patient? One Health Account & ABHA Hub
+                          <span className="text-[10px] bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.2 rounded font-semibold">New</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Access your digital prescriptions, lab reports, and universal timeline
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className="size-4 text-blue-600 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
+                  </div>
+                </Link>
+              </div>
+
               {/* Verifiable Product Facts & Trust Points */}
               <div className="pt-4 border-t border-border/60 grid grid-cols-2 sm:grid-cols-3 gap-3 text-left">
                 <div className="p-2.5 rounded-xl border border-border/70 bg-card/60">
