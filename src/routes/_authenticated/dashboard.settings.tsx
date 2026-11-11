@@ -154,7 +154,7 @@ function SettingsPage() {
   function handleTabChange(newVal: string) {
     setActiveTab(newVal);
     if (!form || !clinic) return;
-    if (isDemoSession()) {
+    if (isDemoSession(clinic.slug)) {
       // In demo mode, tab changes do not mutate DB so edits reset on page refresh
       return;
     }
@@ -167,47 +167,59 @@ function SettingsPage() {
       .toLowerCase()
       .replace(/^https?:\/\//, "")
       .replace(/\/$/, "");
+    const payload = {
+      doctor_name: form.doctor_name,
+      specialization: form.specialization,
+      qualification: form.qualification,
+      experience_years: Number(form.experience_years) || 0,
+      clinic_name: form.clinic_name,
+      personal_phone: form.personal_phone || null,
+      personal_email: form.personal_email || null,
+      public_phone: form.public_phone || null,
+      public_email: form.public_email || null,
+      public_address: form.public_address || null,
+      phone: form.public_phone || null,
+      email: form.public_email || null,
+      address: form.public_address || null,
+      consultation_fee: Number(form.consultation_fee) || 0,
+      bio: form.bio,
+      services: svc,
+      avatar_url: form.avatar_url,
+      logo_url: form.logo_url,
+      theme_color: form.theme_color,
+      hero_headline: form.hero_headline || null,
+      hero_subheadline: form.hero_subheadline || null,
+      about_text: form.about_text || null,
+      medical_registration_no: form.medical_registration_no || null,
+      custom_domain: domain || null,
+      template: form.template,
+      section_variants: form.section_variants as unknown as Record<string, string>,
+      gallery,
+      walkin_max_per_slot: Math.max(1, Number(form.walkin_max_per_slot) || 1),
+      walkin_start_time: form.walkin_start_time,
+      walkin_end_time: form.walkin_end_time,
+      walkin_weekends_enabled: form.walkin_weekends_enabled,
+      walkin_slot_minutes: Math.max(5, Number(form.walkin_slot_minutes) || 15),
+      ...scheduleUpdate(),
+    };
     supabase
       .from("clinics")
-      .update({
-        doctor_name: form.doctor_name,
-        specialization: form.specialization,
-        qualification: form.qualification,
-        experience_years: Number(form.experience_years) || 0,
-        clinic_name: form.clinic_name,
-        personal_phone: form.personal_phone || null,
-        personal_email: form.personal_email || null,
-        public_phone: form.public_phone || null,
-        public_email: form.public_email || null,
-        public_address: form.public_address || null,
-        phone: form.public_phone || null,
-        email: form.public_email || null,
-        address: form.public_address || null,
-        consultation_fee: Number(form.consultation_fee) || 0,
-        bio: form.bio,
-        services: svc,
-        avatar_url: form.avatar_url,
-        logo_url: form.logo_url,
-        theme_color: form.theme_color,
-        hero_headline: form.hero_headline || null,
-        hero_subheadline: form.hero_subheadline || null,
-        about_text: form.about_text || null,
-        medical_registration_no: form.medical_registration_no || null,
-        custom_domain: domain || null,
-        template: form.template,
-        section_variants: form.section_variants as unknown as Record<string, string>,
-        gallery,
-        walkin_max_per_slot: Math.max(1, Number(form.walkin_max_per_slot) || 1),
-        walkin_start_time: form.walkin_start_time,
-        walkin_end_time: form.walkin_end_time,
-        walkin_weekends_enabled: form.walkin_weekends_enabled,
-        walkin_slot_minutes: Math.max(5, Number(form.walkin_slot_minutes) || 15),
-        ...scheduleUpdate(),
-      } as never)
+      .update(payload as never)
       .eq("id", clinic.id)
-      .then(({ error }) => {
-        if (error) console.warn("Background auto-save failed:", error.message);
-        else toast.success("Saved", { duration: 1000 });
+      .then(async ({ error }) => {
+        if (error) {
+          try {
+            const { updateClinicSettingsServerFn } = await import("@/lib/clinic-settings.functions");
+            await updateClinicSettingsServerFn({
+              data: { clinicId: clinic.id, clinicSlug: clinic.slug, updates: payload },
+            });
+            toast.success("Saved", { duration: 1000 });
+          } catch (serverErr) {
+            console.warn("Background auto-save failed:", error.message);
+          }
+        } else {
+          toast.success("Saved", { duration: 1000 });
+        }
       });
   }
 
@@ -267,7 +279,7 @@ function SettingsPage() {
   async function handleUpload(field: "avatar_url" | "logo_url", file: File) {
     setUploading(field);
     try {
-      const url = await uploadClinicMedia(file, field === "avatar_url" ? "avatar" : "logo");
+      const url = await uploadClinicMedia(file, field === "avatar_url" ? "avatar" : "logo", clinic?.slug);
       update(field, url);
       toast.success("Uploaded");
     } catch (e) {
@@ -284,7 +296,7 @@ function SettingsPage() {
       const urls = await Promise.all(
         Array.from(files)
           .slice(0, 8)
-          .map((f) => uploadClinicMedia(f, "gallery")),
+          .map((f) => uploadClinicMedia(f, "gallery", clinic?.slug)),
       );
       setGallery((g) => [...g, ...urls]);
       toast.success(`Added ${urls.length} photo${urls.length > 1 ? "s" : ""}`);
@@ -321,7 +333,7 @@ function SettingsPage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
-    if (isDemoSession()) {
+    if (isDemoSession(clinic?.slug)) {
       toast.success(
         "Demo edits previewed! Refreshing the page will reset all changes to clean defaults.",
         { duration: 4000 },
@@ -338,47 +350,65 @@ function SettingsPage() {
       .toLowerCase()
       .replace(/^https?:\/\//, "")
       .replace(/\/$/, "");
-    const { error } = await supabase
+    const payload = {
+      doctor_name: form.doctor_name,
+      specialization: form.specialization,
+      qualification: form.qualification,
+      experience_years: Number(form.experience_years) || 0,
+      clinic_name: form.clinic_name,
+      // Personal (private — never returned by public read fn)
+      personal_phone: form.personal_phone || null,
+      personal_email: form.personal_email || null,
+      // Public (shown on website)
+      public_phone: form.public_phone || null,
+      public_email: form.public_email || null,
+      public_address: form.public_address || null,
+      // Mirror to legacy columns so older code keeps working
+      phone: form.public_phone || null,
+      email: form.public_email || null,
+      address: form.public_address || null,
+      consultation_fee: Number(form.consultation_fee) || 0,
+      bio: form.bio,
+      services: svc,
+      avatar_url: form.avatar_url,
+      logo_url: form.logo_url,
+      theme_color: form.theme_color,
+      hero_headline: form.hero_headline || null,
+      hero_subheadline: form.hero_subheadline || null,
+      about_text: form.about_text || null,
+      medical_registration_no: form.medical_registration_no || null,
+      custom_domain: domain || null,
+      template: form.template,
+      section_variants: form.section_variants as unknown as Record<string, string>,
+      gallery,
+      walkin_max_per_slot: Math.max(1, Number(form.walkin_max_per_slot) || 1),
+      walkin_start_time: form.walkin_start_time,
+      walkin_end_time: form.walkin_end_time,
+      walkin_weekends_enabled: form.walkin_weekends_enabled,
+      walkin_slot_minutes: Math.max(5, Number(form.walkin_slot_minutes) || 15),
+      ...scheduleUpdate(),
+    };
+    let { error } = await supabase
       .from("clinics")
-      .update({
-        doctor_name: form.doctor_name,
-        specialization: form.specialization,
-        qualification: form.qualification,
-        experience_years: Number(form.experience_years) || 0,
-        clinic_name: form.clinic_name,
-        // Personal (private — never returned by public read fn)
-        personal_phone: form.personal_phone || null,
-        personal_email: form.personal_email || null,
-        // Public (shown on website)
-        public_phone: form.public_phone || null,
-        public_email: form.public_email || null,
-        public_address: form.public_address || null,
-        // Mirror to legacy columns so older code keeps working
-        phone: form.public_phone || null,
-        email: form.public_email || null,
-        address: form.public_address || null,
-        consultation_fee: Number(form.consultation_fee) || 0,
-        bio: form.bio,
-        services: svc,
-        avatar_url: form.avatar_url,
-        logo_url: form.logo_url,
-        theme_color: form.theme_color,
-        hero_headline: form.hero_headline || null,
-        hero_subheadline: form.hero_subheadline || null,
-        about_text: form.about_text || null,
-        medical_registration_no: form.medical_registration_no || null,
-        custom_domain: domain || null,
-        template: form.template,
-        section_variants: form.section_variants as unknown as Record<string, string>,
-        gallery,
-        walkin_max_per_slot: Math.max(1, Number(form.walkin_max_per_slot) || 1),
-        walkin_start_time: form.walkin_start_time,
-        walkin_end_time: form.walkin_end_time,
-        walkin_weekends_enabled: form.walkin_weekends_enabled,
-        walkin_slot_minutes: Math.max(5, Number(form.walkin_slot_minutes) || 15),
-        ...scheduleUpdate(),
-      } as never)
+      .update(payload as never)
       .eq("id", clinic!.id);
+
+    if (error) {
+      try {
+        const { updateClinicSettingsServerFn } = await import("@/lib/clinic-settings.functions");
+        await updateClinicSettingsServerFn({
+          data: {
+            clinicId: clinic!.id,
+            clinicSlug: clinic!.slug,
+            updates: payload,
+          },
+        });
+        error = null;
+      } catch (err: any) {
+        error = err;
+      }
+    }
+
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Saved — your public site is updated");
@@ -394,7 +424,7 @@ function SettingsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isDemoSession() && (
+          {isDemoSession(clinic?.slug) && (
             <Button
               type="button"
               variant="outline"
@@ -499,7 +529,7 @@ function SettingsPage() {
                     label={form.avatar_url ? "Change Photo" : "Upload Photo"}
                     busy={uploading === "avatar_url"}
                     onFile={(f) => {
-                      if (prohibitInDemo("Photo upload")) return;
+                      if (prohibitInDemo("Photo upload", clinic?.slug)) return;
                       handleUpload("avatar_url", f);
                     }}
                   />
@@ -509,7 +539,7 @@ function SettingsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        if (prohibitInDemo("Photo removal")) return;
+                        if (prohibitInDemo("Photo removal", clinic?.slug)) return;
                         update("avatar_url", null);
                       }}
                       className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl"
@@ -803,7 +833,7 @@ function SettingsPage() {
                   label="Upload logo"
                   busy={uploading === "logo_url"}
                   onFile={(f) => {
-                    if (prohibitInDemo("Logo upload")) return;
+                    if (prohibitInDemo("Logo upload", clinic?.slug)) return;
                     handleUpload("logo_url", f);
                   }}
                 />
@@ -813,7 +843,7 @@ function SettingsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (prohibitInDemo("Logo removal")) return;
+                      if (prohibitInDemo("Logo removal", clinic?.slug)) return;
                       update("logo_url", null);
                     }}
                     className="text-destructive hover:text-destructive"
@@ -894,7 +924,7 @@ function SettingsPage() {
                 variant="outline"
                 disabled={uploading === "gallery" || gallery.length >= 12}
                 onClick={() => {
-                  if (prohibitInDemo("Gallery photo addition")) return;
+                  if (prohibitInDemo("Gallery photo addition", clinic?.slug)) return;
                   galleryInputRef.current?.click();
                 }}
               >
@@ -934,7 +964,7 @@ function SettingsPage() {
                       type="button"
                       aria-label="Remove photo"
                       onClick={() => {
-                        if (prohibitInDemo("Gallery photo removal")) return;
+                        if (prohibitInDemo("Gallery photo removal", clinic?.slug)) return;
                         setGallery((g) => g.filter((_, j) => j !== i));
                       }}
                       className="absolute top-1.5 right-1.5 size-8 rounded-full bg-black/70 hover:bg-black text-white grid place-items-center shadow-md transition"

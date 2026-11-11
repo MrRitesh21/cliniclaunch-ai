@@ -846,8 +846,10 @@ function DashboardLayout() {
   useEffect(() => {
     if (isDemoUser) {
       setDemoSessionFlags();
+    } else if (user) {
+      clearDemoSessionFlags();
     }
-  }, [isDemoUser]);
+  }, [isDemoUser, user]);
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-surface">

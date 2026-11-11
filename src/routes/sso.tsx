@@ -8,6 +8,7 @@ import { emailToDeterministicUuid } from "@/lib/sso-uuid";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { setDemoSessionFlags, clearDemoSessionFlags, DEMO_CREDENTIALS } from "@/lib/demo";
 
 export const Route = createFileRoute("/sso")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -103,7 +104,15 @@ function SsoAuthPage() {
           };
           localStorage.setItem("clinicx_sso_session", JSON.stringify(ssoSession));
           localStorage.setItem("clinicx_active_clinic_slug", activeSlug);
-          document.cookie = `is_demo_session=true; path=/; max-age=86400; SameSite=Lax`;
+
+          const isStaticDemo =
+            activeSlug === DEMO_CREDENTIALS.slug &&
+            email.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase();
+          if (isStaticDemo) {
+            setDemoSessionFlags();
+          } else {
+            clearDemoSessionFlags();
+          }
         } catch (storageErr) {
           console.warn("[SSO] Local storage notice:", storageErr);
         }

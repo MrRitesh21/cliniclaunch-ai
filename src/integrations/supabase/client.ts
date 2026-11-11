@@ -113,6 +113,21 @@ function isImpersonating() {
 
 function isDemoSessionActive() {
   if (typeof window === "undefined") return false;
+  try {
+    const activeSlug = localStorage.getItem("clinicx_active_clinic_slug");
+    if (activeSlug && activeSlug !== "demo-clinic") return false;
+
+    const ssoSessionRaw = localStorage.getItem("clinicx_sso_session");
+    if (ssoSessionRaw) {
+      const sso = JSON.parse(ssoSessionRaw);
+      if (
+        (sso.clinicSlug && sso.clinicSlug !== "demo-clinic") ||
+        (sso.email && sso.email.toLowerCase() !== "demo@digiwil.com")
+      ) {
+        return false;
+      }
+    }
+  } catch {}
   return (
     localStorage.getItem("is_demo_session") === "true" ||
     document.cookie.includes("is_demo_session=true")

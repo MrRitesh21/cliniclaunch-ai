@@ -24,16 +24,47 @@ export function clearDemoSessionFlags() {
 
 import { toast } from "sonner";
 
-export function isDemoSession(): boolean {
+export function isDemoSession(clinicSlug?: string, userEmail?: string): boolean {
   if (typeof window === "undefined") return false;
+
+  // 1. If an explicit clinic slug is provided, ONLY 'demo-clinic' is the restricted public demo
+  if (clinicSlug) {
+    return clinicSlug === DEMO_CREDENTIALS.slug;
+  }
+
+  // 2. If an explicit email is provided, ONLY demo@digiwil.com is the restricted public demo
+  if (userEmail) {
+    return userEmail.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase();
+  }
+
+  // 3. Check active clinic slug in localStorage (e.g. WAFlow custom clinics)
+  try {
+    const activeSlug = localStorage.getItem("clinicx_active_clinic_slug");
+    if (activeSlug && activeSlug !== DEMO_CREDENTIALS.slug) {
+      return false;
+    }
+
+    const ssoSessionRaw = localStorage.getItem("clinicx_sso_session");
+    if (ssoSessionRaw) {
+      const sso = JSON.parse(ssoSessionRaw);
+      if (sso.clinicSlug && sso.clinicSlug !== DEMO_CREDENTIALS.slug) {
+        return false;
+      }
+      if (sso.email && sso.email.toLowerCase() !== DEMO_CREDENTIALS.email.toLowerCase()) {
+        return false;
+      }
+    }
+  } catch {}
+
+  // 4. Fall back to demo session flags (only true for public demo account)
   return (
     localStorage.getItem("is_demo_session") === "true" ||
     document.cookie.includes("is_demo_session=true")
   );
 }
 
-export function prohibitInDemo(actionName: string = "Deletion"): boolean {
-  if (isDemoSession()) {
+export function prohibitInDemo(actionName: string = "Deletion", clinicSlug?: string): boolean {
+  if (isDemoSession(clinicSlug)) {
     toast.error(
       `${actionName} is prohibited in Live Demo Mode. Please start your 14-day free trial to manage your own clinic!`,
       {
