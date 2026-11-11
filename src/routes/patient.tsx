@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -319,6 +320,29 @@ const DISCOVERY_DOCTORS = [
 ];
 
 function PatientSuperAppPage() {
+  const [isPortalEnabled, setIsPortalEnabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("clinicx_flag_patient_portal_enabled") === "true";
+    }
+    return false;
+  });
+  const [checkingFlag, setCheckingFlag] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("feature_flags")
+      .select("is_enabled_globally")
+      .eq("key", "patient_portal_enabled")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && typeof data.is_enabled_globally === "boolean") {
+          setIsPortalEnabled(data.is_enabled_globally);
+          localStorage.setItem("clinicx_flag_patient_portal_enabled", String(data.is_enabled_globally));
+        }
+      })
+      .finally(() => setCheckingFlag(false));
+  }, []);
+
   const [family, setFamily] = useState<FamilyMember[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("clinicx_patient_family");
@@ -378,6 +402,78 @@ function PatientSuperAppPage() {
   const activeMember = useMemo(() => {
     return family.find((m) => m.id === activeMemberId) || family[0];
   }, [family, activeMemberId]);
+
+  // If patient portal is disabled by super admin, show controlled rollout screen
+  if (!isPortalEnabled) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-between p-6">
+        <header className="max-w-4xl mx-auto w-full flex items-center justify-between border-b border-white/10 pb-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="size-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
+              <Stethoscope className="size-4" />
+            </div>
+            <span className="font-bold text-lg text-white">ClinicX Practice OS</span>
+          </Link>
+          <Link to="/login">
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">
+              Doctor Sign in &rarr;
+            </Button>
+          </Link>
+        </header>
+
+        <main className="max-w-md mx-auto w-full my-auto py-12 text-center space-y-6">
+          <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+            <Lock className="size-8" />
+          </div>
+
+          <div className="space-y-2">
+            <Badge variant="outline" className="border-amber-500/30 text-amber-300 bg-amber-500/10 text-xs px-3 py-1">
+              Controlled by Super Admin
+            </Badge>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">
+              Patient Portal Rollout Paused
+            </h1>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Public patient accounts and universal health profiles are currently held in reserve. The platform is running exclusively for <strong>Doctor Practice Operations & Practice Growth</strong>.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col gap-3">
+            <Link to="/login">
+              <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 text-sm shadow-lg shadow-blue-900/50">
+                <Stethoscope className="size-4 mr-2" /> Doctor & Clinic Staff Login
+              </Button>
+            </Link>
+            <Link to="/">
+              <Button variant="outline" className="w-full border-white/20 text-slate-300 hover:bg-white/10 h-10 text-xs">
+                Back to Practice OS Home
+              </Button>
+            </Link>
+          </div>
+
+          {/* Admin Override Trigger */}
+          <div className="pt-8 border-t border-white/10 text-xs text-slate-500">
+            <p>Super Admin can toggle this feature flag anytime in <Link to="/_admin/admin/features" className="text-blue-400 underline">Admin Console</Link> or test locally:</p>
+            <button
+              onClick={() => {
+                const next = !isPortalEnabled;
+                setIsPortalEnabled(next);
+                localStorage.setItem("clinicx_flag_patient_portal_enabled", String(next));
+                toast.success(next ? "Patient Portal enabled locally (Super Admin Preview)" : "Patient Portal disabled");
+              }}
+              className="mt-2 text-[11px] text-slate-400 hover:text-white underline font-mono"
+            >
+              [Toggle Preview Mode for Testing]
+            </button>
+          </div>
+        </main>
+
+        <footer className="max-w-4xl mx-auto w-full text-center text-xs text-slate-600 border-t border-white/5 pt-4">
+          ClinicX Health OS • Built for Indian Practitioners
+        </footer>
+      </div>
+    );
+  }
 
   // Filter records for active family member
   const memberRecords = useMemo(() => {

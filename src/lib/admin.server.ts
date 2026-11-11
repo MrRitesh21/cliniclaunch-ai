@@ -1107,7 +1107,19 @@ export async function listFeatureFlagsImpl() {
     .from("feature_flags" as any)
     .select("*")
     .order("key");
-  return flags ?? [];
+
+  const allFlags = [...(flags ?? [])];
+  if (!allFlags.some((f: any) => f.key === "patient_portal_enabled")) {
+    allFlags.unshift({
+      key: "patient_portal_enabled",
+      name: "Patient Universal Health Portal",
+      description: "Enable patient-facing health accounts, ABHA card & public timeline (Controlled by Super Admin)",
+      is_enabled_globally: false,
+      enabled_for_plans: [],
+      enabled_for_doctor_ids: [],
+    });
+  }
+  return allFlags;
 }
 
 export async function toggleFeatureFlagImpl(input: any) {
@@ -1118,8 +1130,19 @@ export async function toggleFeatureFlagImpl(input: any) {
 
   await supabaseAdmin
     .from("feature_flags" as any)
-    .update({ is_enabled_globally: input.enabled, updated_at: new Date().toISOString() })
-    .eq("key", input.key);
+    .upsert(
+      {
+        key: input.key,
+        name: input.key === "patient_portal_enabled" ? "Patient Universal Health Portal" : input.key,
+        description:
+          input.key === "patient_portal_enabled"
+            ? "Enable patient-facing health accounts, ABHA card & public timeline"
+            : "",
+        is_enabled_globally: input.enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    );
 
   await createAuditLog(
     supabaseAdmin,

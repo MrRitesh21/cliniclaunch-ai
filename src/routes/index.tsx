@@ -479,27 +479,24 @@ function LandingContent() {
                 </span>
               </div>
 
-              {/* Patient Super App Callout */}
+              {/* Doctor Practice Operations & Growth Highlight */}
               <div className="pt-1">
-                <Link to="/patient">
-                  <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 transition-all flex items-center justify-between text-left group">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
-                        <HeartPulse className="size-4" />
+                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between text-left">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">
+                      <Stethoscope className="size-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        Built for Independent Indian Practitioners & Polyclinics
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0.2 rounded font-semibold">Live in 5 Mins</span>
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-blue-100 flex items-center gap-1.5">
-                          Are you a Patient? One Health Account & ABHA Hub
-                          <span className="text-[10px] bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.2 rounded font-semibold">New</span>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Access your digital prescriptions, lab reports, and universal timeline
-                        </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        30-sec Digital Rx • Live OPD Queue on TV • 24/7 WhatsApp Appointments • Zero-MDR Dynamic UPI
                       </div>
                     </div>
-                    <ArrowRight className="size-4 text-blue-600 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
                   </div>
-                </Link>
+                </div>
               </div>
 
               {/* Verifiable Product Facts & Trust Points */}

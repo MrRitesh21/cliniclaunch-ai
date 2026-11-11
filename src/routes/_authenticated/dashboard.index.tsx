@@ -18,6 +18,7 @@ import {
   Copy,
   ExternalLink,
   TrendingUp,
+  Star,
   ArrowRight,
   Zap,
   BarChart2,
@@ -449,6 +450,103 @@ function Overview() {
           />
         </div>
       )}
+
+      {/* Practice Operations & Practice Growth Dual Command */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Operations Command */}
+        <Card className="p-4 sm:p-5 border-border/80 bg-gradient-to-br from-card via-card to-blue-500/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 grid place-items-center font-bold">
+                <Stethoscope className="size-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-foreground">Clinic Operations Engine</h3>
+                <p className="text-[11px] text-muted-foreground">High-speed OPD workflows & patient intake</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-600 dark:text-blue-400">
+              Live Operations
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <Link
+              to="/dashboard/consult"
+              className="p-2.5 rounded-xl border border-border/70 bg-background hover:border-blue-500/40 hover:bg-blue-500/5 transition-all flex flex-col items-center text-center gap-1.5 group"
+            >
+              <Clock className="size-4 text-blue-600 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-foreground">OPD Queue</span>
+              <span className="text-[10px] text-muted-foreground">Call tokens</span>
+            </Link>
+
+            <Link
+              to="/dashboard/prescriptions"
+              className="p-2.5 rounded-xl border border-border/70 bg-background hover:border-blue-500/40 hover:bg-blue-500/5 transition-all flex flex-col items-center text-center gap-1.5 group"
+            >
+              <FileText className="size-4 text-blue-600 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-foreground">Fast Rx</span>
+              <span className="text-[10px] text-muted-foreground">30-sec slip</span>
+            </Link>
+
+            <Link
+              to="/dashboard/qr"
+              className="p-2.5 rounded-xl border border-border/70 bg-background hover:border-blue-500/40 hover:bg-blue-500/5 transition-all flex flex-col items-center text-center gap-1.5 group"
+            >
+              <QrCode className="size-4 text-blue-600 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-foreground">Standee QR</span>
+              <span className="text-[10px] text-muted-foreground">Desk check-in</span>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Growth Command */}
+        <Card className="p-4 sm:p-5 border-border/80 bg-gradient-to-br from-card via-card to-emerald-500/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center font-bold">
+                <TrendingUp className="size-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-foreground">Practice Growth Engine</h3>
+                <p className="text-[11px] text-muted-foreground">Automated patient retention, reviews & local SEO</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+              Auto Growth
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <Link
+              to="/dashboard/whatsapp"
+              className="p-2.5 rounded-xl border border-border/70 bg-background hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all flex flex-col items-center text-center gap-1.5 group"
+            >
+              <MessageSquare className="size-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-foreground">WhatsApp CRM</span>
+              <span className="text-[10px] text-muted-foreground">Auto follow-ups</span>
+            </Link>
+
+            <Link
+              to="/dashboard/reviews"
+              className="p-2.5 rounded-xl border border-border/70 bg-background hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all flex flex-col items-center text-center gap-1.5 group"
+            >
+              <Star className="size-4 text-amber-500 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-foreground">Google Reviews</span>
+              <span className="text-[10px] text-muted-foreground">5-star booster</span>
+            </Link>
+
+            <Link
+              to="/dashboard/seo"
+              className="p-2.5 rounded-xl border border-border/70 bg-background hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all flex flex-col items-center text-center gap-1.5 group"
+            >
+              <Search className="size-4 text-purple-600 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-semibold text-foreground">Local SEO</span>
+              <span className="text-[10px] text-muted-foreground">#1 Maps rank</span>
+            </Link>
+          </div>
+        </Card>
+      </div>
 
       {/* Today's Clinical Schedule Feed */}
       <Card className="overflow-hidden border-border shadow-xs">
