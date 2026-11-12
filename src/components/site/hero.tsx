@@ -37,10 +37,16 @@ export function HeroSplit({ clinic }: Props) {
               <Star className="size-3.5 text-primary fill-primary" /> 4.9 rating
             </span>
           </div>
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight">
+          <h1
+            data-live-field="hero_headline"
+            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight"
+          >
             {headline}
           </h1>
-          <p className="mt-4 sm:mt-5 text-sm sm:text-base md:text-lg text-foreground/75 leading-relaxed max-w-xl">
+          <p
+            data-live-field="hero_subheadline"
+            className="mt-4 sm:mt-5 text-sm sm:text-base md:text-lg text-foreground/75 leading-relaxed max-w-xl"
+          >
             {sub}
           </p>
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">

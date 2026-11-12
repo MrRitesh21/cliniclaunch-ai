@@ -18,10 +18,11 @@ import { PublishView } from "./views/PublishView";
 import { SettingsView } from "./views/SettingsView";
 import { DomainView } from "./views/DomainView";
 import { WebsiteWidgetView } from "./views/WebsiteWidgetView";
+import { LiveEditView } from "./views/LiveEditView";
 import { Loader2 } from "lucide-react";
 
 function WebsiteBuilderMainContent() {
-  const { activeTab, state, clinic, deviceMode, previewBust, previewToken } = useWebsiteBuilder();
+  const { activeTab, state, clinic, deviceMode, previewBust, previewToken, isLiveEditMode } = useWebsiteBuilder();
 
   if (!state) {
     return (
@@ -32,11 +33,13 @@ function WebsiteBuilderMainContent() {
   }
 
   const showSplitPreview = ["overview", "customize", "theme", "settings"].includes(activeTab);
-  const previewSrc = `/c/${clinic?.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}`;
+  const previewSrc = `/c/${clinic?.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}${isLiveEditMode ? "&edit=true" : ""}`;
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      {activeTab === "sections" ? (
+      {activeTab === "live-edit" ? (
+        <LiveEditView />
+      ) : activeTab === "sections" ? (
         <SectionsView />
       ) : (
         <div className="flex-1 flex flex-row min-h-0 overflow-hidden">

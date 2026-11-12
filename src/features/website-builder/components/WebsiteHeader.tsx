@@ -30,6 +30,7 @@ import type { DeviceMode } from "../types";
 export function WebsiteHeader() {
   const {
     activeTab,
+    setActiveTab,
     clinic,
     dirty,
     saving,
@@ -47,6 +48,8 @@ export function WebsiteHeader() {
     previewBust,
     previewToken,
     setIsFloatingAIOpen,
+    isLiveEditMode,
+    setIsLiveEditMode,
   } = useWebsiteBuilder();
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -158,6 +161,22 @@ export function WebsiteHeader() {
             <Redo2 className="size-3.5 text-muted-foreground" />
           </Button>
         </div>
+
+        {/* Live Visual Edit Trigger */}
+        <Button
+          size="sm"
+          variant={activeTab === "live-edit" ? "default" : "outline"}
+          onClick={() => setActiveTab(activeTab === "live-edit" ? "overview" : "live-edit")}
+          className={`h-9 px-3 gap-1.5 font-semibold text-xs rounded-xl ${
+            activeTab === "live-edit"
+              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+              : "border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
+          }`}
+          title="Visually edit your website directly on the canvas"
+        >
+          <Sparkles className="size-3.5 text-indigo-500" />
+          <span className="hidden sm:inline">⚡ Live Edit</span>
+        </Button>
 
         {/* AI Assistant Floating Trigger */}
         <Button

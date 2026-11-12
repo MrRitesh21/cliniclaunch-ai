@@ -16,7 +16,8 @@ export type WebsiteTab =
   | "publish"
   | "settings"
   | "domain"
-  | "widget";
+  | "widget"
+  | "live-edit";
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
 

@@ -18,6 +18,7 @@
     "check:auth-guards": "node scripts/check-auth-guards.mjs",
     "format": "prettier --write .",
     "doctor": "npx react-doctor@latest",
+    "live": "node .agent/skills/live-edit/scripts/live.mjs start",
     "check:secret-config": "node --test scripts/test-clinicx-secret-config.cjs",
     "test:oneclick-setup": "node --test scripts/test-clinicx-oneclick-clinic-setup.cjs"
   },

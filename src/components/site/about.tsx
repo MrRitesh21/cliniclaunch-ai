@@ -30,10 +30,10 @@ export function AboutSide({ clinic }: Props) {
       </div>
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-primary font-medium">About</p>
-        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl mt-2">
+        <h2 data-live-field="doctor_name" className="font-display text-2xl sm:text-3xl md:text-4xl mt-2">
           Meet {clinic.doctor_name}
         </h2>
-        <p className="mt-5 text-foreground/80 leading-relaxed whitespace-pre-line">
+        <p data-live-field="about_text" className="mt-5 text-foreground/80 leading-relaxed whitespace-pre-line">
           {aboutText(clinic)}
         </p>
         <div className="mt-6 flex flex-wrap gap-2 text-sm">

@@ -11,6 +11,7 @@ import { SITE_URL } from "@/lib/marketing-data";
 import { isPremiumTemplate } from "@/templates/registry";
 import { UniversalFloatingContact } from "@/components/site/UniversalFloatingContact";
 import { TemplateCustomizer } from "@/templates/shared/TemplateCustomizer";
+import { LiveEditOverlay } from "@/components/site/LiveEditOverlay";
 
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (
@@ -260,19 +261,22 @@ function ClinicLayout() {
         </main>
         <UniversalFloatingContact clinic={c} themeColor={theme} hasStickyBar={false} hideMobile={true} />
         {canCustomize && (
-          <TemplateCustomizer
-            clinic={c}
-            currentPalette={{
-              primary: theme,
-              secondary: "#0f172a",
-              accent: theme,
-              background: "#ffffff",
-              surface: "#ffffff",
-              text: "#0f172a",
-              mutedText: "#64748b",
-              border: "#e2e8f0",
-            }}
-          />
+          <>
+            <TemplateCustomizer
+              clinic={c}
+              currentPalette={{
+                primary: theme,
+                secondary: "#0f172a",
+                accent: theme,
+                background: "#ffffff",
+                surface: "#ffffff",
+                text: "#0f172a",
+                mutedText: "#64748b",
+                border: "#e2e8f0",
+              }}
+            />
+            <LiveEditOverlay clinic={c} />
+          </>
         )}
       </div>
     );
@@ -295,19 +299,22 @@ function ClinicLayout() {
 
       <UniversalFloatingContact clinic={c} themeColor={theme} hasStickyBar={showStickyBook} />
       {canCustomize && (
-        <TemplateCustomizer
-          clinic={c}
-          currentPalette={{
-            primary: theme,
-            secondary: "#0f172a",
-            accent: theme,
-            background: "#ffffff",
-            surface: "#ffffff",
-            text: "#0f172a",
-            mutedText: "#64748b",
-            border: "#e2e8f0",
-          }}
-        />
+        <>
+          <TemplateCustomizer
+            clinic={c}
+            currentPalette={{
+              primary: theme,
+              secondary: "#0f172a",
+              accent: theme,
+              background: "#ffffff",
+              surface: "#ffffff",
+              text: "#0f172a",
+              mutedText: "#64748b",
+              border: "#e2e8f0",
+            }}
+          />
+          <LiveEditOverlay clinic={c} />
+        </>
       )}
 
       {showStickyBook && (

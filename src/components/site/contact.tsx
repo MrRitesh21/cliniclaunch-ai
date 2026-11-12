@@ -11,7 +11,7 @@ function InfoLines({ clinic }: Props) {
       {clinic.public_phone && (
         <li className="flex items-center gap-3">
           <Phone className="size-4 text-primary" />{" "}
-          <a href={`tel:${clinic.public_phone}`} className="hover:text-primary">
+          <a data-live-field="public_phone" href={`tel:${clinic.public_phone}`} className="hover:text-primary">
             {clinic.public_phone}
           </a>
         </li>
@@ -19,14 +19,14 @@ function InfoLines({ clinic }: Props) {
       {clinic.public_email && (
         <li className="flex items-center gap-3">
           <Mail className="size-4 text-primary" />{" "}
-          <a href={`mailto:${clinic.public_email}`} className="hover:text-primary">
+          <a data-live-field="public_email" href={`mailto:${clinic.public_email}`} className="hover:text-primary">
             {clinic.public_email}
           </a>
         </li>
       )}
       {clinic.public_address && (
         <li className="flex items-start gap-3">
-          <MapPin className="size-4 text-primary mt-0.5" /> <span>{clinic.public_address}</span>
+          <MapPin className="size-4 text-primary mt-0.5" /> <span data-live-field="public_address">{clinic.public_address}</span>
         </li>
       )}
     </ul>
@@ -42,7 +42,7 @@ export function ContactInfoFirst({ clinic }: Props) {
           <p className="text-xs uppercase tracking-[0.18em] text-primary font-medium">
             Get in touch
           </p>
-          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl mt-2">
+          <h2 data-live-field="clinic_name" className="font-display text-2xl sm:text-3xl md:text-4xl mt-2">
             Visit {clinic.clinic_name}
           </h2>
           <p className="mt-3 text-muted-foreground">

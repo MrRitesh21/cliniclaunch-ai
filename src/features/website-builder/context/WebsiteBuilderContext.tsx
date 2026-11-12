@@ -113,6 +113,8 @@ type WebsiteBuilderContextType = {
   previewToken: string | null;
   isFloatingAIOpen: boolean;
   setIsFloatingAIOpen: (open: boolean) => void;
+  isLiveEditMode: boolean;
+  setIsLiveEditMode: (mode: boolean) => void;
   canUndo: boolean;
   canRedo: boolean;
   undo: () => void;
@@ -159,6 +161,7 @@ export function WebsiteBuilderProvider({
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
   const [selectedSectionKey, setSelectedSectionKey] = useState<SectionKey | null>(null);
   const [isFloatingAIOpen, setIsFloatingAIOpen] = useState(false);
+  const [isLiveEditMode, setIsLiveEditMode] = useState(true);
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -473,6 +476,25 @@ export function WebsiteBuilderProvider({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [save, undo, redo, authorityPending, entitlement]);
 
+  // Listen to live edits from iframe preview
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      if (!e.data || typeof e.data !== "object") return;
+      if (e.data.type === "CLINICX_LIVE_EDIT_UPDATE") {
+        if (e.data.updates && typeof e.data.updates === "object") {
+          patch(e.data.updates);
+        }
+      } else if (e.data.type === "CLINICX_LIVE_EDIT_SAVE") {
+        if (e.data.updates && typeof e.data.updates === "object") {
+          patch(e.data.updates);
+        }
+        void save();
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [patch, save]);
+
   return (
     <WebsiteBuilderContext.Provider
       value={{
@@ -494,6 +516,8 @@ export function WebsiteBuilderProvider({
         previewToken,
         isFloatingAIOpen,
         setIsFloatingAIOpen,
+        isLiveEditMode,
+        setIsLiveEditMode,
         canUndo,
         canRedo,
         undo,

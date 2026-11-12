@@ -20,6 +20,7 @@ import {
   PanelLeftOpen,
   ChevronDown,
   Code2,
+  MousePointerClick,
 } from "lucide-react";
 
 type NavItem = {
@@ -33,6 +34,7 @@ const essentialItems: NavItem[] = [
   { id: "overview", label: "Start here", icon: LayoutDashboard },
   { id: "templates", label: "1. Pick a look", icon: Palette },
   { id: "customize", label: "2. Clinic name & logo", icon: Sliders },
+  { id: "live-edit", label: "⚡ Live Visual Edit", icon: MousePointerClick, badge: "NEW" },
   { id: "sections", label: "3. Edit content", icon: LayoutGrid },
   { id: "settings", label: "4. Contact & popup", icon: Settings },
   { id: "publish", label: "5. Go live", icon: Rocket },

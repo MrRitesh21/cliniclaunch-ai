@@ -111,6 +111,8 @@ export function SectionsView() {
     previewBust,
     previewToken,
     setIsFloatingAIOpen,
+    isLiveEditMode,
+    setIsLiveEditMode,
   } = useWebsiteBuilder();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,7 +138,7 @@ export function SectionsView() {
     patch({ section_hidden: nextHidden });
   }
 
-  const previewSrc = `/c/${clinic?.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}`;
+  const previewSrc = `/c/${clinic?.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}${isLiveEditMode ? "&edit=true" : ""}`;
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
@@ -219,8 +221,23 @@ export function SectionsView() {
               <span className="size-2.5 rounded-full bg-amber-500/80 inline-block" />
               <span className="size-2.5 rounded-full bg-emerald-500/80 inline-block" />
             </div>
-            <span className="font-mono text-[10px]">/c/{clinic?.slug}</span>
-            <span className="text-[10px]">Live Preview</span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px]">/c/{clinic?.slug}</span>
+              <button
+                type="button"
+                onClick={() => setIsLiveEditMode(!isLiveEditMode)}
+                className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition cursor-pointer flex items-center gap-1 ${
+                  isLiveEditMode
+                    ? "bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+                title="Toggle visual in-canvas live editing"
+              >
+                <Sparkles className="size-2.5" />
+                {isLiveEditMode ? "Live Edit Active" : "Enable Live Edit"}
+              </button>
+            </div>
+            <span className="text-[10px]">Canvas</span>
           </div>
 
           <iframe
