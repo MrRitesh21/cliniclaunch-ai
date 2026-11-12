@@ -15,6 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
@@ -30,6 +37,13 @@ import {
   Users,
   Clock,
   Phone,
+  Eye,
+  Sparkles,
+  Palette,
+  MapPin,
+  Maximize2,
+  ShieldCheck,
+  Layers,
 } from "lucide-react";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -104,13 +118,492 @@ function QRAndWalkinsPage() {
 }
 
 // ─── QR Poster tab ────────────────────────────────────────────────────────────
+
+export type PosterTemplateId =
+  | "royal_emerald"
+  | "midnight_cyan"
+  | "clinical_pro"
+  | "luxury_gold"
+  | "friendly_warm"
+  | "minimal_clean"
+  | "gradient_sunset";
+
+export const POSTER_TEMPLATES: {
+  id: PosterTemplateId;
+  name: string;
+  tagline: string;
+  category: string;
+  badgeClass: string;
+  swatchGradient: string;
+  accentDot: string;
+}[] = [
+  {
+    id: "royal_emerald",
+    name: "Royal Emerald",
+    tagline: "Executive dark emerald with prestige gold accents",
+    category: "VIP Luxury",
+    badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    swatchGradient: "from-emerald-950 via-teal-900 to-slate-950 border-emerald-500/40 text-emerald-100",
+    accentDot: "bg-amber-400",
+  },
+  {
+    id: "midnight_cyan",
+    name: "Midnight Cyber",
+    tagline: "High-tech dark slate with neon cyan glow",
+    category: "Smart Clinic",
+    badgeClass: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
+    swatchGradient: "from-slate-950 via-slate-900 to-cyan-950 border-cyan-500/40 text-cyan-100",
+    accentDot: "bg-cyan-400",
+  },
+  {
+    id: "clinical_pro",
+    name: "Clinical Authority",
+    tagline: "Medical hospital sapphire banner with sterile white body",
+    category: "Hospital Pro",
+    badgeClass: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30",
+    swatchGradient: "from-sky-700 via-blue-800 to-sky-900 border-sky-400/40 text-white",
+    accentDot: "bg-sky-400",
+  },
+  {
+    id: "luxury_gold",
+    name: "Noir & Champagne Gold",
+    tagline: "Matte black elegance for boutique practices",
+    category: "Prestige Aesthetic",
+    badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    swatchGradient: "from-zinc-950 via-neutral-900 to-stone-950 border-amber-500/40 text-amber-100",
+    accentDot: "bg-amber-400",
+  },
+  {
+    id: "friendly_warm",
+    name: "Warm Wellness",
+    tagline: "Welcoming terracotta & soft amber cream",
+    category: "Care & Physio",
+    badgeClass: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30",
+    swatchGradient: "from-amber-100 via-orange-50 to-orange-100 border-orange-300 text-orange-950",
+    accentDot: "bg-orange-500",
+  },
+  {
+    id: "minimal_clean",
+    name: "Pure Studio",
+    tagline: "High-contrast monochrome, 100% ink-friendly",
+    category: "Laser B&W",
+    badgeClass: "bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30",
+    swatchGradient: "from-white via-slate-50 to-slate-100 border-slate-400 text-slate-900",
+    accentDot: "bg-slate-900",
+  },
+  {
+    id: "gradient_sunset",
+    name: "Sunset Aura",
+    tagline: "Vibrant violet-magenta modern creative gradient",
+    category: "Modern Creative",
+    badgeClass: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/30",
+    swatchGradient: "from-violet-950 via-purple-900 to-pink-950 border-fuchsia-400/40 text-fuchsia-100",
+    accentDot: "bg-fuchsia-400",
+  },
+];
+
+const HEADLINE_PRESETS = [
+  {
+    label: "📱 Quick OPD Token",
+    headline: "Scan to Check In",
+    subline: "Get your digital OPD queue token in 30 seconds",
+  },
+  {
+    label: "📅 Book Appointment",
+    headline: "Book Your Appointment",
+    subline: "Select doctor & preferred time slot on your phone",
+  },
+  {
+    label: "⚡ Touchless Check-in",
+    headline: "Touchless Reception Desk",
+    subline: "Scan with any smartphone camera — no app required",
+  },
+  {
+    label: "💬 WhatsApp Booking",
+    headline: "WhatsApp Clinic Assistant",
+    subline: "Scan to chat 24/7 with our AI reception assistant",
+  },
+];
+
+interface PosterPreviewCardProps {
+  clinic: any;
+  templateId: PosterTemplateId;
+  headline: string;
+  subline: string;
+  url: string;
+  showContactInfo?: boolean;
+  scale?: "compact" | "normal" | "large";
+  svgId?: string;
+}
+
+function PosterPreviewCard({
+  clinic,
+  templateId,
+  headline,
+  subline,
+  url,
+  showContactInfo = true,
+  scale = "normal",
+  svgId = "clinic-qr-svg",
+}: PosterPreviewCardProps) {
+  const clinicName = clinic.clinic_name ?? (clinic.doctor_name ? `Dr. ${clinic.doctor_name}` : "ClinicX Medical Care");
+  const doctorTitle = clinic.doctor_name && clinic.clinic_name ? `Dr. ${clinic.doctor_name}` : "";
+  const specialization = clinic.specialization || "";
+  const phone = clinic.phone || "";
+  const address = clinic.address || "";
+
+  const qrSize = scale === "large" ? 220 : scale === "compact" ? 140 : 180;
+
+  // 1. Royal Emerald
+  if (templateId === "royal_emerald") {
+    return (
+      <div className="w-full rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#064e3b] via-[#022c22] to-[#011a14] text-white text-center border-2 border-emerald-500/50 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
+        <div className="absolute -top-24 -right-24 size-48 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 size-48 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest shadow-xs">
+            <Sparkles className="size-3" /> Premium Healthcare
+          </div>
+          {clinic.logo_url && (
+            <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain my-2 brightness-0 invert drop-shadow" />
+          )}
+          <h2 className="text-xs uppercase tracking-widest font-semibold text-emerald-200">
+            {clinicName}
+          </h2>
+          {doctorTitle && (
+            <p className="text-[11px] text-emerald-300/80 font-medium">
+              {doctorTitle} {specialization ? `• ${specialization}` : ""}
+            </p>
+          )}
+          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight pt-1">
+            {headline}
+          </h1>
+          <p className="text-xs sm:text-sm text-emerald-100/80 max-w-[280px] mx-auto">{subline}</p>
+        </div>
+
+        <div className="relative z-10 my-5">
+          <div className="bg-white p-3.5 rounded-2xl shadow-2xl border-2 border-amber-400/40 inline-block mx-auto transform transition-transform hover:scale-[1.02]">
+            {url ? (
+              <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+            ) : null}
+          </div>
+          <p className="url text-[10px] font-mono text-emerald-300/70 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+        </div>
+
+        {showContactInfo && (phone || address) && (
+          <div className="relative z-10 pt-3 border-t border-emerald-500/30 flex items-center justify-center gap-3 text-[11px] text-emerald-200/90 flex-wrap">
+            {phone && (
+              <span className="flex items-center gap-1">
+                <Phone className="size-3 text-amber-300" /> {phone}
+              </span>
+            )}
+            {address && (
+              <span className="flex items-center gap-1 max-w-[220px] truncate">
+                <MapPin className="size-3 text-amber-300 shrink-0" /> {address}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. Midnight Cyber
+  if (templateId === "midnight_cyan") {
+    return (
+      <div className="w-full rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#090d16] via-[#0f172a] to-[#060911] text-white text-center border-2 border-cyan-500/40 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
+        <div className="absolute -top-20 -left-20 size-40 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 text-[10px] font-bold uppercase tracking-widest">
+            <QrCode className="size-3" /> Smart Check-In
+          </div>
+          {clinic.logo_url && (
+            <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain my-2 brightness-0 invert drop-shadow" />
+          )}
+          <h2 className="text-xs uppercase tracking-wider font-semibold text-cyan-200">
+            {clinicName}
+          </h2>
+          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight pt-1">
+            {headline}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-[280px] mx-auto">{subline}</p>
+        </div>
+
+        <div className="relative z-10 my-5">
+          <div className="bg-white p-3.5 rounded-2xl shadow-2xl border-2 border-cyan-400 inline-block mx-auto transform transition-transform hover:scale-[1.02]">
+            {url ? (
+              <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+            ) : null}
+          </div>
+          <p className="url text-[10px] font-mono text-cyan-300/70 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+        </div>
+
+        {showContactInfo && (phone || address) && (
+          <div className="relative z-10 pt-3 border-t border-cyan-500/20 flex items-center justify-center gap-3 text-[11px] text-slate-300 flex-wrap">
+            {phone && (
+              <span className="flex items-center gap-1">
+                <Phone className="size-3 text-cyan-400" /> {phone}
+              </span>
+            )}
+            {address && (
+              <span className="flex items-center gap-1 max-w-[220px] truncate">
+                <MapPin className="size-3 text-cyan-400 shrink-0" /> {address}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 3. Clinical Authority (Hospital Pro)
+  if (templateId === "clinical_pro") {
+    return (
+      <div className="w-full rounded-3xl border-2 border-sky-800/40 bg-white text-slate-900 shadow-xl overflow-hidden flex flex-col justify-between min-h-[460px]">
+        <div className="bg-gradient-to-r from-sky-700 via-sky-800 to-blue-900 text-white p-6 text-center space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 border border-white/30 text-white text-[9px] font-bold uppercase tracking-wider">
+            <ShieldCheck className="size-3" /> Verified Medical Facility
+          </div>
+          {clinic.logo_url && (
+            <img src={clinic.logo_url} alt="" className="h-9 mx-auto object-contain my-1 brightness-0 invert" />
+          )}
+          <h2 className="text-xs uppercase tracking-wider font-semibold text-sky-100">
+            {clinicName}
+          </h2>
+          <h1 className="text-2xl font-black text-white leading-tight">
+            {headline}
+          </h1>
+        </div>
+
+        <div className="p-6 text-center space-y-3 flex-1 flex flex-col justify-between">
+          <p className="text-xs sm:text-sm text-slate-600 font-medium max-w-[280px] mx-auto">{subline}</p>
+          <div className="my-3">
+            <div className="border-2 border-sky-200 bg-sky-50/50 p-3 rounded-2xl inline-block shadow-inner">
+              {url ? (
+                <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+              ) : null}
+            </div>
+            <p className="url text-[10px] font-mono text-slate-500 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+          </div>
+
+          {showContactInfo && (phone || address) && (
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-3 text-[11px] text-slate-500 flex-wrap">
+              {phone && (
+                <span className="flex items-center gap-1 font-semibold text-sky-800">
+                  <Phone className="size-3 text-sky-600" /> {phone}
+                </span>
+              )}
+              {address && (
+                <span className="flex items-center gap-1 max-w-[220px] truncate">
+                  <MapPin className="size-3 text-sky-600 shrink-0" /> {address}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Noir & Champagne Gold
+  if (templateId === "luxury_gold") {
+    return (
+      <div className="w-full rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#18181b] via-[#121214] to-[#09090b] text-white text-center border-2 border-amber-500/50 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-300 text-[10px] font-bold uppercase tracking-widest font-mono">
+            ★ Private Practice Elite
+          </div>
+          {clinic.logo_url && (
+            <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain my-2 brightness-0 invert drop-shadow" />
+          )}
+          <h2 className="text-xs uppercase tracking-widest font-medium text-amber-200/90 font-serif">
+            {clinicName}
+          </h2>
+          <h1 className="text-2xl sm:text-3xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 leading-tight pt-1">
+            {headline}
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-[280px] mx-auto">{subline}</p>
+        </div>
+
+        <div className="relative z-10 my-5">
+          <div className="bg-white p-3.5 rounded-2xl shadow-2xl border-2 border-amber-400 inline-block mx-auto transform transition-transform hover:scale-[1.02]">
+            {url ? (
+              <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+            ) : null}
+          </div>
+          <p className="url text-[10px] font-mono text-amber-400/80 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+        </div>
+
+        {showContactInfo && (phone || address) && (
+          <div className="relative z-10 pt-3 border-t border-amber-500/20 flex items-center justify-center gap-3 text-[11px] text-amber-200/80 flex-wrap font-serif">
+            {phone && (
+              <span className="flex items-center gap-1">
+                <Phone className="size-3 text-amber-400" /> {phone}
+              </span>
+            )}
+            {address && (
+              <span className="flex items-center gap-1 max-w-[220px] truncate">
+                <MapPin className="size-3 text-amber-400 shrink-0" /> {address}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 5. Warm Wellness (Friendly)
+  if (templateId === "friendly_warm") {
+    return (
+      <div className="w-full rounded-3xl p-6 sm:p-8 bg-[#fffdfa] text-center border-4 border-amber-200 shadow-md flex flex-col justify-between min-h-[460px]">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-300 text-orange-700 text-[10px] font-bold uppercase tracking-wider">
+            🌸 Welcome to Health &amp; Care
+          </div>
+          {clinic.logo_url && (
+            <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain my-2" />
+          )}
+          <h2 className="text-xs uppercase tracking-wider font-bold text-orange-600">
+            {clinicName}
+          </h2>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-950 leading-tight pt-1">
+            {headline}
+          </h1>
+          <p className="text-xs sm:text-sm text-amber-900/80 max-w-[280px] mx-auto font-medium">{subline}</p>
+        </div>
+
+        <div className="my-5">
+          <div className="border-2 border-orange-200 bg-orange-50/50 p-3 rounded-2xl inline-block shadow-xs">
+            {url ? (
+              <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+            ) : null}
+          </div>
+          <p className="url text-[10px] font-mono text-orange-600/80 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+        </div>
+
+        {showContactInfo && (phone || address) && (
+          <div className="pt-3 border-t border-orange-100 flex items-center justify-center gap-3 text-[11px] text-orange-800 flex-wrap">
+            {phone && (
+              <span className="flex items-center gap-1 font-semibold">
+                <Phone className="size-3 text-orange-600" /> {phone}
+              </span>
+            )}
+            {address && (
+              <span className="flex items-center gap-1 max-w-[220px] truncate">
+                <MapPin className="size-3 text-orange-600 shrink-0" /> {address}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 6. Sunset Aura (Modern Creative Gradient)
+  if (templateId === "gradient_sunset") {
+    return (
+      <div className="w-full rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-[#4c1d95] via-[#701a75] to-[#831843] text-white text-center border-2 border-fuchsia-400/40 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-bold uppercase tracking-wider">
+            ✨ Instant Digital OPD
+          </div>
+          {clinic.logo_url && (
+            <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain my-2 brightness-0 invert drop-shadow" />
+          )}
+          <h2 className="text-xs uppercase tracking-wider font-semibold text-fuchsia-200">
+            {clinicName}
+          </h2>
+          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight pt-1">
+            {headline}
+          </h1>
+          <p className="text-xs sm:text-sm text-fuchsia-100/90 max-w-[280px] mx-auto">{subline}</p>
+        </div>
+
+        <div className="relative z-10 my-5">
+          <div className="bg-white p-3.5 rounded-2xl shadow-2xl border-2 border-fuchsia-300 inline-block mx-auto transform transition-transform hover:scale-[1.02]">
+            {url ? (
+              <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+            ) : null}
+          </div>
+          <p className="url text-[10px] font-mono text-fuchsia-200/80 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+        </div>
+
+        {showContactInfo && (phone || address) && (
+          <div className="relative z-10 pt-3 border-t border-fuchsia-400/30 flex items-center justify-center gap-3 text-[11px] text-fuchsia-100 flex-wrap">
+            {phone && (
+              <span className="flex items-center gap-1">
+                <Phone className="size-3 text-pink-300" /> {phone}
+              </span>
+            )}
+            {address && (
+              <span className="flex items-center gap-1 max-w-[220px] truncate">
+                <MapPin className="size-3 text-pink-300 shrink-0" /> {address}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 7. Pure Studio Minimal (Laser B&W)
+  return (
+    <div className="w-full rounded-3xl p-6 sm:p-8 bg-white text-slate-900 text-center border-2 border-slate-900 shadow-lg flex flex-col justify-between min-h-[460px]">
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-md border border-slate-900 text-slate-900 text-[10px] font-mono font-bold uppercase tracking-wider">
+          CLINIC REGISTRATION
+        </div>
+        {clinic.logo_url && (
+          <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain my-2" />
+        )}
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-slate-600">
+          {clinicName}
+        </h2>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 leading-tight pt-1">
+          {headline}
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-600 max-w-[280px] mx-auto font-medium">{subline}</p>
+      </div>
+
+      <div className="my-5">
+        <div className="border-2 border-slate-300 p-3 rounded-2xl inline-block bg-white shadow-xs">
+          {url ? (
+            <QRCodeSVG id={svgId} value={url} size={qrSize} level="M" includeMargin />
+          ) : null}
+        </div>
+        <p className="url text-[10px] font-mono text-slate-500 break-all mt-2 max-w-[280px] mx-auto">{url}</p>
+      </div>
+
+      {showContactInfo && (phone || address) && (
+        <div className="pt-3 border-t border-slate-200 flex items-center justify-center gap-3 text-[11px] text-slate-600 flex-wrap">
+          {phone && (
+            <span className="flex items-center gap-1 font-semibold text-slate-900">
+              <Phone className="size-3 text-slate-700" /> {phone}
+            </span>
+          )}
+          {address && (
+            <span className="flex items-center gap-1 max-w-[220px] truncate">
+              <MapPin className="size-3 text-slate-700 shrink-0" /> {address}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic>> }) {
   const [mode, setMode] = useState<QRMode>("walkin");
   const [headline, setHeadline] = useState("Scan to check in");
   const [subline, setSubline] = useState("Book your visit in 30 seconds");
-  const [posterTemplate, setPosterTemplate] = useState<
-    "minimal" | "modern" | "medical" | "friendly"
-  >("minimal");
+  const [posterTemplate, setPosterTemplate] = useState<PosterTemplateId>("royal_emerald");
+  const [showContactInfo, setShowContactInfo] = useState(true);
+
+  // Preview Modal States
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewCandidateTemplate, setPreviewCandidateTemplate] = useState<PosterTemplateId>("royal_emerald");
+
   const printRef = useRef<HTMLDivElement>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -123,8 +616,8 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
   const copy = useCallback(() => {
     if (!url) return;
     navigator.clipboard.writeText(url).then(
-      () => toast.success("Link copied"),
-      () => toast.error("Could not copy"),
+      () => toast.success("Link copied to clipboard"),
+      () => toast.error("Could not copy link"),
     );
   }, [url]);
 
@@ -134,371 +627,699 @@ function PosterTab({ clinic }: { clinic: NonNullable<ReturnType<typeof useClinic
     const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${clinic.slug ?? "clinic"}-qr.svg`;
+    a.download = `${clinic.slug ?? "clinic"}-${posterTemplate}-qr.svg`;
     a.click();
     URL.revokeObjectURL(a.href);
-  }, [clinic.slug]);
+    toast.success("SVG poster QR downloaded!");
+  }, [clinic.slug, posterTemplate]);
+
+  // Open Preview Modal initialized to current or selected template
+  const handleOpenPreview = (tplId?: PosterTemplateId) => {
+    setPreviewCandidateTemplate(tplId || posterTemplate);
+    setPreviewModalOpen(true);
+  };
+
+  const handleApplyPreviewTemplate = () => {
+    setPosterTemplate(previewCandidateTemplate);
+    setPreviewModalOpen(false);
+    toast.success(`Applied ${POSTER_TEMPLATES.find((t) => t.id === previewCandidateTemplate)?.name || "template"}!`);
+  };
 
   const print = useCallback(() => {
     const qrSvgHtml = document.getElementById("clinic-qr-svg")?.outerHTML || "";
-    const logoHtml = clinic.logo_url ? `<img src="${clinic.logo_url}" class="logo" />` : "";
-    const clinicName = clinic.clinic_name ?? clinic.doctor_name ?? "";
+    const logoHtml = clinic.logo_url
+      ? `<img src="${clinic.logo_url}" class="logo" />`
+      : "";
+    const clinicName = clinic.clinic_name ?? (clinic.doctor_name ? `Dr. ${clinic.doctor_name}` : "ClinicX Medical Care");
+    const doctorTitle = clinic.doctor_name && clinic.clinic_name ? `Dr. ${clinic.doctor_name}` : "";
+    const specialization = clinic.specialization || "";
+    const phone = clinic.phone || "";
+    const address = clinic.address || "";
 
-    let style = "";
-    let bodyHtml = "";
+    const activeTpl = posterTemplate;
 
-    if (posterTemplate === "minimal") {
-      style = `
-        body{font-family:system-ui,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;min-height:100vh;}
-        .card{border:3px dashed #cbd5e1;border-radius:24px;padding:40px;text-align:center;max-width:400px;width:100%;background:#fff;}
-        .logo{height:48px;margin:0 auto 12px;display:block;}
-        .clinic{font-size:14px;color:#64748b;margin:0;font-weight:500;}
-        h1{font-size:28px;margin:8px 0;color:#0f172a;font-weight:700;}
-        .sub{margin:0 0 24px;color:#475569;font-size:16px;}
-        .qr{display:flex;justify-content:center;margin:32px 0;}
-        .qr svg{width:220px;height:220px;}
-        .url{font-family:ui-monospace,monospace;font-size:11px;color:#94a3b8;margin-top:24px;word-break:break-all;}
-        @media print { body{padding:0;} .card{border:3px dashed #000;box-shadow:none;} }
-      `;
-      bodyHtml = `
-        <div class="card">
-          ${logoHtml}
-          <p class="clinic">${clinicName}</p>
-          <h1>${headline}</h1>
-          <p class="sub">${subline}</p>
-          <div class="qr">${qrSvgHtml}</div>
-          <p class="url">${url}</p>
-        </div>
-      `;
-    } else if (posterTemplate === "modern") {
-      style = `
-        body{font-family:system-ui,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#090d16;}
-        .card{border:1px solid #312e81;border-radius:24px;padding:40px;text-align:center;max-width:400px;width:100%;background:linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);color:#fff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);}
-        .logo{height:48px;margin:0 auto 12px;display:block;filter:brightness(0) invert(1);}
-        .clinic{font-size:14px;color:#a5b4fc;margin:0;font-weight:500;}
-        h1{font-size:28px;margin:8px 0;color:#fff;font-weight:800;line-height:1.2;}
-        .sub{margin:0 0 24px;color:#c7d2fe;font-size:16px;opacity:0.8;}
-        .qr-wrap{background:#fff;padding:16px;border-radius:20px;display:inline-block;margin:24px auto;box-shadow:inset 0 2px 4px rgba(0,0,0,0.06);}
-        .qr svg{width:200px;height:200px;display:block;}
-        .url{font-family:ui-monospace,monospace;font-size:11px;color:#818cf8;margin-top:24px;word-break:break-all;opacity:0.8;}
-        @media print { 
-          body{padding:0;background:#fff;} 
-          .card{border:1px solid #cbd5e1;background:#fff;color:#000;box-shadow:none;} 
-          h1{color:#000;} 
-          .sub{color:#475569;}
-          .clinic{color:#64748b;}
-          .logo{filter:none;}
-          .url{color:#475569;}
+    let themeCss = "";
+    let bodyCardHtml = "";
+
+    if (activeTpl === "royal_emerald") {
+      themeCss = `
+        body { background: #011a14; }
+        .card {
+          background: linear-gradient(180deg, #064e3b 0%, #022c22 60%, #011a14 100%);
+          border: 3px solid #10b981;
+          color: #ffffff;
+          box-shadow: 0 25px 50px -12px rgba(6, 78, 59, 0.5);
+        }
+        .badge { background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; }
+        .clinic-name { color: #a7f3d0; }
+        h1 { color: #ffffff; }
+        .sub { color: rgba(209, 250, 229, 0.9); }
+        .qr-box { background: #ffffff; border: 3px solid #f59e0b; padding: 16px; border-radius: 20px; display: inline-block; }
+        .url { color: #6ee7b7; }
+        .footer { border-top: 1px solid rgba(16, 185, 129, 0.3); color: #a7f3d0; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `;
-      bodyHtml = `
-        <div class="card">
-          ${logoHtml}
-          <p class="clinic">${clinicName}</p>
-          <h1>${headline}</h1>
-          <p class="sub">${subline}</p>
-          <div class="qr-wrap">${qrSvgHtml}</div>
-          <p class="url">${url}</p>
-        </div>
-      `;
-    } else if (posterTemplate === "medical") {
-      style = `
-        body{font-family:system-ui,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;min-height:100vh;}
-        .card{border:3px solid #0f172a;border-radius:24px;overflow:hidden;max-width:400px;width:100%;background:#fff;display:flex;flex-direction:column;}
-        .header{background:#0f172a;color:#fff;padding:32px 24px;text-align:center;}
-        .logo{height:44px;margin:0 auto 12px;display:block;filter:brightness(0) invert(1);}
-        .clinic{font-size:12px;color:#94a3b8;margin:0;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;}
-        h1{font-size:26px;margin:8px 0 0;color:#fff;font-weight:700;}
-        .body{padding:40px 32px;text-align:center;display:flex;flex-direction:column;justify-content:between;flex:1;}
-        .sub{margin:0 0 24px;color:#334155;font-size:16px;font-weight:500;}
-        .qr{display:flex;justify-content:center;margin:24px 0;}
-        .qr svg{width:220px;height:220px;}
-        .url{font-family:ui-monospace,monospace;font-size:11px;color:#64748b;margin-top:24px;word-break:break-all;}
-        @media print { 
-          body{padding:0;} 
-          .card{border:3px solid #000;} 
-          .header{background:#000;color:#fff;}
-          .header .logo{filter:brightness(0) invert(1);}
+    } else if (activeTpl === "midnight_cyan") {
+      themeCss = `
+        body { background: #060911; }
+        .card {
+          background: linear-gradient(180deg, #090d16 0%, #0f172a 60%, #060911 100%);
+          border: 3px solid #06b6d4;
+          color: #ffffff;
+          box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.4);
+        }
+        .badge { background: rgba(6, 182, 212, 0.2); border: 1px solid #22d3ee; color: #67e8f9; }
+        .clinic-name { color: #a5f3fc; }
+        h1 { color: #ffffff; }
+        .sub { color: #cbd5e1; }
+        .qr-box { background: #ffffff; border: 3px solid #06b6d4; padding: 16px; border-radius: 20px; display: inline-block; }
+        .url { color: #67e8f9; }
+        .footer { border-top: 1px solid rgba(6, 182, 212, 0.3); color: #cbd5e1; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `;
-      bodyHtml = `
+    } else if (activeTpl === "clinical_pro") {
+      themeCss = `
+        body { background: #f8fafc; }
+        .card {
+          background: #ffffff;
+          border: 3px solid #0284c7;
+          color: #0f172a;
+          box-shadow: 0 20px 25px -5px rgba(2, 132, 199, 0.15);
+        }
+        .header-strip { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 32px 24px; text-align: center; }
+        .badge { background: rgba(255, 255, 255, 0.2); border: 1px solid #ffffff; color: #ffffff; }
+        .clinic-name { color: #e0f2fe; }
+        h1 { color: #ffffff; margin-top: 6px; }
+        .sub { color: #475569; font-weight: 500; }
+        .qr-box { background: #f0f9ff; border: 2px solid #bae6fd; padding: 16px; border-radius: 20px; display: inline-block; }
+        .url { color: #0284c7; }
+        .footer { border-top: 1px solid #e2e8f0; color: #64748b; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `;
+    } else if (activeTpl === "luxury_gold") {
+      themeCss = `
+        body { background: #09090b; }
+        .card {
+          background: linear-gradient(180deg, #18181b 0%, #121214 60%, #09090b 100%);
+          border: 3px solid #d4af37;
+          color: #ffffff;
+          font-family: Georgia, serif;
+          box-shadow: 0 25px 50px -12px rgba(212, 175, 55, 0.3);
+        }
+        .badge { background: rgba(212, 175, 55, 0.15); border: 1px solid #d4af37; color: #fde68a; font-family: monospace; }
+        .clinic-name { color: #fef08a; letter-spacing: 2px; }
+        h1 { color: #fef08a; font-family: Georgia, serif; }
+        .sub { color: #a1a1aa; font-family: sans-serif; }
+        .qr-box { background: #ffffff; border: 3px solid #d4af37; padding: 16px; border-radius: 20px; display: inline-block; }
+        .url { color: #fde68a; font-family: monospace; }
+        .footer { border-top: 1px solid rgba(212, 175, 55, 0.3); color: #fef08a; font-family: Georgia, serif; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `;
+    } else if (activeTpl === "friendly_warm") {
+      themeCss = `
+        body { background: #fffdfa; }
+        .card {
+          background: #fffdfa;
+          border: 4px solid #fed7aa;
+          color: #431407;
+          box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.1);
+        }
+        .badge { background: #ffedd5; border: 1px solid #fdba74; color: #c2410c; }
+        .clinic-name { color: #ea580c; }
+        h1 { color: #431407; }
+        .sub { color: #7c2d12; }
+        .qr-box { background: #fff7ed; border: 2px solid #fed7aa; padding: 16px; border-radius: 20px; display: inline-block; }
+        .url { color: #ea580c; }
+        .footer { border-top: 1px solid #fed7aa; color: #9a3412; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `;
+    } else if (activeTpl === "gradient_sunset") {
+      themeCss = `
+        body { background: #581c87; }
+        .card {
+          background: linear-gradient(135deg, #4c1d95 0%, #701a75 50%, #831843 100%);
+          border: 3px solid #e879f9;
+          color: #ffffff;
+          box-shadow: 0 25px 50px -12px rgba(112, 26, 117, 0.5);
+        }
+        .badge { background: rgba(255, 255, 255, 0.2); border: 1px solid #ffffff; color: #ffffff; }
+        .clinic-name { color: #f5d0fe; }
+        h1 { color: #ffffff; }
+        .sub { color: #fae8ff; }
+        .qr-box { background: #ffffff; border: 3px solid #f0abfc; padding: 16px; border-radius: 20px; display: inline-block; }
+        .url { color: #f5d0fe; }
+        .footer { border-top: 1px solid rgba(232, 121, 249, 0.3); color: #fae8ff; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `;
+    } else {
+      // Pure Studio Minimal
+      themeCss = `
+        body { background: #ffffff; }
+        .card {
+          background: #ffffff;
+          border: 3px solid #0f172a;
+          color: #0f172a;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .badge { border: 1px solid #0f172a; color: #0f172a; font-family: monospace; }
+        .clinic-name { color: #475569; }
+        h1 { color: #0f172a; }
+        .sub { color: #475569; }
+        .qr-box { background: #ffffff; border: 2px solid #cbd5e1; padding: 16px; border-radius: 16px; display: inline-block; }
+        .url { color: #64748b; }
+        .footer { border-top: 1px solid #e2e8f0; color: #64748b; }
+        @media print {
+          body { background: #ffffff !important; }
+          .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `;
+    }
+
+    const contactHtml = showContactInfo && (phone || address)
+      ? `<div class="footer">
+          ${phone ? `<span>📞 ${phone}</span>` : ""}
+          ${phone && address ? `<span> • </span>` : ""}
+          ${address ? `<span>📍 ${address}</span>` : ""}
+        </div>`
+      : "";
+
+    if (activeTpl === "clinical_pro") {
+      bodyCardHtml = `
         <div class="card">
-          <div class="header">
+          <div class="header-strip">
+            <span class="badge">VERIFIED MEDICAL FACILITY</span>
             ${logoHtml}
-            <p class="clinic">${clinicName}</p>
+            <div class="clinic-name">${clinicName}</div>
+            ${doctorTitle ? `<div style="font-size:12px;opacity:0.9;">${doctorTitle} ${specialization ? `• ${specialization}` : ""}</div>` : ""}
             <h1>${headline}</h1>
           </div>
-          <div class="body">
+          <div style="padding: 32px 28px; text-align: center;">
             <p class="sub">${subline}</p>
-            <div class="qr">${qrSvgHtml}</div>
+            <div class="qr-box">${qrSvgHtml}</div>
             <p class="url">${url}</p>
+            ${contactHtml}
           </div>
         </div>
       `;
-    } else if (posterTemplate === "friendly") {
-      style = `
-        body{font-family:system-ui,sans-serif;margin:0;padding:40px;display:flex;align-items:center;justify-content:center;min-height:100vh;}
-        .card{border:4px solid #ffedd5;border-radius:28px;padding:40px;text-align:center;max-width:400px;width:100%;background:#fffdfa;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);}
-        .logo{height:48px;margin:0 auto 12px;display:block;}
-        .clinic{font-size:14px;color:#ea580c;margin:0;font-weight:600;}
-        h1{font-size:28px;margin:8px 0;color:#431407;font-weight:800;line-height:1.25;}
-        .sub{margin:0 0 24px;color:#7c2d12;font-size:16px;}
-        .qr-wrap{border:3px solid rgba(254,215,170,0.5);background:#fff;padding:12px;border-radius:24px;display:inline-block;margin:24px auto;}
-        .qr svg{width:200px;height:200px;display:block;}
-        .url{font-family:ui-monospace,monospace;font-size:11px;color:#ea580c;margin-top:24px;word-break:break-all;opacity:0.8;}
-        @media print { body{padding:0;} .card{border:4px solid #fed7aa;box-shadow:none;} }
-      `;
-      bodyHtml = `
-        <div class="card">
+    } else {
+      bodyCardHtml = `
+        <div class="card" style="padding: 40px 32px; text-align: center;">
+          <span class="badge">CLINIC DIGITAL DESK</span>
           ${logoHtml}
-          <p class="clinic">${clinicName}</p>
-          <h1>${headline}</h1>
-          <p class="sub">${subline}</p>
-          <div class="qr-wrap">${qrSvgHtml}</div>
-          <p class="url">${url}</p>
+          <div class="clinic-name" style="margin-top: 12px; font-size: 13px; font-weight: 600; text-transform: uppercase;">
+            ${clinicName}
+          </div>
+          ${doctorTitle ? `<div style="font-size:12px;opacity:0.85;margin-top:2px;">${doctorTitle} ${specialization ? `• ${specialization}` : ""}</div>` : ""}
+          <h1 style="font-size: 28px; font-weight: 800; margin: 12px 0 6px; line-height: 1.2;">
+            ${headline}
+          </h1>
+          <p class="sub" style="font-size: 15px; margin: 0 0 24px;">${subline}</p>
+          <div class="qr-box">${qrSvgHtml}</div>
+          <p class="url" style="font-size: 11px; margin: 16px 0 0; word-break: break-all;">${url}</p>
+          ${contactHtml}
         </div>
       `;
     }
 
-    const w = window.open("", "_blank", "width=600,height=800");
-    if (!w) return toast.error("Pop-up blocked — allow pop-ups to print");
-    w.document
-      .write(`<!doctype html><html><head><title>Clinic QR — ${clinic.doctor_name ?? ""}</title>
-      <style>${style}</style></head><body>${bodyHtml}</body></html>`);
+    const printDoc = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Reception QR Poster — ${clinicName}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              margin: 0;
+              padding: 24px;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .card {
+              max-width: 440px;
+              width: 100%;
+              border-radius: 28px;
+              overflow: hidden;
+              margin: 0 auto;
+            }
+            .badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 9999px;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 1.5px;
+              margin-bottom: 12px;
+            }
+            .logo { height: 44px; margin: 8px auto; display: block; }
+            .qr-box svg { width: 220px; height: 220px; display: block; }
+            .footer {
+              margin-top: 24px;
+              padding-top: 16px;
+              font-size: 11px;
+              display: flex;
+              justify-content: center;
+              gap: 8px;
+              flex-wrap: wrap;
+            }
+            ${themeCss}
+          </style>
+        </head>
+        <body>
+          ${bodyCardHtml}
+          <script>
+            setTimeout(function() { window.print(); }, 350);
+          </script>
+        </body>
+      </html>
+    `;
+
+    const w = window.open("", "_blank", "width=680,height=880");
+    if (!w) return toast.error("Pop-up blocked — please allow pop-ups to print your poster");
+    w.document.write(printDoc);
     w.document.close();
     w.focus();
-    setTimeout(() => {
-      w.print();
-    }, 400);
   }, [
     clinic.clinic_name,
     clinic.doctor_name,
+    clinic.specialization,
+    clinic.phone,
+    clinic.address,
     clinic.logo_url,
     headline,
     subline,
     url,
     posterTemplate,
+    showContactInfo,
   ]);
 
   return (
-    <div className="space-y-4">
-      {/* QR mode selector */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setMode("book")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${mode === "book" ? "border-primary bg-primary/5 text-primary" : "hover:border-foreground/30"}`}
-        >
-          Full booking (any day)
-        </button>
-        <button
-          onClick={() => setMode("walkin")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${mode === "walkin" ? "border-primary bg-primary/5 text-primary" : "hover:border-foreground/30"}`}
-        >
-          <Clock className="size-3.5" />
-          Walk-in (today only)
-          <Badge variant="secondary" className="text-[10px]">
-            Fastest
-          </Badge>
-        </button>
-      </div>
-      <p className="text-sm text-muted-foreground -mt-1">
-        {mode === "walkin"
-          ? "Patients see today's remaining slots only — perfect for a poster at the reception desk."
-          : "Patients can pick any future date — use on business cards or take-home brochures."}
-      </p>
-
-      <div className="grid lg:grid-cols-[1fr,360px] gap-6">
-        {/* Left: controls */}
-        <Card className="p-6 space-y-5">
-          <div className="space-y-1.5">
-            <Label>Poster Template</Label>
-            <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-6">
+      {/* QR Mode Switcher Strip */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-muted/40 p-3.5 rounded-2xl border border-border/80">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Booking Destination:</span>
+            <div className="inline-flex p-1 bg-background rounded-xl border border-border">
               <button
                 type="button"
-                onClick={() => setPosterTemplate("minimal")}
-                className={`p-2.5 rounded-xl border text-xs font-medium text-center transition ${posterTemplate === "minimal" ? "border-primary bg-primary/5 text-primary" : "hover:border-foreground/30"}`}
+                onClick={() => setMode("walkin")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  mode === "walkin" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                Classic Minimalist
+                <Clock className="size-3.5" />
+                Walk-in (Today Only)
+                <Badge variant="secondary" className="text-[9px] px-1 py-0 font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                  Fastest
+                </Badge>
               </button>
               <button
                 type="button"
-                onClick={() => setPosterTemplate("modern")}
-                className={`p-2.5 rounded-xl border text-xs font-medium text-center transition ${posterTemplate === "modern" ? "border-primary bg-primary/5 text-primary" : "hover:border-foreground/30"}`}
+                onClick={() => setMode("book")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  mode === "book" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                Modern Gradient
-              </button>
-              <button
-                type="button"
-                onClick={() => setPosterTemplate("medical")}
-                className={`p-2.5 rounded-xl border text-xs font-medium text-center transition ${posterTemplate === "medical" ? "border-primary bg-primary/5 text-primary" : "hover:border-foreground/30"}`}
-              >
-                Medical Professional
-              </button>
-              <button
-                type="button"
-                onClick={() => setPosterTemplate("friendly")}
-                className={`p-2.5 rounded-xl border text-xs font-medium text-center transition ${posterTemplate === "friendly" ? "border-primary bg-primary/5 text-primary" : "hover:border-foreground/30"}`}
-              >
-                Friendly &amp; Warm
+                Full Booking (Any Date)
               </button>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="qr-headline">Poster headline</Label>
-            <Input
-              id="qr-headline"
-              value={headline}
-              maxLength={60}
-              onChange={(e) => setHeadline(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="qr-subline">Subheading</Label>
-            <Input
-              id="qr-subline"
-              value={subline}
-              maxLength={100}
-              onChange={(e) => setSubline(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Link</Label>
-            <div className="flex gap-2">
-              <Input readOnly value={url} className="font-mono text-xs" />
-              <Button type="button" variant="outline" size="icon" onClick={copy} title="Copy link">
-                <Copy className="size-4" />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {mode === "walkin"
+              ? "Patients scan to see today's available slots & queue tokens — ideal for reception desks."
+              : "Patients can choose upcoming dates & schedule future consults — ideal for visiting cards & flyers."}
+          </p>
+        </div>
+
+        {/* Top Quick Actions */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleOpenPreview()}
+            className="h-8 text-xs gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 font-semibold"
+          >
+            <Eye className="size-3.5" /> Live Preview
+          </Button>
+          <Button
+            size="sm"
+            onClick={print}
+            className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground rounded-xl shadow-xs font-bold hover:opacity-95"
+          >
+            <Printer className="size-3.5" /> Print Poster
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Grid: Controls (Left) + Interactive Live Preview (Right) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr,380px] gap-6 items-start">
+        {/* Left Column: Design & Content Controls */}
+        <div className="space-y-6">
+          {/* 1. Visual Template Picker */}
+          <Card className="p-5 border-border/80 rounded-2xl shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <Palette className="size-4 text-primary" /> Poster Aesthetic &amp; Theme
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Choose from 7 clinical &amp; executive styles designed for reception counters.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleOpenPreview()}
+                className="h-7 text-xs text-primary gap-1 font-semibold"
+              >
+                <Maximize2 className="size-3" /> Fullscreen Preview
               </Button>
-              <a href={url} target="_blank" rel="noreferrer">
-                <Button type="button" variant="outline" size="icon" title="Open">
-                  <ExternalLink className="size-4" />
-                </Button>
-              </a>
+            </div>
+
+            {/* Template Card Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {POSTER_TEMPLATES.map((tpl) => {
+                const isSelected = posterTemplate === tpl.id;
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => setPosterTemplate(tpl.id)}
+                    className={`group relative rounded-2xl p-3 border transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                      isSelected
+                        ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20"
+                        : "border-border/80 bg-card hover:border-primary/40 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div>
+                      {/* Mini Swatch Bar */}
+                      <div className={`h-12 rounded-xl bg-gradient-to-r ${tpl.swatchGradient} border p-2 flex items-center justify-between mb-2 shadow-inner`}>
+                        <span className={`size-3 rounded-full ${tpl.accentDot} shadow-xs ring-2 ring-white/40`} />
+                        <span className="text-[9px] font-bold uppercase tracking-wider opacity-90 px-1.5 py-0.5 bg-black/30 rounded backdrop-blur-xs">
+                          {tpl.category}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">
+                          {tpl.name}
+                        </span>
+                        {isSelected && (
+                          <div className="size-4 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                            <Check className="size-2.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                        {tpl.tagline}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[10px]">
+                      <Badge variant="outline" className={`text-[9px] py-0 px-1.5 font-medium ${tpl.badgeClass}`}>
+                        {tpl.category}
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPreview(tpl.id);
+                        }}
+                        className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                      >
+                        <Eye className="size-3" /> Preview
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* 2. Text & Content Customizer */}
+          <Card className="p-5 border-border/80 rounded-2xl shadow-xs space-y-4">
+            <div>
+              <Label className="text-sm font-bold text-foreground">Poster Messaging &amp; Content</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Customize headlines, subheadings, or pick from popular reception presets.
+              </p>
+            </div>
+
+            {/* Quick 1-Tap Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                Quick 1-Tap Presets:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {HEADLINE_PRESETS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setHeadline(p.headline);
+                      setSubline(p.subline);
+                      toast.info(`Preset applied: ${p.label}`);
+                    }}
+                    className="text-xs px-2.5 py-1 rounded-lg border border-border/80 bg-muted/40 hover:bg-primary/10 hover:border-primary/30 transition-colors font-medium text-foreground"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="qr-headline" className="text-xs">Poster Headline</Label>
+                <Input
+                  id="qr-headline"
+                  value={headline}
+                  maxLength={60}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  className="h-9 text-xs"
+                  placeholder="e.g. Scan to check in"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="qr-subline" className="text-xs">Subheading</Label>
+                <Input
+                  id="qr-subline"
+                  value={subline}
+                  maxLength={100}
+                  onChange={(e) => setSubline(e.target.value)}
+                  className="h-9 text-xs"
+                  placeholder="e.g. Book your visit in 30 seconds"
+                />
+              </div>
+            </div>
+
+            {/* Link & Contact Info Options */}
+            <div className="space-y-3 pt-2 border-t border-border/60">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Target Booking Link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={url} className="font-mono text-[11px] h-9 bg-muted/30" />
+                  <Button type="button" variant="outline" size="sm" onClick={copy} className="h-9 px-3 gap-1 text-xs">
+                    <Copy className="size-3.5" /> Copy
+                  </Button>
+                  <a href={url} target="_blank" rel="noreferrer">
+                    <Button type="button" variant="outline" size="sm" className="h-9 px-3 gap-1 text-xs">
+                      <ExternalLink className="size-3.5" /> Test Link
+                    </Button>
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground select-none">
+                  <input
+                    type="checkbox"
+                    checked={showContactInfo}
+                    onChange={(e) => setShowContactInfo(e.target.checked)}
+                    className="size-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span>Display clinic contact info (Phone &amp; Address) on poster</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex items-center gap-2 pt-3 border-t border-border/60 flex-wrap">
+              <Button onClick={print} className="h-9 text-xs gap-1.5 bg-primary text-primary-foreground font-bold shadow-xs">
+                <Printer className="size-3.5" /> Print A4 Poster
+              </Button>
+              <Button variant="outline" onClick={downloadSvg} className="h-9 text-xs gap-1.5">
+                <Download className="size-3.5" /> Download SVG
+              </Button>
+              <Button variant="outline" onClick={() => handleOpenPreview()} className="h-9 text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/5">
+                <Maximize2 className="size-3.5" /> Preview Fullscreen
+              </Button>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column: Live Sticky Poster Card */}
+        <div className="space-y-3 sticky top-4">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Eye className="size-3.5 text-primary" /> Live Reception Preview
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleOpenPreview()}
+              className="h-6 px-2 text-[11px] text-primary font-semibold hover:bg-primary/10"
+            >
+              <Maximize2 className="size-3 mr-1" /> Expand
+            </Button>
+          </div>
+
+          <div
+            ref={printRef}
+            onClick={() => handleOpenPreview()}
+            className="cursor-pointer group relative transition-transform duration-200 hover:-translate-y-0.5"
+            title="Click to preview fullscreen"
+          >
+            <PosterPreviewCard
+              clinic={clinic}
+              templateId={posterTemplate}
+              headline={headline}
+              subline={subline}
+              url={url}
+              showContactInfo={showContactInfo}
+              scale="normal"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-3xl grid place-items-center opacity-0 group-hover:opacity-100 pointer-events-none">
+              <span className="px-3 py-1.5 rounded-xl bg-black/70 text-white text-xs font-bold backdrop-blur-xs flex items-center gap-1.5 shadow-lg">
+                <Eye className="size-3.5" /> Click for Fullscreen Preview
+              </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={print}>
-              <Printer className="size-4" /> Print poster
-            </Button>
-            <Button variant="outline" onClick={downloadSvg}>
-              <Download className="size-4" /> Download SVG
-            </Button>
+
+          <div className="p-3 bg-muted/40 border border-border/80 rounded-xl text-[11px] text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground flex items-center gap-1">
+              <ShieldCheck className="size-3.5 text-emerald-600" /> Print-Ready Vector Guarantee:
+            </p>
+            <p>Prints crisp at any paper size (A4, A5, Acrylic Standee, or Desk Tent Card) with 100% camera scan rate.</p>
           </div>
-          <div className="rounded-xl border bg-muted/40 p-4 text-sm">
-            <p className="font-medium mb-2">How it works</p>
-            <ol className="list-decimal pl-5 space-y-1.5 text-muted-foreground">
-              <li>Print the poster and place it at your reception.</li>
-              <li>Patient opens their phone camera and scans the QR.</li>
-              <li>They pick a slot, enter name + phone, and check in.</li>
-              <li>You get a WhatsApp alert and the appointment appears in your dashboard.</li>
-            </ol>
-          </div>
-        </Card>
-
-        {/* Right: live poster preview */}
-        <Card className="p-0 overflow-hidden flex items-center justify-center bg-muted/20">
-          <div ref={printRef} className="w-full max-w-[360px] p-8 my-6">
-            {posterTemplate === "minimal" && (
-              <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 bg-background text-center">
-                {clinic.logo_url ? (
-                  <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain mb-2" />
-                ) : null}
-                <p className="text-sm font-medium text-muted-foreground">
-                  {clinic.clinic_name ?? clinic.doctor_name}
-                </p>
-                <h1 className="font-display text-2xl font-bold text-slate-900 mt-1 leading-tight">
-                  {headline}
-                </h1>
-                <p className="text-sm text-slate-500 mt-1">{subline}</p>
-                <div className="qr flex justify-center my-6">
-                  {url ? (
-                    <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin />
-                  ) : null}
-                </div>
-                <p className="url text-[10px] font-mono text-slate-400 break-all">{url}</p>
-              </div>
-            )}
-
-            {posterTemplate === "modern" && (
-              <div className="border border-indigo-500/30 rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-indigo-950 text-white text-center shadow-2xl">
-                {clinic.logo_url ? (
-                  <img
-                    src={clinic.logo_url}
-                    alt=""
-                    className="h-10 mx-auto object-contain mb-2 brightness-0 invert"
-                  />
-                ) : null}
-                <p className="text-sm font-medium text-indigo-300/80">
-                  {clinic.clinic_name ?? clinic.doctor_name}
-                </p>
-                <h1 className="font-display text-2xl font-extrabold text-white mt-1 leading-tight">
-                  {headline}
-                </h1>
-                <p className="text-sm text-indigo-200/70 mt-1">{subline}</p>
-                <div className="qr flex justify-center my-6 bg-white p-3 rounded-xl inline-block mx-auto shadow-inner">
-                  {url ? (
-                    <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin />
-                  ) : null}
-                </div>
-                <p className="url text-[10px] font-mono text-indigo-300/60 break-all">{url}</p>
-              </div>
-            )}
-
-            {posterTemplate === "medical" && (
-              <div className="border-2 border-slate-900 rounded-2xl overflow-hidden bg-background text-center flex flex-col shadow-md">
-                <div className="bg-slate-900 py-5 px-4 text-white">
-                  {clinic.logo_url ? (
-                    <img
-                      src={clinic.logo_url}
-                      alt=""
-                      className="h-9 mx-auto object-contain mb-2 brightness-0 invert"
-                    />
-                  ) : null}
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    {clinic.clinic_name ?? clinic.doctor_name}
-                  </p>
-                  <h1 className="font-display text-xl font-bold mt-1 leading-tight">{headline}</h1>
-                </div>
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <p className="text-sm text-slate-600 font-medium">{subline}</p>
-                  <div className="qr flex justify-center my-6">
-                    {url ? (
-                      <QRCodeSVG
-                        id="clinic-qr-svg"
-                        value={url}
-                        size={180}
-                        level="M"
-                        includeMargin
-                      />
-                    ) : null}
-                  </div>
-                  <p className="url text-[10px] font-mono text-slate-500 break-all">{url}</p>
-                </div>
-              </div>
-            )}
-
-            {posterTemplate === "friendly" && (
-              <div className="border-4 border-orange-100 rounded-2xl p-6 bg-[#FFFDFB] text-center shadow-sm">
-                {clinic.logo_url ? (
-                  <img src={clinic.logo_url} alt="" className="h-10 mx-auto object-contain mb-2" />
-                ) : null}
-                <p className="text-sm font-semibold text-orange-600/90">
-                  {clinic.clinic_name ?? clinic.doctor_name}
-                </p>
-                <h1 className="font-display text-2xl font-bold text-orange-950 mt-1 leading-tight">
-                  {headline}
-                </h1>
-                <p className="text-sm text-orange-800/80 mt-1">{subline}</p>
-                <div className="qr flex justify-center my-6 border-2 border-orange-200/50 p-2 rounded-2xl bg-white">
-                  {url ? (
-                    <QRCodeSVG id="clinic-qr-svg" value={url} size={180} level="M" includeMargin />
-                  ) : null}
-                </div>
-                <p className="url text-[10px] font-mono text-orange-600/70 break-all">{url}</p>
-              </div>
-            )}
-          </div>
-        </Card>
+        </div>
       </div>
+
+      {/* ================= PREVIEW BEFORE APPLYING MODAL (DIALOG) ================= */}
+      <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <Palette className="size-5 text-primary" /> Poster Live Preview &amp; Style Studio
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Preview how this poster looks at full resolution. Test any of the 7 styles below before applying or printing.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Interactive Style Switcher Strip */}
+          <div className="space-y-2 py-2">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+              Switch &amp; Test Style in Real-Time:
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {POSTER_TEMPLATES.map((t) => {
+                const isCandidate = previewCandidateTemplate === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setPreviewCandidateTemplate(t.id)}
+                    className={`p-2 rounded-xl border text-left transition-all flex items-center gap-2 ${
+                      isCandidate
+                        ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary"
+                        : "border-border bg-card hover:bg-muted/40"
+                    }`}
+                  >
+                    <span className={`size-3.5 rounded-full ${t.accentDot} shrink-0 ring-1 ring-black/10`} />
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-bold text-foreground truncate">{t.name}</div>
+                      <div className="text-[9px] text-muted-foreground truncate">{t.category}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Large Realistic Render */}
+          <div className="my-2 max-w-[420px] mx-auto w-full">
+            <PosterPreviewCard
+              clinic={clinic}
+              templateId={previewCandidateTemplate}
+              headline={headline}
+              subline={subline}
+              url={url}
+              showContactInfo={showContactInfo}
+              scale="large"
+              svgId="clinic-qr-preview-dialog-svg"
+            />
+          </div>
+
+          {/* Dialog Action Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/80">
+            <div className="text-xs text-muted-foreground">
+              Current applied style: <b className="text-foreground">{POSTER_TEMPLATES.find((t) => t.id === posterTemplate)?.name}</b>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewModalOpen(false)}
+                className="h-8 text-xs"
+              >
+                Close
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={print}
+                className="h-8 text-xs gap-1.5"
+              >
+                <Printer className="size-3.5" /> Print This Style
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleApplyPreviewTemplate}
+                className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground font-bold shadow-xs hover:opacity-95"
+              >
+                <Check className="size-3.5" /> Apply Style
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
