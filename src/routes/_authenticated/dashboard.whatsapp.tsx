@@ -512,13 +512,13 @@ function WhatsAppPage() {
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-display text-3xl font-bold tracking-tight">WhatsApp AI Assistant</h1>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">WhatsApp AI Assistant</h1>
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold px-2 py-0.5">
-                RAG & Memory Powered
+                24/7 Smart Auto-Reply
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Clinical-grade conversational AI with RAG knowledge retrieval, multi-turn memory & strict confidentiality guardrails.
+              Your automated clinic assistant. Answers patient questions, doctor fees & timings, and confirms appointments 24/7.
             </p>
           </div>
         </div>
