@@ -209,17 +209,18 @@ const CONFIDENTIALITY_PATTERNS = [
 
 const OFF_TOPIC_PATTERNS = [
   // Programming & tech tasks
-  /\b(write|create|generate|fix|debug)\s+(python|javascript|typescript|c\+\+|java|html|css|sql|script|code|algorithm)\b/i,
-  /\b(function|loop|variable|react component|tailwind class|docker|kubernetes)\b/i,
+  /\b(write|create|generate|fix|debug|solve)\s+(a\s+|an\s+|the\s+)?(python|javascript|typescript|c\+\+|java|html|css|sql|script|code|algorithm|program|app|website|software)\b/i,
+  /\b(python script|python code|react component|tailwind class|docker|kubernetes|sql query)\b/i,
+  /\b(solve|calculate)\s+(quadratic|equation|integral|derivative|algebra|math problem)\b/i,
   // General homework & essays
   /\b(write an? essay|write poem|homework help|who is the president|who was akbar|capital of|solve this equation)\b/i,
-  /\b(explain quantum physics|speed of light|solar system|astronomy)\b/i,
+  /\b(explain quantum physics|speed of light|solar system|astronomy|theory of relativity)\b/i,
   // Politics & current events outside clinic
-  /\b(modi|bjp|congress|election result|parliament|vote for|political party)\b/i,
+  /\b(modi|bjp|congress|election result|parliament|vote for|political party|prime minister)\b/i,
   // Entertainment & Sports
   /\b(cricket score|ipl match|who won the match|bollywood movie|box office|actor gossip)\b/i,
   // Crypto & Finance trading
-  /\b(bitcoin|ethereum|crypto coin|stock market tips|trading strategy|buy shares)\b/i,
+  /\b(bitcoin|ethereum|crypto coin|stock market tips|trading strategy|buy shares|mutual funds investment)\b/i,
   // General e-commerce & random sales
   /\b(buy shoes|amazon discount|flipkart offer|hotel booking in goa|flight ticket)\b/i,
 ];
