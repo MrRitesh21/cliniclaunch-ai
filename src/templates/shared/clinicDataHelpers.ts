@@ -483,9 +483,13 @@ export function resolveTemplatePalette(
     primaryColor = customPalette.primary;
   }
 
-  // If clinic has a customized theme_color that is not the generic default
-  if (!primaryColor && clinic?.theme_color && clinic.theme_color !== "#2563eb") {
-    primaryColor = clinic.theme_color;
+  // If clinic has a customized theme_color that differs from template base
+  if (!primaryColor && clinic?.theme_color) {
+    if (clinic.theme_color !== basePalette.primary) {
+      primaryColor = clinic.theme_color;
+    } else if (clinic.theme_color !== "#2563eb") {
+      primaryColor = clinic.theme_color;
+    }
   }
 
   const merged: TemplatePalette = {
@@ -498,8 +502,16 @@ export function resolveTemplatePalette(
     if (!customPalette.accent) {
       merged.accent = primaryColor;
     }
+    // Set CSS variables for instant propagation across child components
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--primary", primaryColor);
+      document.documentElement.style.setProperty("--ring", primaryColor);
+    }
   }
 
   return merged;
 }
+
+export { useTemplatePalette } from "./useTemplatePalette";
+
 

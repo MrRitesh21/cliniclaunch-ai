@@ -32,6 +32,7 @@ import {
   getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,10 +64,7 @@ export function EditorialStudioTemplate(props: TemplateProps) {
 
   const inkBlack = "#111111";
   const museumOffWhite = "#f7f6f2";
-  const cobalt = "#2563eb";
-
-
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#111111",
     "secondary": "#2563eb",
     "accent": "#d97706",
@@ -76,6 +74,7 @@ export function EditorialStudioTemplate(props: TemplateProps) {
     "mutedText": "#444444",
     "border": "#e5e4de"
 }, clinic);
+  const cobalt = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Avant-Garde Architectural Serif",
     "bodyFont": "Space Grotesk / Mono",
@@ -83,8 +82,10 @@ export function EditorialStudioTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#111111] font-sans antialiased selection:bg-blue-600 selection:text-white"
-      style={{ backgroundColor: museumOffWhite }}
+      className="min-h-screen text-[#111111] font-sans antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden"
+      style={{ backgroundColor: museumOffWhite ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* ─── AVANT-GARDE EDITORIAL HEADER ──────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-[#f7f6f2]/95 backdrop-blur-md border-b border-[#e5e4de]">
@@ -395,12 +396,12 @@ export function EditorialStudioTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor="#111111"
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor="#111111"
+        primaryColor={palette.primary}
       />
     </div>
   );

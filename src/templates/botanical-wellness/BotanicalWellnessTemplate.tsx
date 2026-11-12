@@ -32,6 +32,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,7 +63,7 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#52796f",
     "secondary": "#3f4f3e",
     "accent": "#b45309",
@@ -79,8 +80,10 @@ export function BotanicalWellnessTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#2d372e] bg-[#faf9f6] selection:bg-[#d8e2dc] selection:text-[#1b2b1d]"
-      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+      className="min-h-screen text-[#2d372e] bg-[#faf9f6] selection:bg-[#d8e2dc] selection:text-[#1b2b1d] overflow-x-hidden"
+      style={{ fontFamily: "'Playfair Display', Georgia, serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Top Nature Bar */}
       <div className="bg-[#e9edc9]/50 text-[#3f4f3e] text-xs py-2 px-6 text-center font-sans tracking-wide border-b border-[#ccd5ae]/40 flex items-center justify-center gap-2">

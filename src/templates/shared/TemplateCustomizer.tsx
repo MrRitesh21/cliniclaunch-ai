@@ -91,9 +91,13 @@ export function TemplateCustomizer({
   // Live Apply Palette Changes
   const handleColorChange = (newColor: string) => {
     setSelectedColor(newColor);
-    if (typeof window !== "undefined" && clinic?.slug) {
+    if (typeof window !== "undefined") {
+      if (clinic?.slug) {
+        try {
+          localStorage.setItem(`clinic_custom_color_${clinic.slug}`, newColor);
+        } catch {}
+      }
       try {
-        localStorage.setItem(`clinic_custom_color_${clinic.slug}`, newColor);
         window.dispatchEvent(
           new CustomEvent("clinic-customization-changed", {
             detail: {
@@ -105,6 +109,11 @@ export function TemplateCustomizer({
           })
         );
       } catch {}
+
+      // Set CSS variables on root for instant theme application across entire DOM
+      document.documentElement.style.setProperty("--primary", newColor);
+      document.documentElement.style.setProperty("--ring", newColor);
+      document.documentElement.style.setProperty("--accent-theme", newColor);
     }
 
     if (onUpdatePalette) {
@@ -114,11 +123,6 @@ export function TemplateCustomizer({
         accent: newColor,
       });
     }
-
-    // Set CSS variable on root for instant theme application
-    if (typeof document !== "undefined") {
-      document.documentElement.style.setProperty("--primary", newColor);
-    }
   };
 
   // Reset to original template defaults
@@ -127,18 +131,34 @@ export function TemplateCustomizer({
     setSelectedColor(defaultColor);
     setShowWhatsApp(true);
     setShowCall(true);
-    if (typeof window !== "undefined" && clinic?.slug) {
-      localStorage.removeItem(`clinic_custom_color_${clinic.slug}`);
-      localStorage.removeItem(`clinic_custom_settings_${clinic.slug}`);
-      window.dispatchEvent(
-        new CustomEvent("clinic-customization-changed", {
-          detail: {
-            color: defaultColor,
-            showWhatsApp: true,
-            showCall: true,
-          },
-        })
-      );
+    if (typeof window !== "undefined") {
+      if (clinic?.slug) {
+        try {
+          localStorage.removeItem(`clinic_custom_color_${clinic.slug}`);
+          localStorage.removeItem(`clinic_custom_settings_${clinic.slug}`);
+        } catch {}
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent("clinic-customization-changed", {
+            detail: {
+              color: defaultColor,
+              showWhatsApp: true,
+              showCall: true,
+            },
+          })
+        );
+      } catch {}
+      document.documentElement.style.setProperty("--primary", defaultColor);
+      document.documentElement.style.setProperty("--ring", defaultColor);
+      document.documentElement.style.setProperty("--accent-theme", defaultColor);
+    }
+    if (onUpdatePalette) {
+      onUpdatePalette({
+        ...currentPalette,
+        primary: defaultColor,
+        accent: defaultColor,
+      });
     }
     toast.info("Customizations reset to template defaults.");
   };

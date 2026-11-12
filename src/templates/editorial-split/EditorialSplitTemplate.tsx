@@ -31,6 +31,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -61,7 +62,7 @@ export function EditorialSplitTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#0f172a",
     "secondary": "#0284c7",
     "accent": "#06b6d4",
@@ -78,8 +79,10 @@ export function EditorialSplitTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-slate-900 bg-white antialiased selection:bg-slate-900 selection:text-white"
-      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}
+      className="min-h-screen text-slate-900 bg-white antialiased selection:bg-slate-900 selection:text-white overflow-x-hidden"
+      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
             {/* Top Multi-Page Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">

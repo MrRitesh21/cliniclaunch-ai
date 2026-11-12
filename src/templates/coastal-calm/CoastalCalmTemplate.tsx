@@ -33,6 +33,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,7 +64,7 @@ export function CoastalCalmTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#0d9488",
     "secondary": "#134e4a",
     "accent": "#14b8a6",
@@ -80,8 +81,10 @@ export function CoastalCalmTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#134e4a] bg-[#f8faf9] selection:bg-teal-200 selection:text-teal-900"
-      style={{ fontFamily: "'Outfit', -apple-system, sans-serif" }}
+      className="min-h-screen text-[#134e4a] bg-[#f8faf9] selection:bg-teal-200 selection:text-teal-900 overflow-x-hidden"
+      style={{ fontFamily: "'Outfit', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* 1. Serene Top Announcement */}
       <div className="bg-[#e6f4f1] text-[#0f766e] text-xs py-2 px-4 text-center font-medium border-b border-[#ccede6] flex items-center justify-center gap-2">
@@ -91,7 +94,7 @@ export function CoastalCalmTemplate(props: TemplateProps) {
 
       {/* Navigation */}
       <header className="sticky top-0 z-40 bg-[#f8faf9]/90 backdrop-blur-md border-b border-[#e6f0ed]">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-2xl bg-teal-600/10 text-teal-700 flex items-center justify-center">
               <Compass className="size-5" />

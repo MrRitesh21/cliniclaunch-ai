@@ -33,6 +33,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,7 +64,7 @@ export function FamilyFirstTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#0284c7",
     "secondary": "#fb923c",
     "accent": "#166534",
@@ -80,8 +81,10 @@ export function FamilyFirstTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-slate-800 bg-[#fffdf9] selection:bg-amber-100 selection:text-amber-900"
-      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}
+      className="min-h-screen text-slate-800 bg-[#fffdf9] selection:bg-amber-100 selection:text-amber-900 overflow-x-hidden"
+      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Friendly Top Welcome Strip */}
       <div className="bg-sky-50 text-sky-800 text-xs py-2 px-6 text-center font-medium border-b border-sky-100 flex items-center justify-center gap-2">
@@ -91,7 +94,7 @@ export function FamilyFirstTemplate(props: TemplateProps) {
 
       {/* Navigation */}
       <header className="sticky top-0 z-40 bg-[#fffdf9]/90 backdrop-blur-md border-b border-amber-100/60">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-11 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
               <Users className="size-5" />

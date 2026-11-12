@@ -31,6 +31,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -61,7 +62,7 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#1e293b",
     "secondary": "#881337",
     "accent": "#ca8a04",
@@ -78,8 +79,10 @@ export function HeritageMedicalTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#1e293b] bg-[#fdfbf7] selection:bg-[#ca8a04]/20 selection:text-[#1e293b]"
-      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+      className="min-h-screen text-[#1e293b] bg-[#fdfbf7] selection:bg-[#ca8a04]/20 selection:text-[#1e293b] overflow-x-hidden"
+      style={{ fontFamily: "'Playfair Display', Georgia, serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Heritage Top Seal Strip */}
       <div className="bg-[#1e293b] text-amber-100 text-xs py-2 px-6 flex justify-between items-center font-sans tracking-widest uppercase border-b border-amber-900/40">

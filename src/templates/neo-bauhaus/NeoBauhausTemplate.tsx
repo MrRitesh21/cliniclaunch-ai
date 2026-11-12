@@ -33,6 +33,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,7 +64,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#1d4ed8",
     "secondary": "#dc2626",
     "accent": "#f59e0b",
@@ -80,8 +81,10 @@ export function NeoBauhausTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#171717] bg-[#faf7f2] antialiased selection:bg-[#1d4ed8] selection:text-white"
-      style={{ fontFamily: "'Space Grotesk', -apple-system, sans-serif" }}
+      className="min-h-screen text-[#171717] bg-[#faf7f2] antialiased selection:bg-[#1d4ed8] selection:text-white overflow-x-hidden"
+      style={{ fontFamily: "'Space Grotesk', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Bauhaus Geometric Top Bar */}
       <div className="bg-[#171717] text-white py-2 px-6 flex justify-between items-center text-xs font-mono">
@@ -99,7 +102,7 @@ export function NeoBauhausTemplate(props: TemplateProps) {
 
       {/* Main Constructivist Navigation */}
       <header className="border-b-4 border-[#171717] bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="size-10 bg-[#1d4ed8] text-white font-black text-xl flex items-center justify-center border-2 border-[#171717] shadow-[2px_2px_0px_#171717]">
               +

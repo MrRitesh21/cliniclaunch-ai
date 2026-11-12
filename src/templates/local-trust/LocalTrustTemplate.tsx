@@ -34,6 +34,7 @@ import {
   getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import {
   FadeUp,
@@ -72,8 +73,6 @@ export function LocalTrustTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const emeraldGreen = "#059669";
-
   const localFaqs = [
     {
       q: "Are walk-in patients accepted without advance booking?",
@@ -90,7 +89,7 @@ export function LocalTrustTemplate(props: TemplateProps) {
   ];
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#059669",
     "secondary": "#047857",
     "accent": "#10b981",
@@ -100,13 +99,18 @@ export function LocalTrustTemplate(props: TemplateProps) {
     "mutedText": "#57534e",
     "border": "#e7e5e4"
 }, clinic);
+  const emeraldGreen = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "High-Legibility Accessible Sans",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "Unmistakable bold contact points, large touch targets"
 };
   return (
-    <div className="min-h-screen bg-[#fafaf9] text-stone-900 font-sans antialiased selection:bg-emerald-500/20">
+    <div className="min-h-screen bg-[#fafaf9] text-stone-900 font-sans antialiased selection:bg-emerald-500/20 overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── URGENT CONTACT TOP BAR ────────────────────────────────────── */}
       <div className="bg-emerald-800 text-white text-xs py-2 px-4 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">

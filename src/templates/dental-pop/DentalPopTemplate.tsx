@@ -32,6 +32,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,7 +63,7 @@ export function DentalPopTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#06b6d4",
     "secondary": "#0f172a",
     "accent": "#f43f5e",
@@ -79,8 +80,10 @@ export function DentalPopTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-slate-800 bg-[#f8fdff] antialiased selection:bg-cyan-200 selection:text-cyan-900"
-      style={{ fontFamily: "'Outfit', -apple-system, sans-serif" }}
+      className="min-h-screen text-slate-800 bg-[#f8fdff] antialiased selection:bg-cyan-200 selection:text-cyan-900 overflow-x-hidden"
+      style={{ fontFamily: "'Outfit', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Top Friendly Smile Ribbon */}
       <div className="bg-gradient-to-r from-cyan-500 to-sky-500 text-white text-xs py-2 px-6 text-center font-medium flex items-center justify-center gap-2 shadow-xs">
@@ -90,7 +93,7 @@ export function DentalPopTemplate(props: TemplateProps) {
 
       {/* Main Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-cyan-100">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-11 rounded-2xl bg-cyan-500 text-white flex items-center justify-center shadow-md shadow-cyan-500/20 font-bold">
               <Smile className="size-6" />

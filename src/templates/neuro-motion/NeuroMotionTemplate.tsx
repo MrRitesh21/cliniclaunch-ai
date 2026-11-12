@@ -33,6 +33,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,7 +64,7 @@ export function NeuroMotionTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#312e81",
     "secondary": "#06b6d4",
     "accent": "#4338ca",
@@ -80,8 +81,10 @@ export function NeuroMotionTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-slate-900 bg-white antialiased selection:bg-indigo-600 selection:text-white"
-      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}
+      className="min-h-screen text-slate-900 bg-white antialiased selection:bg-indigo-600 selection:text-white overflow-x-hidden"
+      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Top Synaptic Strip */}
       <div className="bg-[#1e1b4b] text-indigo-200 text-xs py-2 px-6 flex flex-wrap justify-between items-center gap-2 border-b border-indigo-950 font-mono">
@@ -97,7 +100,7 @@ export function NeuroMotionTemplate(props: TemplateProps) {
 
       {/* Main Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-indigo-900 text-cyan-400 flex items-center justify-center font-bold">
               <Brain className="size-5" />

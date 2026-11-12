@@ -32,6 +32,7 @@ import {
   getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -61,12 +62,11 @@ export function NoirSignatureTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const champagneGold = "#c5a059";
   const obsidianCharcoal = "#18181b";
   const warmCream = "#faf8f5";
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#18181b",
     "secondary": "#c5a059",
     "accent": "#d4af37",
@@ -76,6 +76,7 @@ export function NoirSignatureTemplate(props: TemplateProps) {
     "mutedText": "#57534e",
     "border": "#e7e2d8"
 }, clinic);
+  const champagneGold = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "High-Fashion Editorial Serif",
     "bodyFont": "Inter / Sans-Serif",
@@ -83,8 +84,10 @@ export function NoirSignatureTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#18181b] font-sans antialiased selection:bg-[#c5a059]/20"
-      style={{ backgroundColor: warmCream }}
+      className="min-h-screen text-[#18181b] font-sans antialiased selection:bg-[#c5a059]/20 overflow-x-hidden"
+      style={{ backgroundColor: warmCream ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* ─── LUXURY ACCENT STRIP ───────────────────────────────────────── */}
       <div className="bg-[#18181b] text-[#e4d5b7] text-[10px] py-1.5 px-4 tracking-widest uppercase border-b border-[#c5a059]/30">
@@ -430,12 +433,12 @@ export function NoirSignatureTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor={obsidianCharcoal}
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor={obsidianCharcoal}
+        primaryColor={palette.primary}
       />
     </div>
   );

@@ -35,6 +35,7 @@ import {
   getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -66,10 +67,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
   const medicalNavy = "#0f172a";
-  const clinicalRed = "#dc2626";
-
-
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#0f172a",
     "secondary": "#dc2626",
     "accent": "#334155",
@@ -79,13 +77,18 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
     "mutedText": "#475569",
     "border": "#0f172a"
 }, clinic);
+  const clinicalRed = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Structured Tabular Sans",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "High-contrast clinical Swiss alignment with monospaced metadata"
 };
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-slate-900 selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-slate-900 selection:text-white overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── TECHNICAL CLINICAL PROTOCOL BAR ───────────────────────────── */}
       <div className="bg-slate-900 text-white text-[11px] py-1.5 px-4 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -109,7 +112,7 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
 
       {/* ─── STRUCTURED GRID NAVBAR ────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white border-b-2 border-slate-900 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="size-10 rounded-none bg-slate-900 text-white grid place-items-center font-bold">
               <Hospital className="size-5" />
@@ -436,12 +439,12 @@ export function PrecisionMedicalTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor="#0f172a"
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor="#0f172a"
+        primaryColor={palette.primary}
       />
     </div>
   );

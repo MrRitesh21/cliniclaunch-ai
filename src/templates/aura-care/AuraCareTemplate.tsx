@@ -36,6 +36,7 @@ import {
   getDoctorAvatarUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, ImageMaskReveal, StaggerChildren , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -66,20 +67,20 @@ export function AuraCareTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const sageAccent = "#52796f";
-  const deepNavy = "#0a192f";
-  const ivoryBg = "#faf9f5";
-
-  const palette: TemplatePalette = resolveTemplatePalette({
-    primary: deepNavy,
-    secondary: "#1b2a41",
-    accent: sageAccent,
-    background: ivoryBg,
+  const palette: TemplatePalette = useTemplatePalette({
+    primary: "#52796f",
+    secondary: "#0a192f",
+    accent: "#84a98c",
+    background: "#faf9f5",
     surface: "#ffffff",
     text: "#1b2a41",
     mutedText: "#4a5568",
     border: "#e5dfd5",
   }, clinic);
+
+  const sageAccent = palette.primary;
+  const deepNavy = palette.secondary || "#0a192f";
+  const ivoryBg = palette.background || "#faf9f5";
 
   const typography: TemplateTypography = {
     headingClass: "font-serif",
@@ -88,8 +89,12 @@ export function AuraCareTemplate(props: TemplateProps) {
 
   return (
     <div
-      className="min-h-screen text-[#1b2a41] selection:bg-[#52796f]/20 font-sans antialiased"
-      style={{ backgroundColor: ivoryBg }}
+      className="min-h-screen text-[#1b2a41] selection:bg-[#52796f]/20 font-sans antialiased overflow-x-hidden"
+      style={{
+        backgroundColor: ivoryBg,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}
     >
       {/* ─── LUXURY HEADER / NAV ────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-[#faf9f5]/90 border-b border-[#e5dfd5] transition-all">

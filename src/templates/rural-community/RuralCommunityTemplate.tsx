@@ -32,6 +32,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,7 +63,7 @@ export function RuralCommunityTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#15803d",
     "secondary": "#0f172a",
     "accent": "#166534",
@@ -79,8 +80,10 @@ export function RuralCommunityTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-slate-900 bg-white antialiased selection:bg-green-100 selection:text-green-900"
-      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}
+      className="min-h-screen text-slate-900 bg-white antialiased selection:bg-green-100 selection:text-green-900 overflow-x-hidden"
+      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* High-Visibility Emergency Header */}
       <div className="bg-green-800 text-white text-xs py-2 px-6 flex flex-wrap justify-between items-center gap-2 font-mono">
@@ -96,7 +99,7 @@ export function RuralCommunityTemplate(props: TemplateProps) {
 
       {/* Main Header with High-Contrast Click-to-Call */}
       <header className="sticky top-0 z-40 bg-white border-b-2 border-slate-200 shadow-xs">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div>
             <a href="#" className="font-black text-2xl tracking-tight text-slate-950 block leading-tight">
               {clinicName}

@@ -32,6 +32,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,7 +63,7 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#1c1917",
     "secondary": "#881337",
     "accent": "#ca8a04",
@@ -79,8 +80,10 @@ export function ClinicalEditorialTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#1c1917] bg-[#faf8f5] selection:bg-[#e7e5e4] selection:text-[#0c0a09]"
-      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+      className="min-h-screen text-[#1c1917] bg-[#faf8f5] selection:bg-[#e7e5e4] selection:text-[#0c0a09] overflow-x-hidden"
+      style={{ fontFamily: "'Playfair Display', Georgia, serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Magazine Edition Header */}
       <div className="border-b border-[#e7e5e4] bg-[#f5f2eb] py-2 px-6 text-center text-[11px] font-sans uppercase tracking-[0.25em] text-[#78716c] flex justify-between items-center max-w-7xl mx-auto">

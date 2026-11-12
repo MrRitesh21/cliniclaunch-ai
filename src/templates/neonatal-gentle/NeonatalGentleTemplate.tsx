@@ -33,6 +33,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -63,7 +64,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#f43f5e",
     "secondary": "#881337",
     "accent": "#8b5cf6",
@@ -80,8 +81,10 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-slate-800 bg-[#fffdfa] selection:bg-rose-100 selection:text-rose-900"
-      style={{ fontFamily: "'Outfit', -apple-system, sans-serif" }}
+      className="min-h-screen text-slate-800 bg-[#fffdfa] selection:bg-rose-100 selection:text-rose-900 overflow-x-hidden"
+      style={{ fontFamily: "'Outfit', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Reassuring Top Strip */}
       <div className="bg-[#fff1f2] text-rose-800 text-xs py-2 px-6 text-center font-medium border-b border-rose-100 flex items-center justify-center gap-2">
@@ -91,7 +94,7 @@ export function NeonatalGentleTemplate(props: TemplateProps) {
 
       {/* Main Header */}
       <header className="sticky top-0 z-40 bg-[#fffdfa]/95 backdrop-blur-md border-b border-rose-100/60">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center">
               <Baby className="size-5" />

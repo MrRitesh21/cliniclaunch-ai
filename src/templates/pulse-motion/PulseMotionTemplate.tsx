@@ -33,6 +33,7 @@ import {
   getWorkingHours,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,12 +63,11 @@ export function PulseMotionTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const cobalt = "#1d4ed8";
   const lime = "#84cc16";
   const charcoal = "#0f172a";
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#1d4ed8",
     "secondary": "#0f172a",
     "accent": "#84cc16",
@@ -77,13 +77,18 @@ export function PulseMotionTemplate(props: TemplateProps) {
     "mutedText": "#475569",
     "border": "#e2e8f0"
 }, clinic);
+  const cobalt = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Bold Kinetic Sans",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "High-energy athletic precision with monospace metrics"
 };
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── ENERGETIC TICKER BAR ─────────────────────────────────────── */}
       <div className="bg-slate-950 text-white text-[11px] py-2 px-4 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -102,7 +107,7 @@ export function PulseMotionTemplate(props: TemplateProps) {
 
       {/* ─── KINETIC NAVBAR ────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="size-10 rounded-xl bg-blue-600 text-white grid place-items-center shadow-lg shadow-blue-600/30 font-bold">
               <Activity className="size-5" />
@@ -429,12 +434,12 @@ export function PulseMotionTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor={cobalt}
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor={cobalt}
+        primaryColor={palette.primary}
       />
     </div>
   );

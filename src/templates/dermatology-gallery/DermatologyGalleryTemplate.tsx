@@ -32,6 +32,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,7 +63,7 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#831843",
     "secondary": "#292524",
     "accent": "#be185d",
@@ -79,8 +80,10 @@ export function DermatologyGalleryTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#292524] bg-[#fafaf9] selection:bg-rose-200 selection:text-rose-950"
-      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+      className="min-h-screen text-[#292524] bg-[#fafaf9] selection:bg-rose-200 selection:text-rose-950 overflow-x-hidden"
+      style={{ fontFamily: "'Playfair Display', Georgia, serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Editorial Top Ribbon */}
       <div className="bg-[#f5f5f4] text-[#78716c] text-[11px] font-sans tracking-[0.25em] py-2 px-6 uppercase text-center border-b border-[#e7e5e4] flex justify-between items-center max-w-7xl mx-auto">

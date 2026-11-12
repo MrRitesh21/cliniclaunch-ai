@@ -30,6 +30,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren , ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -60,7 +61,7 @@ export function SoftLuxuryTemplate(props: TemplateProps) {
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#1c1917",
     "secondary": "#c5a059",
     "accent": "#d4af37",
@@ -77,8 +78,10 @@ export function SoftLuxuryTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#1c1917] bg-[#fafafa] selection:bg-[#e7e5e4] selection:text-[#1c1917]"
-      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+      className="min-h-screen text-[#1c1917] bg-[#fafafa] selection:bg-[#e7e5e4] selection:text-[#1c1917] overflow-x-hidden"
+      style={{ fontFamily: "'Playfair Display', Georgia, serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* Top Quiet Luxury Bar */}
       <div className="border-b border-[#e7e5e4] py-2 px-6 text-center text-[10px] font-sans tracking-[0.25em] uppercase text-[#78716c]">

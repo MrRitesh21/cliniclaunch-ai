@@ -212,11 +212,38 @@ function ClinicLayout() {
   }
 
   const c = data.clinic as unknown as SiteClinic;
+
+  const [currentTheme, setCurrentTheme] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const qTc = urlParams.get("tc");
+        if (qTc) return qTc;
+        const stored = localStorage.getItem(`clinic_custom_color_${c.slug}`);
+        if (stored) return stored;
+      } catch {}
+    }
+    return tc || c.theme_color || "#2563eb";
+  });
+
+  useEffect(() => {
+    const handleCustomChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ color?: string }>;
+      if (customEvent.detail?.color) {
+        setCurrentTheme(customEvent.detail.color);
+      }
+    };
+    window.addEventListener("clinic-customization-changed", handleCustomChange);
+    return () => window.removeEventListener("clinic-customization-changed", handleCustomChange);
+  }, []);
+
+  const theme = currentTheme;
+  const reactiveClinic = { ...c, theme_color: theme };
+
   const variants = resolveVariants(tpl ?? c.template, tpl ? null : c.section_variants);
   const Navbar = getVariantComponent("navbar", variants.navbar);
   const Footer = getVariantComponent("footer", variants.footer);
 
-  const theme = tc || c.theme_color || "#2563eb";
   const themeStyle = {
     ["--primary" as const]: theme,
     ["--ring" as const]: theme,
@@ -259,11 +286,11 @@ function ClinicLayout() {
         <main className="flex-1 pb-16 md:pb-0">
           <Outlet />
         </main>
-        <UniversalFloatingContact clinic={c} themeColor={theme} hasStickyBar={false} hideMobile={true} />
+        <UniversalFloatingContact clinic={reactiveClinic} themeColor={theme} hasStickyBar={false} hideMobile={true} />
         {canCustomize && (
           <>
             <TemplateCustomizer
-              clinic={c}
+              clinic={reactiveClinic}
               currentPalette={{
                 primary: theme,
                 secondary: "#0f172a",
@@ -274,8 +301,11 @@ function ClinicLayout() {
                 mutedText: "#64748b",
                 border: "#e2e8f0",
               }}
+              onUpdatePalette={(newPal) => {
+                setCurrentTheme(newPal.primary);
+              }}
             />
-            <LiveEditOverlay clinic={c} />
+            <LiveEditOverlay clinic={reactiveClinic} />
           </>
         )}
       </div>
@@ -291,17 +321,17 @@ function ClinicLayout() {
         .mod-no-walkin a[href*="/walkin"], .mod-no-walkin [data-cta="walkin"] { display: none !important; }
         .mod-no-consult [data-cta="online-consult"] { display: none !important; }
       `}</style>
-      <Navbar clinic={c} pathname={pathname} />
+      <Navbar clinic={reactiveClinic} pathname={pathname} />
       <main className={`flex-1 ${showStickyBook ? "pb-20 md:pb-0" : ""}`}>
         <Outlet />
       </main>
-      <Footer clinic={c} />
+      <Footer clinic={reactiveClinic} />
 
-      <UniversalFloatingContact clinic={c} themeColor={theme} hasStickyBar={showStickyBook} />
+      <UniversalFloatingContact clinic={reactiveClinic} themeColor={theme} hasStickyBar={showStickyBook} />
       {canCustomize && (
         <>
           <TemplateCustomizer
-            clinic={c}
+            clinic={reactiveClinic}
             currentPalette={{
               primary: theme,
               secondary: "#0f172a",
@@ -312,8 +342,11 @@ function ClinicLayout() {
               mutedText: "#64748b",
               border: "#e2e8f0",
             }}
+            onUpdatePalette={(newPal) => {
+              setCurrentTheme(newPal.primary);
+            }}
           />
-          <LiveEditOverlay clinic={c} />
+          <LiveEditOverlay clinic={reactiveClinic} />
         </>
       )}
 

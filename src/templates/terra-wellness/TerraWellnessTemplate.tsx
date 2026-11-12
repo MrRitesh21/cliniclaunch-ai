@@ -33,6 +33,7 @@ import {
   getWorkingHours,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -62,12 +63,11 @@ export function TerraWellnessTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const terracotta = "#c2410c";
   const forestGreen = "#14532d";
   const warmSand = "#f7f3eb";
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#c2410c",
     "secondary": "#14532d",
     "accent": "#ea580c",
@@ -77,13 +77,18 @@ export function TerraWellnessTemplate(props: TemplateProps) {
     "mutedText": "#57534e",
     "border": "#e7e0d3"
 }, clinic);
+  const terracotta = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Warm Literary Serif",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "Warm earth-toned editorial layout with botanical accents"
 };
   return (
-    <div className="min-h-screen bg-[#fcfbf7] text-[#292524] font-sans antialiased selection:bg-[#c2410c]/20">
+    <div className="min-h-screen bg-[#fcfbf7] text-[#292524] font-sans antialiased selection:bg-[#c2410c]/20 overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── ORGANIC TOP BANNER ────────────────────────────────────────── */}
       <div className="bg-[#14532d] text-[#f7f3eb] text-[11px] py-2 px-4 border-b border-[#14532d]/20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -435,12 +440,12 @@ export function TerraWellnessTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor={terracotta}
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor={terracotta}
+        primaryColor={palette.primary}
       />
     </div>
   );

@@ -36,6 +36,7 @@ import {
   getDoctorHeroImageUrl,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw, ImageMaskReveal, LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -66,11 +67,10 @@ export function SwissMedicalTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const vermilion = "#dc2626";
   const charcoal = "#18181b";
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#dc2626",
     "secondary": "#18181b",
     "accent": "#ef4444",
@@ -80,6 +80,7 @@ export function SwissMedicalTemplate(props: TemplateProps) {
     "mutedText": "#71717a",
     "border": "#e4e4e7"
 }, clinic);
+  const vermilion = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Plus Jakarta Sans / Bold",
     "bodyFont": "Inter / Sans-Serif",
@@ -87,8 +88,10 @@ export function SwissMedicalTemplate(props: TemplateProps) {
 };
   return (
     <div
-      className="min-h-screen text-[#18181b] bg-white antialiased selection:bg-red-600 selection:text-white"
-      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}
+      className="min-h-screen text-[#18181b] bg-white antialiased selection:bg-red-600 selection:text-white overflow-x-hidden"
+      style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" ,
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary}}
     >
       {/* 1. Swiss Technical Header Bar */}
       <div className="border-b border-zinc-200 bg-zinc-50 text-[11px] font-mono tracking-tight text-zinc-600 px-4 sm:px-8 py-2 flex flex-wrap items-center justify-between gap-3">

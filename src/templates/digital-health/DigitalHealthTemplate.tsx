@@ -36,6 +36,7 @@ import {
   getWorkingHours,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, SVGPathDraw , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -66,11 +67,7 @@ export function DigitalHealthTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const electricIndigo = "#4f46e5";
-  const cyanAqua = "#06b6d4";
-
-
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#4f46e5",
     "secondary": "#06b6d4",
     "accent": "#a855f7",
@@ -80,13 +77,19 @@ export function DigitalHealthTemplate(props: TemplateProps) {
     "mutedText": "#475569",
     "border": "#e2e8f0"
 }, clinic);
+  const electricIndigo = palette.primary;
+  const cyanAqua = palette.accent || palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Neo-Grotesque Tech Sans",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "Clean, digital-native typography with terminal status pills"
 };
   return (
-    <div className="min-h-screen bg-[#fcfdff] text-slate-800 font-sans antialiased selection:bg-indigo-500/20">
+    <div className="min-h-screen bg-[#fcfdff] text-slate-800 font-sans antialiased selection:bg-indigo-500/20 overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── DIGITAL TELEMETRY STATUS BAR ──────────────────────────────── */}
       <div className="bg-slate-900 text-white text-[11px] py-1.5 px-4 font-mono border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -103,7 +106,7 @@ export function DigitalHealthTemplate(props: TemplateProps) {
 
       {/* ─── MODERN TECH NAVBAR ────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="size-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white grid place-items-center shadow-md font-bold">
               <Zap className="size-5" />
@@ -508,12 +511,12 @@ export function DigitalHealthTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor={electricIndigo}
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor={electricIndigo}
+        primaryColor={palette.primary}
       />
     </div>
   );

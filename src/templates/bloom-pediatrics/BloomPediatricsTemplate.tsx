@@ -34,6 +34,7 @@ import {
   getWorkingHours,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -64,9 +65,6 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const coralPink = "#fb7185";
-  const skyBlue = "#0284c7";
-
   const parentFaqs = [
     {
       q: "What should I bring for my child's first visit?",
@@ -83,7 +81,7 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
   ];
 
 
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#fb7185",
     "secondary": "#0284c7",
     "accent": "#facc15",
@@ -93,13 +91,19 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
     "mutedText": "#64748b",
     "border": "#ffe4e6"
 }, clinic);
+  const coralPink = palette.primary;
+  const skyBlue = palette.accent || palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Approachable Rounded Sans",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "Warm, reassuring, parent-friendly typography"
 };
   return (
-    <div className="min-h-screen bg-[#fffdfa] text-slate-800 font-sans antialiased selection:bg-rose-500/20">
+    <div className="min-h-screen bg-[#fffdfa] text-slate-800 font-sans antialiased selection:bg-rose-500/20 overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── PARENT REASSURANCE BANNER ─────────────────────────────────── */}
       <div className="bg-sky-50 text-sky-900 text-[11px] py-2 px-4 border-b border-sky-100">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -116,7 +120,7 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
 
       {/* ─── FRIENDLY NAVBAR ───────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-rose-100 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="size-11 rounded-3xl bg-rose-100 text-rose-600 grid place-items-center shadow-xs">
               <Baby className="size-6" />
@@ -475,12 +479,12 @@ export function BloomPediatricsTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor={coralPink}
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor={coralPink}
+        primaryColor={palette.primary}
       />
     </div>
   );

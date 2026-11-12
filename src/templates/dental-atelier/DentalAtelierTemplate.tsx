@@ -32,6 +32,7 @@ import {
   getWorkingHours,
   FALLBACK_IMAGES,
   resolveTemplatePalette,
+  useTemplatePalette,
 } from "../shared/clinicDataHelpers";
 import { FadeUp, TextReveal, SVGPathDraw, StaggerChildren, ImageMaskReveal , LivePulse, FloatMotion } from "../shared/motion";
 import { AppointmentModal } from "../shared/AppointmentModal";
@@ -61,10 +62,9 @@ export function DentalAtelierTemplate(props: TemplateProps) {
   const reviews = getReviews(clinic);
   const { days, isOpenNow, todayHours } = getWorkingHours(clinic);
 
-  const porcelainTeal = "#0d9488";
+  
 
-
-  const palette: TemplatePalette = resolveTemplatePalette({
+  const palette: TemplatePalette = useTemplatePalette({
     "primary": "#0d9488",
     "secondary": "#0f172a",
     "accent": "#38bdf8",
@@ -74,13 +74,18 @@ export function DentalAtelierTemplate(props: TemplateProps) {
     "mutedText": "#64748b",
     "border": "#e2e8f0"
 }, clinic);
+  const porcelainTeal = palette.primary;
   const typography: TemplateTypography = {
     "headingFont": "Modern Airy Sans",
     "bodyFont": "Inter / Sans-Serif",
     "styleDescription": "Porcelain-smooth tracking, clean treatment hierarchy"
 };
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-teal-500/20">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-teal-500/20 overflow-x-hidden"
+      style={{
+        ["--primary" as any]: palette.primary,
+        ["--ring" as any]: palette.primary,
+      }}>
       {/* ─── DENTAL ATELIER HEADER ───────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -112,7 +117,7 @@ export function DentalAtelierTemplate(props: TemplateProps) {
             )}
             <button
               onClick={() => setBookingOpen(true)}
-              className="px-5 py-2.5 rounded-full text-xs font-semibold text-white shadow-md hover:shadow-lg transition-all"
+              className="hidden sm:inline-flex px-5 py-2.5 rounded-full text-xs font-semibold text-white shadow-md hover:shadow-lg transition-all"
               style={{ backgroundColor: porcelainTeal }}
             >
               Book Dental Visit
@@ -407,12 +412,12 @@ export function DentalAtelierTemplate(props: TemplateProps) {
         clinic={clinic}
         isOpen={bookingOpen}
         onClose={() => setBookingOpen(false)}
-        primaryColor={porcelainTeal}
+        primaryColor={palette.primary}
       />
       <FloatingContactBar
         clinic={clinic}
         onBookClick={() => setActivePage("book")}
-        primaryColor={porcelainTeal}
+        primaryColor={palette.primary}
       />
     </div>
   );
