@@ -23,6 +23,8 @@ import {
   Volume2,
   Camera,
   User,
+  Stethoscope,
+  Share2,
 } from "lucide-react";
 import { getConsultAppointment } from "@/lib/clinic.functions";
 
@@ -408,6 +410,39 @@ function ConsultRoom() {
     toast.success("Link copied — share with the other party");
   }
 
+  function shareWhatsAppInvite() {
+    const link = window.location.href;
+    const doc = appt?.clinics?.doctor_name ? `Dr. ${appt.clinics.doctor_name}` : "Doctor";
+    const cl = appt?.clinics?.clinic_name || "the Clinic";
+    const msg = `*Teleconsultation Video Link*\nHello ${patientName},\n\n${doc} at ${cl} is ready for your video consultation.\n\n👉 Click to join the secure room:\n${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  }
+
+  // Teleconsult in-call keyboard shortcuts (M: Mute, V: Video, C: Chat, S: Screen Share)
+  useEffect(() => {
+    if (!joined || status === "ended") return;
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+
+      if (e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        toggleMic();
+      } else if (e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        toggleCam();
+      } else if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        setChatOpen((o) => !o);
+      } else if (e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void toggleShare();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [joined, status, toggleMic, toggleCam, toggleShare]);
+
   const remoteName = appt?.clinics?.doctor_name || "Doctor";
   const patientName = appt?.patient_name || "Patient";
 
@@ -499,12 +534,20 @@ function ConsultRoom() {
               )}
             </Button>
 
-            <button
-              onClick={copyLink}
-              className="mt-4 text-xs text-white/50 hover:text-white/80 inline-flex items-center gap-1.5"
-            >
-              <Copy className="size-3.5" /> Copy call link
-            </button>
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <button
+                onClick={copyLink}
+                className="text-xs text-white/60 hover:text-white inline-flex items-center gap-1.5"
+              >
+                <Copy className="size-3.5" /> Copy call link
+              </button>
+              <button
+                onClick={shareWhatsAppInvite}
+                className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1.5"
+              >
+                <Share2 className="size-3.5" /> WhatsApp invite
+              </button>
+            </div>
 
             <p className="text-[11px] text-white/40 mt-8 leading-relaxed">
               Your browser will ask for camera and microphone access.
@@ -583,10 +626,29 @@ function ConsultRoom() {
               )}
             </p>
           </div>
+          <a
+            href={`/dashboard/consult?appointmentId=${appointmentId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1 rounded-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition"
+            title="Open OPD Cockpit & Prescribe in new tab"
+          >
+            <Stethoscope className="size-3.5" />
+            <span className="hidden sm:inline">OPD Cockpit / Rx</span>
+          </a>
+          <button
+            onClick={shareWhatsAppInvite}
+            className="p-2 rounded-full hover:bg-white/10 text-emerald-400"
+            aria-label="WhatsApp invite"
+            title="Send WhatsApp invitation"
+          >
+            <Share2 className="size-4" />
+          </button>
           <button
             onClick={copyLink}
             className="p-2 rounded-full hover:bg-white/10"
             aria-label="Copy link"
+            title="Copy call link"
           >
             <Copy className="size-4" />
           </button>

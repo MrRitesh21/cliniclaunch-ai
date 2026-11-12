@@ -39,6 +39,9 @@ import {
   History,
   ShieldCheck,
   Flame,
+  Video,
+  Eye,
+  Pill,
 } from "lucide-react";
 import { AppGuard } from "@/components/app/AppGuard";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -176,6 +179,30 @@ function getTempStatus(temp: string) {
   return { label: "✓ Normal Temp", color: "text-emerald-700 bg-emerald-500/15 border-emerald-500/30" };
 }
 
+function getSpo2Status(spo2: string) {
+  if (!spo2) return null;
+  const s = parseFloat(spo2);
+  if (isNaN(s)) return null;
+  if (s < 90)
+    return { label: "🚨 Critical SpO2 (<90%)", color: "text-red-700 bg-red-500/15 border-red-500/30" };
+  if (s < 95)
+    return { label: "⚠️ Low SpO2 (<95%)", color: "text-amber-700 bg-amber-500/15 border-amber-500/30" };
+  return { label: "✓ SpO2 Normal (≥95%)", color: "text-emerald-700 bg-emerald-500/15 border-emerald-500/30" };
+}
+
+function getBloodSugarStatus(sugar: string) {
+  if (!sugar) return null;
+  const s = parseFloat(sugar);
+  if (isNaN(s)) return null;
+  if (s < 70)
+    return { label: "⚠️ Hypoglycemia (<70)", color: "text-red-700 bg-red-500/15 border-red-500/30" };
+  if (s >= 200)
+    return { label: "⚠️ High Blood Sugar (≥200)", color: "text-red-700 bg-red-500/15 border-red-500/30" };
+  if (s >= 140)
+    return { label: "⚠️ Elevated Sugar (≥140)", color: "text-amber-700 bg-amber-500/15 border-amber-500/30" };
+  return { label: "✓ Sugar Normal", color: "text-emerald-700 bg-emerald-500/15 border-emerald-500/30" };
+}
+
 function getBmi(weightKg: string, heightCm: string) {
   const w = parseFloat(weightKg);
   const h = parseFloat(heightCm);
@@ -214,6 +241,14 @@ const PRESETS: Record<string, { label: string; complaint: string; diagnosis: str
     plan: "• Tab Amoxicillin+Clav 625mg — 1-0-1 after meals x 5 days\n• Tab Aceclofenac + Paracetamol — 1-0-1 after food x 3 days SOS\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Betadine Gargles (2%) — twice daily in warm water\n• Avoid cold/oily food and aerated drinks.",
     followUpDays: 5,
   },
+  cough: {
+    label: "🫁 Productive Cough / Bronchitis",
+    complaint: "Persistent cough with yellow/white phlegm, chest congestion, and nocturnal coughing",
+    diagnosis: "Acute Bronchitis with Bronchospasm",
+    history: "Cough started following upper respiratory infection. Non-smoker, no hemoptysis.",
+    plan: "• Syp Ascoril-D / Ambroxol — 10ml thrice daily after food x 5 days\n• Tab Azithromycin 500mg — 1-0-0 before meals x 3 days\n• Tab Montelukast+Levocet 10/5 — 0-0-1 at bedtime x 7 days\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 5 days\n• Steam inhalation twice daily. Avoid chilled liquids.",
+    followUpDays: 5,
+  },
   hypertension: {
     label: "❤️ BP Refill / HTN",
     complaint: "Routine monthly blood pressure check-up and medication refill",
@@ -246,6 +281,22 @@ const PRESETS: Record<string, { label: string; complaint: string; diagnosis: str
     plan: "• Tab Ofloxacin 200mg + Ornidazole 500mg — 1-0-1 after meals x 3 days\n• Tab Ondansetron 4mg — 1 tab SOS for vomiting\n• Cap Racecadotril 100mg — 1-1-1 before meals x 2 days\n• Syp ORS Electral — 1 sachet in 1L water sip continuously\n• Bland diet: curd rice, light khichdi, avoid milk and spicy food.",
     followUpDays: 3,
   },
+  migraine: {
+    label: "⚡ Headache / Migraine",
+    complaint: "Unilateral throbbing headache with photophobia and nausea for 24 hours",
+    diagnosis: "Acute Migraine Attack without Aura",
+    history: "Triggered by lack of sleep and screen strain. No visual disturbances.",
+    plan: "• Tab Naproxen 500mg + Domperidone 10mg — 1 tab SOS at onset of headache\n• Tab Paracetamol 650mg — 1 tab SOS if pain persists after 4 hours\n• Cap Pantoprazole 40mg — 1-0-0 before breakfast x 3 days\n• Rest in a dark, quiet room; maintain adequate hydration.\n• Review if pain worsens or recurs frequently.",
+    followUpDays: 7,
+  },
+  uti: {
+    label: "💧 UTI / Dysuria",
+    complaint: "Burning micturition, increased urinary frequency, and lower abdominal heaviness",
+    diagnosis: "Acute Uncomplicated Lower Urinary Tract Infection (UTI)",
+    history: "No fever, flank pain, or hematuria. Adequate oral intake.",
+    plan: "• Tab Nitrofurantoin 100mg SR — 1-0-1 after food x 5 days\n• Syp Citralka (Disodium Hydrogen Citrate) — 2 tsp in glass of water thrice daily x 5 days\n• Tab Paracetamol 650mg — 1-0-1 after food x 3 days SOS\n• Drink 3 to 4 liters of water daily. Clean personal hygiene.",
+    followUpDays: 5,
+  },
   allergy: {
     label: "🌿 Skin Allergy / Rash",
     complaint: "Intense generalized itching with erythematous raised rashes / hives",
@@ -264,6 +315,21 @@ const PRESETS: Record<string, { label: string; complaint: string; diagnosis: str
   },
 };
 
+const COMMON_DIAGNOSES = [
+  "Acute Viral URI / Pyrexia",
+  "Acute Pharyngitis / Tonsillitis",
+  "Acute Bronchitis",
+  "Essential HTN (Stage 1)",
+  "Type 2 Diabetes Mellitus",
+  "GERD / Dyspepsia",
+  "Acute Gastroenteritis",
+  "Acute Migraine Attack",
+  "Acute Lower UTI",
+  "Musculoskeletal Strain / Backache",
+  "Allergic Rhinitis / Sinusitis",
+  "Acute Urticaria / Skin Rash",
+];
+
 const FAST_MEDS = [
   { name: "Tab Paracetamol 650mg", dose: "1-0-1 after food x 3 days" },
   { name: "Tab Augmentin 625mg (Amox-Clav)", dose: "1-0-1 after meals x 5 days" },
@@ -279,6 +345,69 @@ const FAST_MEDS = [
   { name: "Syp ORS / Electral Sachet", dose: "1 sachet in 1L water sip through day" },
   { name: "Cap B-Complex with Zinc", dose: "0-1-0 after lunch x 15 days" },
   { name: "Tab Vitamin D3 60k IU", dose: "1 cap once weekly x 8 weeks" },
+  { name: "Tab Nitrofurantoin 100mg SR", dose: "1-0-1 after food x 5 days" },
+  { name: "Syp Ascoril-D Cough Syrup", dose: "10ml thrice daily x 5 days" },
+  { name: "Tab Bilastine 20mg", dose: "0-0-1 at bedtime x 7 days" },
+  { name: "Tab Amlodipine 5mg", dose: "0-0-1 at night x 30 days" },
+];
+
+const MED_CATEGORIES: { name: string; meds: { name: string; dose: string }[] }[] = [
+  {
+    name: "Common OPD",
+    meds: [
+      { name: "Tab Paracetamol 650mg", dose: "1-0-1 after food x 3 days" },
+      { name: "Tab Aceclofenac+Paracetamol", dose: "1-0-1 after food x 3 days SOS" },
+      { name: "Cap Pantoprazole 40mg+Domp", dose: "1-0-0 before breakfast x 7 days" },
+      { name: "Tab Levocetirizine 5mg", dose: "0-0-1 at night x 5 days" },
+      { name: "Syp ORS / Electral Sachet", dose: "1 sachet in 1L water sip through day" },
+    ],
+  },
+  {
+    name: "Antibiotics",
+    meds: [
+      { name: "Tab Augmentin 625mg (Amox-Clav)", dose: "1-0-1 after meals x 5 days" },
+      { name: "Tab Azithromycin 500mg", dose: "1-0-0 before meals x 3 days" },
+      { name: "Tab Ofloxacin+Ornidazole", dose: "1-0-1 after meals x 3 days" },
+      { name: "Tab Nitrofurantoin 100mg SR", dose: "1-0-1 after food x 5 days" },
+      { name: "Tab Cefixime 200mg", dose: "1-0-1 after food x 5 days" },
+    ],
+  },
+  {
+    name: "GI & Acidity",
+    meds: [
+      { name: "Cap Pantoprazole 40mg+Domp", dose: "1-0-0 before breakfast x 7 days" },
+      { name: "Cap Rabeprazole 20mg+Domp", dose: "1-0-0 before breakfast x 10 days" },
+      { name: "Tab Ondansetron 4mg", dose: "1 tab SOS for nausea" },
+      { name: "Cap Racecadotril 100mg", dose: "1-1-1 before meals x 2 days" },
+      { name: "Syp Gelusil / Digene", dose: "10ml after meals x 5 days SOS" },
+    ],
+  },
+  {
+    name: "Cough & Allergy",
+    meds: [
+      { name: "Tab Montelukast+Levocet 10/5", dose: "0-0-1 at night x 7 days" },
+      { name: "Tab Levocetirizine 5mg", dose: "0-0-1 at night x 5 days" },
+      { name: "Tab Bilastine 20mg", dose: "0-0-1 at bedtime x 7 days" },
+      { name: "Syp Ascoril-D Cough Syrup", dose: "10ml thrice daily x 5 days" },
+    ],
+  },
+  {
+    name: "Chronic (BP/DM)",
+    meds: [
+      { name: "Tab Telmisartan 40mg", dose: "1-0-0 morning x 30 days" },
+      { name: "Tab Amlodipine 5mg", dose: "0-0-1 night x 30 days" },
+      { name: "Tab Metformin 500mg", dose: "1-0-1 with meals x 30 days" },
+      { name: "Tab Glimepiride 1mg", dose: "1-0-0 before breakfast x 30 days" },
+    ],
+  },
+  {
+    name: "Vitamins",
+    meds: [
+      { name: "Cap B-Complex with Zinc", dose: "0-1-0 after lunch x 15 days" },
+      { name: "Tab Vitamin D3 60k IU", dose: "1 cap once weekly x 8 weeks" },
+      { name: "Tab Calcium 500mg+Vit D3", dose: "0-0-1 after dinner x 30 days" },
+    ],
+  },
 ];
 
 function todayDateStr(): string {
@@ -323,11 +452,25 @@ function ConsultCockpitPage() {
   const [historyNotes, setHistoryNotes] = useState("NKDA (No Known Allergies)");
   const [treatmentPlan, setTreatmentPlan] = useState("");
   const [bp, setBp] = useState("");
+  const [bpSystolic, setBpSystolic] = useState("");
+  const [bpDiastolic, setBpDiastolic] = useState("");
   const [pulse, setPulse] = useState("");
+  const [spo2, setSpo2] = useState("");
+  const [bloodSugar, setBloodSugar] = useState("");
   const [temp, setTemp] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
+
+  // Voice dictation state
+  const [activeRecordingField, setActiveRecordingField] = useState<"complaint" | "diagnosis" | "rx" | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Quick Medicine Category Filter
+  const [selectedMedCategory, setSelectedMedCategory] = useState<string>("Common OPD");
+
+  // Preview Modal
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   // Interactive Quick Medicine Inserter State
   const [customMedName, setCustomMedName] = useState("");
@@ -547,7 +690,11 @@ function ConsultCockpitPage() {
     setTreatmentPlan("");
     setHistoryNotes("NKDA (No Known Allergies)");
     setBp("");
+    setBpSystolic("");
+    setBpDiastolic("");
     setPulse("");
+    setSpo2("");
+    setBloodSugar("");
     setTemp("");
     setWeight("");
     setHeight("");
@@ -556,6 +703,118 @@ function ConsultCockpitPage() {
     // Load their history
     void loadPatientPastConsults(p.patient_name, p.patient_phone);
   };
+
+  // Sync combined BP and split systolic/diastolic
+  const handleBpChange = (val: string) => {
+    setBp(val);
+    if (val.includes("/")) {
+      const parts = val.split("/");
+      setBpSystolic(parts[0]?.trim() || "");
+      setBpDiastolic(parts[1]?.trim() || "");
+    } else {
+      setBpSystolic(val.trim());
+      if (!val.trim()) setBpDiastolic("");
+    }
+  };
+
+  const handleBpSystolicChange = (val: string) => {
+    setBpSystolic(val);
+    setBp(val && bpDiastolic ? `${val}/${bpDiastolic}` : val);
+  };
+
+  const handleBpDiastolicChange = (val: string) => {
+    setBpDiastolic(val);
+    setBp(bpSystolic && val ? `${bpSystolic}/${val}` : val);
+  };
+
+  // Voice Note Dictation Hook (Native Web Speech API - 0 dependencies)
+  const toggleVoiceDictation = (field: "complaint" | "diagnosis" | "rx") => {
+    if (activeRecordingField === field) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+      setActiveRecordingField(null);
+      toast.info("Voice dictation paused");
+      return;
+    }
+
+    if (activeRecordingField && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRec) {
+      toast.error("Voice dictation is not supported in this browser. Please type directly.");
+      return;
+    }
+
+    try {
+      const rec = new SpeechRec();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = "en-IN";
+
+      rec.onstart = () => {
+        setActiveRecordingField(field);
+        toast.info(
+          `🎙️ Dictation active for ${field === "complaint" ? "symptoms" : field === "diagnosis" ? "diagnosis" : "prescription"}. Speak now…`
+        );
+      };
+
+      rec.onresult = (e: any) => {
+        let text = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            text += e.results[i][0].transcript + " ";
+          }
+        }
+        if (text.trim()) {
+          const spoken = text.trim();
+          if (field === "complaint") {
+            setChiefComplaint((prev) => (prev ? `${prev} ${spoken}` : spoken));
+          } else if (field === "diagnosis") {
+            setDiagnosis((prev) => (prev ? `${prev} ${spoken}` : spoken));
+          } else if (field === "rx") {
+            setTreatmentPlan((prev) => (prev ? `${prev}\n• ${spoken}` : `• ${spoken}`));
+          }
+        }
+      };
+
+      rec.onerror = (err: any) => {
+        console.warn("Speech recognition notice:", err);
+        setActiveRecordingField(null);
+        if (err.error === "not-allowed") {
+          toast.error("Microphone access denied. Please grant microphone permission in your browser.");
+        }
+      };
+
+      rec.onend = () => {
+        setActiveRecordingField(null);
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.warn("Speech recognition start error:", err);
+      setActiveRecordingField(null);
+      toast.error("Could not start microphone. Please type directly.");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
 
   // 1-Click Call Patient (announces, chimes, and marks serving)
   const handleCallPatient = async (p: QueuePatient) => {
@@ -605,7 +864,11 @@ function ConsultCockpitPage() {
             treatmentPlan,
             historyNotes,
             bp,
+            bpSystolic,
+            bpDiastolic,
             pulse,
+            spo2,
+            bloodSugar,
             temp,
             weight,
             height,
@@ -627,7 +890,11 @@ function ConsultCockpitPage() {
     treatmentPlan,
     historyNotes,
     bp,
+    bpSystolic,
+    bpDiastolic,
     pulse,
+    spo2,
+    bloodSugar,
     temp,
     weight,
     height,
@@ -663,7 +930,11 @@ function ConsultCockpitPage() {
         setTreatmentPlan(d.treatmentPlan || "");
         setHistoryNotes(d.historyNotes || "NKDA");
         setBp(d.bp || "");
+        setBpSystolic(d.bpSystolic || (d.bp?.includes("/") ? d.bp.split("/")[0].trim() : ""));
+        setBpDiastolic(d.bpDiastolic || (d.bp?.includes("/") ? d.bp.split("/")[1].trim() : ""));
         setPulse(d.pulse || "");
+        setSpo2(d.spo2 || "");
+        setBloodSugar(d.bloodSugar || "");
         setTemp(d.temp || "");
         setWeight(d.weight || "");
         setHeight(d.height || "");
@@ -682,7 +953,7 @@ function ConsultCockpitPage() {
     toast.info("Draft discarded");
   };
 
-  // Keyboard Shortcuts Hook (Ctrl+Enter, Ctrl+P, Ctrl+K)
+  // Keyboard Shortcuts Hook (Ctrl+Enter, Ctrl+P, Ctrl+K, Ctrl+M, Ctrl+D, Ctrl+B)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Enter or Cmd+Enter => Complete & Next
@@ -700,10 +971,25 @@ function ConsultCockpitPage() {
         e.preventDefault();
         document.getElementById("consult-queue-search")?.focus();
       }
+      // Ctrl+M or Cmd+M => Medicine Input Focus
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        document.getElementById("custom-med-input")?.focus();
+      }
+      // Ctrl+D or Cmd+D => Diagnosis Focus
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        document.getElementById("consult-diagnosis-input")?.focus();
+      }
+      // Ctrl+B or Cmd+B => BP Focus
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        document.getElementById("consult-bp-input")?.focus();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [patientName, chiefComplaint, diagnosis, treatmentPlan, appointmentId, bp, pulse, temp, weight, height, followUpDate]);
+  }, [patientName, chiefComplaint, diagnosis, treatmentPlan, appointmentId, bp, bpSystolic, bpDiastolic, pulse, spo2, bloodSugar, temp, weight, height, followUpDate]);
 
   // Repeat Rx from previous visit
   const handleRepeatLastRx = () => {
@@ -854,7 +1140,7 @@ function ConsultCockpitPage() {
                     summary: `Consultation notes: ${diagnosis.trim() || "Regular clinical review"}`,
                     diagnosis: diagnosis.trim() || undefined,
                     vitals: {
-                      bp: bpSystolic && bpDiastolic ? `${bpSystolic}/${bpDiastolic} mmHg` : undefined,
+                      bp: bpSystolic && bpDiastolic ? `${bpSystolic}/${bpDiastolic} mmHg` : bp ? `${bp} mmHg` : undefined,
                       pulse: pulse ? Number(pulse) : undefined,
                       spo2: spo2 ? Number(spo2) : undefined,
                       bloodSugar: bloodSugar ? Number(bloodSugar) : undefined,
@@ -934,7 +1220,11 @@ function ConsultCockpitPage() {
         setTreatmentPlan("");
         setHistoryNotes("NKDA (No Known Allergies)");
         setBp("");
+        setBpSystolic("");
+        setBpDiastolic("");
         setPulse("");
+        setSpo2("");
+        setBloodSugar("");
         setTemp("");
         setWeight("");
         setHeight("");
@@ -964,12 +1254,21 @@ function ConsultCockpitPage() {
     const clinicTitle = clinic?.clinic_name || org?.name || "Medical Clinic";
     const docTitle = clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Consulting Physician";
 
+    const vitalsParts = [
+      bp ? `BP: ${bp}` : (bpSystolic && bpDiastolic ? `BP: ${bpSystolic}/${bpDiastolic} mmHg` : ""),
+      pulse ? `Pulse: ${pulse} bpm` : "",
+      spo2 ? `SpO2: ${spo2}%` : "",
+      bloodSugar ? `Sugar: ${bloodSugar} mg/dL` : "",
+      temp ? `Temp: ${temp}°F` : "",
+      weight ? `Weight: ${weight} kg` : "",
+    ].filter(Boolean);
+
     const msg = `*${clinicTitle}*
 ${docTitle} — Consultation Summary
 ────────────────────────────
 *Patient:* ${patientName} ${patientAge ? `(${patientAge} yrs)` : ""}
 *Date:* ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-${diagnosis ? `*Diagnosis:* ${diagnosis}\n` : ""}${bp || pulse || temp ? `*Vitals:* ${[bp ? `BP: ${bp}` : "", pulse ? `Pulse: ${pulse} bpm` : "", temp ? `Temp: ${temp}°F` : ""].filter(Boolean).join(" | ")}\n` : ""}
+${diagnosis ? `*Diagnosis:* ${diagnosis}\n` : ""}${vitalsParts.length > 0 ? `*Vitals:* ${vitalsParts.join(" | ")}\n` : ""}
 *Prescribed Medications (Rx):*
 ${treatmentPlan || "• General advice & hydration."}
 
@@ -1080,13 +1379,16 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
               </div>
             </div>
 
-            ${bp || pulse || temp || weight ? `
+            ${bp || pulse || temp || weight || spo2 || bloodSugar ? `
             <div class="sec-title">Vitals</div>
             <div class="vitals-strip">
-              ${bp ? `<div>BP: <b>${escapeHtml(bp)} mmHg</b></div>` : ""}
+              ${bp ? `<div>BP: <b>${escapeHtml(bp)} mmHg</b></div>` : (bpSystolic && bpDiastolic ? `<div>BP: <b>${escapeHtml(bpSystolic)}/${escapeHtml(bpDiastolic)} mmHg</b></div>` : "")}
               ${pulse ? `<div>Pulse: <b>${escapeHtml(pulse)} bpm</b></div>` : ""}
+              ${spo2 ? `<div>SpO2: <b>${escapeHtml(spo2)}%</b></div>` : ""}
+              ${bloodSugar ? `<div>Sugar: <b>${escapeHtml(bloodSugar)} mg/dL</b></div>` : ""}
               ${temp ? `<div>Temp: <b>${escapeHtml(temp)}°F</b></div>` : ""}
               ${weight ? `<div>Weight: <b>${escapeHtml(weight)} kg</b></div>` : ""}
+              ${height ? `<div>Height: <b>${escapeHtml(height)} cm</b></div>` : ""}
             </div>` : ""}
 
             ${chiefComplaint ? `
@@ -1145,6 +1447,8 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
 
   const bpStatus = getBpStatus(bp);
   const tempStatus = getTempStatus(temp);
+  const spo2Status = getSpo2Status(spo2);
+  const sugarStatus = getBloodSugarStatus(bloodSugar);
   const bmiInfo = getBmi(weight, height);
 
   return (
@@ -1417,7 +1721,18 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                         <span>No phone attached</span>
                       )}
                       {appointmentId && (
-                        <Badge variant="secondary" className="text-[9px]">Linked Appt</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="secondary" className="text-[9px]">Linked Appt</Badge>
+                          <Link
+                            to="/consult/$appointmentId"
+                            params={{ appointmentId }}
+                            target="_blank"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-500/30 transition-colors"
+                            title="Open video teleconsultation room in new tab"
+                          >
+                            <Video className="size-3" /> Teleconsult
+                          </Link>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1425,6 +1740,15 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
 
                 {/* Medical History & Repeat Rx Strip */}
                 <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPreviewModalOpen(true)}
+                    className="h-7 text-xs gap-1 rounded-lg border-border font-semibold hover:bg-muted"
+                    title="Live preview prescription slip"
+                  >
+                    <Eye className="size-3" /> Preview Rx
+                  </Button>
                   {patientPastConsults.length > 0 && (
                     <Button
                       size="sm"
@@ -1487,14 +1811,24 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
 
               {/* Vitals Quick Bar with Intelligent Health Indicators */}
               <div className="space-y-1.5 bg-muted/20 p-3 rounded-2xl border border-border/60">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-1.5">
                   <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Activity className="size-3.5 text-emerald-600" /> Patient Vitals
+                    <Activity className="size-3.5 text-emerald-600" /> Patient Vitals (Ctrl+B)
                   </Label>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {bpStatus && (
                       <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${bpStatus.color}`}>
                         {bpStatus.label}
+                      </Badge>
+                    )}
+                    {spo2Status && (
+                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${spo2Status.color}`}>
+                        {spo2Status.label}
+                      </Badge>
+                    )}
+                    {sugarStatus && (
+                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${sugarStatus.color}`}>
+                        {sugarStatus.label}
                       </Badge>
                     )}
                     {tempStatus && (
@@ -1510,18 +1844,21 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                   <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">BP (mmHg)</Label>
                     <Input
-                      placeholder="BP (120/80)"
+                      id="consult-bp-input"
+                      placeholder="120/80"
                       value={bp}
-                      onChange={(e) => setBp(e.target.value)}
+                      onChange={(e) => handleBpChange(e.target.value)}
                       className="h-8 text-xs font-mono bg-card"
                     />
                   </div>
                   <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Pulse (bpm)</Label>
                     <Input
-                      placeholder="Pulse (bpm)"
+                      placeholder="72"
                       type="number"
                       value={pulse}
                       onChange={(e) => setPulse(e.target.value)}
@@ -1529,16 +1866,38 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                     />
                   </div>
                   <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">SpO2 (%)</Label>
                     <Input
-                      placeholder="Temp (°F)"
+                      placeholder="98"
+                      type="number"
+                      value={spo2}
+                      onChange={(e) => setSpo2(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Sugar (mg/dL)</Label>
+                    <Input
+                      placeholder="110"
+                      type="number"
+                      value={bloodSugar}
+                      onChange={(e) => setBloodSugar(e.target.value)}
+                      className="h-8 text-xs font-mono bg-card"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Temp (°F)</Label>
+                    <Input
+                      placeholder="98.4"
                       value={temp}
                       onChange={(e) => setTemp(e.target.value)}
                       className="h-8 text-xs font-mono bg-card"
                     />
                   </div>
                   <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Weight (kg)</Label>
                     <Input
-                      placeholder="Weight (kg)"
+                      placeholder="70"
                       type="number"
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
@@ -1546,8 +1905,9 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                     />
                   </div>
                   <div>
+                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Height (cm)</Label>
                     <Input
-                      placeholder="Height (cm)"
+                      placeholder="170"
                       type="number"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
@@ -1561,9 +1921,9 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="size-3.5 text-amber-500" /> 1-Click Clinical Presets (Fills Symptoms, Diagnosis &amp; Rx)
+                    <Sparkles className="size-3.5 text-amber-500" /> 1-Click Clinical Treatment Bundles
                   </Label>
-                  <span className="text-[10px] text-muted-foreground">Select to auto-populate</span>
+                  <span className="text-[10px] text-muted-foreground">Auto-populates symptoms, diagnosis &amp; Rx</span>
                 </div>
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                   {Object.entries(PRESETS).map(([key, p]) => (
@@ -1579,10 +1939,25 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                 </div>
               </div>
 
-              {/* Chief Complaint & Diagnosis Inputs */}
+              {/* Chief Complaint & Diagnosis Inputs with Mic Dictation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Chief Complaint / Symptoms</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Chief Complaint / Symptoms</Label>
+                    <button
+                      type="button"
+                      onClick={() => toggleVoiceDictation("complaint")}
+                      className={`text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded transition-all ${
+                        activeRecordingField === "complaint"
+                          ? "bg-rose-500 text-white animate-pulse font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                      title="Dictate symptoms using voice"
+                    >
+                      {activeRecordingField === "complaint" ? <MicOff className="size-3" /> : <Mic className="size-3" />}
+                      <span>{activeRecordingField === "complaint" ? "Listening…" : "Voice"}</span>
+                    </button>
+                  </div>
                   <Input
                     placeholder="e.g. High fever with chills and dry cough for 3 days"
                     value={chiefComplaint}
@@ -1591,8 +1966,24 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Clinical Diagnosis</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Clinical Diagnosis</Label>
+                    <button
+                      type="button"
+                      onClick={() => toggleVoiceDictation("diagnosis")}
+                      className={`text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded transition-all ${
+                        activeRecordingField === "diagnosis"
+                          ? "bg-rose-500 text-white animate-pulse font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                      title="Dictate diagnosis using voice"
+                    >
+                      {activeRecordingField === "diagnosis" ? <MicOff className="size-3" /> : <Mic className="size-3" />}
+                      <span>{activeRecordingField === "diagnosis" ? "Listening…" : "Voice (Ctrl+D)"}</span>
+                    </button>
+                  </div>
                   <Input
+                    id="consult-diagnosis-input"
                     placeholder="e.g. Acute Viral Bronchitis / Pyrexia"
                     value={diagnosis}
                     onChange={(e) => setDiagnosis(e.target.value)}
@@ -1601,11 +1992,33 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                 </div>
               </div>
 
+              {/* 1-Tap Quick Diagnosis Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">Quick Dx:</span>
+                {COMMON_DIAGNOSES.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      setDiagnosis(d);
+                      toast.success(`Diagnosis set: ${d}`);
+                    }}
+                    className={`text-[10px] px-2 py-0.5 rounded-lg border font-medium shrink-0 transition-all ${
+                      diagnosis === d
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card border-border/70 hover:bg-muted text-foreground"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+
               {/* Interactive Medicine Inserter */}
               <div className="p-3 bg-muted/20 border border-border/70 rounded-2xl space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="size-3 text-amber-500" /> Fast Medicine Inserter
+                    <Sparkles className="size-3 text-amber-500" /> Fast Medicine Inserter (Ctrl+M)
                   </span>
                   <span className="text-[10px] text-muted-foreground">Add customized medicine with 1 tap</span>
                 </div>
@@ -1613,6 +2026,7 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                 {/* Quick Add Custom Bar */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
                   <Input
+                    id="custom-med-input"
                     placeholder="Medicine Name (e.g. Tab Dolo 650mg)"
                     value={customMedName}
                     onChange={(e) => setCustomMedName(e.target.value)}
@@ -1672,9 +2086,30 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                   </div>
                 </div>
 
+                {/* Medicine Category Tabs */}
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
+                  {["All", ...MED_CATEGORIES.map((c) => c.name)].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedMedCategory(cat)}
+                      className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-all shrink-0 ${
+                        selectedMedCategory === cat
+                          ? "bg-primary/20 text-primary border border-primary/40 font-bold"
+                          : "bg-muted/50 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Popular Medicine Quick Chips */}
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {FAST_MEDS.map((med) => (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {(selectedMedCategory === "All"
+                    ? FAST_MEDS
+                    : MED_CATEGORIES.find((c) => c.name === selectedMedCategory)?.meds || FAST_MEDS
+                  ).map((med) => (
                     <button
                       key={med.name}
                       type="button"
@@ -1694,6 +2129,19 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                     <FileText className="size-3.5 text-primary" /> Prescription (Rx) &amp; Advice
                   </Label>
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleVoiceDictation("rx")}
+                      className={`text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded transition-all ${
+                        activeRecordingField === "rx"
+                          ? "bg-rose-500 text-white animate-pulse font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                      title="Dictate prescription medications using voice"
+                    >
+                      {activeRecordingField === "rx" ? <MicOff className="size-3" /> : <Mic className="size-3" />}
+                      <span>{activeRecordingField === "rx" ? "Listening Rx…" : "Voice Rx"}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleCopyRx}
@@ -1754,6 +2202,16 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
               {/* STICKY SPEED ACTION BAR */}
               <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPreviewModalOpen(true)}
+                    className="h-9 text-xs gap-1.5 rounded-xl border-border/80 font-semibold"
+                    title="Live preview formatted prescription slip"
+                  >
+                    <Eye className="size-3.5" /> Preview Rx
+                  </Button>
+
                   <Button
                     size="sm"
                     variant="outline"
@@ -2038,6 +2496,159 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                 Ctrl + K
               </kbd>
             </div>
+            <div className="flex justify-between items-center p-2 rounded-lg bg-muted/40">
+              <span className="font-medium">Focus Fast Medicine Input</span>
+              <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold text-[11px]">
+                Ctrl + M
+              </kbd>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded-lg bg-muted/40">
+              <span className="font-medium">Focus Clinical Diagnosis</span>
+              <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold text-[11px]">
+                Ctrl + D
+              </kbd>
+            </div>
+            <div className="flex justify-between items-center p-2 rounded-lg bg-muted/40">
+              <span className="font-medium">Focus Patient Vitals (BP)</span>
+              <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold text-[11px]">
+                Ctrl + B
+              </kbd>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= MODAL: PRESCRIPTION PREVIEW ================= */}
+      <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between text-base">
+              <span className="flex items-center gap-2">
+                <FileText className="size-4 text-primary" /> Prescription Preview
+              </span>
+              <Badge variant="outline" className="text-[10px] font-mono">
+                {patientName ? escapeHtml(patientName) : "OPD Patient"}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Review prescription before printing or sending via WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="border border-border/80 rounded-xl p-4 bg-card text-foreground space-y-3.5 shadow-2xs text-xs">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-border/60 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-primary">
+                  {clinic?.clinic_name || org?.name || "Medical Clinic"}
+                </h3>
+                <div className="font-semibold text-xs text-foreground mt-0.5">
+                  {clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Consulting Physician"}
+                </div>
+                {clinic?.medical_registration_no && (
+                  <div className="text-[10px] text-muted-foreground">
+                    Reg No: {clinic.medical_registration_no}
+                  </div>
+                )}
+              </div>
+              <div className="text-right text-[11px] text-muted-foreground">
+                <div>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                {clinic?.phone && <div>Ph: {clinic.phone}</div>}
+                {clinic?.address && <div className="max-w-[180px] truncate">{clinic.address}</div>}
+              </div>
+            </div>
+
+            {/* Patient Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-muted/30 p-2.5 rounded-lg border border-border/60 text-[11px]">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground block">Patient</span>
+                <span className="font-bold text-foreground">{patientName || "—"}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground block">Age / Gender</span>
+                <span>{patientAge ? `${patientAge}y` : "—"} / {patientGender || "—"}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground block">Phone</span>
+                <span>{patientPhone || "—"}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground block">Follow-up</span>
+                <span className="font-medium text-primary">
+                  {followUpDate ? new Date(followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "SOS / As needed"}
+                </span>
+              </div>
+            </div>
+
+            {/* Vitals */}
+            {(bp || pulse || spo2 || bloodSugar || temp || weight) && (
+              <div className="flex flex-wrap gap-2 text-[11px] bg-primary/5 p-2 rounded-lg border border-primary/20">
+                {bp && <span>BP: <b>{bp} mmHg</b></span>}
+                {pulse && <span>Pulse: <b>{pulse} bpm</b></span>}
+                {spo2 && <span>SpO2: <b>{spo2}%</b></span>}
+                {bloodSugar && <span>Sugar: <b>{bloodSugar} mg/dL</b></span>}
+                {temp && <span>Temp: <b>{temp}°F</b></span>}
+                {weight && <span>Weight: <b>{weight} kg</b></span>}
+              </div>
+            )}
+
+            {/* Diagnosis */}
+            {diagnosis && (
+              <div>
+                <span className="text-[10px] font-bold uppercase text-primary tracking-wide block mb-0.5">Clinical Diagnosis</span>
+                <div className="font-bold text-sm bg-muted/20 p-2 rounded-lg border border-border/60">
+                  {diagnosis}
+                </div>
+              </div>
+            )}
+
+            {/* Rx Medications */}
+            <div>
+              <div className="flex items-center gap-1 font-serif text-lg font-bold text-primary mb-1">
+                ℞ <span className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Prescription</span>
+              </div>
+              <div className="bg-muted/30 border border-border/80 rounded-lg p-3 font-mono text-xs whitespace-pre-wrap leading-relaxed min-h-[100px]">
+                {treatmentPlan || "• No medications prescribed. General hydration and rest advised."}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center gap-2 pt-2">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePrintSlip}
+                className="h-8 text-xs gap-1"
+              >
+                <Printer className="size-3.5" /> Print Rx
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleWhatsAppShare}
+                disabled={!patientPhone}
+                className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30"
+              >
+                <MessageSquare className="size-3.5" /> WhatsApp Rx
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleCopyRx}
+                className="h-8 text-xs gap-1"
+              >
+                <Copy className="size-3" /> Copy
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPreviewModalOpen(false)}
+              className="h-8 text-xs"
+            >
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

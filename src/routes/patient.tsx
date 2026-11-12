@@ -329,18 +329,25 @@ function PatientSuperAppPage() {
   const [checkingFlag, setCheckingFlag] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("feature_flags")
-      .select("is_enabled_globally")
-      .eq("key", "patient_portal_enabled")
-      .maybeSingle()
-      .then(({ data }) => {
+    const checkFlag = async () => {
+      try {
+        const { data } = await supabase
+          .from("feature_flags")
+          .select("is_enabled_globally")
+          .eq("key", "patient_portal_enabled")
+          .maybeSingle();
+
         if (data && typeof data.is_enabled_globally === "boolean") {
           setIsPortalEnabled(data.is_enabled_globally);
           localStorage.setItem("clinicx_flag_patient_portal_enabled", String(data.is_enabled_globally));
         }
-      })
-      .finally(() => setCheckingFlag(false));
+      } catch (err) {
+        console.error("Error checking patient portal flag:", err);
+      } finally {
+        setCheckingFlag(false);
+      }
+    };
+    checkFlag();
   }, []);
 
   const [family, setFamily] = useState<FamilyMember[]>(() => {
@@ -453,7 +460,7 @@ function PatientSuperAppPage() {
 
           {/* Admin Override Trigger */}
           <div className="pt-8 border-t border-white/10 text-xs text-slate-500">
-            <p>Super Admin can toggle this feature flag anytime in <Link to="/_admin/admin/features" className="text-blue-400 underline">Admin Console</Link> or test locally:</p>
+            <p>Super Admin can toggle this feature flag anytime in <Link to="/admin/features" className="text-blue-400 underline">Admin Console</Link> or test locally:</p>
             <button
               onClick={() => {
                 const next = !isPortalEnabled;
@@ -1210,7 +1217,7 @@ function PatientSuperAppPage() {
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                      <Link to={`/c/${doc.slug}/book`}>
+                      <Link to="/c/$slug/book" params={{ slug: doc.slug }}>
                         <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-8 gap-1">
                           Book Slot / Token <ChevronRight className="size-3" />
                         </Button>

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
@@ -38,6 +38,10 @@ import {
   QrCode,
   Code2,
   Loader2,
+  UserCheck,
+  UserX,
+  Flame,
+  Zap,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus, createBooking, getClinicAppointments } from "@/lib/clinic.functions";
@@ -406,7 +410,7 @@ function AppointmentsPage() {
 
   async function setStatus(
     id: string,
-    status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show",
+    status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show" | "waiting" | "serving",
   ) {
     setUpdating(id);
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
@@ -418,8 +422,42 @@ function AppointmentsPage() {
         setExpanded(null);
       } else if (status === "confirmed") {
         toast.success("Appointment confirmed! WhatsApp notification queued.");
+      } else if (status === "waiting") {
+        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+        const orgId = clinic?.organization_id;
+        if (orgId) {
+          const { data: maxToken } = await supabase
+            .from("queue_tokens")
+            .select("token_number")
+            .eq("organization_id", orgId)
+            .eq("queue_date", todayStr)
+            .order("token_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const nextTokenNum = (maxToken?.token_number ?? 0) + 1;
+          const appt = rows.find((x) => x.id === id);
+
+          await supabase.from("queue_tokens").insert({
+            organization_id: orgId,
+            queue_date: todayStr,
+            token_number: nextTokenNum,
+            appointment_id: id,
+            patient_name: appt?.patient_name || "Patient",
+            patient_phone: appt?.patient_phone || null,
+            status: "waiting",
+            priority: false,
+            note: appt?.problem || null,
+            doctor_id: appt?.doctor_id || null,
+          });
+        }
+        toast.success("✅ Checked in! Patient added to Live OPD Queue.");
+      } else if (status === "serving") {
+        toast.success("🩺 Calling patient for consultation.");
       } else if (status === "cancelled") {
         toast.success("Appointment cancelled.");
+      } else if (status === "no_show") {
+        toast.info("Patient marked as No Show.");
       }
     } catch (error) {
       toast.error((error as Error).message);
@@ -431,17 +469,23 @@ function AppointmentsPage() {
 
   const counts = {
     all: rows.length,
-    pending: rows.filter((r) => r.status === "pending").length,
+    waiting: rows.filter((r) => r.status === "waiting").length,
+    serving: rows.filter((r) => r.status === "serving" || r.status === "in_consultation").length,
     confirmed: rows.filter((r) => r.status === "confirmed").length,
+    pending: rows.filter((r) => r.status === "pending").length,
     completed: rows.filter((r) => r.status === "completed").length,
+    no_show: rows.filter((r) => r.status === "no_show").length,
     cancelled: rows.filter((r) => r.status === "cancelled").length,
   };
 
   const filterTabs = [
     { key: "all", label: "All Statuses", count: counts.all },
-    { key: "pending", label: "Pending", count: counts.pending },
+    { key: "waiting", label: "Waiting in OPD", count: counts.waiting },
+    { key: "serving", label: "In Consult", count: counts.serving },
     { key: "confirmed", label: "Confirmed", count: counts.confirmed },
+    { key: "pending", label: "Pending", count: counts.pending },
     { key: "completed", label: "Completed", count: counts.completed },
+    { key: "no_show", label: "No Show", count: counts.no_show },
     { key: "cancelled", label: "Cancelled", count: counts.cancelled },
   ];
 
@@ -454,23 +498,38 @@ function AppointmentsPage() {
             Appointments
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-            Confirm, complete, or cancel patient bookings with real-time sync.
+            Confirm, complete, or check-in bookings directly to Live OPD Queue.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-60">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link to="/dashboard/queue">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9 px-3 text-xs font-semibold rounded-xl border-border/80 shrink-0"
+            >
+              <Clock className="size-3.5 text-primary" />
+              <span>Live OPD Queue</span>
+              {counts.waiting > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold">
+                  {counts.waiting}
+                </Badge>
+              )}
+            </Button>
+          </Link>
+          <div className="relative flex-1 sm:w-56">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Search patient or phone…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-xs sm:text-sm"
+              className="pl-8 h-9 text-xs sm:text-sm rounded-xl"
             />
           </div>
           <Button
             onClick={() => setAddOpen(true)}
             size="sm"
-            className="gap-1.5 h-9 px-3 text-xs font-semibold shadow-xs shrink-0"
+            className="gap-1.5 h-9 px-3 text-xs font-semibold rounded-xl shadow-xs shrink-0"
           >
             <Plus className="size-4" /> <span className="hidden xs:inline">Add</span> Appt
           </Button>
@@ -694,7 +753,7 @@ function AppointmentsPage() {
                           size="sm"
                           onClick={() => setStatus(r.id, "confirmed")}
                           disabled={isBusy}
-                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90"
+                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90 rounded-xl"
                         >
                           {isBusy ? (
                             <Loader2 className="size-3.5 animate-spin" />
@@ -708,7 +767,7 @@ function AppointmentsPage() {
                           variant="outline"
                           onClick={() => setStatus(r.id, "cancelled")}
                           disabled={isBusy}
-                          className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 font-medium"
+                          className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 font-medium rounded-xl"
                         >
                           <X className="size-3.5 mr-1" /> Cancel
                         </Button>
@@ -717,23 +776,33 @@ function AppointmentsPage() {
 
                     {r.status === "confirmed" && (
                       <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "waiting")}
+                          disabled={isBusy}
+                          className="h-8 text-xs font-semibold gap-1.5 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10 rounded-xl"
+                        >
+                          <UserCheck className="size-3.5" /> Check-in to Queue
+                        </Button>
                         <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs">
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl">
                             <Stethoscope className="size-3.5" /> Start Consult
                           </Button>
                         </a>
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "completed")}
+                          variant="ghost"
+                          onClick={() => setStatus(r.id, "no_show")}
                           disabled={isBusy}
-                          className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                          title="Mark No Show"
+                          className="h-8 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl px-2"
                         >
-                          <CheckCircle2 className="size-3.5" /> Done
+                          <UserX className="size-3.5" />
                         </Button>
                         {isOnline && (
                           <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="secondary" className="h-8 text-xs gap-1">
+                            <Button size="sm" variant="secondary" className="h-8 text-xs gap-1 rounded-xl">
                               <Video className="size-3.5 text-purple-600" /> Call
                             </Button>
                           </a>
@@ -741,19 +810,83 @@ function AppointmentsPage() {
                       </>
                     )}
 
+                    {r.status === "waiting" && (
+                      <>
+                        <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
+                          <Button
+                            size="sm"
+                            onClick={() => setStatus(r.id, "serving")}
+                            className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl"
+                          >
+                            <Stethoscope className="size-3.5" /> Call &amp; Consult
+                          </Button>
+                        </a>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "completed")}
+                          disabled={isBusy}
+                          className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl"
+                        >
+                          <CheckCircle2 className="size-3.5" /> Done
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setStatus(r.id, "no_show")}
+                          disabled={isBusy}
+                          title="Mark No Show"
+                          className="h-8 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl px-2"
+                        >
+                          <UserX className="size-3.5" />
+                        </Button>
+                      </>
+                    )}
+
+                    {r.status === "serving" && (
+                      <>
+                        <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
+                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl">
+                            <Stethoscope className="size-3.5" /> Resume Consult
+                          </Button>
+                        </a>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "completed")}
+                          disabled={isBusy}
+                          className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl"
+                        >
+                          <CheckCircle2 className="size-3.5" /> Done
+                        </Button>
+                      </>
+                    )}
+
                     {r.status === "completed" && (
                       <div className="flex items-center gap-2 w-full">
                         <a href="/dashboard/finance" className="flex-1">
-                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-emerald-600 border-emerald-500/20">
+                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-emerald-600 border-emerald-500/20 rounded-xl">
                             <Receipt className="size-3.5" /> Invoice
                           </Button>
                         </a>
                         <a href="/dashboard/prescriptions" className="flex-1">
-                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-blue-600 border-blue-500/20">
+                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-blue-600 border-blue-500/20 rounded-xl">
                             <FileText className="size-3.5" /> E-Prescription
                           </Button>
                         </a>
                       </div>
+                    )}
+
+                    {r.status === "no_show" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setStatus(r.id, "waiting")}
+                        disabled={isBusy}
+                        className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground rounded-xl"
+                      >
+                        <UserCheck className="size-3.5" /> Re-checkin
+                      </Button>
                     )}
                   </div>
 
