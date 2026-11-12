@@ -505,26 +505,43 @@ function ConsultCockpitPage() {
       todayEnd.setHours(23, 59, 59, 999);
       const dateStr = todayDateStr();
 
-      const [consultRes, apptRes, tokenRes, patientRes] = await Promise.all([
+      // Query appointments: active queue (waiting, serving, confirmed) or scheduled today
+      let apptQuery = supabase
+        .from("appointments")
+        .select("*")
+        .neq("status", "cancelled")
+        .order("scheduled_at", { ascending: true })
+        .limit(150);
+
+      if (clinicId && orgId) {
+        apptQuery = apptQuery.or(`clinic_id.eq.${clinicId},organization_id.eq.${orgId}`);
+      } else if (clinicId) {
+        apptQuery = apptQuery.eq("clinic_id", clinicId);
+      } else if (orgId) {
+        apptQuery = apptQuery.eq("organization_id", orgId);
+      }
+
+      // If a specific appointmentId is requested via URL, ensure we fetch it even if out of range
+      const specificApptPromise = searchParams?.appointmentId
+        ? supabase
+            .from("appointments")
+            .select("*")
+            .eq("id", searchParams.appointmentId)
+            .maybeSingle()
+        : Promise.resolve({ data: null });
+
+      const [consultRes, apptRes, tokenRes, patientRes, specificApptRes] = await Promise.all([
         supabase
           .from("consultations" as any)
           .select("*")
           .order("created_at", { ascending: false })
           .limit(100)
           .then((r) => (r.error ? { data: [] } : r)),
-        clinicId
-          ? supabase
-              .from("appointments")
-              .select("*")
-              .eq("clinic_id", clinicId)
-              .gte("scheduled_at", todayStart.toISOString())
-              .lte("scheduled_at", todayEnd.toISOString())
-              .order("scheduled_at", { ascending: true })
-          : Promise.resolve({ data: [] }),
+        (clinicId || orgId) ? apptQuery.then((r) => (r.error ? { data: [] } : r)) : Promise.resolve({ data: [] }),
         supabase
           .from("queue_tokens")
           .select("*")
-          .eq("queue_date", dateStr)
+          .or(`queue_date.eq.${dateStr},status.in.(waiting,serving)`)
           .order("token_number")
           .then((r) => (r.error ? { data: [] } : r), () => ({ data: [] })),
         supabase
@@ -533,6 +550,7 @@ function ConsultCockpitPage() {
           .order("name")
           .limit(200)
           .then((r) => (r.error ? { data: [] } : r)),
+        (specificApptPromise as Promise<any>).then((r: any) => (r?.error ? { data: null } : r), () => ({ data: null })),
       ]);
 
       const consults = (consultRes.data as any[]) ?? [];
@@ -543,8 +561,22 @@ function ConsultCockpitPage() {
       const qList: QueuePatient[] = [];
       let tokenCounter = 1;
 
-      // Map today's appointments
-      for (const a of (apptRes.data as any[]) ?? []) {
+      // Merge specific requested appointment if not in general results
+      let rawAppts = (apptRes.data as any[]) ?? [];
+      const specificAppt = specificApptRes.data as any;
+      if (specificAppt && !rawAppts.some((a) => a.id === specificAppt.id)) {
+        rawAppts = [specificAppt, ...rawAppts];
+      }
+
+      // Map appointments: keep active (waiting/serving/confirmed/pending), today's scheduled, or specifically requested
+      const todayDateOnly = new Date().toDateString();
+      for (const a of rawAppts) {
+        const isToday = a.scheduled_at && new Date(a.scheduled_at).toDateString() === todayDateOnly;
+        const isActive = a.status === "waiting" || a.status === "serving" || a.status === "confirmed" || a.status === "in_consultation" || a.status === "pending";
+        const isTarget = searchParams?.appointmentId && a.id === searchParams.appointmentId;
+
+        if (!isActive && !isToday && !isTarget) continue;
+
         let st: QueuePatient["status"] = "waiting";
         if (a.status === "completed") st = "done";
         else if (a.status === "serving" || a.status === "in_consultation") st = "serving";
@@ -557,7 +589,7 @@ function ConsultCockpitPage() {
           token_number: tokenCounter++,
           appointment_id: a.id,
           patient_id: a.patient_id || null,
-          patient_name: a.patient_name,
+          patient_name: a.patient_name || "Patient",
           patient_phone: a.patient_phone,
           patient_age: a.patient_age,
           patient_gender: a.patient_gender,
@@ -592,6 +624,13 @@ function ConsultCockpitPage() {
         const target = qList.find((x) => x.appointment_id === searchParams.appointmentId);
         if (target) {
           selectPatient(target);
+          // If starting consult directly via appointmentId, mark serving
+          if (target.status !== "serving" && target.status !== "done") {
+            target.status = "serving";
+            if (target.appointment_id) {
+              void supabase.from("appointments").update({ status: "serving" } as any).eq("id", target.appointment_id);
+            }
+          }
           return;
         }
       }
@@ -600,6 +639,7 @@ function ConsultCockpitPage() {
         const active =
           qList.find((x) => x.status === "serving") ||
           qList.find((x) => x.status === "waiting") ||
+          qList.find((x) => x.status === "confirmed") ||
           qList[0];
         if (active) {
           selectPatient(active);
@@ -1836,15 +1876,20 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
 
                 {/* Medical History & Repeat Rx Strip */}
                 <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPreviewModalOpen(true)}
-                    className="h-7 text-xs gap-1 rounded-lg border-border font-semibold hover:bg-muted"
-                    title="Live preview prescription slip"
-                  >
-                    <Eye className="size-3" /> Preview Rx
-                  </Button>
+                  {selectedPatient && selectedPatient.status !== "serving" && selectedPatient.status !== "done" ? (
+                    <Button
+                      size="sm"
+                      onClick={() => handleCallPatient(selectedPatient)}
+                      className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs"
+                      title="Announce patient and mark In Consultation"
+                    >
+                      <Volume2 className="size-3" /> Call to Cabin
+                    </Button>
+                  ) : (
+                    <Badge variant="outline" className="h-7 text-[10px] px-2.5 font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                      ● In Consultation
+                    </Badge>
+                  )}
                   {patientPastConsults.length > 0 && (
                     <Button
                       size="sm"
