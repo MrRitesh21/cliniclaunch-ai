@@ -226,7 +226,7 @@ const NAV_SECTIONS = [
       { to: "/dashboard/qr", label: "QR & Walk-ins", icon: QrCode, module: "qr_appointment" },
       {
         to: "/dashboard/consult",
-        label: "OPD Queue & Consult",
+        label: "OPD Consult",
         icon: Stethoscope,
         module: "consultation",
       },

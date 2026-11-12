@@ -57,6 +57,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cleanProblemAndService } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard/appointments")({
   component: () => (
@@ -738,12 +739,18 @@ function AppointmentsPage() {
                   </div>
 
                   {/* Problem snippet if present */}
-                  {r.problem && (
-                    <div className="mt-2.5 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">
-                      <span className="font-semibold text-foreground">Symptoms: </span>
-                      {r.problem}
-                    </div>
-                  )}
+                  {(() => {
+                    const parsed = cleanProblemAndService(r.problem);
+                    if (!parsed.displaySummary) return null;
+                    return (
+                      <div className="mt-2.5 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">
+                        <span className="font-semibold text-foreground">
+                          {parsed.service ? `${parsed.service}: ` : "Symptoms: "}
+                        </span>
+                        {parsed.problem || parsed.displaySummary}
+                      </div>
+                    );
+                  })()}
 
                   {/* Quick Action Touch Bar */}
                   <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/60 flex-wrap">
@@ -751,16 +758,25 @@ function AppointmentsPage() {
                       <>
                         <Button
                           size="sm"
-                          onClick={() => setStatus(r.id, "confirmed")}
+                          onClick={() => setStatus(r.id, "waiting")}
                           disabled={isBusy}
                           className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90 rounded-xl"
                         >
                           {isBusy ? (
                             <Loader2 className="size-3.5 animate-spin" />
                           ) : (
-                            <Check className="size-3.5" />
+                            <UserCheck className="size-3.5" />
                           )}
-                          <span>{isBusy ? "Confirming…" : "Confirm Booking"}</span>
+                          <span>{isBusy ? "Checking in…" : "✓ Confirm & Check-in"}</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "confirmed")}
+                          disabled={isBusy}
+                          className="h-8 text-xs font-medium rounded-xl border-border/80"
+                        >
+                          Confirm Only
                         </Button>
                         <Button
                           size="sm"
@@ -778,28 +794,22 @@ function AppointmentsPage() {
                       <>
                         <Button
                           size="sm"
-                          variant="outline"
                           onClick={() => setStatus(r.id, "waiting")}
                           disabled={isBusy}
-                          className="h-8 text-xs font-semibold gap-1.5 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10 rounded-xl"
+                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs hover:bg-primary/90 rounded-xl"
                         >
-                          <UserCheck className="size-3.5" /> Check-in to Queue
+                          {isBusy ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <UserCheck className="size-3.5" />
+                          )}
+                          <span>Check-in to Queue</span>
                         </Button>
                         <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl">
-                            <Stethoscope className="size-3.5" /> Start Consult
+                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 font-medium rounded-xl border-border/80">
+                            <Stethoscope className="size-3.5 text-primary" /> Start Consult
                           </Button>
                         </a>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setStatus(r.id, "no_show")}
-                          disabled={isBusy}
-                          title="Mark No Show"
-                          className="h-8 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl px-2"
-                        >
-                          <UserX className="size-3.5" />
-                        </Button>
                         {isOnline && (
                           <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
                             <Button size="sm" variant="secondary" className="h-8 text-xs gap-1 rounded-xl">
@@ -818,7 +828,7 @@ function AppointmentsPage() {
                             onClick={() => setStatus(r.id, "serving")}
                             className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl"
                           >
-                            <Stethoscope className="size-3.5" /> Call &amp; Consult
+                            <Stethoscope className="size-3.5" /> ▶ Go to Consult
                           </Button>
                         </a>
                         <Button

@@ -118,7 +118,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             .toString()
             .trim();
 
-          const rawProblem = (
+          let rawProblem = (
             payload.problem ||
             payload.message ||
             payload.symptoms ||
@@ -127,6 +127,8 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             ""
           )
             .toString()
+            .replace(/\[\s*object\s+Object\s*\]/gi, "")
+            .replace(/object\s+Object/gi, "")
             .trim();
 
           const rawType = (payload.appointment_type || payload.type || "offline")

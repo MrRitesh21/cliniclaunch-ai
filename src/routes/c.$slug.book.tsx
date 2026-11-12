@@ -582,8 +582,12 @@ function BookPage() {
     setSubmitting(true);
     try {
       const cleanAge = form.age.trim() ? Math.min(130, Math.max(0, parseInt(form.age.trim(), 10))) : null;
-      const servicePrefix = selectedService ? `[Service: ${selectedService.name}] ` : "";
-      const fullProblem = `${servicePrefix}${form.problem.trim()}`;
+      const serviceName = typeof selectedService === "object" && selectedService !== null
+        ? (typeof selectedService.name === "string" ? selectedService.name : (selectedService as any)?.title || "")
+        : typeof selectedService === "string" ? selectedService : "";
+      const cleanServiceName = serviceName && serviceName !== "[object Object]" ? serviceName.trim() : "";
+      const servicePrefix = cleanServiceName ? `[Service: ${cleanServiceName}] ` : "";
+      const fullProblem = `${servicePrefix}${form.problem.trim()}`.trim();
       const appt = await createBooking({
         data: {
           clinic_id: clinic.id,

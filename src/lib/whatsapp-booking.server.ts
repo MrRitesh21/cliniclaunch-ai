@@ -19,7 +19,7 @@ import { callAI, safeJson } from "./ai.server";
 
 export interface WhatsAppBookingResult {
   reply: string;
-  action: "booked" | "rescheduled" | "cancelled" | "ask_details" | "inquiry" | "already_booked" | "error";
+  action: "booked" | "rescheduled" | "cancelled" | "ask_details" | "inquiry" | "already_booked" | "error" | "emergency";
   appointmentId?: string | null;
   tokenNumber?: number | null;
 }
@@ -38,8 +38,113 @@ export interface MergedDoctor {
   slotDurationMinutes?: number;
 }
 
+export interface NormalizedClinicService {
+  name: string;
+  description?: string;
+  duration?: string;
+  price?: string;
+}
+
+export interface ClinicFaq {
+  question: string;
+  answer: string;
+}
+
+export const EMERGENCY_KEYWORDS = [
+  "chest pain",
+  "heart attack",
+  "chhati me dard",
+  "dil me dard",
+  "dil ka daura",
+  "breathless",
+  "difficulty breathing",
+  "saans phool",
+  "saans lene me dikkat",
+  "unconscious",
+  "behosh",
+  "severe bleeding",
+  "bleeding profusely",
+  "heavy bleeding",
+  "khoon beh raha",
+  "bleeding",
+  "paralysis",
+  "lakwa",
+  "stroke",
+  "poison",
+  "zehar",
+  "head injury",
+  "sir me chot",
+  "choking",
+  "gala ghut",
+  "seizure",
+  "mirgi",
+  "severe accident",
+  "oxygen kam",
+  "oxygen low",
+];
+
+export function detectEmergency(text: string): boolean {
+  const lower = text.toLowerCase();
+  return EMERGENCY_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+export function extractClinicServices(clinic: any): NormalizedClinicService[] {
+  const raw = clinic?.services;
+  if (!raw) return [];
+  try {
+    let list: any[] = [];
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        list = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        list = raw.split("\n").filter(Boolean);
+      }
+    } else if (Array.isArray(raw)) {
+      list = raw;
+    }
+    return list.map((item, idx) => {
+      if (typeof item === "string") {
+        return { name: item.trim() };
+      }
+      return {
+        name: item.name || item.title || item.label || `Service ${idx + 1}`,
+        description: item.description || item.desc || "",
+        duration: item.duration || "30 mins",
+        price: item.price ? (String(item.price).startsWith("₹") ? item.price : `₹${item.price}`) : undefined,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function extractClinicFaqs(clinic: any): ClinicFaq[] {
+  const raw = clinic?.faqs;
+  if (!raw) return [];
+  try {
+    let list: any[] = [];
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {}
+    } else if (Array.isArray(raw)) {
+      list = raw;
+    }
+    return list
+      .map((f: any) => ({
+        question: String(f.question || f.q || "").trim(),
+        answer: String(f.answer || f.a || "").trim(),
+      }))
+      .filter((f) => f.question && f.answer);
+  } catch {
+    return [];
+  }
+}
+
 interface ParsedBookingIntent {
-  intent: "book" | "reschedule" | "cancel" | "change_doctor" | "inquire" | "greeting";
+  intent: "book" | "reschedule" | "cancel" | "change_doctor" | "inquire" | "greeting" | "emergency";
   readyToBook: boolean;
   patientName: string | null;
   dateStr: string | null; // YYYY-MM-DD
@@ -162,6 +267,75 @@ function formatDoctorShifts(wh: any): string {
   return "";
 }
 
+/** Validate requested slot against day-off and shift hours (including afternoon break) */
+export function validateSlotAgainstShifts(
+  targetDateStr: string, // YYYY-MM-DD
+  targetTimeStr: string, // HH:MM
+  workingHours: any,
+): { valid: boolean; reason?: string; suggestedTimes?: string[] } {
+  if (!workingHours || typeof workingHours !== "object" || Array.isArray(workingHours)) {
+    return { valid: true };
+  }
+
+  const [y, m, d] = targetDateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const dayIndex = dt.getUTCDay(); // 0 = Sun, 1 = Mon ...
+  const dayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const dayKey = dayKeys[dayIndex];
+  const dayConfig = workingHours[dayKey];
+
+  if (dayConfig && dayConfig.enabled === false) {
+    return {
+      valid: false,
+      reason: `Clinic is closed on ${dayKey.charAt(0).toUpperCase() + dayKey.slice(1)}s`,
+      suggestedTimes: ["Monday 10:30 AM", "Monday 5:30 PM"],
+    };
+  }
+
+  if (dayConfig && dayConfig.start && dayConfig.end) {
+    const toMinutes = (hhmm: string) => {
+      const [h, min] = hhmm.split(":").map(Number);
+      return h * 60 + (min || 0);
+    };
+
+    const targetMin = toMinutes(targetTimeStr);
+    const shift1Start = toMinutes(dayConfig.start);
+    const shift1End = toMinutes(dayConfig.end);
+
+    const inShift1 = targetMin >= shift1Start && targetMin <= shift1End;
+
+    let inShift2 = false;
+    let shift2Start = 0;
+    let shift2End = 0;
+    if (dayConfig.shift2_enabled && dayConfig.start2 && dayConfig.end2) {
+      shift2Start = toMinutes(dayConfig.start2);
+      shift2End = toMinutes(dayConfig.end2);
+      inShift2 = targetMin >= shift2Start && targetMin <= shift2End;
+    }
+
+    if (!inShift1 && !inShift2) {
+      const suggestions: string[] = [];
+      suggestions.push(format12Hour(dayConfig.start));
+      if (dayConfig.shift2_enabled && dayConfig.start2) {
+        suggestions.push(format12Hour(dayConfig.start2));
+      }
+
+      const isBreak = dayConfig.shift2_enabled && targetMin > shift1End && targetMin < shift2Start;
+      const breakMsg = isBreak
+        ? `Doctor is on afternoon break between ${format12Hour(dayConfig.end)} and ${format12Hour(dayConfig.start2)}`
+        : `Requested time is outside OPD hours (${format12Hour(dayConfig.start)}–${format12Hour(dayConfig.end)}${dayConfig.shift2_enabled ? ` & ${format12Hour(dayConfig.start2)}–${format12Hour(dayConfig.end2)}` : ""})`;
+
+      return {
+        valid: false,
+        reason: breakMsg,
+        suggestedTimes: suggestions,
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
 /**
  * Robust Patient Name Sanitizer
  * Rejects corrupt prompt matches like "ka naam", "naam", "patient", symptom words, or action verbs.
@@ -240,7 +414,7 @@ export function findMatchingDoctor(text: string, doctors: MergedDoctor[]): { doc
     cardiologist: ["heart", "dil", "cardio", "chest pain", "bp", "blood pressure", "heart attack", "chhati", "cardiac"],
     dentist: ["teeth", "dant", "daant", "tooth", "cavity", "root canal", "braces", "masooda"],
     dermatologist: ["skin", "twacha", "chamdi", "acne", "rash", "pimples", "khujli", "allergy"],
-    pediatrician: ["child", "baccha", "bachhe", "bacha", "kid", "baby", "pediatric"],
+    pediatrician: ["child", "baccha", "bacche", "bachhe", "bachhon", "bachcho", "bacha", "kid", "baby", "pediatric"],
     orthopedic: ["bone", "haddi", "joint", "fracture", "ortho", "ghutna", "kamar", "back pain"],
     ophthalmologist: ["eye", "aankh", "vision", "chashma", "retina", "dikhai"],
     neurologist: ["neuro", "dimag", "brain", "nerves", "migraine", "paralysis"],
@@ -273,6 +447,18 @@ function extractBookingDetailsRuleBased(
 ): ParsedBookingIntent {
   const text = currentText.trim().toLowerCase();
   const now = getNowIST();
+
+  // 0. Emergency check (Triage Guardrail)
+  if (detectEmergency(text)) {
+    return {
+      intent: "emergency",
+      readyToBook: false,
+      patientName: null,
+      dateStr: null,
+      timeStr: null,
+      problem: "Medical Emergency",
+    };
+  }
 
   // 1. Cancellation check
   if (/(cancel|radd|cancel my appointment|appointment cancel|delete booking|mat aana|nahi aa paunga)/i.test(text)) {
@@ -394,10 +580,13 @@ async function extractBookingDetailsAI(opts: {
   address: string;
   bookingLink: string;
   doctors: MergedDoctor[];
+  services: NormalizedClinicService[];
+  faqs: ClinicFaq[];
   clinicTimings: string;
   userMessage: string;
   historyText: string;
   senderName: string | null;
+  returningPatientName?: string | null;
   hasExistingAppt: boolean;
   activeApptDetails?: string | null;
   aiPersona?: string | null;
@@ -413,6 +602,19 @@ async function extractBookingDetailsAI(opts: {
     )
     .join("\n");
 
+  const servicesCatalog = opts.services.length > 0
+    ? opts.services
+        .map(
+          (s, i) =>
+            `${i + 1}. ${s.name}${s.price ? ` — ${s.price}` : ""}${s.duration ? ` (${s.duration})` : ""}${s.description ? `: ${s.description}` : ""}`,
+        )
+        .join("\n")
+    : "General Consultation & Diagnostics";
+
+  const faqsCatalog = opts.faqs.length > 0
+    ? opts.faqs.map((f, i) => `Q${i + 1}: ${f.question}\nA: ${f.answer}`).join("\n\n")
+    : "Standard clinic policies apply.";
+
   const personaTitle = opts.aiPersona?.trim() || "ClinicX WhatsApp AI Receptionist";
 
   const systemPrompt = `You are ${personaTitle} for ${opts.clinicName}.
@@ -422,9 +624,16 @@ Current Time in India: ${now.timeStr}
 Clinic Address: ${opts.address || "Main Clinic"}
 Clinic Timings: ${opts.clinicTimings}
 Booking Link: ${opts.bookingLink}
+${opts.returningPatientName ? `Known Patient Name: ${opts.returningPatientName}` : ""}
 
 ALL DOCTORS & SPECIALISTS AT THIS CLINIC:
 ${doctorsCatalog}
+
+CLINIC SERVICES & TREATMENTS CATALOG:
+${servicesCatalog}
+
+CLINIC FAQS:
+${faqsCatalog}
 
 PATIENT HAS ACTIVE APPOINTMENT: ${opts.hasExistingAppt ? `YES (${opts.activeApptDetails || "Scheduled today"})` : "NO"}
 ${opts.systemInstructions?.trim() ? `
@@ -455,10 +664,16 @@ ROLES & RULES:
    - Do not offer or book slots during afternoon break hours when the clinic/doctor is closed.
 7. TIMINGS & FEES:
    - If patient asks about fees, timings, or options, provide accurate factual details based STRICTLY on the doctors and timings above. DO NOT guess ₹500 if Dr. Durgesh is ₹300!
+8. CLINIC SERVICES & PROCEDURES:
+   - When asked about treatments, tests, or procedures, answer accurately using the Services Catalog above.
+9. EMERGENCY SAFETY TRIAGE:
+   - If patient mentions life-threatening symptoms (chest pain, stroke, unconsciousness, severe hemorrhage), set "intent": "emergency" and advise immediate hospital/ambulance care.
+10. MEDICAL COMPLIANCE:
+   - NEVER prescribe medications or give drug dosages over WhatsApp. Advise consulting the doctor.
 
 CRITICAL JSON SCHEMA:
 {
-  "intent": "book" | "reschedule" | "cancel" | "change_doctor" | "inquire" | "greeting",
+  "intent": "book" | "reschedule" | "cancel" | "change_doctor" | "inquire" | "greeting" | "emergency",
   "ready_to_book": boolean,
   "patient_name": "string or null",
   "date": "YYYY-MM-DD or null",
@@ -602,6 +817,23 @@ export async function processWhatsAppMessage(params: {
 
   const allDoctors: MergedDoctor[] = [primaryDoc, ...otherDocs];
   const clinicScheduleText = formatClinicSchedule(clinic);
+  const clinicServices = extractClinicServices(clinic);
+  const clinicFaqs = extractClinicFaqs(clinic);
+
+  // 2b. Lookup returning patient to personalize name and greeting
+  let returningPatientName: string | null = null;
+  try {
+    const { data: pRecord } = await sb
+      .from("patients")
+      .select("name")
+      .eq("clinic_id", clinic.id)
+      .eq("phone", patientPhone)
+      .limit(1)
+      .maybeSingle();
+    if (pRecord?.name) {
+      returningPatientName = pRecord.name;
+    }
+  } catch {}
 
   // 3. Check for active upcoming appointment for this patient
   const now = new Date();
@@ -638,6 +870,125 @@ export async function processWhatsAppMessage(params: {
 
   const trimmedText = incomingText.trim();
   const lowerText = trimmedText.toLowerCase();
+
+  // ─── TIER 0 FAST-TRACK: 1. EMERGENCY RED-FLAG TRIAGE (<10ms) ───
+  if (detectEmergency(lowerText)) {
+    const docPhone = clinic.personal_phone || clinic.phone;
+    if (docPhone) {
+      void notifyClinicEvent({
+        sb,
+        clinicId: clinic.id,
+        templateKey: "emergency_triage_alert",
+        recipientPhone: docPhone,
+        recipientName: "Clinic Medical Staff",
+        variables: {
+          patient_name: returningPatientName || senderName || "WhatsApp Patient",
+          patient_phone: patientPhone,
+          message: incomingText,
+        },
+      }).catch(() => {});
+    }
+
+    return {
+      reply: `🚨 *EMERGENCY MEDICAL ADVISORY / APATKALIN SOOCHNA* 🚨
+
+Aapke dwara bataye gaye lakshan gambhir medical emergency ho sakte hain.
+
+⚠️ *Kripya bina kisi deri ke turant nazdeeki Emergency Hospital (ER) ya Trauma Center pahuchein, ya Ambulance Helpline 108 / 112 par call karein.*
+
+🏥 *${clinic.clinic_name}* ka OPD clinic keval scheduled consultations ke liye hai aur emergency critical care ke liye suvidha upalabdh nahi hai. Kripya immediate emergency care lein!`,
+      action: "emergency",
+    };
+  }
+
+  // ─── TIER 0 FAST-TRACK: 2. LOCATION & MAP DIRECTIONS (<15ms) ───
+  const isLocationQuery =
+    /(kahan par hai|kahan hai|kaha hai|location|address|pata|kaise pahunche|rasta|map|google map|directions|landmark)/i.test(lowerText) &&
+    !/(book|appointment|slot|kal|aaj|\d{1,2}\s*(am|pm|baje))/i.test(lowerText);
+
+  if (isLocationQuery) {
+    const addressText = clinic.public_address || clinic.address || "Main Clinic Address";
+    const mapsQuery = encodeURIComponent(`${clinic.clinic_name} ${addressText}`);
+    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+    const reply = `📍 *${clinic.clinic_name} — Clinic Location & Address*
+
+🏥 *Address:*
+${addressText}
+
+🗺️ *Google Maps / Directions:*
+👉 ${mapsLink}
+
+${clinic.phone ? `📞 *Call Clinic:* ${clinic.phone}\n` : ""}⏰ *Clinic Timings:*
+${clinicScheduleText}
+
+Aap direct online appointment book kar sakte hain:
+👉 ${bookingLink}`;
+
+    return {
+      reply,
+      action: "inquiry",
+    };
+  }
+
+  // ─── TIER 0 FAST-TRACK: 3. SERVICES & TREATMENTS INQUIRY (<20ms) ───
+  const isServiceInquiry =
+    /(service|services|treatment|ilaj|procedure|test|kya hota hai|available hai kya|facility|suvidha|root canal|implant|physiotherapy|cleaning|scaling|xray|x-ray|blood test)/i.test(lowerText) &&
+    !/(book|appointment|slot|\d{1,2}\s*(am|pm|baje))/i.test(lowerText);
+
+  if (isServiceInquiry && clinicServices.length > 0) {
+    const matchedService = clinicServices.find((s) => lowerText.includes(s.name.toLowerCase()));
+    if (matchedService) {
+      const priceText = matchedService.price ? `\n💰 *Fee / Charges:* ${matchedService.price}` : "";
+      const descText = matchedService.description ? `\nℹ️ _${matchedService.description}_` : "";
+      const durText = matchedService.duration ? `\n⏱️ *Duration:* ${matchedService.duration}` : "";
+
+      return {
+        reply: `🩺 *${matchedService.name}* at *${clinic.clinic_name}*
+${descText}${priceText}${durText}
+
+Is treatment ke liye appointment schedule karna chahte hain?
+Reply karein apna preferred day aur time, ya direct online slot book karein:
+👉 ${bookingLink}`,
+        action: "inquiry",
+      };
+    }
+
+    const servicesList = clinicServices
+      .slice(0, 6)
+      .map((s) => `• *${s.name}*${s.price ? ` (${s.price})` : ""}`)
+      .join("\n");
+
+    return {
+      reply: `🏥 *${clinic.clinic_name} — Available Services & Treatments*
+
+${servicesList}
+
+Kisi specific treatment ke bare mein jaanna hai ya appointment book karna hai?
+Aap direct online slot bhi chun sakte hain:
+👉 ${bookingLink}`,
+      action: "inquiry",
+    };
+  }
+
+  // ─── TIER 0 FAST-TRACK: 4. CLINIC FAQS (<20ms) ───
+  if (clinicFaqs.length > 0) {
+    for (const faq of clinicFaqs) {
+      const qWords = faq.question.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+      const matchCount = qWords.filter((w) => lowerText.includes(w)).length;
+      if (matchCount >= 2 || (qWords.length === 1 && matchCount === 1)) {
+        return {
+          reply: `ℹ️ *${faq.question}*
+
+${faq.answer}
+
+🏥 *${clinic.clinic_name}*
+👉 ${bookingLink}`,
+          action: "inquiry",
+        };
+      }
+    }
+  }
 
   // 4. DIRECT MENU & FAQ FAST-TRACK HANDLERS (prevents hallucination on common button/menu presses)
   // Menu Option 3: "Clinic timing aur doctor consultation fee janna" or direct inquiry
@@ -756,10 +1107,13 @@ Aap kya karna chahte hain?
       address: clinic.public_address || clinic.address || "",
       bookingLink,
       doctors: allDoctors,
+      services: clinicServices,
+      faqs: clinicFaqs,
       clinicTimings: clinicScheduleText,
       userMessage: incomingText,
       historyText,
       senderName,
+      returningPatientName,
       hasExistingAppt: Boolean(upcomingAppt),
       activeApptDetails: upcomingAppt ? `${currentApptDate} at ${currentApptTime} with ${activeApptDoctor}` : null,
       aiPersona: customAiPersona,
@@ -949,8 +1303,12 @@ Aap kis nayi date aur time par shift karna chahte hain?
       ? `\nℹ️ Aapka ek appointment *${currentApptDate}* ko *${currentApptTime}* baje (*${activeApptDoctor}*) scheduled hai.\n`
       : "";
 
+    const welcomeGreeting = returningPatientName
+      ? `Namaste *${returningPatientName}* ji! 🙏 Welcome back to *${clinic.clinic_name}*.`
+      : `Namaste! 🙏 Welcome to *${clinic.clinic_name}*.`;
+
     return {
-      reply: `Namaste! 🙏 Welcome to *${clinic.clinic_name}*.${upcomingMsg}
+      reply: `${welcomeGreeting}${upcomingMsg}
 Main clinic ka AI Receptionist hoon. Main aapki kya madad kar sakta hoon?
 
 1. 📅 *Naya appointment book karna*
@@ -976,6 +1334,26 @@ Aap direct online slot bhi chun sakte hain:
         };
       }
 
+      const assignedDoc = matchedDoc || primaryDoc;
+      const targetWh = assignedDoc.id
+        ? (dbDoctors?.find((d) => d.id === assignedDoc.id)?.working_hours || clinic.working_hours)
+        : clinic.working_hours;
+
+      // Validate slot against doctor's shift hours & day-off
+      const shiftCheck = validateSlotAgainstShifts(intent.dateStr, intent.timeStr, targetWh);
+      if (!shiftCheck.valid) {
+        const sug = shiftCheck.suggestedTimes?.length
+          ? `\n\n💡 *Available timings:* ${shiftCheck.suggestedTimes.join(" ya ")}`
+          : "";
+        return {
+          reply: `ℹ️ *${assignedDoc.name}* is samay available nahi hain (${shiftCheck.reason}).${sug}
+
+Kripya clinic working hours mein se koi doosra samay batayein ya online live slot select karein:
+👉 ${bookingLink}`,
+          action: "ask_details",
+        };
+      }
+
       // Check for duplicate active appointment for the same patient on the same day
       const startOfDay = new Date(`${intent.dateStr}T00:00:00+05:30`);
       const endOfDay = new Date(`${intent.dateStr}T23:59:59+05:30`);
@@ -989,8 +1367,7 @@ Aap direct online slot bhi chun sakte hain:
         .neq("status", "cancelled")
         .maybeSingle();
 
-      const assignedDoc = matchedDoc || primaryDoc;
-      const patientNameFinal = cleanPatientName(intent.patientName, senderName);
+      const patientNameFinal = cleanPatientName(intent.patientName, returningPatientName || senderName);
       const problemFinal = intent.problem || (matchedDoc ? `${matchedDoc.specialization} Consultation` : "General Consultation");
 
       if (existingAppt) {

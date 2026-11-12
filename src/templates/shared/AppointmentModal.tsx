@@ -64,7 +64,11 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
     setSubmitting(true);
     try {
       const endpoint = "/api/public/submit-booking";
-      const servicePrefix = selectedService ? `[Service: ${selectedService.name}] ` : "";
+      const serviceName = typeof selectedService === "object" && selectedService !== null
+        ? (typeof selectedService.name === "string" ? selectedService.name : (selectedService as any)?.title || "")
+        : typeof selectedService === "string" ? selectedService : "";
+      const cleanServiceName = serviceName && serviceName !== "[object Object]" ? serviceName.trim() : "";
+      const servicePrefix = cleanServiceName ? `[Service: ${cleanServiceName}] ` : "";
       const payload = {
         clinic: clinic.slug,
         name,

@@ -13,6 +13,7 @@ import {
   HeartPulse,
   Activity,
   ChevronRight,
+  ChevronDown,
   TrendingUp,
   Users,
   Clock,
@@ -60,6 +61,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { cleanProblemAndService } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard/consult")({
   validateSearch: (
@@ -446,6 +448,8 @@ function ConsultCockpitPage() {
   const [patientAge, setPatientAge] = useState("");
   const [patientGender, setPatientGender] = useState("");
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
+  const [bookedServiceName, setBookedServiceName] = useState<string>("");
+  const [vitalsOpen, setVitalsOpen] = useState(false);
 
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -685,7 +689,12 @@ function ConsultCockpitPage() {
     setPatientAge(p.patient_age ? String(p.patient_age) : "");
     setPatientGender(p.patient_gender || "");
     setAppointmentId(p.appointment_id || null);
-    setChiefComplaint(p.problem || "");
+
+    // Sanitize problem to strip [Service: ...] prefix and any [object Object] artifacts
+    const { service: extractedService, problem: cleanProblem } = cleanProblemAndService(p.problem);
+
+    setBookedServiceName(extractedService);
+    setChiefComplaint(cleanProblem);
     setDiagnosis("");
     setTreatmentPlan("");
     setHistoryNotes("NKDA (No Known Allergies)");
@@ -981,10 +990,13 @@ function ConsultCockpitPage() {
         e.preventDefault();
         document.getElementById("consult-diagnosis-input")?.focus();
       }
-      // Ctrl+B or Cmd+B => BP Focus
+      // Ctrl+B or Cmd+B => Expand Vitals & Focus BP
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
         e.preventDefault();
-        document.getElementById("consult-bp-input")?.focus();
+        setVitalsOpen(true);
+        setTimeout(() => {
+          document.getElementById("consult-bp-input")?.focus();
+        }, 50);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -1215,6 +1227,7 @@ function ConsultCockpitPage() {
         setPatientAge("");
         setPatientGender("");
         setAppointmentId(null);
+        setBookedServiceName("");
         setChiefComplaint("");
         setDiagnosis("");
         setTreatmentPlan("");
@@ -1644,9 +1657,15 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                               {item.patient_name}
                               {item.patient_age && <span className="text-[10px] text-muted-foreground font-normal">({item.patient_age}y)</span>}
                             </div>
-                            <div className="text-[11px] text-muted-foreground truncate">
-                              {item.problem || (item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "General Consult")}
-                            </div>
+                            {(() => {
+                              const parsed = cleanProblemAndService(item.problem);
+                              const label = parsed.displaySummary || (item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "General Consult");
+                              return (
+                                <div className="text-[11px] text-muted-foreground truncate" title={label}>
+                                  {label}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -1688,7 +1707,79 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
           </div>
 
           {/* ================= RIGHT COLUMN: CONSULTATION COCKPIT (8 Cols) ================= */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="lg:col-span-8 space-y-3">
+            {/* Sticky Doctor Top Action Bar */}
+            <div className="sticky top-2 z-20 px-3.5 py-2.5 bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl shadow-sm flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="size-8 rounded-xl bg-primary/10 text-primary grid place-items-center font-bold text-xs shrink-0">
+                  <Stethoscope className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[130px] sm:max-w-[200px]">
+                      {patientName || "Walk-in Consultation"}
+                    </span>
+                    {selectedPatient && (
+                      <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        #{selectedPatient.token_number}
+                      </span>
+                    )}
+                    {bookedServiceName && (
+                      <Badge variant="outline" className="hidden sm:inline-flex text-[9px] font-medium bg-primary/10 text-primary border-primary/20">
+                        Booked: {bookedServiceName}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPreviewModalOpen(true)}
+                  className="h-8 text-xs gap-1 rounded-xl border-border font-medium hover:bg-muted"
+                  title="Live preview prescription slip"
+                >
+                  <Eye className="size-3.5" /> <span className="hidden md:inline">Preview</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePrintSlip}
+                  className="h-8 text-xs gap-1.5 rounded-xl border-border font-medium hover:bg-muted"
+                  title="Print or Save PDF prescription (Ctrl+P)"
+                >
+                  <Printer className="size-3.5" /> <span>Print Rx</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleWhatsAppShare}
+                  disabled={!patientPhone}
+                  className="h-8 text-xs gap-1.5 rounded-xl text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-medium"
+                  title="Send formatted prescription on WhatsApp"
+                >
+                  <MessageSquare className="size-3.5" /> <span>WhatsApp Rx</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={handleCompleteAndNext}
+                  disabled={saving}
+                  className="h-8 px-3.5 bg-primary text-primary-foreground font-bold text-xs gap-1.5 rounded-xl shadow-xs hover:opacity-95"
+                  title="Save & transition to next patient (Ctrl+Enter)"
+                >
+                  <CheckCircle2 className="size-3.5" />
+                  <span>{saving ? "Saving…" : "⚡ Complete & Next"}</span>
+                  <span className="hidden sm:inline text-[9px] opacity-75 font-mono">(Ctrl+↵)</span>
+                </Button>
+              </div>
+            </div>
+
             <Card className="p-4 sm:p-5 border-border/80 bg-card shadow-xs space-y-4 rounded-2xl">
               {/* Active Patient Banner */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
@@ -1709,6 +1800,11 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                       {selectedPatient && (
                         <Badge variant="outline" className="text-[10px] font-mono bg-muted text-muted-foreground">
                           Token #{selectedPatient.token_number}
+                        </Badge>
+                      )}
+                      {bookedServiceName && (
+                        <Badge variant="outline" className="text-[10px] font-medium bg-primary/10 text-primary border-primary/20">
+                          Booked for: {bookedServiceName}
                         </Badge>
                       )}
                     </div>
@@ -1809,112 +1905,157 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                 })}
               </div>
 
-              {/* Vitals Quick Bar with Intelligent Health Indicators */}
-              <div className="space-y-1.5 bg-muted/20 p-3 rounded-2xl border border-border/60">
-                <div className="flex items-center justify-between flex-wrap gap-1.5">
-                  <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Activity className="size-3.5 text-emerald-600" /> Patient Vitals (Ctrl+B)
-                  </Label>
+              {/* Vitals Quick Bar with Intelligent Health Indicators (Compact Collapsible) */}
+              <div className="bg-muted/20 rounded-2xl border border-border/60 overflow-hidden transition-all">
+                {/* Header Strip with Summary Badges */}
+                <div
+                  className="flex items-center justify-between flex-wrap gap-2 p-3 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+                  onClick={() => setVitalsOpen(!vitalsOpen)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[11px] font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                      <Activity className="size-3.5 text-emerald-600" /> Patient Vitals
+                    </Label>
+                    <ChevronDown className={`size-3.5 text-muted-foreground transition-transform duration-200 ${vitalsOpen ? "rotate-180" : ""}`} />
+                  </div>
+
+                  {/* Summary Badges */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {bpStatus && (
-                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${bpStatus.color}`}>
-                        {bpStatus.label}
+                    {bp ? (
+                      <Badge variant="outline" className={`text-[10px] font-mono font-bold px-1.5 py-0 ${bpStatus ? bpStatus.color : "bg-card"}`}>
+                        BP: {bp} {bpStatus?.label ? `(${bpStatus.label})` : ""}
                       </Badge>
-                    )}
-                    {spo2Status && (
-                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${spo2Status.color}`}>
-                        {spo2Status.label}
+                    ) : null}
+                    {pulse ? (
+                      <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-card">
+                        Pulse: {pulse} bpm
                       </Badge>
-                    )}
-                    {sugarStatus && (
-                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${sugarStatus.color}`}>
-                        {sugarStatus.label}
+                    ) : null}
+                    {spo2 ? (
+                      <Badge variant="outline" className={`text-[10px] font-mono font-bold px-1.5 py-0 ${spo2Status ? spo2Status.color : "bg-card"}`}>
+                        SpO2: {spo2}%
                       </Badge>
-                    )}
-                    {tempStatus && (
-                      <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${tempStatus.color}`}>
-                        {tempStatus.label}
+                    ) : null}
+                    {bloodSugar ? (
+                      <Badge variant="outline" className={`text-[10px] font-mono font-bold px-1.5 py-0 ${sugarStatus ? sugarStatus.color : "bg-card"}`}>
+                        Sugar: {bloodSugar} mg/dL
                       </Badge>
-                    )}
+                    ) : null}
+                    {temp ? (
+                      <Badge variant="outline" className={`text-[10px] font-mono font-bold px-1.5 py-0 ${tempStatus ? tempStatus.color : "bg-card"}`}>
+                        Temp: {temp}°F
+                      </Badge>
+                    ) : null}
+                    {weight ? (
+                      <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-card">
+                        Wt: {weight} kg
+                      </Badge>
+                    ) : null}
+                    {height ? (
+                      <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 bg-card">
+                        Ht: {height} cm
+                      </Badge>
+                    ) : null}
                     {bmiInfo && (
                       <Badge variant="outline" className={`text-[10px] font-bold px-1.5 py-0 ${bmiInfo.color}`}>
                         BMI: {bmiInfo.val} ({bmiInfo.category})
                       </Badge>
                     )}
+                    {!bp && !pulse && !spo2 && !bloodSugar && !temp && !weight && !height && (
+                      <span className="text-[11px] text-muted-foreground italic">
+                        {vitalsOpen ? "Enter vitals below" : "No vitals recorded"}
+                      </span>
+                    )}
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVitalsOpen(!vitalsOpen);
+                      }}
+                      className="h-6 px-2 text-[10px] font-semibold text-primary hover:bg-primary/10 rounded-lg ml-1"
+                    >
+                      {vitalsOpen ? "Hide" : "+ Vitals (Ctrl+B)"}
+                    </Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">BP (mmHg)</Label>
-                    <Input
-                      id="consult-bp-input"
-                      placeholder="120/80"
-                      value={bp}
-                      onChange={(e) => handleBpChange(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
+                {/* Collapsible Input Grid */}
+                {vitalsOpen && (
+                  <div className="p-3 pt-0 border-t border-border/40 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">BP (mmHg)</Label>
+                      <Input
+                        id="consult-bp-input"
+                        placeholder="120/80"
+                        value={bp}
+                        onChange={(e) => handleBpChange(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">Pulse (bpm)</Label>
+                      <Input
+                        placeholder="72"
+                        type="number"
+                        value={pulse}
+                        onChange={(e) => setPulse(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">SpO2 (%)</Label>
+                      <Input
+                        placeholder="98"
+                        type="number"
+                        value={spo2}
+                        onChange={(e) => setSpo2(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">Sugar (mg/dL)</Label>
+                      <Input
+                        placeholder="110"
+                        type="number"
+                        value={bloodSugar}
+                        onChange={(e) => setBloodSugar(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">Temp (°F)</Label>
+                      <Input
+                        placeholder="98.4"
+                        value={temp}
+                        onChange={(e) => setTemp(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">Weight (kg)</Label>
+                      <Input
+                        placeholder="70"
+                        type="number"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground block mb-0.5">Height (cm)</Label>
+                      <Input
+                        placeholder="170"
+                        type="number"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        className="h-8 text-xs font-mono bg-card"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Pulse (bpm)</Label>
-                    <Input
-                      placeholder="72"
-                      type="number"
-                      value={pulse}
-                      onChange={(e) => setPulse(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">SpO2 (%)</Label>
-                    <Input
-                      placeholder="98"
-                      type="number"
-                      value={spo2}
-                      onChange={(e) => setSpo2(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Sugar (mg/dL)</Label>
-                    <Input
-                      placeholder="110"
-                      type="number"
-                      value={bloodSugar}
-                      onChange={(e) => setBloodSugar(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Temp (°F)</Label>
-                    <Input
-                      placeholder="98.4"
-                      value={temp}
-                      onChange={(e) => setTemp(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Weight (kg)</Label>
-                    <Input
-                      placeholder="70"
-                      type="number"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground block mb-0.5">Height (cm)</Label>
-                    <Input
-                      placeholder="170"
-                      type="number"
-                      value={height}
-                      onChange={(e) => setHeight(e.target.value)}
-                      className="h-8 text-xs font-mono bg-card"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* 1-Click Clinical Presets Strip */}
