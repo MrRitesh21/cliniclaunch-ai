@@ -238,7 +238,7 @@ const NAV_SECTIONS = [
     label: "Marketing",
     items: [
       { to: "/dashboard/website", label: "Website", icon: Palette, module: "website_builder" },
-      { to: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle, module: "whatsapp" },
+      { to: "/dashboard/whatsapp", label: "WhatsApp AI Assistant", icon: MessageCircle, module: "whatsapp" },
       { to: "/dashboard/reviews", label: "Reviews", icon: Star, module: "reviews" },
       { to: "/dashboard/loyalty", label: "Loyalty", icon: QrCode, module: "loyalty" },
       { to: "/dashboard/marketing", label: "Marketing", icon: Megaphone, module: "marketing" },

@@ -507,13 +507,18 @@ function WhatsAppPage() {
       {/* Header */}
       <header>
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-green-500/10 text-green-600 grid place-items-center">
-            <MessageCircle className="size-5" />
+          <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-600 grid place-items-center border border-emerald-500/20 shadow-sm">
+            <Bot className="size-6" />
           </div>
           <div>
-            <h1 className="font-display text-3xl">WhatsApp Automation</h1>
-            <p className="text-muted-foreground">
-              Clinical-grade messaging — appointments, lab reports, vaccines, billing & more.
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-display text-3xl font-bold tracking-tight">WhatsApp AI Assistant</h1>
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold px-2 py-0.5">
+                RAG & Memory Powered
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Clinical-grade conversational AI with RAG knowledge retrieval, multi-turn memory & strict confidentiality guardrails.
             </p>
           </div>
         </div>
@@ -543,7 +548,7 @@ function WhatsAppPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="receptionist" className="gap-1.5 font-medium">
-            <Bot className="size-3.5 text-emerald-600" /> 24/7 AI Receptionist
+            <Bot className="size-3.5 text-emerald-600" /> WhatsApp AI Assistant
           </TabsTrigger>
           <TabsTrigger value="connect">Connect WhatsApp</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
