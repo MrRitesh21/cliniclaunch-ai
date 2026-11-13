@@ -49,6 +49,10 @@ function timeAgo(iso: string) {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
+// Module-level deduplication set so multiple mounted instances (desktop + mobile headers)
+// do not trigger duplicate audible alerts or stacked toasts for the same notification event.
+const recentToastIds = new Set<string>();
+
 /** Bell + slide-over list of recent alerts. Tapping one deep-links to the screen. */
 export function NotificationInbox() {
   const [open, setOpen] = useState(false);
@@ -109,12 +113,20 @@ export function NotificationInbox() {
     }
   }, [load, nextCursor, loadingMore]);
 
+  const refreshRef = useRef(refresh);
   useEffect(() => {
-    refresh();
-    const timer = window.setInterval(() => refresh(false), 3 * 60 * 1000);
+    refreshRef.current = refresh;
+  }, [refresh]);
 
+  useEffect(() => {
+    refreshRef.current();
+    const timer = window.setInterval(() => refreshRef.current(false), 3 * 60 * 1000);
+
+    // Use a unique channel id per mounted instance so desktop and mobile instances
+    // never clash with Supabase's constraint against adding callbacks to an already-subscribed channel.
+    const channelId = `realtime-notif-inbox-${Math.random().toString(36).slice(2, 9)}`;
     const channel = supabase
-      .channel("realtime-notification-inbox")
+      .channel(channelId)
       .on(
         "postgres_changes",
         {
@@ -125,16 +137,22 @@ export function NotificationInbox() {
         (payload) => {
           const newNotif = payload.new as any;
           if (newNotif?.title) {
-            toast.info(`🔔 ${newNotif.title}`, {
-              description: newNotif.body || undefined,
-              duration: 7000,
-            });
-            try {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-              audio.play().catch(() => {});
-            } catch {}
+            const notifKey = newNotif.id || `${newNotif.title}-${newNotif.created_at || Date.now()}`;
+            if (!recentToastIds.has(notifKey)) {
+              recentToastIds.add(notifKey);
+              window.setTimeout(() => recentToastIds.delete(notifKey), 10000);
+
+              toast.info(`🔔 ${newNotif.title}`, {
+                description: newNotif.body || undefined,
+                duration: 7000,
+              });
+              try {
+                const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+                audio.play().catch(() => {});
+              } catch {}
+            }
           }
-          refresh(false);
+          refreshRef.current(false);
         },
       )
       .subscribe();
@@ -143,7 +161,7 @@ export function NotificationInbox() {
       window.clearInterval(timer);
       supabase.removeChannel(channel);
     };
-  }, [refresh]);
+  }, []);
 
   // A push deep-link carries ?n=<id>: count it as opened and clear the badge.
   useEffect(() => {
