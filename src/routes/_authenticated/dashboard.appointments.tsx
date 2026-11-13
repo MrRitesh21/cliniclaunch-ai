@@ -201,7 +201,7 @@ function AppointmentsPage() {
         problem: apptProblem.trim() || "Consultation appointment",
         scheduled_at: scheduledDate.toISOString(),
         appointment_type: apptType,
-        status: "confirmed",
+        status: "pending",
         source: "manual",
         doctor_id: cleanDoctorId,
         consultation_fee: feeNum,
@@ -859,23 +859,11 @@ function AppointmentsPage() {
 
                     {r.status === "confirmed" && (
                       <>
-                        <Link to="/dashboard/consult" search={{ appointmentId: r.id }} className="flex-1 sm:flex-initial">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              void setStatus(r.id, "serving");
-                            }}
-                            className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl hover:opacity-95"
-                          >
-                            <Stethoscope className="size-3.5" /> Start Consult
-                          </Button>
-                        </Link>
                         <Button
                           size="sm"
-                          variant="outline"
                           onClick={() => setStatus(r.id, "waiting")}
                           disabled={isBusy}
-                          className="h-8 text-xs gap-1.5 font-medium rounded-xl border-border/80"
+                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90 rounded-xl"
                         >
                           {isBusy ? (
                             <Loader2 className="size-3.5 animate-spin" />
@@ -884,6 +872,18 @@ function AppointmentsPage() {
                           )}
                           <span>Check-in to Queue</span>
                         </Button>
+                        <Link to="/dashboard/consult" search={{ appointmentId: r.id }} className="flex-1 sm:flex-initial">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              void setStatus(r.id, "serving");
+                            }}
+                            className="w-full font-medium h-8 text-xs gap-1.5 rounded-xl border-border/80"
+                          >
+                            <Stethoscope className="size-3.5" /> Start Consult
+                          </Button>
+                        </Link>
                         {isOnline && (
                           <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
                             <Button size="sm" variant="secondary" className="h-8 text-xs gap-1 rounded-xl">
@@ -891,6 +891,15 @@ function AppointmentsPage() {
                             </Button>
                           </a>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(r.id, "cancelled")}
+                          disabled={isBusy}
+                          className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 font-medium rounded-xl"
+                        >
+                          <X className="size-3.5 mr-1" /> Cancel
+                        </Button>
                       </>
                     )}
 

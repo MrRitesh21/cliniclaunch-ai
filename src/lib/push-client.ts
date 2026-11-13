@@ -118,7 +118,8 @@ export function usePushNotifications() {
       const cfg = await getPushConfig().catch(() => ({ configured: true, publicKey: DEFAULT_VAPID_PUBLIC_KEY }));
       if (cancelled) return;
       setConfigured(cfg?.configured ?? true);
-      setPublicKey(cfg?.publicKey || DEFAULT_VAPID_PUBLIC_KEY);
+      const vapidPublicKey = cfg?.publicKey || DEFAULT_VAPID_PUBLIC_KEY;
+      setPublicKey(vapidPublicKey);
 
       // Ensure service worker is registered
       let reg = await navigator.serviceWorker.getRegistration();
@@ -128,8 +129,41 @@ export function usePushNotifications() {
       if (cancelled) return;
       setServiceWorkerReady(Boolean(reg));
       if (reg && reg.pushManager) {
-        const existing = await reg.pushManager.getSubscription().catch(() => null);
+        let existing = await reg.pushManager.getSubscription().catch(() => null);
         if (!cancelled) setSubscribed(Boolean(existing));
+
+        // Auto-subscribe / auto-sync if notification permission is already granted
+        if (
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          Notification.permission === "granted" &&
+          vapidPublicKey
+        ) {
+          try {
+            if (!existing) {
+              existing = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as unknown as BufferSource,
+              });
+            }
+            if (existing) {
+              if (!cancelled) setSubscribed(true);
+              await savePushSubscription({
+                data: {
+                  endpoint: existing.endpoint,
+                  p256dh: keyToB64u(existing, "p256dh"),
+                  auth: keyToB64u(existing, "auth"),
+                  deviceLabel: deviceLabel(),
+                  userAgent: navigator.userAgent.slice(0, 400),
+                  platform: isIos() ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "desktop",
+                  expirationTime: existing.expirationTime ?? null,
+                },
+              }).catch((e) => console.warn("[Push] Auto-sync subscription notice:", e));
+            }
+          } catch (autoErr) {
+            console.warn("[Push] Auto-subscription sync notice:", autoErr);
+          }
+        }
       }
       await refreshDevices();
     })();

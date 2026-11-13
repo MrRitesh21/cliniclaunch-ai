@@ -215,7 +215,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
 
               let clinicQuery = sb
                 .from("clinics")
-                .select("id, organization_id, clinic_name, doctor_name, personal_phone, phone, slug");
+                .select("id, organization_id, owner_id, clinic_name, doctor_name, personal_phone, phone, slug");
 
               if (isUuid) {
                 clinicQuery = clinicQuery.eq("id", clinicIdentifier);
@@ -378,7 +378,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                 }
               }
 
-              // 8. Create Appointment - Every website submission creates a dedicated appointment record
+              // 8. Create Appointment - Website submissions create a dedicated pending appointment record
               const { data: appt, error: apptErr } = await sb
                 .from("appointments")
                 .insert({
@@ -391,7 +391,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                   notes: `Token: ${tokenNumber} · Source: Website Form`,
                   scheduled_at: scheduledAt.toISOString(),
                   appointment_type: apptType,
-                  status: "confirmed",
+                  status: "pending",
                   source: "custom_website",
                 } as never)
                 .select("id")
@@ -399,29 +399,6 @@ export const Route = createFileRoute("/api/public/submit-booking")({
 
               if (!apptErr && appt?.id) {
                 appointmentId = appt.id;
-              }
-
-              // Optional: Record in queue_tokens if organization is present
-              if (orgId) {
-                try {
-                  const queueDate = scheduledAt.toISOString().slice(0, 10);
-                  const numMatch = tokenNumber.match(/\d+/);
-                  const numericToken = numMatch ? parseInt(numMatch[0], 10) : 101;
-                  await sb.from("queue_tokens").insert({
-                    organization_id: orgId,
-                    queue_date: queueDate,
-                    token_number: numericToken,
-                    appointment_id: appointmentId,
-                    patient_name: cleanName,
-                    patient_phone: cleanPhone,
-                    status: "waiting",
-                    priority: false,
-                    note: `Website OPD Token ${tokenNumber}`,
-                  });
-                } catch (qErr) {
-                  // Non-fatal if queue_tokens table has constraint
-                  console.warn("submit-booking: queue_token note:", qErr);
-                }
               }
             } catch (dbErr) {
               console.warn("submit-booking: database appointment recording note:", dbErr);
@@ -467,18 +444,49 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           // 11. Dispatch In-App, Push & WhatsApp Notifications to Clinic Team (non-blocking)
           void (async () => {
             // 11A. Create In-App Notifications & Device Push Notifications
-            if (sb && orgId) {
+            if (sb) {
               try {
-                const { data: members } = await sb
-                  .from("organization_members")
-                  .select("user_id")
-                  .eq("organization_id", orgId);
-
                 const targetUserIds = new Set<string>();
-                if (activeClinic.owner_id) targetUserIds.add(activeClinic.owner_id);
-                (members ?? []).forEach((m: { user_id?: string | null }) => {
-                  if (m.user_id) targetUserIds.add(m.user_id);
-                });
+
+                // 1. Clinic owner
+                if (activeClinic.owner_id) {
+                  targetUserIds.add(activeClinic.owner_id);
+                }
+
+                // 2. Organization members
+                if (orgId) {
+                  const { data: members } = await sb
+                    .from("organization_members")
+                    .select("user_id")
+                    .eq("organization_id", orgId);
+                  (members ?? []).forEach((m: { user_id?: string | null }) => {
+                    if (m.user_id) targetUserIds.add(m.user_id);
+                  });
+                }
+
+                // 3. Fallback: Doctors assigned to clinic
+                if (targetUserIds.size === 0 && clinicId) {
+                  const { data: clinicDocs } = await sb
+                    .from("doctors")
+                    .select("user_id")
+                    .eq("clinic_id", clinicId)
+                    .not("user_id", "is", null);
+                  (clinicDocs ?? []).forEach((d: { user_id?: string | null }) => {
+                    if (d.user_id) targetUserIds.add(d.user_id);
+                  });
+                }
+
+                // 4. Fallback: Any active push subscriber
+                if (targetUserIds.size === 0) {
+                  const { data: anySubs } = await sb
+                    .from("push_subscriptions")
+                    .select("user_id")
+                    .eq("enabled", true)
+                    .limit(10);
+                  (anySubs ?? []).forEach((s: { user_id?: string | null }) => {
+                    if (s.user_id) targetUserIds.add(s.user_id);
+                  });
+                }
 
                 for (const userId of targetUserIds) {
                   // In-App Notification inbox row
@@ -505,12 +513,18 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                       userId,
                       {
                         title: `🏥 New Appointment: ${cleanName}`,
-                        body: `Token ${tokenNumber} · ${rawTime || "10:30 AM"} · ${cleanPhone}`,
+                        body: `Token ${tokenNumber} · ${rawTime || "10:30 AM"} · ${cleanPhone}${rawProblem ? ` · ${rawProblem.slice(0, 50)}` : ""}`,
+                        icon: "/icon-512.png",
+                        badge: "/icon-512.png",
                         url: "/dashboard/appointments",
+                        tag: `booking-${appointmentId}`,
+                        renotify: true,
                       },
-                      { category: "appointment", inbox: false },
+                      { category: "booking", inbox: false },
                     );
-                  } catch {}
+                  } catch (pushSendErr) {
+                    console.warn("submit-booking: push error for user", userId, pushSendErr);
+                  }
                 }
               } catch (notifErr) {
                 console.warn("submit-booking: in-app notification note:", notifErr);

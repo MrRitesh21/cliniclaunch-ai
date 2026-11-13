@@ -282,7 +282,14 @@ export async function sendPushToUser(
   const category = opts.category ?? "general";
   const eligible = (subs ?? []).filter((s) => {
     const cats = (s as { categories?: string[] | null }).categories;
-    if (cats && cats.length && !cats.includes(category)) return false;
+    if (cats && cats.length) {
+      const isBookingOrAppt = category === "booking" || category === "appointment";
+      const hasMatch =
+        cats.includes(category) ||
+        (isBookingOrAppt && (cats.includes("booking") || cats.includes("appointment"))) ||
+        cats.includes("general");
+      if (!hasMatch) return false;
+    }
     return !inQuietHours(s as QuietWindow);
   });
 
