@@ -20,12 +20,42 @@ export const Route = createFileRoute("/api/public/submit-booking")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const clinic = url.searchParams.get("clinic") || "";
+        const debug = url.searchParams.get("debug");
+
+        let debugAppts: any[] = [];
+        if (debug && clinic) {
+          try {
+            const { adminClient } = await import("@/lib/clinic.functions");
+            const sb = await adminClient();
+            if (sb) {
+              const { data: clinicRow } = await sb
+                .from("clinics")
+                .select("id")
+                .eq("slug", clinic.toLowerCase())
+                .maybeSingle();
+
+              if (clinicRow) {
+                const { data } = await sb
+                  .from("appointments")
+                  .select("id, patient_name, patient_phone, scheduled_at, status, problem, source, created_at")
+                  .eq("clinic_id", clinicRow.id)
+                  .order("created_at", { ascending: false })
+                  .limit(20);
+                debugAppts = data || [];
+              }
+            }
+          } catch (e: any) {
+            debugAppts = [{ error: e?.message }];
+          }
+        }
+
         return Response.json(
           {
             ok: true,
             endpoint: "/api/public/submit-booking",
             description: "Submit custom website booking & leads directly to ClinicX",
             clinic: clinic || undefined,
+            recent_appointments: debug ? debugAppts : undefined,
             supported_methods: ["POST"],
             accepted_content_types: [
               "application/json",
