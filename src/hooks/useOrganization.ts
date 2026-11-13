@@ -75,8 +75,12 @@ function unverified(org: Organization | null | undefined, message: string | null
   return { ...EMPTY, org, authorityError: message, isSubscriptionExpired: expired };
 }
 function pending(s: Snapshot | undefined): Snapshot {
-  // Retain only a UI mount identity, never previous role/entitlement grants.
-  return { ...EMPTY, org: s?.org, authorityPending: true, authorityScope: s?.authorityScope ?? null, authorityGeneration: s?.authorityGeneration ?? 0, isSubscriptionExpired: s?.isSubscriptionExpired ?? false };
+  // Stale-while-revalidate: retain known UI modules and org identity while refreshing in background
+  if (!s) return { ...EMPTY, authorityPending: true };
+  return {
+    ...s,
+    authorityPending: true,
+  };
 }
 function publish(s: Snapshot) {
   cache = { ...s, authorityGeneration: ++authorityGeneration };

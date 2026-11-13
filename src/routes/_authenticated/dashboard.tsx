@@ -106,8 +106,26 @@ function SubscriptionExpiredView() {
 }
 
 export function useClinic() {
-  const [clinic, setClinic] = useState<Clinic | null | undefined>(undefined);
   const { isReady, user } = useAuthReady();
+  const [clinic, setClinic] = useState<Clinic | null | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    const targetId = getImpersonationCookie() || user?.id;
+    if (targetId) {
+      const cachedClinic = readCache<Clinic>(
+        `clinic:${targetId}`,
+        24 * 60 * 60 * 1000,
+      );
+      if (cachedClinic && (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))) {
+        return cachedClinic;
+      }
+    }
+    const activeSlug = localStorage.getItem("clinicx_active_clinic_slug");
+    if (activeSlug) {
+      const bySlug = readCache<Clinic>(`clinic_slug:${activeSlug}`, 24 * 60 * 60 * 1000);
+      if (bySlug) return bySlug;
+    }
+    return undefined;
+  });
 
   useEffect(() => {
     if (!isReady) return;
@@ -120,41 +138,55 @@ export function useClinic() {
       };
     }
 
-    // Paint the last known clinic instantly, then revalidate in the background.
+    const targetId = getImpersonationCookie() || user.id;
+
+    // Paint the last known clinic instantly if state didn't already have it
     const cachedClinic = readCache<Clinic>(
-      `clinic:${getImpersonationCookie() || user.id}`,
+      `clinic:${targetId}`,
       24 * 60 * 60 * 1000,
     );
     if (cachedClinic && (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))) {
-      setClinic(cachedClinic);
+      setClinic((prev) => prev || cachedClinic);
     }
 
     (async () => {
-      const targetId = getImpersonationCookie() || user.id;
       const isTargetUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
 
-      // 1. Get the organization they belong to (only query Supabase if valid UUID)
-      let orgId: string | undefined = undefined;
-      if (isTargetUuid) {
-        const { data: mem, error: membershipError } = await supabase
-          .from("organization_members")
-          .select("organization_id")
-          .eq("user_id", targetId)
-          .limit(1);
+      let orgId: string | undefined = cachedClinic?.organization_id && isValidUuid(cachedClinic.organization_id)
+        ? cachedClinic.organization_id
+        : undefined;
 
-        if (!membershipError) {
-          orgId = mem?.[0]?.organization_id;
-        }
-      }
+      const membershipPromise = isTargetUuid
+        ? supabase
+            .from("organization_members")
+            .select("organization_id")
+            .eq("user_id", targetId)
+            .limit(1)
+        : Promise.resolve({ data: null, error: null });
 
       let clinicData: Clinic | null = null;
+
       if (orgId) {
-        const { data: clinics } = await supabase
-          .from("clinics")
-          .select("*")
-          .eq("organization_id", orgId)
-          .limit(1);
-        clinicData = (clinics?.[0] as Clinic | undefined) ?? null;
+        // High-speed path: parallelize membership verification and clinic lookup
+        const [memRes, clinicsRes] = await Promise.all([
+          membershipPromise,
+          supabase.from("clinics").select("*").eq("organization_id", orgId).limit(1),
+        ]);
+        if (!memRes.error && memRes.data?.[0]?.organization_id) {
+          orgId = memRes.data[0].organization_id;
+        }
+        clinicData = (clinicsRes.data?.[0] as Clinic | undefined) ?? null;
+      } else {
+        const memRes = await membershipPromise;
+        if (!memRes.error && memRes.data?.[0]?.organization_id) {
+          orgId = memRes.data[0].organization_id;
+          const { data: clinics } = await supabase
+            .from("clinics")
+            .select("*")
+            .eq("organization_id", orgId)
+            .limit(1);
+          clinicData = (clinics?.[0] as Clinic | undefined) ?? null;
+        }
       }
 
       // If not linked in Postgres organization_members, resolve active clinic from SSO session or fallback doctor demo
@@ -192,7 +224,12 @@ export function useClinic() {
 
       // Reads never provision or publish. Only the atomic onboarding endpoint launches a trial.
 
-      if (clinicData) writeCache(`clinic:${targetId}`, clinicData);
+      if (clinicData) {
+        writeCache(`clinic:${targetId}`, clinicData);
+        if (clinicData.slug) {
+          writeCache(`clinic_slug:${clinicData.slug}`, clinicData);
+        }
+      }
       if (active) setClinic(clinicData);
     })();
     return () => {

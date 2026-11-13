@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -58,10 +58,19 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const { redirect, email: searchEmail, tab: searchTab, ref: searchRef } = Route.useSearch();
   const [checkingAuth, setCheckingAuth] = useState(() => hasCachedSession());
   const [loading, setLoading] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Warm up the dashboard chunk while user prepares to log in
+    const timer = setTimeout(() => {
+      void router.preloadRoute({ to: "/dashboard" }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   useEffect(() => {
     if (searchRef) {
@@ -144,6 +153,7 @@ function LoginPage() {
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    void router.preloadRoute({ to: "/dashboard" }).catch(() => {});
     const rawInput = (identifier || email).trim();
     if (!rawInput) {
       return toast.error("Please enter your email or mobile number");
@@ -445,6 +455,9 @@ function LoginPage() {
                       autoComplete="username"
                       required
                       value={identifier || email}
+                      onFocus={() => {
+                        void router.preloadRoute({ to: "/dashboard" }).catch(() => {});
+                      }}
                       onChange={(e) => {
                         setIdentifier(e.target.value);
                         if (e.target.value.includes("@")) {
@@ -472,6 +485,9 @@ function LoginPage() {
                         type={showPw ? "text" : "password"}
                         required
                         value={password}
+                        onFocus={() => {
+                          void router.preloadRoute({ to: "/dashboard" }).catch(() => {});
+                        }}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         className="h-11 pr-10"

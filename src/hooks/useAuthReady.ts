@@ -29,6 +29,7 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { emailToDeterministicUuid, isValidUuid } from "@/lib/sso-uuid";
+import { getCachedSessionUser } from "@/lib/auth-cache";
 
 /**
  * Shared auth store. Previously every component that called useAuthReady()
@@ -83,8 +84,8 @@ function getLocalSsoUser(): User | null {
   return null;
 }
 
-const initialSsoUser = sanitizeUser(getLocalSsoUser());
-let state: State = { isReady: !!initialSsoUser, user: initialSsoUser };
+const initialCachedUser = sanitizeUser(getLocalSsoUser() || getCachedSessionUser());
+let state: State = { isReady: !!initialCachedUser, user: initialCachedUser };
 let started = false;
 const listeners = new Set<(s: State) => void>();
 
@@ -98,12 +99,12 @@ function start() {
   started = true;
 
   void supabase.auth.getSession().then(({ data }) => {
-    const u = sanitizeUser(data.session?.user ?? getLocalSsoUser());
+    const u = sanitizeUser(data.session?.user ?? getLocalSsoUser() ?? getCachedSessionUser());
     publish({ isReady: true, user: u });
   });
 
   supabase.auth.onAuthStateChange((_event, session) => {
-    const u = sanitizeUser(session?.user ?? getLocalSsoUser());
+    const u = sanitizeUser(session?.user ?? getLocalSsoUser() ?? getCachedSessionUser());
     publish({ isReady: true, user: u });
   });
 }

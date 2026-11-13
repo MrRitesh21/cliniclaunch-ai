@@ -81,13 +81,19 @@ function Overview() {
     patients: number;
     waitingQueue: number;
     todayRevenue: number;
-  } | null>(null);
+  } | null>(() => {
+    if (typeof window === "undefined" || !clinic?.id) return null;
+    return readCache(`dash:stats:${clinic.id}`, 24 * 60 * 60 * 1000) ?? null;
+  });
 
-  const [todayAppts, setTodayAppts] = useState<TodayAppointment[]>([]);
+  const [todayAppts, setTodayAppts] = useState<TodayAppointment[]>(() => {
+    if (typeof window === "undefined" || !clinic?.id) return [];
+    return readCache<TodayAppointment[]>(`dash:today_appts:${clinic.id}`, 60 * 60 * 1000) ?? [];
+  });
   const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "confirmed" | "completed">(
     "all",
   );
-  const [loadingAppts, setLoadingAppts] = useState(true);
+  const [loadingAppts, setLoadingAppts] = useState(() => !todayAppts.length);
 
   const updateStatusFn = useServerFn(updateAppointmentStatus);
   const fetchAppointmentsFn = useServerFn(getClinicAppointments);
@@ -108,7 +114,9 @@ function Overview() {
     }
 
     setUsingCachedStats(false);
-    setLoadingAppts(true);
+    if (!todayAppts.length) {
+      setLoadingAppts(true);
+    }
 
     const now = new Date();
     const startOfDay = new Date(now);
@@ -117,61 +125,43 @@ function Overview() {
     endOfDay.setHours(23, 59, 59, 999);
     const weekEnd = new Date(now);
     weekEnd.setDate(weekEnd.getDate() + 7);
-    const todayDateStr = now.toISOString().slice(0, 10);
 
-    const [todayRes, completedRes, pendingRes, weekRes, allApptsRes, todayListRes, queueRes] =
-      await Promise.all([
-        supabase
-          .from("appointments")
-          .select("id", { count: "exact", head: true })
-          .eq("clinic_id", clinic.id)
-          .gte("scheduled_at", startOfDay.toISOString())
-          .lte("scheduled_at", endOfDay.toISOString()),
-        supabase
-          .from("appointments")
-          .select("id", { count: "exact", head: true })
-          .eq("clinic_id", clinic.id)
-          .gte("scheduled_at", startOfDay.toISOString())
-          .lte("scheduled_at", endOfDay.toISOString())
-          .eq("status", "completed"),
-        supabase
-          .from("appointments")
-          .select("id", { count: "exact", head: true })
-          .eq("clinic_id", clinic.id)
-          .eq("status", "pending"),
-        supabase
-          .from("appointments")
-          .select("id", { count: "exact", head: true })
-          .eq("clinic_id", clinic.id)
-          .gte("scheduled_at", now.toISOString())
-          .lte("scheduled_at", weekEnd.toISOString()),
-        supabase.from("appointments").select("patient_phone").eq("clinic_id", clinic.id),
-        supabase
-          .from("appointments")
-          .select(
-            "id, patient_name, patient_phone, patient_age, patient_gender, scheduled_at, status, appointment_type, problem, source",
-          )
-          .eq("clinic_id", clinic.id)
-          .gte("scheduled_at", startOfDay.toISOString())
-          .lte("scheduled_at", endOfDay.toISOString())
-          .order("scheduled_at", { ascending: true }),
-        clinic.organization_id
-          ? supabase
-              .from("appointments")
-              .select("id", { count: "exact", head: true })
-              .eq("clinic_id", clinic.id)
-              .gte("scheduled_at", startOfDay.toISOString())
-              .lte("scheduled_at", endOfDay.toISOString())
-              .in("status", ["waiting", "confirmed", "pending"])
-              .then((r) => (r.error ? { count: 0 } : r), () => ({ count: 0 }))
-          : Promise.resolve({ count: 0 }),
-      ]);
+    // High performance query suite:
+    // 1. Fetch today's appointments (computes todayTotal, completed, and waitingQueue in-memory with 0ms overhead)
+    // 2. Head count of pending appointments
+    // 3. Head count of upcoming 7 days appointments
+    // 4. Head count of patients (replaces historical all-appointments table scan)
+    const [todayListRes, pendingRes, weekRes, patientsCountRes] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select(
+          "id, patient_name, patient_phone, patient_age, patient_gender, scheduled_at, status, appointment_type, problem, source",
+        )
+        .eq("clinic_id", clinic.id)
+        .gte("scheduled_at", startOfDay.toISOString())
+        .lte("scheduled_at", endOfDay.toISOString())
+        .order("scheduled_at", { ascending: true }),
+      supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", clinic.id)
+        .eq("status", "pending"),
+      supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", clinic.id)
+        .gte("scheduled_at", now.toISOString())
+        .lte("scheduled_at", weekEnd.toISOString()),
+      supabase
+        .from("patients")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", clinic.id),
+    ]);
 
-    let allApptList = (allApptsRes.data ?? []) as any[];
     let todayApptList = ((todayListRes.data as TodayAppointment[]) ?? []) as TodayAppointment[];
 
     // Fallback: If client-side PostgREST returned 0 due to RLS, fetch via server function
-    if (allApptList.length === 0 && clinic.id) {
+    if (todayApptList.length === 0 && clinic.id) {
       try {
         const serverRows = await fetchAppointmentsFn({
           data: {
@@ -180,7 +170,6 @@ function Overview() {
           },
         });
         if (Array.isArray(serverRows) && serverRows.length > 0) {
-          allApptList = serverRows;
           const startMs = startOfDay.getTime();
           const endMs = endOfDay.getTime();
           todayApptList = serverRows.filter((a: any) => {
@@ -193,31 +182,43 @@ function Overview() {
       }
     }
 
-    const uniquePhones = new Set(
-      allApptList.map((r: any) => r.patient_phone).filter(Boolean),
-    );
-
-    const completedCount = completedRes.count ?? allApptList.filter((a) => a.status === "completed").length;
+    const completedCount = todayApptList.filter((a) => a.status === "completed").length;
+    const waitingCount = todayApptList.filter((a) =>
+      ["waiting", "confirmed", "pending"].includes(a.status),
+    ).length;
     const fee = clinic.consultation_fee ?? 500;
     const estRevenue = completedCount * fee;
 
+    const patientCount =
+      patientsCountRes.count ??
+      new Set(todayApptList.map((a) => a.patient_phone).filter(Boolean)).size;
+
     const nextStats = {
-      todayTotal: todayApptList.length || (todayRes.count ?? 0),
+      todayTotal: todayApptList.length,
       todayCompleted: completedCount,
-      pending: (pendingRes.count ?? 0) || allApptList.filter((a) => a.status === "pending").length,
-      week: weekRes.count ?? allApptList.length,
-      patients: uniquePhones.size,
-      waitingQueue: queueRes.count ?? 0,
+      pending: (pendingRes.count ?? 0) || todayApptList.filter((a) => a.status === "pending").length,
+      week: weekRes.count ?? todayApptList.length,
+      patients: patientCount,
+      waitingQueue: waitingCount,
       todayRevenue: estRevenue,
     };
     setStats(nextStats);
     writeCache(`dash:stats:${clinic.id}`, nextStats);
+    writeCache(`dash:today_appts:${clinic.id}`, todayApptList);
 
     setTodayAppts(todayApptList);
     setLoadingAppts(false);
   };
 
   useEffect(() => {
+    if (!clinic?.id) return;
+    const cachedStats = readCache<typeof stats>(`dash:stats:${clinic.id}`, 24 * 60 * 60 * 1000);
+    if (cachedStats) setStats((prev) => prev || cachedStats);
+    const cachedAppts = readCache<TodayAppointment[]>(`dash:today_appts:${clinic.id}`, 60 * 60 * 1000);
+    if (cachedAppts && cachedAppts.length > 0) {
+      setTodayAppts((prev) => (prev.length > 0 ? prev : cachedAppts));
+      setLoadingAppts(false);
+    }
     fetchDashboardData();
   }, [clinic?.id, online]);
 
