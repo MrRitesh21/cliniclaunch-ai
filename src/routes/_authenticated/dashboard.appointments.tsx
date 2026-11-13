@@ -358,7 +358,12 @@ function AppointmentsPage() {
       const docMap = new Map<string, string>(docData.map((d) => [d.id, d.name]));
 
       const combined = [...(apptRows ?? []), ...directConsults].sort(
-        (a, b) => new Date(b.scheduled_at || 0).getTime() - new Date(a.scheduled_at || 0).getTime()
+        (a, b) => {
+          // Sort newest bookings first so live website submissions appear immediately at the top
+          const timeA = new Date(a.created_at || a.scheduled_at || 0).getTime();
+          const timeB = new Date(b.created_at || b.scheduled_at || 0).getTime();
+          return timeB - timeA;
+        }
       );
 
       const apptList = combined.map((r: any) => ({

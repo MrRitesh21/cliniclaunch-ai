@@ -282,41 +282,41 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           const rawDate = (payload.date || payload.preferred_date || payload.appointment_date || "").toString().trim();
           const rawTime = (payload.time || payload.preferred_time || payload.slot || "").toString().trim();
 
-          // Robust time extraction (e.g. "10:30 AM", "Morning · 10:00 AM – 1:00 PM", "morning")
-          let timeString = "10:00:00";
+          // Robust 24-hr time extraction
+          let hours = 10;
+          let minutes = 0;
           if (rawTime) {
-            const timeMatch = rawTime.match(/\b(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\b/);
+            const timeMatch = rawTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
             if (timeMatch) {
-              timeString = timeMatch[1];
+              let h = parseInt(timeMatch[1], 10);
+              const m = parseInt(timeMatch[2], 10);
+              const meridian = (timeMatch[3] || "").toUpperCase();
+              if (meridian === "PM" && h < 12) h += 12;
+              if (meridian === "AM" && h === 12) h = 0;
+              hours = h;
+              minutes = m;
             } else if (/morning/i.test(rawTime)) {
-              timeString = "10:00:00";
+              hours = 10;
+              minutes = 0;
             } else if (/afternoon/i.test(rawTime)) {
-              timeString = "14:00:00";
+              hours = 14;
+              minutes = 0;
             } else if (/evening/i.test(rawTime)) {
-              timeString = "17:30:00";
+              hours = 17;
+              minutes = 30;
             }
           }
 
-          if (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-            const parsed = new Date(`${rawDate} ${timeString}`);
-            if (!isNaN(parsed.getTime())) {
-              scheduledAt = parsed;
-            } else {
-              scheduledAt = new Date(`${rawDate}T10:00:00.000Z`);
-            }
-          } else if (rawDate) {
-            const parsed = new Date(rawDate);
-            if (!isNaN(parsed.getTime())) {
-              scheduledAt = parsed;
-            } else {
-              scheduledAt = new Date();
-              scheduledAt.setDate(scheduledAt.getDate() + 1);
-              scheduledAt.setHours(10, 0, 0, 0);
-            }
-          } else {
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const targetDateStr = (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate))
+            ? rawDate
+            : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+
+          // Construct ISO timestamp explicitly with Asia/Kolkata offset (+05:30)
+          const isoString = `${targetDateStr}T${pad(hours)}:${pad(minutes)}:00+05:30`;
+          scheduledAt = new Date(isoString);
+          if (isNaN(scheduledAt.getTime())) {
             scheduledAt = new Date();
-            scheduledAt.setDate(scheduledAt.getDate() + 1);
-            scheduledAt.setHours(10, 0, 0, 0);
           }
 
           // 7. Check for duplicate pending appointment on the same day for this phone
