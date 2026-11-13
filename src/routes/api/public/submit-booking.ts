@@ -249,21 +249,41 @@ export const Route = createFileRoute("/api/public/submit-booking")({
 
           // 6. Compute Scheduled At Date/Time
           let scheduledAt: Date;
-          const rawDate = payload.date || payload.preferred_date || payload.appointment_date;
-          const rawTime = payload.time || payload.preferred_time || payload.slot;
+          const rawDate = (payload.date || payload.preferred_date || payload.appointment_date || "").toString().trim();
+          const rawTime = (payload.time || payload.preferred_time || payload.slot || "").toString().trim();
 
-          if (rawDate) {
-            const parsed = new Date(`${rawDate} ${rawTime || "10:00:00"}`);
+          // Robust time extraction (e.g. "10:30 AM", "Morning · 10:00 AM – 1:00 PM", "morning")
+          let timeString = "10:00:00";
+          if (rawTime) {
+            const timeMatch = rawTime.match(/\b(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\b/);
+            if (timeMatch) {
+              timeString = timeMatch[1];
+            } else if (/morning/i.test(rawTime)) {
+              timeString = "10:00:00";
+            } else if (/afternoon/i.test(rawTime)) {
+              timeString = "14:00:00";
+            } else if (/evening/i.test(rawTime)) {
+              timeString = "17:30:00";
+            }
+          }
+
+          if (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+            const parsed = new Date(`${rawDate} ${timeString}`);
             if (!isNaN(parsed.getTime())) {
               scheduledAt = parsed;
             } else {
-              // Default to tomorrow 10:00 AM
+              scheduledAt = new Date(`${rawDate}T10:00:00.000Z`);
+            }
+          } else if (rawDate) {
+            const parsed = new Date(rawDate);
+            if (!isNaN(parsed.getTime())) {
+              scheduledAt = parsed;
+            } else {
               scheduledAt = new Date();
               scheduledAt.setDate(scheduledAt.getDate() + 1);
               scheduledAt.setHours(10, 0, 0, 0);
             }
           } else {
-            // Default to tomorrow 10:00 AM
             scheduledAt = new Date();
             scheduledAt.setDate(scheduledAt.getDate() + 1);
             scheduledAt.setHours(10, 0, 0, 0);
@@ -275,13 +295,28 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           const endOfDay = new Date(scheduledAt);
           endOfDay.setHours(23, 59, 59, 999);
 
+          const dpdpConsent = Boolean(
+            payload.dpdp_consent === true ||
+            payload.dpdp_consent === "true" ||
+            payload.consent === true ||
+            payload.consent === "true" ||
+            payload.terms === true ||
+            payload.terms === "true"
+          );
+          const dpdpConsentAt = payload.dpdp_consent_at || (dpdpConsent ? new Date().toISOString() : null);
+          const tokenNumber = `OPD-${Math.floor(100 + Math.random() * 900)}`;
+          const tokenBadge = `[${tokenNumber}]`;
+          const formattedProblem = rawProblem
+            ? (rawProblem.includes("OPD-") ? rawProblem : `${tokenBadge} ${rawProblem}`)
+            : `${tokenBadge} Website Custom Form Booking`;
+
           let appointmentId = `apt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
           if (sb) {
             try {
               const { data: existingAppt } = await sb
                 .from("appointments")
-                .select("id")
+                .select("id, patient_name")
                 .eq("clinic_id", clinicId)
                 .eq("patient_phone", cleanPhone)
                 .gte("scheduled_at", startOfDay.toISOString())
@@ -291,6 +326,20 @@ export const Route = createFileRoute("/api/public/submit-booking")({
 
               if (existingAppt) {
                 appointmentId = existingAppt.id;
+                // Update existing record so changes in patient name, problem, or token are saved permanently
+                await sb
+                  .from("appointments")
+                  .update({
+                    patient_name: cleanName,
+                    patient_email: rawEmail || null,
+                    problem: formattedProblem,
+                    notes: `Token: ${tokenNumber} · Source: Website Form`,
+                    scheduled_at: scheduledAt.toISOString(),
+                    appointment_type: apptType,
+                    status: "confirmed",
+                    source: "custom_website",
+                  })
+                  .eq("id", existingAppt.id);
               } else {
                 // Mutual Exclusion & Slot Collision Prevention
                 const slotStart = new Date(scheduledAt.getTime() - 14 * 60 * 1000).toISOString();
@@ -335,7 +384,8 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                     patient_name: cleanName,
                     patient_phone: cleanPhone,
                     patient_email: rawEmail || null,
-                    problem: rawProblem || "Website Custom Form Booking",
+                    problem: formattedProblem,
+                    notes: `Token: ${tokenNumber} · Source: Website Form`,
                     scheduled_at: scheduledAt.toISOString(),
                     appointment_type: apptType,
                     status: "confirmed",
@@ -348,21 +398,33 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                   appointmentId = appt.id;
                 }
               }
+
+              // Optional: Record in queue_tokens if organization is present
+              if (orgId) {
+                try {
+                  const queueDate = scheduledAt.toISOString().slice(0, 10);
+                  const numMatch = tokenNumber.match(/\d+/);
+                  const numericToken = numMatch ? parseInt(numMatch[0], 10) : 101;
+                  await sb.from("queue_tokens").insert({
+                    organization_id: orgId,
+                    queue_date: queueDate,
+                    token_number: numericToken,
+                    appointment_id: appointmentId,
+                    patient_name: cleanName,
+                    patient_phone: cleanPhone,
+                    status: "waiting",
+                    priority: false,
+                    note: `Website OPD Token ${tokenNumber}`,
+                  });
+                } catch (qErr) {
+                  // Non-fatal if queue_tokens table has constraint
+                  console.warn("submit-booking: queue_token note:", qErr);
+                }
+              }
             } catch (dbErr) {
               console.warn("submit-booking: database appointment recording note:", dbErr);
             }
           }
-
-          const dpdpConsent = Boolean(
-            payload.dpdp_consent === true ||
-            payload.dpdp_consent === "true" ||
-            payload.consent === true ||
-            payload.consent === "true" ||
-            payload.terms === true ||
-            payload.terms === "true"
-          );
-          const dpdpConsentAt = payload.dpdp_consent_at || (dpdpConsent ? new Date().toISOString() : null);
-          const tokenNumber = `OPD-${Math.floor(100 + Math.random() * 900)}`;
 
           // 9. Upsert Patient Record
           if (sb) {
