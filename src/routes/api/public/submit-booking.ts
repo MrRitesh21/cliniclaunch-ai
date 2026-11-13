@@ -338,7 +338,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                     problem: rawProblem || "Website Custom Form Booking",
                     scheduled_at: scheduledAt.toISOString(),
                     appointment_type: apptType,
-                    status: "pending",
+                    status: "confirmed",
                     source: "custom_website",
                   } as never)
                   .select("id")
@@ -400,8 +400,59 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             }
           }
 
-          // 11. Dispatch WhatsApp / Push Notification to Doctor (non-blocking)
+          // 11. Dispatch In-App, Push & WhatsApp Notifications to Clinic Team (non-blocking)
           void (async () => {
+            // 11A. Create In-App Notifications & Device Push Notifications
+            if (sb && orgId) {
+              try {
+                const { data: members } = await sb
+                  .from("organization_members")
+                  .select("user_id")
+                  .eq("organization_id", orgId);
+
+                const targetUserIds = new Set<string>();
+                (members ?? []).forEach((m: { user_id?: string | null }) => {
+                  if (m.user_id) targetUserIds.add(m.user_id);
+                });
+
+                for (const userId of targetUserIds) {
+                  // In-App Notification inbox row
+                  await sb.from("notifications").insert({
+                    user_id: userId,
+                    organization_id: orgId,
+                    category: "appointment",
+                    title: `New Appointment: ${cleanName}`,
+                    body: `Token: ${tokenNumber} · ${rawTime || "10:30 AM"} · ${cleanPhone} · ${rawProblem || "Website Form Booking"}`,
+                    url: "/dashboard/appointments",
+                    meta: {
+                      appointment_id: appointmentId,
+                      token_number: tokenNumber,
+                      patient_name: cleanName,
+                      patient_phone: cleanPhone,
+                      source: "custom_website",
+                    },
+                  });
+
+                  // Device Push notification (Mobile PWA & Desktop browser)
+                  try {
+                    const { sendPushToUser } = await import("@/lib/web-push.server");
+                    await sendPushToUser(
+                      userId,
+                      {
+                        title: `🏥 New Appointment: ${cleanName}`,
+                        body: `Token ${tokenNumber} · ${rawTime || "10:30 AM"} · ${cleanPhone}`,
+                        url: "/dashboard/appointments",
+                      },
+                      { category: "appointment", inbox: false },
+                    );
+                  } catch {}
+                }
+              } catch (notifErr) {
+                console.warn("submit-booking: in-app notification note:", notifErr);
+              }
+            }
+
+            // 11B. Dispatch WhatsApp Notification
             try {
               const { notifyClinicEvent } = await import("@/lib/notify.server");
               const doctorPhone = activeClinic.personal_phone || activeClinic.phone || null;
