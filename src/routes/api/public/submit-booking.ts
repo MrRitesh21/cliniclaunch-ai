@@ -334,7 +334,56 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             payload.terms === "true"
           );
           const dpdpConsentAt = payload.dpdp_consent_at || (dpdpConsent ? new Date().toISOString() : null);
-          const tokenNumber = `OPD-${Math.floor(100 + Math.random() * 900)}`;
+
+          // Sequential Increasing OPD Token Calculation for scheduled date
+          let numericToken = 101;
+          if (sb) {
+            try {
+              // 1. Check existing appointments on this day for this clinic
+              const { data: dayAppts } = await sb
+                .from("appointments")
+                .select("notes, problem")
+                .eq("clinic_id", clinicId)
+                .gte("scheduled_at", startOfDay.toISOString())
+                .lte("scheduled_at", endOfDay.toISOString())
+                .order("created_at", { ascending: true });
+
+              // 2. Check existing queue tokens for this organization on this day
+              const { data: dayQueueTokens } = orgId
+                ? await sb
+                    .from("queue_tokens")
+                    .select("token_number")
+                    .eq("organization_id", orgId)
+                    .eq("queue_date", targetDateStr)
+                    .order("token_number", { ascending: false })
+                : { data: [] };
+
+              let maxCleanToken = 100;
+              for (const a of dayAppts || []) {
+                const match = (a.notes || "").match(/OPD-(\d+)/) || (a.problem || "").match(/OPD-(\d+)/);
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (num >= 101 && num < 1000 && num > maxCleanToken) {
+                    maxCleanToken = num;
+                  }
+                }
+              }
+              for (const q of dayQueueTokens || []) {
+                if (q.token_number >= 101 && q.token_number < 1000 && q.token_number > maxCleanToken) {
+                  maxCleanToken = q.token_number;
+                }
+              }
+
+              const totalBookingsToday = Math.max(dayAppts?.length ?? 0, dayQueueTokens?.length ?? 0);
+              // Ensure strictly increasing order starting from 101
+              numericToken = Math.max(maxCleanToken + 1, 100 + totalBookingsToday + 1);
+            } catch (tokenCalcErr) {
+              console.warn("submit-booking: token sequence calculation note:", tokenCalcErr);
+              numericToken = 101;
+            }
+          }
+
+          const tokenNumber = `OPD-${numericToken}`;
           const tokenBadge = `[${tokenNumber}]`;
           const formattedProblem = rawProblem
             ? (rawProblem.includes("OPD-") ? rawProblem : `${tokenBadge} ${rawProblem}`)
@@ -399,6 +448,26 @@ export const Route = createFileRoute("/api/public/submit-booking")({
 
               if (!apptErr && appt?.id) {
                 appointmentId = appt.id;
+              }
+
+              // 8.5. Record in queue_tokens for Live OPD Queue integration
+              if (orgId) {
+                try {
+                  const queueDate = scheduledAt.toISOString().slice(0, 10);
+                  await sb.from("queue_tokens").insert({
+                    organization_id: orgId,
+                    queue_date: queueDate,
+                    token_number: numericToken,
+                    appointment_id: appointmentId,
+                    patient_name: cleanName,
+                    patient_phone: cleanPhone,
+                    status: "waiting",
+                    priority: false,
+                    note: `Website OPD Token ${tokenNumber}`,
+                  });
+                } catch (qErr) {
+                  console.warn("submit-booking: queue_token note:", qErr);
+                }
               }
             } catch (dbErr) {
               console.warn("submit-booking: database appointment recording note:", dbErr);
