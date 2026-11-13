@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { getDashboardDoctors } from "@/lib/clinic.functions";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -71,6 +73,7 @@ const CHART_COLORS = ["#0284c7", "#10b981", "#6366f1", "#f59e0b", "#ec4899", "#8
 function AnalyticsPage() {
   const { org } = useOrganization();
   const orgId = org?.id;
+  const fetchDoctorsFn = useServerFn(getDashboardDoctors);
   const [timeRange, setTimeRange] = useState<RangeOption>("30d");
   const [loading, setLoading] = useState(true);
 
@@ -155,7 +158,9 @@ function AnalyticsPage() {
             .select("id, status")
             .eq("organization_id", orgId)
             .in("status", ["pending", "collected", "in_lab"]),
-          supabase.from("doctors").select("id, name").eq("organization_id", orgId),
+          fetchDoctorsFn({ data: { organization_id: orgId } })
+            .then((d) => ({ data: (d || []).map((x: any) => ({ id: x.id, name: x.name })) }))
+            .catch(() => ({ data: [] })),
         ]);
 
         const apptRows = (apts.data as any[]) ?? [];

@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { getDashboardDoctors } from "@/lib/clinic.functions";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useClinic } from "./dashboard";
@@ -204,6 +206,7 @@ export function QueuePage() {
   const [activeTab, setActiveTab] = useState<"all" | "waiting" | "serving" | "emergency" | "completed" | "no_show">("all");
   const [search, setSearch] = useState("");
   const [issuedSlip, setIssuedSlip] = useState<{ tokenNumber: number; patientName: string; waitEst: string; phone: string | null } | null>(null);
+  const fetchDoctorsFn = useServerFn(getDashboardDoctors);
 
   const date = today();
 
@@ -242,12 +245,13 @@ export function QueuePage() {
               .then((res) => (res.error ? { data: [] } : res), () => ({ data: [] }))
           : Promise.resolve({ data: [] }),
         clinicId
-          ? supabase
-              .from("doctors")
-              .select("id, name")
-              .eq("clinic_id", clinicId)
-              .eq("is_active", true)
-              .then((res) => (res.error ? { data: [] } : res), () => ({ data: [] }))
+          ? fetchDoctorsFn({ data: { clinic_id: clinicId, organization_id: orgId || null } })
+              .then((d) => ({
+                data: (d || [])
+                  .filter((x: any) => x.is_active !== false)
+                  .map((x: any) => ({ id: x.id, name: x.name })),
+              }))
+              .catch(() => ({ data: [] }))
           : Promise.resolve({ data: [] }),
       ]);
 

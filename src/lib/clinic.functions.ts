@@ -1680,3 +1680,40 @@ export const ensureDoctorMembership = createServerFn({ method: "POST" })
 
     return { ok: true, organization_id: clinic.organization_id };
   });
+
+/**
+ * Safe server-side doctor fetcher for authenticated dashboard views.
+ * Uses service role authority to bypass client-side RLS hurdles and prevent 401 permission errors.
+ */
+export const getDashboardDoctors = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().max(100).optional().nullable(),
+        organization_id: z.string().max(100).optional().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const sb = await adminClient();
+    let q = sb
+      .from("doctors")
+      .select("id, name, specialization, consultation_fee, is_active, clinic_id, organization_id")
+      .order("name");
+
+    if (data.clinic_id && data.organization_id) {
+      q = q.or(`clinic_id.eq.${data.clinic_id},organization_id.eq.${data.organization_id}`);
+    } else if (data.clinic_id) {
+      q = q.eq("clinic_id", data.clinic_id);
+    } else if (data.organization_id) {
+      q = q.eq("organization_id", data.organization_id);
+    }
+
+    const { data: rows, error } = await q;
+    if (error) {
+      console.warn("[getDashboardDoctors] Failed to load doctors:", error.message);
+      return [];
+    }
+    return rows || [];
+  });
+

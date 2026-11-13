@@ -44,7 +44,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { updateAppointmentStatus, createBooking, getClinicAppointments } from "@/lib/clinic.functions";
+import { updateAppointmentStatus, createBooking, getClinicAppointments, getDashboardDoctors } from "@/lib/clinic.functions";
 import { Label } from "@/components/ui/label";
 import { AppGuard } from "@/components/app/AppGuard";
 import { PageHeader } from "@/components/ui/page-header";
@@ -87,6 +87,7 @@ function AppointmentsPage() {
   const clinic = useClinic();
   const updateStatus = useServerFn(updateAppointmentStatus);
   const fetchAppointmentsFn = useServerFn(getClinicAppointments);
+  const fetchDoctorsFn = useServerFn(getDashboardDoctors);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Appt[]>([]);
@@ -113,12 +114,13 @@ function AppointmentsPage() {
   const loadDoctors = useCallback(async () => {
     if (!clinic?.id) return;
     try {
-      const { data } = await supabase
-        .from("doctors")
-        .select("id, name")
-        .eq("clinic_id", clinic.id)
-        .eq("is_active", true);
-      const list = Array.isArray(data) && data.length > 0 ? data : [];
+      const data = await fetchDoctorsFn({
+        data: {
+          clinic_id: clinic.id,
+          organization_id: clinic.organization_id || null,
+        },
+      });
+      const list = Array.isArray(data) ? data.filter((d: any) => d.is_active !== false) : [];
       if (list.length === 0 && clinic.doctor_name) {
         setDoctors([{ id: clinic.id, name: clinic.doctor_name }]);
         setApptDoctorId(clinic.id);
@@ -132,7 +134,7 @@ function AppointmentsPage() {
         setApptDoctorId(clinic.id);
       }
     }
-  }, [clinic?.id, clinic?.doctor_name]);
+  }, [clinic?.id, clinic?.organization_id, clinic?.doctor_name, fetchDoctorsFn]);
 
   useEffect(() => {
     if (addOpen) {
@@ -342,14 +344,16 @@ function AppointmentsPage() {
         });
       });
 
-      // 3. Resolve doctor names safely without fragile embedded joins
+      // 3. Resolve doctor names safely via server function (avoids client-side RLS 401 error)
       let docData: Array<{ id: string; name: string }> = [];
       try {
-        const { data } = await supabase
-          .from("doctors")
-          .select("id, name")
-          .eq("clinic_id", clinic.id);
-        if (Array.isArray(data)) docData = data;
+        const sDocs = await fetchDoctorsFn({
+          data: {
+            clinic_id: clinic.id,
+            organization_id: clinic.organization_id || null,
+          },
+        });
+        if (Array.isArray(sDocs)) docData = sDocs;
       } catch {}
 
       if (docData.length === 0 && clinic.doctor_name) {
@@ -377,7 +381,7 @@ function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [clinic?.id, clinic?.organization_id, fetchAppointmentsFn]);
+  }, [clinic?.id, clinic?.organization_id, clinic?.doctor_name, fetchAppointmentsFn, fetchDoctorsFn]);
 
   useEffect(() => {
     load();

@@ -1,4 +1,6 @@
 import { createFileRoute, useSearch, useNavigate, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { getDashboardDoctors } from "@/lib/clinic.functions";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "./dashboard";
@@ -234,6 +236,7 @@ function PatientsPage() {
   const [editingVisit, setEditingVisit] = useState<EMRVisit | "new" | null>(null);
   const [loading, setLoading] = useState(patients.length === 0);
   const [vitalsDialogPatient, setVitalsDialogPatient] = useState<Patient | null>(null);
+  const fetchDoctorsFn = useServerFn(getDashboardDoctors);
 
   async function loadData() {
     if (!clinic?.id || !orgId) return;
@@ -255,7 +258,9 @@ function PatientsPage() {
           .limit(100)
           .then((r) => (r.error ? { data: [] } : r)),
         supabase.from("patients").select("id, name").eq("clinic_id", clinic.id).order("name").then((r) => (r.error ? { data: [] } : r)),
-        supabase.from("doctors").select("id, name").eq("clinic_id", clinic.id).order("name").then((r) => (r.error ? { data: [] } : r)),
+        fetchDoctorsFn({ data: { clinic_id: clinic.id, organization_id: orgId } })
+          .then((d) => ({ data: (d || []).map((x: any) => ({ id: x.id, name: x.name })) }))
+          .catch(() => ({ data: [] })),
         supabase
           .from("inventory_items" as any)
           .select("id, name, unit, quantity")
