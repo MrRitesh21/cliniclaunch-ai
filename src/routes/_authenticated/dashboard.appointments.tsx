@@ -299,7 +299,7 @@ function AppointmentsPage() {
         let q = supabase
           .from("appointments")
           .select("*")
-          .order("scheduled_at", { ascending: false });
+          .order("created_at", { ascending: false });
 
         if (clinic.organization_id) {
           q = q.or(`clinic_id.eq.${clinic.id},organization_id.eq.${clinic.organization_id}`);
@@ -396,7 +396,23 @@ function AppointmentsPage() {
           table: "appointments",
           filter: `clinic_id=eq.${clinic.id}`,
         },
-        () => load(),
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newAppt = payload.new as any;
+            const patientName = newAppt?.patient_name || "New Patient";
+            const tokenMatch = (newAppt?.notes || "").match(/OPD-\d+/) || (newAppt?.problem || "").match(/OPD-\d+/);
+            const tokenStr = tokenMatch ? ` (${tokenMatch[0]})` : "";
+            toast.success(`🔔 New Appointment: ${patientName}${tokenStr}`, {
+              description: newAppt?.problem ? newAppt.problem.slice(0, 60) : "Booked via Website",
+              duration: 8000,
+            });
+            try {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+              audio.play().catch(() => {});
+            } catch {}
+          }
+          load();
+        },
       )
       .subscribe();
     return () => {
@@ -741,11 +757,22 @@ function AppointmentsPage() {
                         }
                       />
                       <div className="min-w-0">
-                        <h3 className="font-display font-bold text-sm text-foreground truncate">
-                          {!r.patient_name || r.patient_name.startsWith("/")
-                            ? "Patient"
-                            : r.patient_name}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-display font-bold text-sm text-foreground truncate">
+                            {!r.patient_name || r.patient_name.startsWith("/")
+                              ? "Patient"
+                              : r.patient_name}
+                          </h3>
+                          {(() => {
+                            const tokenMatch = (r.notes || "").match(/OPD-\d+/) || (r.problem || "").match(/OPD-\d+/);
+                            if (!tokenMatch) return null;
+                            return (
+                              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold px-1.5 py-0 shrink-0">
+                                🎫 {tokenMatch[0]}
+                              </Badge>
+                            );
+                          })()}
+                        </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           {r.patient_phone && (
                             <a

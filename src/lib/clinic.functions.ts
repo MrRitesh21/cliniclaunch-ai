@@ -1606,7 +1606,7 @@ export const getClinicAppointments = createServerFn({ method: "POST" })
     let q = sb
       .from("appointments")
       .select("*, doctors(name)")
-      .order("scheduled_at", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (data.organization_id) {
       q = q.or(`clinic_id.eq.${data.clinic_id},organization_id.eq.${data.organization_id}`);
@@ -1621,7 +1621,7 @@ export const getClinicAppointments = createServerFn({ method: "POST" })
         .from("appointments")
         .select("*")
         .eq("clinic_id", data.clinic_id)
-        .order("scheduled_at", { ascending: false });
+        .order("created_at", { ascending: false });
       if (fbErr) throw new Error(fbErr.message);
       return fallback || [];
     }

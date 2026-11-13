@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -111,7 +112,37 @@ export function NotificationInbox() {
   useEffect(() => {
     refresh();
     const timer = window.setInterval(() => refresh(false), 3 * 60 * 1000);
-    return () => window.clearInterval(timer);
+
+    const channel = supabase
+      .channel("realtime-notification-inbox")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+        },
+        (payload) => {
+          const newNotif = payload.new as any;
+          if (newNotif?.title) {
+            toast.info(`🔔 ${newNotif.title}`, {
+              description: newNotif.body || undefined,
+              duration: 7000,
+            });
+            try {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+              audio.play().catch(() => {});
+            } catch {}
+          }
+          refresh(false);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      window.clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
   }, [refresh]);
 
   // A push deep-link carries ?n=<id>: count it as opened and clear the badge.

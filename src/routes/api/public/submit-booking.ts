@@ -344,89 +344,61 @@ export const Route = createFileRoute("/api/public/submit-booking")({
 
           if (sb) {
             try {
-              const { data: existingAppt } = await sb
+              // Mutual Exclusion & Slot Collision Prevention
+              const slotStart = new Date(scheduledAt.getTime() - 14 * 60 * 1000).toISOString();
+              const slotEnd = new Date(scheduledAt.getTime() + 14 * 60 * 1000).toISOString();
+              const { data: slotTaken } = await sb
                 .from("appointments")
-                .select("id, patient_name")
+                .select("id")
                 .eq("clinic_id", clinicId)
-                .eq("patient_phone", cleanPhone)
-                .gte("scheduled_at", startOfDay.toISOString())
-                .lte("scheduled_at", endOfDay.toISOString())
+                .gte("scheduled_at", slotStart)
+                .lte("scheduled_at", slotEnd)
                 .neq("status", "cancelled")
                 .maybeSingle();
 
-              if (existingAppt) {
-                appointmentId = existingAppt.id;
-                // Update existing record so changes in patient name, problem, or token are saved permanently
-                await sb
-                  .from("appointments")
-                  .update({
-                    patient_name: cleanName,
-                    patient_email: rawEmail || null,
-                    problem: formattedProblem,
-                    notes: `Token: ${tokenNumber} · Source: Website Form`,
-                    scheduled_at: scheduledAt.toISOString(),
-                    appointment_type: apptType,
-                    status: "confirmed",
-                    source: "custom_website",
-                  })
-                  .eq("id", existingAppt.id);
-              } else {
-                // Mutual Exclusion & Slot Collision Prevention
-                const slotStart = new Date(scheduledAt.getTime() - 14 * 60 * 1000).toISOString();
-                const slotEnd = new Date(scheduledAt.getTime() + 14 * 60 * 1000).toISOString();
-                const { data: slotTaken } = await sb
-                  .from("appointments")
-                  .select("id")
-                  .eq("clinic_id", clinicId)
-                  .gte("scheduled_at", slotStart)
-                  .lte("scheduled_at", slotEnd)
-                  .neq("status", "cancelled")
-                  .maybeSingle();
-
-                if (slotTaken) {
-                  // Slot occupied: auto-allocate next available 15-min OPD window (up to 1 hour ahead)
-                  let candidate = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
-                  for (let i = 0; i < 4; i++) {
-                    const cStart = new Date(candidate.getTime() - 14 * 60 * 1000).toISOString();
-                    const cEnd = new Date(candidate.getTime() + 14 * 60 * 1000).toISOString();
-                    const { data: cTaken } = await sb
-                      .from("appointments")
-                      .select("id")
-                      .eq("clinic_id", clinicId)
-                      .gte("scheduled_at", cStart)
-                      .lte("scheduled_at", cEnd)
-                      .neq("status", "cancelled")
-                      .maybeSingle();
-                    if (!cTaken) {
-                      scheduledAt = candidate;
-                      break;
-                    }
-                    candidate = new Date(candidate.getTime() + 15 * 60 * 1000);
+              if (slotTaken) {
+                // Slot occupied: auto-allocate next available 15-min OPD window (up to 1 hour ahead)
+                let candidate = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
+                for (let i = 0; i < 4; i++) {
+                  const cStart = new Date(candidate.getTime() - 14 * 60 * 1000).toISOString();
+                  const cEnd = new Date(candidate.getTime() + 14 * 60 * 1000).toISOString();
+                  const { data: cTaken } = await sb
+                    .from("appointments")
+                    .select("id")
+                    .eq("clinic_id", clinicId)
+                    .gte("scheduled_at", cStart)
+                    .lte("scheduled_at", cEnd)
+                    .neq("status", "cancelled")
+                    .maybeSingle();
+                  if (!cTaken) {
+                    scheduledAt = candidate;
+                    break;
                   }
+                  candidate = new Date(candidate.getTime() + 15 * 60 * 1000);
                 }
+              }
 
-                // 8. Create Appointment
-                const { data: appt, error: apptErr } = await sb
-                  .from("appointments")
-                  .insert({
-                    clinic_id: clinicId,
-                    organization_id: orgId,
-                    patient_name: cleanName,
-                    patient_phone: cleanPhone,
-                    patient_email: rawEmail || null,
-                    problem: formattedProblem,
-                    notes: `Token: ${tokenNumber} · Source: Website Form`,
-                    scheduled_at: scheduledAt.toISOString(),
-                    appointment_type: apptType,
-                    status: "confirmed",
-                    source: "custom_website",
-                  } as never)
-                  .select("id")
-                  .single();
+              // 8. Create Appointment - Every website submission creates a dedicated appointment record
+              const { data: appt, error: apptErr } = await sb
+                .from("appointments")
+                .insert({
+                  clinic_id: clinicId,
+                  organization_id: orgId,
+                  patient_name: cleanName,
+                  patient_phone: cleanPhone,
+                  patient_email: rawEmail || null,
+                  problem: formattedProblem,
+                  notes: `Token: ${tokenNumber} · Source: Website Form`,
+                  scheduled_at: scheduledAt.toISOString(),
+                  appointment_type: apptType,
+                  status: "confirmed",
+                  source: "custom_website",
+                } as never)
+                .select("id")
+                .single();
 
-                if (!apptErr && appt?.id) {
-                  appointmentId = appt.id;
-                }
+              if (!apptErr && appt?.id) {
+                appointmentId = appt.id;
               }
 
               // Optional: Record in queue_tokens if organization is present
@@ -503,6 +475,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                   .eq("organization_id", orgId);
 
                 const targetUserIds = new Set<string>();
+                if (activeClinic.owner_id) targetUserIds.add(activeClinic.owner_id);
                 (members ?? []).forEach((m: { user_id?: string | null }) => {
                   if (m.user_id) targetUserIds.add(m.user_id);
                 });
