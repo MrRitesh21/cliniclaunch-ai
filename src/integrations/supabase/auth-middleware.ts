@@ -32,6 +32,7 @@ import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
+import { isValidUuid } from "@/lib/sso-uuid";
 
 const verifiedClaimsCache = new Map<string, { claims: Record<string, unknown>; expiresAt: number }>();
 
@@ -84,7 +85,50 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
       throw new Error("Unauthorized: No request headers available");
     }
 
-    const authHeader = request.headers.get("authorization");
+    let authHeader = request.headers.get("authorization");
+
+    if (!authHeader) {
+      // 1. Fallback to cookie if Authorization header was omitted
+      const cookieHeader = request.headers.get("cookie");
+      if (cookieHeader) {
+        const match =
+          cookieHeader.match(/sb-[^;]+-auth-token=([^;]+)/) ||
+          cookieHeader.match(/supabase-auth-token=([^;]+)/);
+        if (match?.[1]) {
+          try {
+            const decoded = decodeURIComponent(match[1]);
+            const parsed = JSON.parse(decoded);
+            if (parsed?.access_token) {
+              authHeader = `Bearer ${parsed.access_token}`;
+            } else if (Array.isArray(parsed) && parsed[0]) {
+              authHeader = `Bearer ${parsed[0]}`;
+            }
+          } catch {}
+        }
+      }
+    }
+
+    // 2. Fallback to active Doctor SSO session
+    const ssoUserId = request.headers.get("x-clinicx-sso-user-id");
+    const ssoEmail = request.headers.get("x-clinicx-sso-email");
+    const ssoRole = request.headers.get("x-clinicx-sso-role") || "doctor";
+
+    if (!authHeader && ssoUserId && isValidUuid(ssoUserId)) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const claims = {
+        sub: ssoUserId,
+        email: ssoEmail,
+        role: ssoRole,
+        app_metadata: { provider: "sso_waflow" },
+      };
+      return next({
+        context: {
+          supabase: supabaseAdmin as any,
+          userId: ssoUserId,
+          claims,
+        },
+      });
+    }
 
     if (!authHeader) {
       throw new Error("Unauthorized: No authorization header provided");

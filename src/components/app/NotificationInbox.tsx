@@ -80,9 +80,11 @@ export function NotificationInbox() {
       try {
         if (isInitial) setLoading(true);
         const res = await load({ data: { limit: 50 } });
-        setItems(res.items);
-        setUnread(res.unread);
-        setNextCursor(res.nextCursor);
+        if (res && Array.isArray(res.items)) {
+          setItems(res.items);
+          setUnread(res.unread || 0);
+          setNextCursor(res.nextCursor);
+        }
       } catch {
         /* offline or signed out */
       } finally {

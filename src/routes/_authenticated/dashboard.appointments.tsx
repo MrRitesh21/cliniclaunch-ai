@@ -112,14 +112,27 @@ function AppointmentsPage() {
 
   const loadDoctors = useCallback(async () => {
     if (!clinic?.id) return;
-    const { data } = await supabase
-      .from("doctors")
-      .select("id, name")
-      .eq("clinic_id", clinic.id)
-      .eq("is_active", true);
-    setDoctors(data ?? []);
-    if (data?.[0]) setApptDoctorId(data[0].id);
-  }, [clinic?.id]);
+    try {
+      const { data } = await supabase
+        .from("doctors")
+        .select("id, name")
+        .eq("clinic_id", clinic.id)
+        .eq("is_active", true);
+      const list = Array.isArray(data) && data.length > 0 ? data : [];
+      if (list.length === 0 && clinic.doctor_name) {
+        setDoctors([{ id: clinic.id, name: clinic.doctor_name }]);
+        setApptDoctorId(clinic.id);
+      } else {
+        setDoctors(list);
+        if (list[0]) setApptDoctorId(list[0].id);
+      }
+    } catch {
+      if (clinic.doctor_name) {
+        setDoctors([{ id: clinic.id, name: clinic.doctor_name }]);
+        setApptDoctorId(clinic.id);
+      }
+    }
+  }, [clinic?.id, clinic?.doctor_name]);
 
   useEffect(() => {
     if (addOpen) {
@@ -330,11 +343,19 @@ function AppointmentsPage() {
       });
 
       // 3. Resolve doctor names safely without fragile embedded joins
-      const { data: docData } = await supabase
-        .from("doctors")
-        .select("id, name")
-        .eq("clinic_id", clinic.id);
-      const docMap = new Map<string, string>((docData ?? []).map((d) => [d.id, d.name]));
+      let docData: Array<{ id: string; name: string }> = [];
+      try {
+        const { data } = await supabase
+          .from("doctors")
+          .select("id, name")
+          .eq("clinic_id", clinic.id);
+        if (Array.isArray(data)) docData = data;
+      } catch {}
+
+      if (docData.length === 0 && clinic.doctor_name) {
+        docData = [{ id: clinic.id, name: clinic.doctor_name }];
+      }
+      const docMap = new Map<string, string>(docData.map((d) => [d.id, d.name]));
 
       const combined = [...(apptRows ?? []), ...directConsults].sort(
         (a, b) => new Date(b.scheduled_at || 0).getTime() - new Date(a.scheduled_at || 0).getTime()
