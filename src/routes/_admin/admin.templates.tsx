@@ -9,6 +9,11 @@ import {
   adminAssignTemplate,
   adminSearchClinics,
 } from "@/lib/site-templates.functions";
+import {
+  adminListCustomWebsites,
+  adminConnectCustomWebsite,
+  adminDisconnectCustomWebsite,
+} from "@/lib/custom-websites.functions";
 import { TEMPLATE_TOKENS, compileCustomTemplate } from "@/lib/html-template";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutTemplate, Plus, Save, Trash2, Loader2, Eye, Link2, Search } from "lucide-react";
+import { LayoutTemplate, Plus, Save, Trash2, Loader2, Eye, Link2, Search, Globe, Shield, RefreshCw, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin/templates")({
   component: AdminTemplates,
@@ -141,12 +146,74 @@ function AdminTemplates() {
   const [assignTemplate, setAssignTemplate] = useState<string>("");
   const [assignNote, setAssignNote] = useState("");
 
+  const [customSites, setCustomSites] = useState<any[]>([]);
+  const [customSitesLoading, setCustomSitesLoading] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [siteForm, setSiteForm] = useState({
+    slug: "sanidhya-naturopathy-center",
+    clinic_name: "Sanidhya Naturopathy Center",
+    doctor_name: "Dr. Kamal",
+    consultation_fee: 600,
+    phone: "+91 94150 26684",
+    email: "contact@sanidhyawellness.com",
+    address: "H-D/98, Sector I Main Road, Janki Vihar Colony, Jankipuram, Lucknow, UP 226021",
+    custom_domain: "sanidhyawellness.com",
+    custom_website_url: "https://sanidhyawellness.com",
+    dpdp_officer_name: "Data Grievance Officer",
+    dpdp_officer_email: "grievance@sanidhyawellness.com",
+    dpdp_officer_phone: "+91 94150 26684",
+  });
+  const [connectingSite, setConnectingSite] = useState(false);
+
+  const listCustomSitesFn = useServerFn(adminListCustomWebsites);
+  const connectCustomSiteFn = useServerFn(adminConnectCustomWebsite);
+  const disconnectCustomSiteFn = useServerFn(adminDisconnectCustomWebsite);
+
+  async function loadCustomSites() {
+    setCustomSitesLoading(true);
+    try {
+      const res = await listCustomSitesFn();
+      setCustomSites(res ?? []);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load custom websites");
+    } finally {
+      setCustomSitesLoading(false);
+    }
+  }
+
+  async function handleConnectSite(e: React.FormEvent) {
+    e.preventDefault();
+    setConnectingSite(true);
+    try {
+      await connectCustomSiteFn({ data: siteForm });
+      toast.success("Custom website connected and managed via ClinicX!");
+      setShowConnectModal(false);
+      loadCustomSites();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to connect custom website (Super Admin only)");
+    } finally {
+      setConnectingSite(false);
+    }
+  }
+
+  async function handleDisconnectSite(slug: string) {
+    if (!confirm(`Are you sure you want to disconnect custom website '${slug}'?`)) return;
+    try {
+      await disconnectCustomSiteFn({ data: { slug } });
+      toast.success("Custom website disconnected");
+      loadCustomSites();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to disconnect custom website");
+    }
+  }
+
   async function reload() {
     setLoading(true);
     try {
       const res = await list();
       setTemplates((res.templates ?? []) as Tpl[]);
       setAssignments(res.assignments ?? []);
+      await loadCustomSites();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -244,6 +311,7 @@ function AdminTemplates() {
         <TabsList>
           <TabsTrigger value="library">Library ({templates.length})</TabsTrigger>
           <TabsTrigger value="assign">Per-clinic assignment ({assignments.length})</TabsTrigger>
+          <TabsTrigger value="custom_sites">Connected Custom Websites ({customSites.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="library" className="mt-4">
@@ -431,6 +499,267 @@ function AdminTemplates() {
               })
             )}
           </Card>
+        </TabsContent>
+
+        <TabsContent value="custom_sites" className="mt-4 space-y-6">
+          <Card className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Globe className="size-5 text-primary" />
+                  <h3 className="font-semibold text-base">Connected Custom Doctor Websites</h3>
+                  <Badge variant="outline" className="border-amber-500/40 text-amber-600 bg-amber-50 dark:bg-amber-950/30 gap-1 text-[11px]">
+                    <Shield className="size-3 text-amber-600" /> Super Admin Only
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Connect and manage any external custom website (WordPress, Next.js, React, Webflow, custom code) with ClinicX. Content updates and real-time OPD appointments sync automatically.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={loadCustomSites} disabled={customSitesLoading} className="gap-1.5">
+                  <RefreshCw className={`size-3.5 ${customSitesLoading ? "animate-spin" : ""}`} /> Refresh
+                </Button>
+                <Button size="sm" onClick={() => setShowConnectModal(true)} className="gap-1.5">
+                  <Plus className="size-3.5" /> Connect Custom Website
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {customSites.map((site) => (
+              <Card key={site.slug} className="p-5 flex flex-col justify-between space-y-4 border-slate-200 dark:border-slate-800 shadow-sm">
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-base">{site.clinic_name}</span>
+                        <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400">
+                          Active & Synced
+                        </Badge>
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground mt-0.5">
+                        slug: /{site.slug}
+                      </p>
+                    </div>
+                    {site.custom_website_url && (
+                      <a href={site.custom_website_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                        <ExternalLink className="size-4" />
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-muted/50 p-2.5 rounded-lg">
+                      <p className="text-muted-foreground font-medium">Lead Doctor</p>
+                      <p className="font-semibold mt-0.5">{site.doctor_name || "Doctor"}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2.5 rounded-lg">
+                      <p className="text-muted-foreground font-medium">Consultation Fee</p>
+                      <p className="font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">₹{site.consultation_fee}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2.5 rounded-lg">
+                      <p className="text-muted-foreground font-medium">Phone</p>
+                      <p className="font-mono mt-0.5">{site.phone}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2.5 rounded-lg">
+                      <p className="text-muted-foreground font-medium">DPDP Act 2023</p>
+                      <p className="font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">Compliant</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 p-2.5 rounded-lg border bg-background text-[11px] text-muted-foreground space-y-1">
+                    <p><span className="font-medium text-foreground">Live Sync API:</span> <code className="bg-muted px-1 py-0.5 rounded">/api/public/clinic-data?clinic={site.slug}</code></p>
+                    <p><span className="font-medium text-foreground">OPD Booking API:</span> <code className="bg-muted px-1 py-0.5 rounded">/api/public/submit-booking</code></p>
+                    {site.dpdp_compliance?.officer_email && (
+                      <p><span className="font-medium text-foreground">Grievance Officer:</span> {site.dpdp_compliance.officer_email}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Mode: {site.sync_mode || "api_managed"}</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSiteForm({
+                          slug: site.slug,
+                          clinic_name: site.clinic_name,
+                          doctor_name: site.doctor_name,
+                          consultation_fee: site.consultation_fee || 600,
+                          phone: site.phone,
+                          email: site.email || "",
+                          address: site.address || "",
+                          custom_domain: site.custom_domain || "",
+                          custom_website_url: site.custom_website_url || "",
+                          dpdp_officer_name: site.dpdp_compliance?.officer_name || "",
+                          dpdp_officer_email: site.dpdp_compliance?.officer_email || "",
+                          dpdp_officer_phone: site.dpdp_compliance?.officer_phone || "",
+                        });
+                        setShowConnectModal(true);
+                      }}
+                    >
+                      Edit Config
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDisconnectSite(site.slug)}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Connect Modal */}
+          {showConnectModal && (
+            <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm overflow-y-auto p-4 flex items-center justify-center">
+              <Card className="w-full max-w-xl p-6 space-y-4 shadow-xl border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <div>
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Globe className="size-4 text-primary" /> Connect Custom Website
+                    </h3>
+                    <p className="text-xs text-muted-foreground">Super Admin authorization strictly enforced</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowConnectModal(false)}>✕</Button>
+                </div>
+
+                <form onSubmit={handleConnectSite} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Clinic Slug (unique ID)</Label>
+                      <Input
+                        required
+                        value={siteForm.slug}
+                        onChange={(e) => setSiteForm({ ...siteForm, slug: e.target.value })}
+                        placeholder="e.g. sanidhya-naturopathy-center"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Clinic Full Name</Label>
+                      <Input
+                        required
+                        value={siteForm.clinic_name}
+                        onChange={(e) => setSiteForm({ ...siteForm, clinic_name: e.target.value })}
+                        placeholder="e.g. Sanidhya Naturopathy Center"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Lead Doctor Name</Label>
+                      <Input
+                        required
+                        value={siteForm.doctor_name}
+                        onChange={(e) => setSiteForm({ ...siteForm, doctor_name: e.target.value })}
+                        placeholder="e.g. Dr. Kamal"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Consultation Fee (₹)</Label>
+                      <Input
+                        type="number"
+                        required
+                        value={siteForm.consultation_fee}
+                        onChange={(e) => setSiteForm({ ...siteForm, consultation_fee: Number(e.target.value) || 0 })}
+                        placeholder="600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Contact Phone / WhatsApp</Label>
+                      <Input
+                        required
+                        value={siteForm.phone}
+                        onChange={(e) => setSiteForm({ ...siteForm, phone: e.target.value })}
+                        placeholder="+91 94150 26684"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Clinic Email</Label>
+                      <Input
+                        type="email"
+                        value={siteForm.email}
+                        onChange={(e) => setSiteForm({ ...siteForm, email: e.target.value })}
+                        placeholder="contact@sanidhyawellness.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Custom Domain (optional)</Label>
+                      <Input
+                        value={siteForm.custom_domain}
+                        onChange={(e) => setSiteForm({ ...siteForm, custom_domain: e.target.value })}
+                        placeholder="sanidhyawellness.com"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Website URL (deployed origin)</Label>
+                      <Input
+                        type="url"
+                        value={siteForm.custom_website_url}
+                        onChange={(e) => setSiteForm({ ...siteForm, custom_website_url: e.target.value })}
+                        placeholder="https://sanidhyawellness.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Clinic Full Address</Label>
+                    <Input
+                      value={siteForm.address}
+                      onChange={(e) => setSiteForm({ ...siteForm, address: e.target.value })}
+                      placeholder="Sector I Main Road, Janki Vihar Colony, Jankipuram, Lucknow"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-muted/40 rounded-lg space-y-2 border">
+                    <p className="text-xs font-semibold flex items-center gap-1.5">
+                      <Shield className="size-3.5 text-primary" /> DPDP Act 2023 Compliance Contact
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Grievance Officer Name"
+                        className="text-xs"
+                        value={siteForm.dpdp_officer_name}
+                        onChange={(e) => setSiteForm({ ...siteForm, dpdp_officer_name: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Grievance Email"
+                        type="email"
+                        className="text-xs"
+                        value={siteForm.dpdp_officer_email}
+                        onChange={(e) => setSiteForm({ ...siteForm, dpdp_officer_email: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                    <Button type="button" variant="outline" onClick={() => setShowConnectModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={connectingSite} className="gap-1.5">
+                      {connectingSite ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                      Save & Connect Website
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

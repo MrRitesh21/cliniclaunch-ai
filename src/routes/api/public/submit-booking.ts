@@ -217,6 +217,24 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           }
 
           if (!activeClinic) {
+            try {
+              const { getPublicClinicDataImpl } = await import("@/lib/custom-websites.server");
+              const customClinic = await getPublicClinicDataImpl(clinicIdentifier);
+              if (customClinic) {
+                activeClinic = {
+                  id: customClinic.clinic_id || `clinic_${customClinic.slug}`,
+                  organization_id: null,
+                  clinic_name: customClinic.clinic_name,
+                  doctor_name: customClinic.doctor_name,
+                  personal_phone: customClinic.phone,
+                  phone: customClinic.phone,
+                  slug: customClinic.slug,
+                };
+              }
+            } catch {}
+          }
+
+          if (!activeClinic) {
             return Response.json(
               {
                 success: false,
