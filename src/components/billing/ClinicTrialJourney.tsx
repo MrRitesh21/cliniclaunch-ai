@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Sparkles,
   ShieldCheck,
+  X,
 } from "lucide-react";
 
 export function ClinicTrialJourney({
@@ -55,12 +56,28 @@ export function ClinicTrialJourney({
     });
   };
 
+  const [isDismissed, setIsDismissed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("clinicx_journey_dismissed") === "1";
+    }
+    return false;
+  });
+
+  const dismissJourney = () => {
+    setIsDismissed(true);
+    try {
+      localStorage.setItem("clinicx_journey_dismissed", "1");
+    } catch {
+      // safe storage fallback
+    }
+  };
+
   const [skipped, setSkipped] = useState<string[]>([]);
   const remainingCount = total - completed;
   const isFullySetup = completed === total;
 
-  // Once setup is 100% complete, hide the setup journey card so it doesn't take up daily dashboard space
-  if (hideWhenComplete && isFullySetup) {
+  // Once dismissed by user, or if hideWhenComplete is requested without checklist when fully setup, hide it
+  if (isDismissed || (hideWhenComplete && !checklist && isFullySetup)) {
     return null;
   }
 
@@ -109,15 +126,29 @@ export function ClinicTrialJourney({
           </div>
 
           {checklist && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleCollapse}
-              className="gap-1.5 text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground shrink-0"
-            >
-              <span>{isCollapsed ? "Show checklist" : "Minimize"}</span>
-              {isCollapsed ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
-            </Button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleCollapse}
+                className="gap-1.5 text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground"
+              >
+                <span>{isCollapsed ? "Show checklist" : "Minimize"}</span>
+                {isCollapsed ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
+              </Button>
+              {isFullySetup && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={dismissJourney}
+                  aria-label="Dismiss completion tracker"
+                  title="Dismiss setup tracker"
+                  className="size-8 p-0 text-muted-foreground hover:text-foreground rounded-lg"
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
@@ -177,7 +208,7 @@ export function ClinicTrialJourney({
 
                   {!s.done && (
                     <div className="flex items-center gap-1 shrink-0">
-                      {["staff", "billing", "booking"].includes(s.key) && (
+                      {["billing", "booking"].includes(s.key) && (
                         <Button
                           size="sm"
                           variant="ghost"

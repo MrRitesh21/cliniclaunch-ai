@@ -42,8 +42,6 @@ export interface ActivationClinic {
 export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | null, clinic: ActivationClinic | null) {
   const usage = u ?? ({} as Partial<NonNullable<SubscriptionSnapshot["usage"]>>);
   const doctorsCount = usage.doctors ?? 0;
-  const staffCount = usage.staff ?? 0;
-  const pendingStaffCount = usage.pending_staff_invites ?? 0;
   const patientsCount = usage.patients ?? 0;
   const appointmentsCount = usage.appointments ?? 0;
   const prescriptionsCount = usage.prescriptions ?? 0;
@@ -62,6 +60,10 @@ export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | n
     wh?.billing_settings != null ||
     clinic?.invoicing_configured === true;
 
+  const hasDoctor =
+    doctorsCount > 0 ||
+    Boolean(clinic?.doctor_name && clinic.doctor_name.trim().length > 0);
+
   return [
     {
       key: "profile",
@@ -72,13 +74,7 @@ export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | n
         !!clinic?.specialization?.trim(),
       to: "/dashboard/settings",
     },
-    { key: "doctor", label: "Add doctor", done: doctorsCount > 0, to: "/dashboard/doctors" },
-    {
-      key: "staff",
-      label: "Add staff (optional)",
-      done: staffCount > 0 || pendingStaffCount > 0 || doctorsCount > 0,
-      to: "/dashboard/staff",
-    },
+    { key: "doctor", label: "Add doctor", done: hasDoctor, to: "/dashboard/doctors" },
     { key: "hours", label: "Set clinic hours", done: hours, to: "/dashboard/settings" },
     { key: "patient", label: "Add first patient", done: patientsCount > 0, to: "/dashboard/patients" },
     {

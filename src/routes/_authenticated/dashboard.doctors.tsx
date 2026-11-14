@@ -521,6 +521,15 @@ function DoctorsPage() {
     };
   }, [clinic]);
 
+  const isDoctorOwner = useCallback((d: Doctor | null | undefined) => {
+    if (!d) return false;
+    if (d.id === "self_owner") return true;
+    if (clinic?.owner_id && d.user_id && d.user_id === clinic.owner_id) return true;
+    const ownerClean = (clinic?.doctor_name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim();
+    const dClean = (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim();
+    return Boolean(ownerClean && dClean && ownerClean === dClean);
+  }, [clinic?.owner_id, clinic?.doctor_name]);
+
   const load = useCallback(async () => {
     if (!clinic?.organization_id) return;
     setLoading(true);
@@ -531,13 +540,54 @@ function DoctorsPage() {
       .order("sort_order")
       .order("created_at");
 
-    const list = (data ?? []).map((d: any) => ({
+    let list = (data ?? []).map((d: any) => ({
       ...d,
       working_hours: normalizeSchedule(d.working_hours),
     })) as Doctor[];
+
+    // If doctors table has no row for this clinic but clinic profile has doctor_name,
+    // seed the primary doctor into doctors table so database metrics, queue, and bookings sync seamlessly
+    if (list.length === 0 && clinic?.doctor_name?.trim()) {
+      try {
+        const rawSched = (clinic as any)?.working_hours;
+        const sched = normalizeSchedule(rawSched);
+        if (!sched.registration_no && clinic?.medical_registration_no) {
+          sched.registration_no = clinic.medical_registration_no;
+        }
+        const insertPayload = {
+          organization_id: clinic.organization_id,
+          clinic_id: clinic.id,
+          name: clinic.doctor_name.trim(),
+          specialization: clinic.specialization || "General Physician",
+          qualification: clinic.qualification || "MBBS",
+          experience_years: clinic.experience_years || 0,
+          consultation_fee: Number(clinic.consultation_fee || 0),
+          bio: clinic.bio || null,
+          is_active: true,
+          avatar_url: (clinic as any)?.avatar_url || null,
+          working_hours: sched,
+          user_id: clinic.owner_id || null,
+          sort_order: 0,
+        };
+        const { data: inserted, error: insErr } = await supabase
+          .from("doctors")
+          .insert(insertPayload as any)
+          .select("*")
+          .single();
+        if (!insErr && inserted) {
+          list = [{
+            ...inserted,
+            working_hours: normalizeSchedule(inserted.working_hours),
+          } as Doctor];
+        }
+      } catch {
+        // Non-blocking fallback to in-memory selfDoctor
+      }
+    }
+
     setRows(list);
     setLoading(false);
-  }, [clinic?.organization_id]);
+  }, [clinic]);
 
   useEffect(() => {
     load();
@@ -577,7 +627,7 @@ function DoctorsPage() {
     setEditing(d);
     setActiveTab("profile");
     const sched = normalizeSchedule((d as any).working_hours);
-    const regNo = sched.registration_no || (d.id === "self_owner" ? clinic?.medical_registration_no || "" : "");
+    const regNo = sched.registration_no || (isDoctorOwner(d) ? clinic?.medical_registration_no || "" : "");
 
     setForm({
       name: d.name,
@@ -637,14 +687,20 @@ function DoctorsPage() {
       leave_until: nextLeave ? (currentSched.leave_until || new Date().toISOString().split("T")[0]) : "",
     };
 
-    if (d.id === "self_owner") {
+    if (d.id === "self_owner" || isDoctorOwner(d)) {
       const { error } = await supabase
         .from("clinics")
         .update({ working_hours: newSched } as any)
         .eq("id", clinic.id);
+      if (d.id !== "self_owner") {
+        await supabase
+          .from("doctors")
+          .update({ working_hours: newSched } as any)
+          .eq("id", d.id);
+      }
       if (error) return toast.error(error.message);
       toast.success(nextLeave ? "Primary doctor marked on leave" : "Primary doctor marked available");
-      window.location.reload();
+      load();
       return;
     }
 
@@ -693,7 +749,7 @@ function DoctorsPage() {
       working_hours: mergedWorkingHours,
     };
 
-    if (editing?.id === "self_owner") {
+    if (editing?.id === "self_owner" || isDoctorOwner(editing)) {
       const { error } = await supabase
         .from("clinics")
         .update({
@@ -709,10 +765,18 @@ function DoctorsPage() {
         } as any)
         .eq("id", clinic.id);
 
+      if (editing && editing.id !== "self_owner") {
+        await supabase
+          .from("doctors")
+          .update(payload as any)
+          .eq("id", editing.id);
+      }
+
       setSaving(false);
       if (error) return toast.error(error.message);
       toast.success("Primary Doctor profile & schedule updated");
-      window.location.reload();
+      setOpen(false);
+      load();
       return;
     }
 
@@ -743,7 +807,7 @@ function DoctorsPage() {
   }
 
   async function remove(d: Doctor) {
-    if (d.id === "self_owner") {
+    if (d.id === "self_owner" || isDoctorOwner(d)) {
       return toast.error("Cannot delete primary clinic owner doctor. You can edit their profile instead.");
     }
     if (!confirm(`Remove ${d.name} from clinic doctors list?`)) return;
@@ -848,7 +912,7 @@ function DoctorsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {allDoctors.map((d) => {
-            const isSelf = d.id === "self_owner";
+            const isSelf = isDoctorOwner(d);
             const sched = d.working_hours || defaultSchedule();
             const metrics = getScheduleMetrics(sched);
             const isOnLeave = Boolean(sched.on_leave);
@@ -1066,7 +1130,7 @@ function DoctorsPage() {
           <DialogHeader className="border-b border-border/60 pb-3">
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Stethoscope className="size-5 text-primary" />
-              {editing ? (editing.id === "self_owner" ? "Edit Primary Doctor Profile & OPD Schedule" : `Edit Doctor: ${editing.name}`) : "Add New Doctor & OPD Schedule"}
+              {editing ? (isDoctorOwner(editing) ? "Edit Primary Doctor Profile & OPD Schedule" : `Edit Doctor: ${editing.name}`) : "Add New Doctor & OPD Schedule"}
             </DialogTitle>
           </DialogHeader>
 

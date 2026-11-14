@@ -92,7 +92,7 @@ test('shared entitlements fail closed without Enterprise fallbacks or persisted 
 test('journey separates trial-window activity from all-time quota activation checks', () => {
   const { activationSteps } = load('src/components/billing/clinicx-ux.ts');
   const steps = activationSteps({ patients: 0, doctors: 1, staff: 0, appointments: 0, prescriptions: 0, invoices: 0 }, { clinic_name: 'Clinic', doctor_name: 'Doctor', specialization: 'GP', working_hours: {} });
-  assert.equal(steps.length, 9);
+  assert.equal(steps.length, 8);
   assert.equal(steps.filter(s => s.done).length, 2);
   assert.equal(steps.find(s => s.key === 'billing').done, false);
   assert.equal(steps.find(s => s.key === 'booking').done, false);
