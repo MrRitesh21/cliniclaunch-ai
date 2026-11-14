@@ -14,6 +14,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { notifyClinicEvent } from "./notify.server";
+import { safeUpsertPatient } from "./patient-upsert";
 import { serverEnv } from "./env.server";
 import { callAI, safeJson } from "./ai.server";
 import {
@@ -1613,16 +1614,14 @@ Kripya scheduled time se 10 minute pehle clinic pahuchein.`,
         };
       }
 
-      // Upsert patient in patients table with sanitized name
-      await sb.from("patients").upsert(
-        {
-          clinic_id: clinic.id,
-          organization_id: clinic.organization_id,
-          name: patientNameFinal,
-          phone: patientPhone,
-        } as never,
-        { onConflict: "clinic_id,phone" },
-      );
+      // Upsert patient in patients table safely (avoids 42P10 & Tenant immutability)
+      await safeUpsertPatient(sb, {
+        clinic_id: clinic.id,
+        organization_id: clinic.organization_id,
+        name: patientNameFinal,
+        phone: patientPhone,
+        last_visit_at: finalScheduledAt.toISOString(),
+      });
 
       // Generate Queue Token for OPD
       let tokenNumber: number | null = null;

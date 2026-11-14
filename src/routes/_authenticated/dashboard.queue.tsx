@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useClinic } from "./dashboard";
 import { supabase } from "@/integrations/supabase/client";
+import { safeUpsertPatient } from "@/lib/patient-upsert";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1377,23 +1378,17 @@ function RapidWalkinDialog({
         throw tokenErr;
       }
 
-      // 4. Upsert patient directory record
+      // 4. Upsert patient directory record safely (protects against 42P10 and tenant immutability)
       if (phone.trim() && clinicId) {
-        await supabase
-          .from("patients" as any)
-          .upsert(
-            {
-              clinic_id: clinicId,
-              organization_id: orgId,
-              name: cleanName,
-              phone: phone.trim(),
-              age: age ? Number(age) : null,
-              gender: gender || null,
-              last_visit_at: new Date().toISOString(),
-            },
-            { onConflict: "clinic_id,phone" }
-          )
-          .then(() => {}, () => {});
+        await safeUpsertPatient(supabase, {
+          clinic_id: clinicId,
+          organization_id: orgId,
+          name: cleanName,
+          phone: phone.trim(),
+          age: age ? Number(age) : null,
+          gender: gender || null,
+          last_visit_at: new Date().toISOString(),
+        });
       }
 
       toast.success(`🎫 Token #${nextTokenNum} issued for ${cleanName}!`);

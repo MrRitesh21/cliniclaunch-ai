@@ -62,6 +62,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cleanProblemAndService } from "@/lib/utils";
+import { safeUpsertPatient } from "@/lib/patient-upsert";
 
 export const Route = createFileRoute("/_authenticated/dashboard/appointments")({
   component: () => (
@@ -237,23 +238,17 @@ function AppointmentsPage() {
         });
       }
 
-      // 2. Ensure patient is upserted into clinic directory
-      await supabase
-        .from("patients" as any)
-        .upsert(
-          {
-            clinic_id: clinic.id,
-            organization_id: clinic.organization_id || null,
-            name: cleanName,
-            phone: cleanPhone,
-            email: apptEmail.trim() || null,
-            age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
-            gender: apptGender || null,
-            last_visit_at: scheduledDate.toISOString(),
-          },
-          { onConflict: "clinic_id,phone" },
-        )
-        .then(() => {}, () => {});
+      // 2. Ensure patient is upserted into clinic directory safely
+      await safeUpsertPatient(supabase, {
+        clinic_id: clinic.id,
+        organization_id: clinic.organization_id || null,
+        name: cleanName,
+        phone: cleanPhone,
+        email: apptEmail.trim() || null,
+        age: cleanAge && !isNaN(cleanAge) ? cleanAge : null,
+        gender: apptGender || null,
+        last_visit_at: scheduledDate.toISOString(),
+      });
 
       const newApptId = createdAppt?.id;
       toast.success("✅ Appointment confirmed & added to queue!", {

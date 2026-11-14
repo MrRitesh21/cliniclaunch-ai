@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeUpsertPatient } from "@/lib/patient-upsert";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -556,19 +557,16 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             }
           }
 
-          // 9. Record Patient Record
+          // 9. Record Patient Record (safe against 42P10 and tenant immutability)
           if (sb) {
-            try {
-              await sb.from("patients").insert({
-                clinic_id: clinicId,
-                organization_id: orgId,
-                name: cleanName,
-                phone: cleanPhone,
-                email: rawEmail || null,
-              });
-            } catch (pErr) {
-              // Non-fatal if patient phone is duplicate
-            }
+            await safeUpsertPatient(sb, {
+              clinic_id: clinicId,
+              organization_id: orgId,
+              name: cleanName,
+              phone: cleanPhone,
+              email: rawEmail || null,
+              last_visit_at: scheduledAt.toISOString(),
+            });
 
             // 10. Auto-Sync into Leads CRM Table
             try {

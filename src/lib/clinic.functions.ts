@@ -29,6 +29,7 @@ import {
   publicTimestampSchema,
 } from "./public-form-validation";
 import { resolveDoctorImageUrl } from "@/templates/shared/clinicDataHelpers";
+import { safeUpsertPatient } from "./patient-upsert";
 
 /** Creates an anonymous (publishable-key) Supabase client for public booking operations. */
 function serverClient() {
@@ -955,21 +956,17 @@ export const createBooking = createServerFn({ method: "POST" })
       console.error("createBooking: queue token auto-sync error", qErr);
     }
 
-    // Patient directory upsert (best-effort — must not fail the booking)
-    const { error: patientErr } = await sb.from("patients").upsert(
-      {
-        clinic_id: data.clinic_id,
-        name: data.patient_name,
-        phone: data.patient_phone,
-        email: data.patient_email,
-        age: data.patient_age,
-        gender: data.patient_gender,
-      },
-      { onConflict: "clinic_id,phone" },
-    );
-    if (patientErr) {
-      console.error("createBooking: patients upsert failed", patientErr);
-    }
+    // Patient directory upsert (best-effort & non-blocking — safe against 42P10 & Tenant immutability)
+    await safeUpsertPatient(sb, {
+      clinic_id: data.clinic_id,
+      organization_id: orgId,
+      name: data.patient_name,
+      phone: data.patient_phone,
+      email: data.patient_email,
+      age: data.patient_age,
+      gender: data.patient_gender,
+      last_visit_at: data.scheduled_at,
+    });
 
     // Auto-sync into leads table so website widget & online leads show up in Leads CRM
     try {
