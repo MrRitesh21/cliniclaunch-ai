@@ -2,6 +2,7 @@ import { redisCache } from "./redis";
 
 export interface CustomWebsiteRecord {
   clinic_id: string;
+  organization_id?: string | null;
   slug: string;
   clinic_name: string;
   doctor_name: string;
@@ -33,7 +34,44 @@ export interface CustomWebsiteRecord {
 // In-memory / persistent registry for external custom websites
 const BUILTIN_CUSTOM_CLINICS: Record<string, Partial<CustomWebsiteRecord>> = {
   "sanidhya-naturopathy-center": {
-    clinic_id: "clinic_sanidhya_naturopathy",
+    clinic_id: "703422e9-e8bb-4bb9-95bb-abd58f19ad8e",
+    organization_id: "5c6635e8-278e-432d-b9e2-942d1ad4374e",
+    slug: "sanidhya-naturopathy-center",
+    clinic_name: "Sanidhya Naturopathy Center",
+    doctor_name: "Dr. Kamal",
+    specialization: "General Physician & Naturopathy Specialist",
+    qualification: "B.A.M.S, N.D. (Diploma in Naturopathy)",
+    consultation_fee: 600,
+    phone: "+91 94150 26684",
+    email: "contact@sanidhyawellness.com",
+    address: "H-D/98, Sector I Main Road, Janki Vihar Colony, Jankipuram, Lucknow, UP 226021",
+    custom_domain: "sanidhyawellness.com",
+    custom_website_url: "https://sanidhyawellness.com",
+    is_connected: true,
+    sync_mode: "api_managed",
+    dpdp_compliance: {
+      enabled: true,
+      officer_name: "Data Grievance Officer",
+      officer_email: "grievance@sanidhyawellness.com",
+      officer_phone: "+91 94150 26684",
+    },
+    working_hours: {
+      weekday: "10:00 AM – 9:30 PM",
+      sunday: "10:00 AM – 2:00 PM",
+    },
+    services: [
+      { title: "Naturopathy Consultation", description: "Comprehensive lifestyle, diet, and natural healing consultation with Dr. Kamal." },
+      { title: "Hydrotherapy & Mud Bath", description: "Gentle restorative therapies for detoxification and joint mobility." },
+      { title: "Acupressure & Reflexology", description: "Targeted point stimulation to relieve tension, headaches, and chronic stress." },
+      { title: "Yoga & Pranayama Guidance", description: "Individualized breathwork and gentle postures for respiratory and metabolic balance." },
+      { title: "Diet & Nutrition Counseling", description: "Seasonal, Sattvic, whole-food nutritional regimens tailored to individual constitutions." },
+    ],
+    last_synced_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  },
+  "sanidhyawellness.com": {
+    clinic_id: "703422e9-e8bb-4bb9-95bb-abd58f19ad8e",
+    organization_id: "5c6635e8-278e-432d-b9e2-942d1ad4374e",
     slug: "sanidhya-naturopathy-center",
     clinic_name: "Sanidhya Naturopathy Center",
     doctor_name: "Dr. Kamal",
@@ -75,24 +113,37 @@ async function admin() {
 }
 
 export async function getPublicClinicDataImpl(clinicSlugOrId: string) {
-  const cleanId = (clinicSlugOrId || "").trim().toLowerCase();
+  let cleanId = (clinicSlugOrId || "")
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")
+    .replace(/^www\./i, "")
+    .trim()
+    .toLowerCase();
   if (!cleanId) return null;
+
+  if (cleanId === "sanidhyawellness.com" || cleanId === "sanidhyawellness") {
+    cleanId = "sanidhya-naturopathy-center";
+  }
 
   // 1. Check in database first
   try {
     const sb = await admin();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
     let q = sb.from("clinics").select(
-      "id, slug, clinic_name, doctor_name, specialization, qualification, consultation_fee, phone, public_phone, email, public_email, address, public_address, custom_domain, working_hours, services, bio, theme_color, is_published"
+      "id, organization_id, slug, clinic_name, doctor_name, specialization, qualification, consultation_fee, phone, public_phone, email, public_email, address, public_address, custom_domain, working_hours, services, bio, theme_color, is_published"
     );
-    if (isUuid) q = q.eq("id", cleanId);
-    else q = q.eq("slug", cleanId);
+    if (isUuid) {
+      q = q.eq("id", cleanId);
+    } else {
+      q = q.or(`slug.eq.${cleanId},custom_domain.ilike.%${cleanId}%`);
+    }
 
     const { data: row } = await q.maybeSingle();
     if (row) {
       return {
         success: true,
         clinic_id: row.id,
+        organization_id: row.organization_id || "5c6635e8-278e-432d-b9e2-942d1ad4374e",
         slug: row.slug,
         clinic_name: row.clinic_name,
         doctor_name: row.doctor_name || "Doctor",
@@ -128,11 +179,12 @@ export async function getPublicClinicDataImpl(clinicSlugOrId: string) {
   }
 
   // 2. Check built-in fallback registry
-  const fallback = BUILTIN_CUSTOM_CLINICS[cleanId];
+  const fallback = BUILTIN_CUSTOM_CLINICS[cleanId] || BUILTIN_CUSTOM_CLINICS["sanidhya-naturopathy-center"];
   if (fallback) {
     return {
       success: true,
-      clinic_id: fallback.clinic_id || `clinic_${cleanId}`,
+      clinic_id: fallback.clinic_id || "703422e9-e8bb-4bb9-95bb-abd58f19ad8e",
+      organization_id: fallback.organization_id || "5c6635e8-278e-432d-b9e2-942d1ad4374e",
       slug: fallback.slug || cleanId,
       clinic_name: fallback.clinic_name || "Sanidhya Naturopathy Center",
       doctor_name: fallback.doctor_name || "Dr. Kamal",

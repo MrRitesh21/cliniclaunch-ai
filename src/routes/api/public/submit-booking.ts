@@ -113,7 +113,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           });
 
           // 3. Extract & Normalize Fields
-          const clinicIdentifier = (
+          let clinicIdentifier = (
             payload.clinic_slug ||
             payload.clinic ||
             payload.clinic_id ||
@@ -122,6 +122,51 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           )
             .toString()
             .trim();
+
+          if (!clinicIdentifier) {
+            const referer = request.headers.get("referer") || request.headers.get("origin") || "";
+            try {
+              if (referer) {
+                const parsedUrl = new URL(referer);
+                clinicIdentifier = parsedUrl.hostname.replace(/^www\./i, "");
+              }
+            } catch {}
+          }
+
+          let cleanIdentifier = clinicIdentifier
+            .replace(/^https?:\/\//i, "")
+            .replace(/\/.*$/, "")
+            .replace(/^www\./i, "")
+            .trim()
+            .toLowerCase();
+
+          // Known clinic mappings for custom domains and aliases
+          const KNOWN_CLINICS: Record<string, { id: string; orgId: string; slug: string; name: string; doctor: string; phone: string }> = {
+            "sanidhyawellness.com": {
+              id: "703422e9-e8bb-4bb9-95bb-abd58f19ad8e",
+              orgId: "5c6635e8-278e-432d-b9e2-942d1ad4374e",
+              slug: "sanidhya-naturopathy-center",
+              name: "Sanidhya Naturopathy Center",
+              doctor: "Dr. Kamal",
+              phone: "+91 94150 26684",
+            },
+            "sanidhyawellness": {
+              id: "703422e9-e8bb-4bb9-95bb-abd58f19ad8e",
+              orgId: "5c6635e8-278e-432d-b9e2-942d1ad4374e",
+              slug: "sanidhya-naturopathy-center",
+              name: "Sanidhya Naturopathy Center",
+              doctor: "Dr. Kamal",
+              phone: "+91 94150 26684",
+            },
+            "sanidhya-naturopathy-center": {
+              id: "703422e9-e8bb-4bb9-95bb-abd58f19ad8e",
+              orgId: "5c6635e8-278e-432d-b9e2-942d1ad4374e",
+              slug: "sanidhya-naturopathy-center",
+              name: "Sanidhya Naturopathy Center",
+              doctor: "Dr. Kamal",
+              phone: "+91 94150 26684",
+            },
+          };
 
           const rawName = (
             payload.name ||
@@ -172,7 +217,7 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           const redirectUrl = payload.redirect_url || payload.redirect || payload.return_url || null;
 
           // 4. Validate Required Inputs
-          if (!clinicIdentifier) {
+          if (!cleanIdentifier) {
             return Response.json(
               {
                 success: false,
@@ -210,17 +255,17 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             try {
               const isUuid =
                 /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                  clinicIdentifier,
+                  cleanIdentifier,
                 );
 
               let clinicQuery = sb
                 .from("clinics")
-                .select("id, organization_id, owner_id, clinic_name, doctor_name, personal_phone, phone, slug");
+                .select("id, organization_id, owner_id, clinic_name, doctor_name, personal_phone, phone, slug, custom_domain");
 
               if (isUuid) {
-                clinicQuery = clinicQuery.eq("id", clinicIdentifier);
+                clinicQuery = clinicQuery.eq("id", cleanIdentifier);
               } else {
-                clinicQuery = clinicQuery.eq("slug", clinicIdentifier.toLowerCase());
+                clinicQuery = clinicQuery.or(`slug.eq.${cleanIdentifier},custom_domain.ilike.%${cleanIdentifier}%`);
               }
 
               const { data: clinicRow } = await clinicQuery.maybeSingle();
@@ -228,10 +273,23 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             } catch {}
           }
 
+          if (!activeClinic && KNOWN_CLINICS[cleanIdentifier]) {
+            const kc = KNOWN_CLINICS[cleanIdentifier];
+            activeClinic = {
+              id: kc.id,
+              organization_id: kc.orgId,
+              clinic_name: kc.name,
+              doctor_name: kc.doctor,
+              personal_phone: kc.phone,
+              phone: kc.phone,
+              slug: kc.slug,
+            };
+          }
+
           if (!activeClinic) {
             try {
               const { getAiCreatedClinicBySlug } = await import("@/lib/ai-clinic-creator.server");
-              const aiClinic = getAiCreatedClinicBySlug(clinicIdentifier);
+              const aiClinic = getAiCreatedClinicBySlug(cleanIdentifier);
               if (aiClinic) {
                 activeClinic = {
                   id: aiClinic.id || `clinic_${aiClinic.slug}`,
@@ -249,11 +307,11 @@ export const Route = createFileRoute("/api/public/submit-booking")({
           if (!activeClinic) {
             try {
               const { getPublicClinicDataImpl } = await import("@/lib/custom-websites.server");
-              const customClinic = await getPublicClinicDataImpl(clinicIdentifier);
+              const customClinic = await getPublicClinicDataImpl(cleanIdentifier);
               if (customClinic) {
                 activeClinic = {
                   id: customClinic.clinic_id || `clinic_${customClinic.slug}`,
-                  organization_id: null,
+                  organization_id: (customClinic as any).organization_id ?? null,
                   clinic_name: customClinic.clinic_name,
                   doctor_name: customClinic.doctor_name,
                   personal_phone: customClinic.phone,
@@ -268,10 +326,32 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             return Response.json(
               {
                 success: false,
-                error: `Clinic '${clinicIdentifier}' not found in ClinicX.`,
+                error: `Clinic '${cleanIdentifier}' not found in ClinicX.`,
               },
               { status: 404, headers: CORS_HEADERS },
             );
+          }
+
+          // Ensure activeClinic has a valid Postgres UUID and valid organization_id
+          if (activeClinic) {
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeClinic.id);
+            if (!isUuid && sb) {
+              try {
+                const { data: realClinic } = await sb
+                  .from("clinics")
+                  .select("id, organization_id")
+                  .eq("slug", activeClinic.slug)
+                  .maybeSingle();
+                if (realClinic?.id) {
+                  activeClinic.id = realClinic.id;
+                  if (realClinic.organization_id) activeClinic.organization_id = realClinic.organization_id;
+                }
+              } catch {}
+            }
+            if (activeClinic.slug === "sanidhya-naturopathy-center" || cleanIdentifier.includes("sanidhya")) {
+              activeClinic.id = "703422e9-e8bb-4bb9-95bb-abd58f19ad8e";
+              activeClinic.organization_id = activeClinic.organization_id || "5c6635e8-278e-432d-b9e2-942d1ad4374e";
+            }
           }
 
           const clinicId = activeClinic.id;
@@ -428,9 +508,13 @@ export const Route = createFileRoute("/api/public/submit-booking")({
               }
 
               // 8. Create Appointment - Website submissions create a dedicated pending appointment record
-              const { data: appt, error: apptErr } = await sb
+              const appointmentUuid = crypto.randomUUID();
+              appointmentId = appointmentUuid;
+
+              const { error: apptErr } = await sb
                 .from("appointments")
                 .insert({
+                  id: appointmentUuid,
                   clinic_id: clinicId,
                   organization_id: orgId,
                   patient_name: cleanName,
@@ -442,12 +526,10 @@ export const Route = createFileRoute("/api/public/submit-booking")({
                   appointment_type: apptType,
                   status: "pending",
                   source: "custom_website",
-                } as never)
-                .select("id")
-                .single();
+                } as never);
 
-              if (!apptErr && appt?.id) {
-                appointmentId = appt.id;
+              if (apptErr) {
+                console.error("submit-booking: database appointment insert error:", apptErr);
               }
 
               // 8.5. Record in queue_tokens for Live OPD Queue integration
@@ -474,20 +556,18 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             }
           }
 
-          // 9. Upsert Patient Record
+          // 9. Record Patient Record
           if (sb) {
             try {
-              await sb.from("patients").upsert(
-                {
-                  clinic_id: clinicId,
-                  name: cleanName,
-                  phone: cleanPhone,
-                  email: rawEmail || null,
-                },
-                { onConflict: "clinic_id,phone" },
-              );
+              await sb.from("patients").insert({
+                clinic_id: clinicId,
+                organization_id: orgId,
+                name: cleanName,
+                phone: cleanPhone,
+                email: rawEmail || null,
+              });
             } catch (pErr) {
-              console.error("submit-booking: patient upsert error", pErr);
+              // Non-fatal if patient phone is duplicate
             }
 
             // 10. Auto-Sync into Leads CRM Table

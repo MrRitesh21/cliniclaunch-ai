@@ -27,6 +27,7 @@ import {
   Mail,
   Clock,
   CalendarCheck,
+  Calendar,
   UserRound,
   Plus,
   Stethoscope,
@@ -42,6 +43,9 @@ import {
   UserX,
   Flame,
   Zap,
+  ExternalLink,
+  RefreshCw,
+  Send,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAppointmentStatus, createBooking, getClinicAppointments, getDashboardDoctors } from "@/lib/clinic.functions";
@@ -432,33 +436,36 @@ function AppointmentsPage() {
     return rows.filter((r) => {
       if (filter !== "all" && r.status !== filter) return false;
       if (search) {
-        const q = search.toLowerCase();
+        const q = search.toLowerCase().trim();
         const matchesName = (r.patient_name || "").toLowerCase().includes(q);
-        const matchesPhone = r.patient_phone?.includes(q);
-        if (!matchesName && !matchesPhone) return false;
+        const matchesPhone = (r.patient_phone || "").replace(/[^0-9]/g, "").includes(q.replace(/[^0-9]/g, ""));
+        const tokenMatch = (r.notes || "").match(/OPD-\d+/i) || (r.problem || "").match(/OPD-\d+/i);
+        const matchesToken = tokenMatch ? tokenMatch[0].toLowerCase().includes(q) : false;
+        const matchesDoctor = (r.doctors?.name || "").toLowerCase().includes(q);
+        const matchesProblem = (r.problem || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesPhone && !matchesToken && !matchesDoctor && !matchesProblem) return false;
       }
       if (typeFilter !== "all" && r.appointment_type !== typeFilter) return false;
 
       if (dateFilter !== "all" && r.scheduled_at) {
         const d = new Date(r.scheduled_at);
         if (isNaN(d.getTime())) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
+        const dStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
 
         if (dateFilter === "today") {
-          const end = new Date(today);
-          end.setHours(23, 59, 59, 999);
-          if (d < today || d > end) return false;
+          if (dStr !== todayStr) return false;
         } else if (dateFilter === "tomorrow") {
-          const tomStart = new Date(today);
-          tomStart.setDate(tomStart.getDate() + 1);
-          const tomEnd = new Date(tomStart);
-          tomEnd.setHours(23, 59, 59, 999);
-          if (d < tomStart || d > tomEnd) return false;
+          const tom = new Date(now);
+          tom.setDate(tom.getDate() + 1);
+          const tomStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(tom);
+          if (dStr !== tomStr) return false;
         } else if (dateFilter === "week") {
-          const weekEnd = new Date(today);
+          const weekEnd = new Date(now);
           weekEnd.setDate(weekEnd.getDate() + 7);
-          if (d < today || d > weekEnd) return false;
+          const weekEndStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(weekEnd);
+          if (dStr < todayStr || dStr > weekEndStr) return false;
         }
       }
 
@@ -547,16 +554,80 @@ function AppointmentsPage() {
     { key: "cancelled", label: "Cancelled", count: counts.cancelled },
   ];
 
+  // Helper to extract clean complaint without redundant [OPD-XXX] token
+  const cleanDisplayProblem = useCallback((problem: string | null | undefined) => {
+    if (!problem) return "";
+    const parsed = cleanProblemAndService(problem);
+    const text = (parsed.problem || parsed.displaySummary || "").trim();
+    return text.replace(/^\[?\s*OPD-\d+\s*\]?\s*[-:•]?\s*/i, "").trim();
+  }, []);
+
+  // Format date and time with smart labels (Today, Tomorrow, Date)
+  const formatApptDate = useCallback((iso: string) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) {
+      return { timeStr: "--:--", dateLabel: "Invalid date", isToday: false, isTomorrow: false };
+    }
+    const timeStr = d.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const now = new Date();
+    const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(tomorrow);
+    const targetDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
+
+    const isToday = targetDateStr === todayStr;
+    const isTomorrow = targetDateStr === tomorrowStr;
+
+    const dateLabel = isToday
+      ? "Today"
+      : isTomorrow
+      ? "Tomorrow"
+      : d.toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        });
+
+    return { timeStr, dateLabel, isToday, isTomorrow };
+  }, []);
+
+  // WhatsApp 1-tap chat generator
+  const getWhatsAppUrl = useCallback((phone: string, name: string, token: string | null) => {
+    const cleanNum = phone.replace(/[^0-9]/g, "");
+    const intlNum = cleanNum.startsWith("91") && cleanNum.length === 12
+      ? cleanNum
+      : cleanNum.length === 10
+      ? `91${cleanNum}`
+      : cleanNum;
+    const msg = encodeURIComponent(
+      `Hello ${name}, regarding your appointment${token ? ` (Token: ${token})` : ""} at ${clinic?.clinic_name || "the clinic"}: `
+    );
+    return `https://wa.me/${intlNum}?text=${msg}`;
+  }, [clinic?.clinic_name]);
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {/* Top Mobile-First Header & Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-border/40">
         <div>
-          <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
-            Appointments
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-            Confirm, complete, or check-in bookings directly to Live OPD Queue.
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground">
+              Appointments
+            </h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary">
+              {counts.all} total
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Real-time management for in-clinic visits, video consults, and custom website bookings.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -564,7 +635,7 @@ function AppointmentsPage() {
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 h-9 px-3 text-xs font-semibold rounded-xl border-border/80 shrink-0"
+              className="gap-1.5 h-9 px-3 text-xs font-semibold rounded-xl border-border/80 hover:bg-muted/60 shrink-0"
             >
               <Clock className="size-3.5 text-primary" />
               <span>Live OPD Queue</span>
@@ -575,37 +646,176 @@ function AppointmentsPage() {
               )}
             </Button>
           </Link>
-          <div className="relative flex-1 sm:w-56">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search patient or phone…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-xs sm:text-sm rounded-xl"
-            />
-          </div>
           <Button
             onClick={() => setAddOpen(true)}
             size="sm"
-            className="gap-1.5 h-9 px-3 text-xs font-semibold rounded-xl shadow-xs shrink-0"
+            className="gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 shadow-xs shrink-0"
           >
-            <Plus className="size-4" /> <span className="hidden xs:inline">Add</span> Appt
+            <Plus className="size-4" /> <span>Add Appointment</span>
           </Button>
         </div>
       </div>
 
-      {/* Horizontal Scrollable Status Tabs (Native Pill Bar) */}
+      {/* KPI Metric Summary Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <button
+          type="button"
+          onClick={() => { setFilter("all"); setDateFilter("all"); }}
+          className={`p-3 rounded-2xl border text-left transition-all ${
+            filter === "all" && dateFilter === "all"
+              ? "bg-card border-primary/40 ring-1 ring-primary/20 shadow-xs"
+              : "bg-card hover:bg-muted/40 border-border/70"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Total Bookings</span>
+            <CalendarCheck className="size-4 text-muted-foreground" />
+          </div>
+          <div className="mt-1 text-xl sm:text-2xl font-bold font-display text-foreground">
+            {counts.all}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setFilter("waiting"); }}
+          className={`p-3 rounded-2xl border text-left transition-all ${
+            filter === "waiting"
+              ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-400/50 ring-1 ring-amber-400/20 shadow-xs"
+              : "bg-card hover:bg-muted/40 border-border/70"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">In OPD Queue</span>
+            <Clock className="size-4 text-amber-500" />
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-bold font-display text-amber-700 dark:text-amber-400">
+              {counts.waiting}
+            </span>
+            {counts.waiting > 0 && (
+              <span className="inline-flex size-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setFilter("pending"); }}
+          className={`p-3 rounded-2xl border text-left transition-all ${
+            filter === "pending"
+              ? "bg-blue-50/60 dark:bg-blue-950/20 border-blue-400/50 ring-1 ring-blue-400/20 shadow-xs"
+              : "bg-card hover:bg-muted/40 border-border/70"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Pending Action</span>
+            <UserCheck className="size-4 text-blue-500" />
+          </div>
+          <div className="mt-1 text-xl sm:text-2xl font-bold font-display text-blue-700 dark:text-blue-400">
+            {counts.pending}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setFilter("completed"); }}
+          className={`p-3 rounded-2xl border text-left transition-all ${
+            filter === "completed"
+              ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-400/50 ring-1 ring-emerald-400/20 shadow-xs"
+              : "bg-card hover:bg-muted/40 border-border/70"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Completed</span>
+            <CheckCircle2 className="size-4 text-emerald-500" />
+          </div>
+          <div className="mt-1 text-xl sm:text-2xl font-bold font-display text-emerald-700 dark:text-emerald-400">
+            {counts.completed}
+          </div>
+        </button>
+      </div>
+
+      {/* Unified Fast Search & Date Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search patient, phone, doctor, or token (OPD-XXX)…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-8 h-9 text-xs sm:text-sm rounded-xl border-border/80 bg-card"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-xl border border-border/60">
+            {[
+              { key: "all", label: "All Dates" },
+              { key: "today", label: "Today" },
+              { key: "tomorrow", label: "Tomorrow" },
+              { key: "week", label: "7 Days" },
+            ].map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => setDateFilter(d.key)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                  dateFilter === d.key
+                    ? "bg-card text-foreground font-semibold shadow-2xs border border-border/60"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-xl border border-border/60">
+            {[
+              { key: "all", label: "All Types" },
+              { key: "offline", label: "Clinic" },
+              { key: "online", label: "Video" },
+            ].map((tp) => (
+              <button
+                key={tp.key}
+                type="button"
+                onClick={() => setTypeFilter(tp.key)}
+                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                  typeFilter === tp.key
+                    ? "bg-card text-primary font-semibold shadow-2xs border border-border/60"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tp.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Status Pill Strip */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
         {filterTabs.map((t) => {
           const active = filter === t.key;
           return (
             <button
               key={t.key}
+              type="button"
               onClick={() => setFilter(t.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border ${
                 active
                   ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
-                  : "bg-card hover:bg-muted/60 text-muted-foreground border-border/80"
+                  : "bg-card hover:bg-muted/60 text-muted-foreground border-border/70"
               }`}
             >
               <span>{t.label}</span>
@@ -621,139 +831,52 @@ function AppointmentsPage() {
         })}
       </div>
 
-      {/* Secondary Quick Date & Type Filters */}
-      <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          {[
-            { key: "all", label: "All Dates" },
-            { key: "today", label: "Today" },
-            { key: "tomorrow", label: "Tomorrow" },
-            { key: "week", label: "7 Days" },
-          ].map((d) => (
-            <button
-              key={d.key}
-              onClick={() => setDateFilter(d.key)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                dateFilter === d.key
-                  ? "bg-muted font-semibold text-foreground border border-border"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          {[
-            { key: "all", label: "All" },
-            { key: "offline", label: "In-clinic" },
-            { key: "online", label: "Video" },
-          ].map((tp) => (
-            <button
-              key={tp.key}
-              onClick={() => setTypeFilter(tp.key)}
-              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors ${
-                typeFilter === tp.key
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tp.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Appointments List View / Native Cards */}
+      {/* Appointments List / High Density Cards */}
       {loading ? (
-        <Card className="p-4">
+        <Card className="p-4 rounded-2xl border-border/80">
           <SkeletonRows rows={6} cols={5} />
         </Card>
       ) : filtered.length === 0 ? (
-        <Card className="p-8 text-center border-border/80">
+        <Card className="p-10 text-center rounded-2xl border-border/80 bg-card">
           <EmptyState
-            icon={<Search className="size-6" />}
+            icon={<Search className="size-7 text-muted-foreground/60" />}
             title="No appointments found"
             description={
-              search ? `No appointments match "${search}"` : "No appointments scheduled for this selection."
+              search
+                ? `No bookings match "${search}". Try adjusting your filters.`
+                : "No appointments scheduled for this filter selection."
             }
             action={
-              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 h-8 text-xs">
+              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5 h-8.5 text-xs rounded-xl">
                 <Plus className="size-3.5" /> Add Appointment
               </Button>
             }
           />
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filtered.map((r) => {
             const isExpanded = expanded === r.id;
             const isBusy = updating === r.id;
             const isOnline = r.appointment_type === "online";
-            const apptDate = new Date(r.scheduled_at);
-            const timeStr = apptDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-            const dateStr = apptDate.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" });
+            const { timeStr, dateLabel, isToday, isTomorrow } = formatApptDate(r.scheduled_at);
+            const tokenMatch = (r.notes || "").match(/OPD-\d+/i) || (r.problem || "").match(/OPD-\d+/i);
+            const tokenNumber = tokenMatch ? tokenMatch[0].toUpperCase() : null;
+            const cleanComplaint = cleanDisplayProblem(r.problem);
 
             return (
               <Card
                 key={r.id}
-                className={`overflow-hidden border-border/80 shadow-xs transition-all ${
-                  r.status === "completed" ? "opacity-75 bg-muted/10" : "bg-card"
+                className={`overflow-hidden border border-border/80 rounded-2xl transition-all duration-150 hover:border-primary/40 hover:shadow-xs ${
+                  r.status === "completed" ? "bg-muted/15 opacity-85" : "bg-card"
                 }`}
               >
                 <div className="p-3.5 sm:p-4">
-                  {/* Top Bar: Time, Type, Status */}
-                  <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 text-xs font-semibold text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
-                        <Clock className="size-3 text-primary" />
-                        <span>{timeStr}</span>
-                        <span className="text-muted-foreground font-normal">({dateStr})</span>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] px-1.5 py-0 font-medium ${
-                          isOnline ? "border-purple-500/30 text-purple-600 bg-purple-50/50 dark:bg-purple-950/20" : "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
-                        }`}
-                      >
-                        {isOnline ? <Video className="size-2.5 mr-1" /> : <MapPin className="size-2.5 mr-1" />}
-                        {isOnline ? "Video" : "Clinic"}
-                      </Badge>
-
-                      {/* Source badge */}
-                      {r.source === "website_widget" || r.source === "website" || r.source === "custom_website" ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 font-medium border-blue-500/30 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20"
-                        >
-                          <Globe className="size-2.5 mr-1" />
-                          Website
-                        </Badge>
-                      ) : r.source === "whatsapp" ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 font-medium border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
-                        >
-                          <MessageCircle className="size-2.5 mr-1" />
-                          WhatsApp
-                        </Badge>
-                      ) : r.source === "walkin" ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 font-medium border-amber-500/30 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20"
-                        >
-                          <QrCode className="size-2.5 mr-1" />
-                          Walk-in
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <StatusBadge status={r.status} />
-                  </div>
-
-                  {/* Patient Info Row */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                  {/* Top Header Row on Mobile / Left Info Block on Desktop */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    {/* Left & Middle Container */}
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      {/* Avatar */}
                       <AvatarInitials
                         name={
                           !r.patient_name || r.patient_name.startsWith("/")
@@ -761,233 +884,315 @@ function AppointmentsPage() {
                             : r.patient_name
                         }
                       />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-display font-bold text-sm text-foreground truncate">
+
+                      {/* Main Patient Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-display font-bold text-sm sm:text-base text-foreground truncate">
                             {!r.patient_name || r.patient_name.startsWith("/")
                               ? "Patient"
                               : r.patient_name}
                           </h3>
-                          {(() => {
-                            const tokenMatch = (r.notes || "").match(/OPD-\d+/) || (r.problem || "").match(/OPD-\d+/);
-                            if (!tokenMatch) return null;
-                            return (
-                              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold px-1.5 py-0 shrink-0">
-                                🎫 {tokenMatch[0]}
-                              </Badge>
-                            );
-                          })()}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          {r.patient_phone && (
-                            <a
-                              href={`tel:${r.patient_phone}`}
-                              className="hover:text-primary font-medium flex items-center gap-1"
-                            >
-                              <Phone className="size-3 text-emerald-600" />
-                              {r.patient_phone}
-                            </a>
+
+                          {/* Token Badge */}
+                          {tokenNumber && (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold px-1.5 py-0 shrink-0">
+                              🎫 {tokenNumber}
+                            </Badge>
                           )}
+
+                          {/* Date and Time Chip */}
+                          <div className="inline-flex items-center gap-1 text-[11px] font-medium bg-muted/60 px-2 py-0.5 rounded-lg border border-border/50 text-foreground shrink-0">
+                            <Clock className="size-3 text-primary" />
+                            <span className="font-semibold">{timeStr}</span>
+                            <span
+                              className={`text-[10px] px-1 py-0 rounded-md font-semibold ${
+                                isToday
+                                  ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                  : isTomorrow
+                                  ? "bg-blue-500/20 text-blue-700 dark:text-blue-300"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {dateLabel}
+                            </span>
+                          </div>
+
+                          {/* Visit Modality Badge */}
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${
+                              isOnline
+                                ? "border-purple-500/30 text-purple-600 bg-purple-50/50 dark:bg-purple-950/20"
+                                : "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
+                            }`}
+                          >
+                            {isOnline ? <Video className="size-2.5 mr-1" /> : <MapPin className="size-2.5 mr-1" />}
+                            {isOnline ? "Video" : "Clinic"}
+                          </Badge>
+
+                          {/* Source Badge */}
+                          {r.source === "website_widget" || r.source === "website" || r.source === "custom_website" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 font-medium border-blue-500/30 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20 shrink-0"
+                            >
+                              <Globe className="size-2.5 mr-1" />
+                              Website
+                            </Badge>
+                          ) : r.source === "whatsapp" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 font-medium border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 shrink-0"
+                            >
+                              <MessageCircle className="size-2.5 mr-1" />
+                              WhatsApp
+                            </Badge>
+                          ) : r.source === "walkin" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 font-medium border-amber-500/30 text-amber-600 bg-amber-50/50 dark:bg-amber-950/20 shrink-0"
+                            >
+                              <QrCode className="size-2.5 mr-1" />
+                              Walk-in
+                            </Badge>
+                          ) : null}
+                        </div>
+
+                        {/* Contact details & 1-tap quick actions */}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+                          {r.patient_phone && (
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={`tel:${r.patient_phone}`}
+                                title="Call patient"
+                                className="inline-flex items-center gap-1 hover:text-primary font-medium text-foreground transition-colors"
+                              >
+                                <Phone className="size-3 text-emerald-600" />
+                                <span>{r.patient_phone}</span>
+                              </a>
+
+                              <a
+                                href={getWhatsAppUrl(r.patient_phone, r.patient_name || "Patient", tokenNumber)}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="Chat on WhatsApp"
+                                className="inline-flex items-center gap-1 text-[11px] text-emerald-600 hover:text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 px-1.5 py-0.5 rounded-md transition-colors"
+                              >
+                                <MessageCircle className="size-3" />
+                                <span>WhatsApp</span>
+                              </a>
+                            </div>
+                          )}
+
                           {(r.patient_age || r.patient_gender) && (
                             <span>
                               • {[r.patient_age && `${r.patient_age}y`, r.patient_gender].filter(Boolean).join(", ")}
                             </span>
                           )}
+
+                          {r.doctors?.name && (
+                            <span className="hidden sm:inline text-muted-foreground">
+                              • Dr. {r.doctors.name}
+                            </span>
+                          )}
                         </div>
+
+                        {/* Symptoms / Clean Complaints Snippet */}
+                        {cleanComplaint && (
+                          <div className="mt-1.5 text-xs text-muted-foreground line-clamp-1 bg-muted/40 px-2 py-1 rounded-md border border-border/40 inline-block">
+                            <span className="font-semibold text-foreground">Symptoms: </span>
+                            {cleanComplaint}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setExpanded(isExpanded ? null : r.id)}
-                      className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted shrink-0"
-                    >
-                      {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                    </button>
-                  </div>
+                    {/* Right Side: Status Badge + Compact Action Buttons */}
+                    <div className="flex items-center justify-between md:justify-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/50">
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={r.status} />
 
-                  {/* Problem snippet if present */}
-                  {(() => {
-                    const parsed = cleanProblemAndService(r.problem);
-                    if (!parsed.displaySummary) return null;
-                    return (
-                      <div className="mt-2.5 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">
-                        <span className="font-semibold text-foreground">
-                          {parsed.service ? `${parsed.service}: ` : "Symptoms: "}
-                        </span>
-                        {parsed.problem || parsed.displaySummary}
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isExpanded ? null : r.id)}
+                          className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                          title="Details"
+                        >
+                          {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                        </button>
                       </div>
-                    );
-                  })()}
 
-                  {/* Quick Action Touch Bar */}
-                  <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/60 flex-wrap">
-                    {r.status === "pending" && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => setStatus(r.id, "waiting")}
-                          disabled={isBusy}
-                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90 rounded-xl"
-                        >
-                          {isBusy ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <UserCheck className="size-3.5" />
-                          )}
-                          <span>{isBusy ? "Checking in…" : "✓ Confirm & Check-in"}</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "confirmed")}
-                          disabled={isBusy}
-                          className="h-8 text-xs font-medium rounded-xl border-border/80"
-                        >
-                          Confirm Only
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "cancelled")}
-                          disabled={isBusy}
-                          className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 font-medium rounded-xl"
-                        >
-                          <X className="size-3.5 mr-1" /> Cancel
-                        </Button>
-                      </>
-                    )}
+                      {/* Contextual Action Buttons */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {r.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => setStatus(r.id, "waiting")}
+                              disabled={isBusy}
+                              className="bg-primary text-primary-foreground font-semibold h-8 px-3 text-xs gap-1.5 rounded-xl shadow-xs hover:bg-primary/95"
+                            >
+                              {isBusy ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <UserCheck className="size-3.5" />
+                              )}
+                              <span>Check-in to Queue</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setStatus(r.id, "confirmed")}
+                              disabled={isBusy}
+                              className="h-8 px-2.5 text-xs font-medium rounded-xl border-border/80"
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setStatus(r.id, "cancelled")}
+                              disabled={isBusy}
+                              className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl"
+                            >
+                              <X className="size-3.5 mr-0.5" /> Cancel
+                            </Button>
+                          </>
+                        )}
 
-                    {r.status === "confirmed" && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => setStatus(r.id, "waiting")}
-                          disabled={isBusy}
-                          className="bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 flex-1 sm:flex-initial shadow-xs hover:bg-primary/90 rounded-xl"
-                        >
-                          {isBusy ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <UserCheck className="size-3.5" />
-                          )}
-                          <span>Check-in to Queue</span>
-                        </Button>
-                        <Link to="/dashboard/consult" search={{ appointmentId: r.id }} className="flex-1 sm:flex-initial">
+                        {r.status === "confirmed" && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => setStatus(r.id, "waiting")}
+                              disabled={isBusy}
+                              className="bg-primary text-primary-foreground font-semibold h-8 px-3 text-xs gap-1.5 rounded-xl shadow-xs hover:bg-primary/95"
+                            >
+                              {isBusy ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <UserCheck className="size-3.5" />
+                              )}
+                              <span>Check-in to Queue</span>
+                            </Button>
+                            <Link to="/dashboard/consult" search={{ appointmentId: r.id }}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  void setStatus(r.id, "serving");
+                                }}
+                                className="font-medium h-8 px-2.5 text-xs gap-1.5 rounded-xl border-border/80"
+                              >
+                                <Stethoscope className="size-3.5" /> Start Consult
+                              </Button>
+                            </Link>
+                            {isOnline && (
+                              <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
+                                <Button size="sm" variant="secondary" className="h-8 px-2.5 text-xs gap-1 rounded-xl">
+                                  <Video className="size-3.5 text-purple-600" /> Video
+                                </Button>
+                              </a>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setStatus(r.id, "cancelled")}
+                              disabled={isBusy}
+                              className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl"
+                            >
+                              <X className="size-3.5 mr-0.5" /> Cancel
+                            </Button>
+                          </>
+                        )}
+
+                        {r.status === "waiting" && (
+                          <>
+                            <a href={`/dashboard/consult?appointmentId=${r.id}`}>
+                              <Button
+                                size="sm"
+                                onClick={() => setStatus(r.id, "serving")}
+                                className="bg-primary text-primary-foreground font-semibold h-8 px-3 text-xs gap-1.5 rounded-xl shadow-xs hover:bg-primary/95"
+                              >
+                                <Stethoscope className="size-3.5" /> ▶ Consult Now
+                              </Button>
+                            </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setStatus(r.id, "completed")}
+                              disabled={isBusy}
+                              className="h-8 px-2.5 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl"
+                            >
+                              <CheckCircle2 className="size-3.5" /> Done
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setStatus(r.id, "no_show")}
+                              disabled={isBusy}
+                              title="Mark No Show"
+                              className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl"
+                            >
+                              <UserX className="size-3.5" />
+                            </Button>
+                          </>
+                        )}
+
+                        {r.status === "serving" && (
+                          <>
+                            <a href={`/dashboard/consult?appointmentId=${r.id}`}>
+                              <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white font-semibold h-8 px-3 text-xs gap-1.5 rounded-xl shadow-xs">
+                                <Stethoscope className="size-3.5 animate-pulse" /> Resume Consult
+                              </Button>
+                            </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setStatus(r.id, "completed")}
+                              disabled={isBusy}
+                              className="h-8 px-2.5 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl"
+                            >
+                              <CheckCircle2 className="size-3.5" /> Done
+                            </Button>
+                          </>
+                        )}
+
+                        {r.status === "completed" && (
+                          <div className="flex items-center gap-1.5">
+                            <a href="/dashboard/finance">
+                              <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 text-emerald-600 border-emerald-500/25 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 rounded-xl">
+                                <Receipt className="size-3.5" /> Invoice
+                              </Button>
+                            </a>
+                            <a href="/dashboard/prescriptions">
+                              <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 text-blue-600 border-blue-500/25 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-xl">
+                                <FileText className="size-3.5" /> E-Prescription
+                              </Button>
+                            </a>
+                          </div>
+                        )}
+
+                        {(r.status === "no_show" || r.status === "cancelled") && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              void setStatus(r.id, "serving");
-                            }}
-                            className="w-full font-medium h-8 text-xs gap-1.5 rounded-xl border-border/80"
+                            onClick={() => setStatus(r.id, "waiting")}
+                            disabled={isBusy}
+                            className="h-8 px-2.5 text-xs gap-1 text-muted-foreground hover:text-foreground rounded-xl"
                           >
-                            <Stethoscope className="size-3.5" /> Start Consult
+                            <UserCheck className="size-3.5" /> Re-checkin
                           </Button>
-                        </Link>
-                        {isOnline && (
-                          <a href={`/consult/${r.id}`} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="secondary" className="h-8 text-xs gap-1 rounded-xl">
-                              <Video className="size-3.5 text-purple-600" /> Call
-                            </Button>
-                          </a>
                         )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "cancelled")}
-                          disabled={isBusy}
-                          className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 font-medium rounded-xl"
-                        >
-                          <X className="size-3.5 mr-1" /> Cancel
-                        </Button>
-                      </>
-                    )}
-
-                    {r.status === "waiting" && (
-                      <>
-                        <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
-                          <Button
-                            size="sm"
-                            onClick={() => setStatus(r.id, "serving")}
-                            className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl"
-                          >
-                            <Stethoscope className="size-3.5" /> ▶ Go to Consult
-                          </Button>
-                        </a>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "completed")}
-                          disabled={isBusy}
-                          className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl"
-                        >
-                          <CheckCircle2 className="size-3.5" /> Done
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setStatus(r.id, "no_show")}
-                          disabled={isBusy}
-                          title="Mark No Show"
-                          className="h-8 text-xs text-rose-600 hover:bg-rose-500/10 rounded-xl px-2"
-                        >
-                          <UserX className="size-3.5" />
-                        </Button>
-                      </>
-                    )}
-
-                    {r.status === "serving" && (
-                      <>
-                        <a href={`/dashboard/consult?appointmentId=${r.id}`} className="flex-1 sm:flex-initial">
-                          <Button size="sm" className="w-full bg-primary text-primary-foreground font-semibold h-8 text-xs gap-1.5 shadow-xs rounded-xl">
-                            <Stethoscope className="size-3.5" /> Resume Consult
-                          </Button>
-                        </a>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "completed")}
-                          disabled={isBusy}
-                          className="h-8 text-xs gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl"
-                        >
-                          <CheckCircle2 className="size-3.5" /> Done
-                        </Button>
-                      </>
-                    )}
-
-                    {r.status === "completed" && (
-                      <div className="flex items-center gap-2 w-full">
-                        <a href="/dashboard/finance" className="flex-1">
-                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-emerald-600 border-emerald-500/20 rounded-xl">
-                            <Receipt className="size-3.5" /> Invoice
-                          </Button>
-                        </a>
-                        <a href="/dashboard/prescriptions" className="flex-1">
-                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1.5 text-blue-600 border-blue-500/20 rounded-xl">
-                            <FileText className="size-3.5" /> E-Prescription
-                          </Button>
-                        </a>
                       </div>
-                    )}
-
-                    {r.status === "no_show" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setStatus(r.id, "waiting")}
-                        disabled={isBusy}
-                        className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground rounded-xl"
-                      >
-                        <UserCheck className="size-3.5" /> Re-checkin
-                      </Button>
-                    )}
+                    </div>
                   </div>
 
                   {/* Collapsible Expanded Details */}
                   {isExpanded && (
-                    <div className="mt-3 pt-3 border-t border-border space-y-2 text-xs text-muted-foreground bg-muted/20 -mx-3.5 -mb-3.5 p-3.5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground bg-muted/20 -mx-3.5 -mb-3.5 p-3.5 rounded-b-2xl">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div>
                           <span className="font-semibold text-foreground">Doctor Assigned: </span>
                           {r.doctors?.name || clinic?.doctor_name || "Primary Doctor"}
@@ -998,7 +1203,17 @@ function AppointmentsPage() {
                             <a href={`mailto:${r.patient_email}`} className="hover:underline">{r.patient_email}</a>
                           </div>
                         )}
+                        <div>
+                          <span className="font-semibold text-foreground">Booking ID: </span>
+                          <span className="font-mono text-[11px]">{r.id.slice(0, 13)}…</span>
+                        </div>
                       </div>
+                      {r.notes && (
+                        <div className="mt-2 text-muted-foreground">
+                          <span className="font-semibold text-foreground">Internal Notes: </span>
+                          {r.notes}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
