@@ -30,7 +30,12 @@ function inr(rupees: number) {
 
 function TransactionsPage() {
   const fn = useServerFn(listTransactions);
-  const { data, isLoading } = useQuery({ queryKey: ["admin-transactions"], queryFn: () => fn() });
+  const { data, isLoading, isFetching } = useQuery({ 
+    queryKey: ["admin-transactions"], 
+    queryFn: () => fn(),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
+  });
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -39,11 +44,11 @@ function TransactionsPage() {
   const [sortOrder, setSortOrder] = useState("desc");
   const pageSize = 20;
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
-      <div className="p-10 text-center flex flex-col items-center justify-center text-muted-foreground">
+      <div className="p-10 text-center flex flex-col items-center justify-center text-muted-foreground min-h-[350px]">
         <Loader2 className="size-8 animate-spin text-primary mb-2" />
-        <span>Loading transactions...</span>
+        <span className="text-sm font-medium">Loading transactions...</span>
       </div>
     );
   }
@@ -183,9 +188,64 @@ function TransactionsPage() {
         </div>
       </div>
 
-      {/* Transactions Table */}
+      {/* Transactions List (Mobile Cards + Desktop Table) */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View (< md) */}
+        <div className="block md:hidden divide-y">
+          {paginated.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground/70 text-xs">
+              No payment transactions recorded.
+            </div>
+          ) : (
+            paginated.map((t: any) => (
+              <div key={t.id} className="p-4 space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold text-foreground text-sm">{t.doctorName}</div>
+                    <div className="text-xs text-muted-foreground">{t.clinicName}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-base text-foreground">{inr(t.amount)}</div>
+                    <Badge
+                      variant={
+                        t.status === "captured" || t.status === "success"
+                          ? "default"
+                          : t.status === "refunded"
+                            ? "secondary"
+                            : "destructive"
+                      }
+                      className="text-[10px]"
+                    >
+                      {t.status === "captured" ? "success" : t.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase">Plan / Cycle</span>
+                    <span className="font-medium text-foreground">{t.plan}</span>
+                    <div className="text-[10px] text-muted-foreground capitalize">{t.cycle}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase">Date</span>
+                    <span className="text-foreground">{new Date(t.date).toLocaleDateString()}</span>
+                    <div className="text-[10px] text-muted-foreground">{new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                </div>
+
+                {t.razorpayId && (
+                  <div className="text-[11px] font-mono text-muted-foreground truncate">
+                    Ref: {t.razorpayId}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View (md+) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
               <tr>

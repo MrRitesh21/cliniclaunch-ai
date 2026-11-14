@@ -77,6 +77,7 @@ const NAV: NavSection[] = [
       { to: "/admin/ai-clinic-builder", label: "AI Clinic Builder", icon: Sparkles },
       { to: "/admin/crm", label: "CRM & AI Outreach", icon: Bot },
       { to: "/admin/referrals", label: "Creators & Referrals", icon: Share2 },
+      { to: "/admin/users", label: "User Management", icon: Users },
       { to: "/admin/doctors", label: "All Doctors", icon: Users },
       { to: "/admin/doctors/new", label: "New Signups", icon: UserPlus },
       { to: "/admin/doctors/flagged", label: "Flagged", icon: AlertTriangle },

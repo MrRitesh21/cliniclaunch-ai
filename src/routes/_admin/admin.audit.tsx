@@ -47,6 +47,8 @@ function AuditLogsPage() {
   } = useQuery({
     queryKey: ["admin-audit-logs"],
     queryFn: () => fn(),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
 
   const [search, setSearch] = useState("");
@@ -94,14 +96,14 @@ function AuditLogsPage() {
     return "outline";
   };
 
-  if (isLoading) {
+  if (isLoading && logs.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] text-muted-foreground">
         <div className="relative">
           <Loader2 className="size-10 animate-spin text-primary/40" />
           <Database className="size-5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
         </div>
-        <span className="mt-4 font-medium">Synchronizing audit history...</span>
+        <span className="mt-4 font-medium text-sm">Synchronizing audit history...</span>
       </div>
     );
   }
@@ -219,7 +221,70 @@ function AuditLogsPage() {
             </div>
           </div>
         </CardHeader>
-        <div className="overflow-x-auto">
+        {/* Mobile View (< md) */}
+        <div className="block md:hidden divide-y divide-border/40">
+          {filteredLogs.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No audit records match your filters.
+            </div>
+          ) : (
+            filteredLogs.map((log: any) => (
+              <div key={log.id} className="p-4 space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs shrink-0">
+                      {log.admin_users?.name?.charAt(0) || "S"}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-foreground text-xs">
+                        {log.admin_users?.name || "System"}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{format(new Date(log.created_at), "MMM d, HH:mm")}</div>
+                    </div>
+                  </div>
+                  <Badge
+                    variant={getActionColor(log.action)}
+                    className="uppercase text-[9px] tracking-tight px-1.5 py-0.5 rounded-full font-bold"
+                  >
+                    {log.action?.replace(/_/g, " ")}
+                  </Badge>
+                </div>
+
+                <div className="text-xs bg-muted/30 p-2 rounded space-y-1">
+                  {log.target_type && (
+                    <div className="text-[11px]">
+                      <span className="text-muted-foreground">Target: </span>
+                      <strong className="capitalize text-foreground">{log.target_type}</strong>{" "}
+                      <code className="text-[10px] font-mono text-muted-foreground">{log.target_id?.slice(0, 16)}...</code>
+                    </div>
+                  )}
+                  {log.metadata?.reason && (
+                    <div className="text-[11px] text-foreground/80">{log.metadata.reason}</div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
+                  <span>IP: {log.ip_address || "Internal"}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 text-xs text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      if (confirm("Delete this audit entry?")) deleteMutation.mutate(log.id);
+                    }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="size-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View (md+) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead className="bg-muted/50 text-muted-foreground font-semibold text-xs uppercase tracking-wider">
               <tr>

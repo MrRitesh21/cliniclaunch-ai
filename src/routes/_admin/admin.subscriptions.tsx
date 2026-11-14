@@ -245,13 +245,20 @@ function SubscriptionsPage() {
   const [filter, setFilter] = useState<
     "all" | "trialing" | "ending_soon" | "paid" | "expired_trial" | "past_due" | "excluded"
   >("all");
+  const [search, setSearch] = useState("");
   const [detailClinic, setDetailClinic] = useState<string | null>(null);
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["admin-subscriptions", page, filter],
     queryFn: () => fn({ data: { page, pageSize: 25, ...(filter === "all" ? {} : { filter }) } }),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
   const statsFn = useServerFn(getAdminStats);
-  const { data: stats } = useQuery({ queryKey: ["admin-stats"], queryFn: () => statsFn() });
+  const { data: stats } = useQuery({ 
+    queryKey: ["admin-stats"], 
+    queryFn: () => statsFn(),
+    staleTime: 60_000,
+  });
 
   const updateMut = useMutation({
     mutationFn: (args: { id: string; action: "cancel" | "reactivate" | "mark_expired" }) =>
@@ -325,11 +332,25 @@ function SubscriptionsPage() {
     },
   });
 
-  if (isLoading) {
+  const filteredSubscriptions = useMemo(() => {
+    const list = data?.subscriptions ?? [];
+    if (!search.trim()) return list;
+    const q = search.toLowerCase();
+    return list.filter(
+      (s: any) =>
+        s.doctorName?.toLowerCase().includes(q) ||
+        s.clinicName?.toLowerCase().includes(q) ||
+        s.plan?.toLowerCase().includes(q) ||
+        s.razorpayId?.toLowerCase().includes(q) ||
+        s.status?.toLowerCase().includes(q),
+    );
+  }, [data?.subscriptions, search]);
+
+  if (isLoading && !data) {
     return (
-      <div className="p-10 text-center flex flex-col items-center justify-center text-muted-foreground">
+      <div className="p-10 text-center flex flex-col items-center justify-center text-muted-foreground min-h-[350px]">
         <Loader2 className="size-8 animate-spin text-primary mb-2" />
-        <span>Loading subscriptions...</span>
+        <span className="text-sm font-medium">Loading subscriptions...</span>
       </div>
     );
   }
@@ -343,7 +364,7 @@ function SubscriptionsPage() {
         </Button>
       </div>
     );
-  const { totalCount = 0, subscriptions = [] } = data || {};
+  const { totalCount = 0 } = data || {};
   const activeCount = stats?.paidCustomers ?? "—";
   const trialCount = stats?.trialSubs ?? "—";
   const expiredCount = stats?.expiredTrials ?? "—";
@@ -405,42 +426,156 @@ function SubscriptionsPage() {
           </Button>
         </Card>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="billing-filter" className="text-xs text-muted-foreground">Filter by status:</Label>
-          <Select
-            value={filter}
-            onValueChange={(v) => {
-              setFilter(v as typeof filter);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger id="billing-filter" className="w-[240px] h-9 text-xs">
-              <SelectValue placeholder="All clinics" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All clinics (including excluded)</SelectItem>
-              <SelectItem value="trialing">Active trials</SelectItem>
-              <SelectItem value="ending_soon">Trials ending in 7 days</SelectItem>
-              <SelectItem value="paid">Verified paid</SelectItem>
-              <SelectItem value="expired_trial">Expired unpaid trials</SelectItem>
-              <SelectItem value="past_due">Payment recovery</SelectItem>
-              <SelectItem value="excluded">Excluded test/internal/fraud</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 rounded-lg border">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+          <Input
+            placeholder="Search doctor, clinic or gateway ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full sm:max-w-xs h-9 text-xs bg-background"
+          />
+          <div className="flex items-center gap-2">
+            <Label htmlFor="billing-filter" className="text-xs text-muted-foreground whitespace-nowrap">Status:</Label>
+            <Select
+              value={filter}
+              onValueChange={(v) => {
+                setFilter(v as typeof filter);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger id="billing-filter" className="w-[200px] h-9 text-xs bg-background">
+                <SelectValue placeholder="All clinics" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All clinics (including excluded)</SelectItem>
+                <SelectItem value="trialing">Active trials</SelectItem>
+                <SelectItem value="ending_soon">Trials ending in 7 days</SelectItem>
+                <SelectItem value="paid">Verified paid</SelectItem>
+                <SelectItem value="expired_trial">Expired unpaid trials</SelectItem>
+                <SelectItem value="past_due">Payment recovery</SelectItem>
+                <SelectItem value="excluded">Excluded test/internal/fraud</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {data ? utcDate(data.asOf) : "Snapshot unavailable"}
-        </span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground self-end sm:self-auto">
+          {isFetching && <Loader2 className="size-3.5 animate-spin text-primary" />}
+          <span>{data ? utcDate(data.asOf) : "Snapshot unavailable"}</span>
+        </div>
       </div>
       <p className="text-xs text-muted-foreground">
         KPI cards exclude test/internal/fraud. One paid customer is one organization; this paginated
         list counts clinics. Stored state is shown separately from effective access. Manual grants
         are not paid revenue.
       </p>
-      {/* Subscription Table */}
+
+      {/* Subscription List (Mobile Cards + Desktop Table) */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View (< md) */}
+        <div className="block md:hidden divide-y">
+          {filteredSubscriptions.length === 0 && (
+            <div className="p-6 text-center text-muted-foreground/70 text-xs">
+              No clinics match your filters.
+            </div>
+          )}
+          {filteredSubscriptions.map((s: any) => (
+            <div key={s.id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-semibold text-foreground text-sm">{s.doctorName}</div>
+                  <div className="text-xs text-muted-foreground">{s.clinicName}</div>
+                </div>
+                <Badge
+                  variant={
+                    s.status === "active"
+                      ? "default"
+                      : s.status === "trialing"
+                        ? "secondary"
+                        : "destructive"
+                  }
+                  className="text-[11px]"
+                >
+                  {s.status}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-2.5 rounded">
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase">Plan</span>
+                  <span className="font-medium text-foreground">{s.plan}</span>
+                  <div className="text-[10px] text-muted-foreground">{s.billingCycle ?? "No cycle"}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase">End / Period</span>
+                  <span className="font-medium text-foreground">{s.end ? utcDate(s.end) : "—"}</span>
+                  <div className="text-[10px] text-muted-foreground">Trial: {utcDate(s.trialEnd)}</div>
+                </div>
+              </div>
+
+              {s.razorpayId && (
+                <div className="text-[11px] font-mono text-muted-foreground truncate">
+                  ID: {s.razorpayId}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs flex-1"
+                  onClick={() => setDetailClinic(s.clinicId)}
+                >
+                  Billing
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs flex-1 text-indigo-600 border-indigo-200"
+                  disabled={editSubMut.isPending}
+                  onClick={() => startEditSub(s)}
+                >
+                  <Edit className="size-3.5 mr-1" /> Edit
+                </Button>
+                {s.subscriptionId && s.status !== "cancelled" && s.status !== "expired" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs text-rose-600 border-rose-200"
+                    disabled={updateMut.isPending}
+                    onClick={() => {
+                      if (confirm(`Cancel subscription for ${s.doctorName}?`))
+                        updateMut.mutate({ id: s.subscriptionId, action: "cancel" });
+                    }}
+                  >
+                    <XCircle className="size-3.5 mr-1" /> Cancel
+                  </Button>
+                )}
+                {s.subscriptionId &&
+                  (s.storedStatus === "cancelled" || s.storedStatus === "expired") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs text-emerald-600 border-emerald-200"
+                      disabled={editSubMut.isPending || updateMut.isPending}
+                      onClick={() => {
+                        const next = new Date();
+                        next.setUTCDate(next.getUTCDate() + 30);
+                        setEditingSub(s);
+                        setEditPlanId(s.planId || planNameToId(s.plan));
+                        setEditStatus("active");
+                        setEditPeriodEnd(next.toISOString().split("T")[0]);
+                      }}
+                    >
+                      <PlayCircle className="size-3.5 mr-1" /> Reactivate
+                    </Button>
+                  )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View (md+) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
               <tr>
@@ -453,14 +588,14 @@ function SubscriptionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {subscriptions.length === 0 && (
+              {filteredSubscriptions.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
                     No clinics match this filter. Select All clinics to inspect other accounts.
                   </td>
                 </tr>
               )}
-              {subscriptions.map((s: any) => (
+              {filteredSubscriptions.map((s: any) => (
                 <tr key={s.id} className="hover:bg-muted/50">
                   <td className="px-4 py-3">
                     <div className="font-semibold text-foreground">{s.doctorName}</div>

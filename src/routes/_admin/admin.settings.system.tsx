@@ -27,9 +27,11 @@ function SystemSettingsPage() {
   const getSettingsFn = useServerFn(getSystemSettings);
   const saveSettingsFn = useServerFn(saveSystemSettings);
 
-  const { data: settings, isLoading, error } = useQuery({
+  const { data: settings, isLoading, isFetching, error } = useQuery({
     queryKey: ["admin-system-settings"],
     queryFn: () => getSettingsFn(),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
 
   const [form, setForm] = useState<Record<string, string>>({});
@@ -69,11 +71,11 @@ function SystemSettingsPage() {
     setForm((prev) => ({ ...prev, [key]: val }));
   };
 
-  if (isLoading) {
+  if (isLoading && !settings) {
     return (
-      <div className="p-10 text-center flex flex-col items-center justify-center text-muted-foreground">
+      <div className="p-10 text-center flex flex-col items-center justify-center text-muted-foreground min-h-[350px]">
         <Loader2 className="size-8 animate-spin text-primary mb-2" />
-        <span>Loading system settings...</span>
+        <span className="text-sm font-medium">Loading system settings...</span>
       </div>
     );
   }

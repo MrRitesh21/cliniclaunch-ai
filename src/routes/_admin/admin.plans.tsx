@@ -48,10 +48,14 @@ function PlansPage() {
   const { data: plans = [], isLoading: loadingPlans } = useQuery({
     queryKey: ["admin-plans"],
     queryFn: () => getPlansFn(),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
   const { data: coupons = [], isLoading: loadingCoupons } = useQuery({
     queryKey: ["admin-coupons"],
     queryFn: () => getCouponsFn(),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
   const { data: modulesList = [] } = useQuery({
     queryKey: ["admin-modules"],
@@ -75,6 +79,8 @@ function PlansPage() {
       }
       return list;
     },
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
 
   // Plan Edit states
@@ -563,10 +569,83 @@ function PlansPage() {
 
         {/* Coupons List */}
         <Card className="lg:col-span-2 overflow-hidden">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-semibold text-foreground font-display">Active Coupons</h3>
+            <Badge variant="outline" className="text-xs">
+              {coupons.length} total
+            </Badge>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Mobile view (< md) */}
+          <div className="block md:hidden divide-y">
+            {loadingCoupons && coupons.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground/70 text-xs">
+                Loading coupons...
+              </div>
+            ) : coupons.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground/70 text-xs">
+                No coupons configured.
+              </div>
+            ) : (
+              coupons.map((c: any) => (
+                <div key={c.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-foreground text-sm">{c.code}</span>
+                    <Badge variant={c.is_active ? "default" : "secondary"}>
+                      {c.is_active ? "Active" : "Disabled"}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2 rounded">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase">Discount</span>
+                      <span className="font-semibold">
+                        {c.discount_type === "percent" ? `${c.discount_value}%` : `₹${c.discount_value}`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase">Uses</span>
+                      <span>{c.uses_count} / {c.max_uses}</span>
+                    </div>
+                    {c.razorpay_offer_id && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground block text-[10px] uppercase">Gateway Offer</span>
+                        <span className="font-mono text-[11px] truncate block">{c.razorpay_offer_id}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-muted-foreground">
+                      Expires: {c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-2 text-xs"
+                        onClick={() => toggleCouponMut.mutate({ code: c.code, active: !c.is_active })}
+                      >
+                        {c.is_active ? "Disable" : "Enable"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-2 text-xs text-rose-500 hover:text-rose-700"
+                        onClick={() => {
+                          if (confirm(`Delete coupon ${c.code}?`))
+                            deleteCouponMut.mutate(c.code);
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table (md+) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
                 <tr>
@@ -579,7 +658,7 @@ function PlansPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {loadingCoupons ? (
+                {loadingCoupons && coupons.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-muted-foreground/70">
                       Loading coupons…

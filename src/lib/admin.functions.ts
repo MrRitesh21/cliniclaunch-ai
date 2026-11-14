@@ -362,6 +362,36 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     return deleteAdminUserImpl(input);
   });
 
+export const listAllPlatformUsers = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z
+      .object({
+        search: z.string().optional(),
+        role: z.string().optional(),
+        limit: z.number().optional(),
+      })
+      .optional(),
+  )
+  .handler(async ({ data: input }) => {
+    const { listAllPlatformUsersImpl } = await import("./admin.server");
+    return listAllPlatformUsersImpl(input);
+  });
+
+export const toggleUserSuspension = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z.object({
+      userId: z.string(),
+      suspended: z.boolean(),
+      reason: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data: input }) => {
+    const { toggleUserSuspensionImpl } = await import("./admin.server");
+    return toggleUserSuspensionImpl(input);
+  });
+
 export const getSystemSettings = createServerFn({ method: "GET" })
   .middleware([requireAdminAuth])
   .handler(async () => {

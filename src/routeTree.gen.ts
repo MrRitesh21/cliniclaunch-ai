@@ -70,6 +70,7 @@ import { Route as AdminAdminSubscriptionsRouteImport } from './routes/_admin/adm
 import { Route as AdminAdminSupportRouteImport } from './routes/_admin/admin.support'
 import { Route as AdminAdminTemplatesRouteImport } from './routes/_admin/admin.templates'
 import { Route as AdminAdminTransactionsRouteImport } from './routes/_admin/admin.transactions'
+import { Route as AdminAdminUsersRouteImport } from './routes/_admin/admin.users'
 import { Route as AdminAdminWhatsappRouteImport } from './routes/_admin/admin.whatsapp'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
@@ -435,6 +436,11 @@ const AdminAdminTemplatesRoute = AdminAdminTemplatesRouteImport.update({
 const AdminAdminTransactionsRoute = AdminAdminTransactionsRouteImport.update({
   id: '/admin/transactions',
   path: '/admin/transactions',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAdminUsersRoute = AdminAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAdminWhatsappRoute = AdminAdminWhatsappRouteImport.update({
@@ -830,6 +836,7 @@ export interface FileRoutesByFullPath {
   '/admin/support': typeof AdminAdminSupportRoute
   '/admin/templates': typeof AdminAdminTemplatesRoute
   '/admin/transactions': typeof AdminAdminTransactionsRoute
+  '/admin/users': typeof AdminAdminUsersRoute
   '/admin/whatsapp': typeof AdminAdminWhatsappRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
@@ -947,6 +954,7 @@ export interface FileRoutesByTo {
   '/admin/support': typeof AdminAdminSupportRoute
   '/admin/templates': typeof AdminAdminTemplatesRoute
   '/admin/transactions': typeof AdminAdminTransactionsRoute
+  '/admin/users': typeof AdminAdminUsersRoute
   '/admin/whatsapp': typeof AdminAdminWhatsappRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
@@ -1069,6 +1077,7 @@ export interface FileRoutesById {
   '/_admin/admin/support': typeof AdminAdminSupportRoute
   '/_admin/admin/templates': typeof AdminAdminTemplatesRoute
   '/_admin/admin/transactions': typeof AdminAdminTransactionsRoute
+  '/_admin/admin/users': typeof AdminAdminUsersRoute
   '/_admin/admin/whatsapp': typeof AdminAdminWhatsappRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/appointments': typeof AuthenticatedDashboardAppointmentsRoute
@@ -1191,6 +1200,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/templates'
     | '/admin/transactions'
+    | '/admin/users'
     | '/admin/whatsapp'
     | '/dashboard/analytics'
     | '/dashboard/appointments'
@@ -1308,6 +1318,7 @@ export interface FileRouteTypes {
     | '/admin/support'
     | '/admin/templates'
     | '/admin/transactions'
+    | '/admin/users'
     | '/admin/whatsapp'
     | '/dashboard/analytics'
     | '/dashboard/appointments'
@@ -1429,6 +1440,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/support'
     | '/_admin/admin/templates'
     | '/_admin/admin/transactions'
+    | '/_admin/admin/users'
     | '/_admin/admin/whatsapp'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/appointments'
@@ -1976,6 +1988,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminTransactionsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/_admin/admin/users': {
+      id: '/_admin/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminAdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/_admin/admin/whatsapp': {
       id: '/_admin/admin/whatsapp'
       path: '/admin/whatsapp'
@@ -2428,6 +2447,7 @@ interface AdminRouteRouteChildren {
   AdminAdminSupportRoute: typeof AdminAdminSupportRoute
   AdminAdminTemplatesRoute: typeof AdminAdminTemplatesRoute
   AdminAdminTransactionsRoute: typeof AdminAdminTransactionsRoute
+  AdminAdminUsersRoute: typeof AdminAdminUsersRoute
   AdminAdminWhatsappRoute: typeof AdminAdminWhatsappRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminSettingsSystemRoute: typeof AdminAdminSettingsSystemRoute
@@ -2453,6 +2473,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAdminSupportRoute: AdminAdminSupportRoute,
   AdminAdminTemplatesRoute: AdminAdminTemplatesRoute,
   AdminAdminTransactionsRoute: AdminAdminTransactionsRoute,
+  AdminAdminUsersRoute: AdminAdminUsersRoute,
   AdminAdminWhatsappRoute: AdminAdminWhatsappRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
   AdminAdminSettingsSystemRoute: AdminAdminSettingsSystemRoute,

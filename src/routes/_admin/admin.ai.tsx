@@ -136,9 +136,11 @@ function AdminAiGatewayPage() {
   const testProviderFn = useServerFn(testAiGatewayProvider);
   const simulateChatFn = useServerFn(simulateAiChat);
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading, isFetching } = useQuery({
     queryKey: ["admin-system-settings"],
     queryFn: () => getSettingsFn(),
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
   });
 
   const [activeProvider, setActiveProvider] = useState<ProviderId>("openrouter");
@@ -270,11 +272,11 @@ function AdminAiGatewayPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !settings) {
     return (
-      <div className="p-10 flex flex-col items-center justify-center text-muted-foreground gap-3">
+      <div className="p-10 flex flex-col items-center justify-center text-muted-foreground gap-3 min-h-[350px]">
         <Loader2 className="size-8 animate-spin text-primary" />
-        <span>Loading AI Gateway configurations...</span>
+        <span className="text-sm font-medium">Loading AI Gateway configurations...</span>
       </div>
     );
   }

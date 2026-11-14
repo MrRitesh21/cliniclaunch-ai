@@ -1573,6 +1573,106 @@ export async function deleteAdminUserImpl(input: any) {
   return { success: true };
 }
 
+export async function listAllPlatformUsersImpl(input?: { search?: string; role?: string; limit?: number }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Fetch profiles
+  const { data: profileRows } = await supabaseAdmin
+    .from("profiles" as any)
+    .select("id, full_name, role, suspended_at, suspended_reason, last_login_at, created_at")
+    .order("created_at", { ascending: false })
+    .limit(input?.limit || 400);
+
+  const profiles = (profileRows ?? []) as any[];
+
+  // Fetch associated clinics
+  const { data: clinicRows } = await supabaseAdmin
+    .from("clinics")
+    .select("id, owner_id, doctor_name, clinic_name, email, phone, status, specialization");
+  const clinicByOwner = new Map((clinicRows ?? []).map((c: any) => [c.owner_id, c]));
+
+  // Fetch admin roles
+  const { data: adminRoles } = await supabaseAdmin
+    .from("user_roles" as any)
+    .select("user_id, role")
+    .in("role", ["super_admin", "support"]);
+  const adminRoleByUser = new Map((adminRoles ?? []).map((r: any) => [r.user_id, r.role]));
+
+  // Fetch auth users for email and last_sign_in
+  let authUsers: any[] = [];
+  try {
+    const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 500 });
+    authUsers = authData?.users ?? [];
+  } catch (e) {
+    console.error("Auth user listing failed:", e);
+  }
+  const authUserById = new Map(authUsers.map((u: any) => [u.id, u]));
+
+  // Combine into unified user representation
+  const allUsers = profiles.map((p) => {
+    const authUser = authUserById.get(p.id);
+    const clinic = clinicByOwner.get(p.id);
+    const adminRole = adminRoleByUser.get(p.id);
+
+    const email = authUser?.email || clinic?.email || "";
+    const name = p.full_name || clinic?.doctor_name || authUser?.user_metadata?.full_name || email.split("@")[0] || "User";
+    const role = adminRole || (clinic ? "doctor" : p.role || "user");
+    const isSuspended = Boolean(p.suspended_at);
+
+    return {
+      id: p.id,
+      name,
+      email,
+      role,
+      clinicName: clinic?.clinic_name || null,
+      clinicId: clinic?.id || null,
+      phone: clinic?.phone || authUser?.phone || null,
+      status: isSuspended ? "suspended" : (clinic?.status || "active"),
+      suspended: isSuspended,
+      suspendedReason: p.suspended_reason || null,
+      lastLoginAt: p.last_login_at || authUser?.last_sign_in_at || null,
+      createdAt: p.created_at || authUser?.created_at,
+      isAdmin: Boolean(adminRole),
+      isSuperAdmin: adminRole === "super_admin",
+    };
+  });
+
+  return allUsers;
+}
+
+export async function toggleUserSuspensionImpl(input: { userId: string; suspended: boolean; reason?: string }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin || admin.role !== "super_admin") throw new Error("Forbidden: Super Admin only");
+  if (input.userId === admin.id) throw new Error("Cannot suspend your own account");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const updateData: Record<string, any> = {
+    suspended_at: input.suspended ? new Date().toISOString() : null,
+    suspended_reason: input.suspended ? (input.reason || "Suspended by platform administrator") : null,
+  };
+
+  const { error } = await supabaseAdmin
+    .from("profiles" as any)
+    .update(updateData)
+    .eq("id", input.userId);
+  if (error) throw error;
+
+  await createAuditLog(
+    supabaseAdmin,
+    admin.id,
+    input.suspended ? "user_suspended" : "user_reactivated",
+    "user",
+    input.userId,
+    { reason: input.reason || null }
+  );
+
+  return { success: true };
+}
+
 // -------------------------------------------------------------
 // Page 15: System Settings
 // -------------------------------------------------------------
