@@ -308,10 +308,16 @@ function AdminTemplates() {
       </div>
 
       <Tabs defaultValue="library">
-        <TabsList>
-          <TabsTrigger value="library">Library ({templates.length})</TabsTrigger>
-          <TabsTrigger value="assign">Per-clinic assignment ({assignments.length})</TabsTrigger>
-          <TabsTrigger value="custom_sites">Connected Custom Websites ({customSites.length})</TabsTrigger>
+        <TabsList className="w-full flex flex-wrap h-auto p-1 gap-1 bg-muted/70 rounded-xl">
+          <TabsTrigger value="library" className="flex-1 min-w-[100px] text-xs py-2">
+            Library ({templates.length})
+          </TabsTrigger>
+          <TabsTrigger value="assign" className="flex-1 min-w-[130px] text-xs py-2">
+            Per-clinic assignment ({assignments.length})
+          </TabsTrigger>
+          <TabsTrigger value="custom_sites" className="flex-1 min-w-[140px] text-xs py-2">
+            Connected Sites ({customSites.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="library" className="mt-4">

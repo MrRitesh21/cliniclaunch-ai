@@ -331,9 +331,117 @@ function AdminLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden pb-24 lg:pb-6">
           <Outlet />
         </main>
+
+        {/* Admin Mobile Bottom Navigation Bar (< 1024px) */}
+        <nav
+          className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-800/80 bg-slate-950/95 backdrop-blur-xl text-slate-300 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+          style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}
+          role="navigation"
+          aria-label="Admin Mobile Navigation"
+        >
+          <div className="grid grid-cols-5 items-center h-14">
+            <Link
+              to="/admin/dashboard"
+              className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
+                pathname === "/admin/dashboard" || pathname === "/admin"
+                  ? "text-primary font-bold"
+                  : "text-slate-400 hover:text-white font-medium"
+              }`}
+            >
+              <div
+                className={`grid place-items-center size-8 rounded-xl transition-all ${
+                  pathname === "/admin/dashboard" || pathname === "/admin"
+                    ? "bg-primary/20 text-primary scale-105"
+                    : "text-slate-400"
+                }`}
+              >
+                <LayoutDashboard className="size-4.5" />
+              </div>
+              <span className="text-[10px] leading-tight tracking-tight">Overview</span>
+            </Link>
+
+            <Link
+              to="/admin/doctors"
+              className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
+                pathname.startsWith("/admin/doctors")
+                  ? "text-primary font-bold"
+                  : "text-slate-400 hover:text-white font-medium"
+              }`}
+            >
+              <div
+                className={`grid place-items-center size-8 rounded-xl transition-all ${
+                  pathname.startsWith("/admin/doctors")
+                    ? "bg-primary/20 text-primary scale-105"
+                    : "text-slate-400"
+                }`}
+              >
+                <Users className="size-4.5" />
+              </div>
+              <span className="text-[10px] leading-tight tracking-tight">Doctors</span>
+            </Link>
+
+            <Link
+              to="/admin/subscriptions"
+              className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
+                pathname.startsWith("/admin/subscriptions") || pathname.startsWith("/admin/plans")
+                  ? "text-primary font-bold"
+                  : "text-slate-400 hover:text-white font-medium"
+              }`}
+            >
+              <div
+                className={`grid place-items-center size-8 rounded-xl transition-all ${
+                  pathname.startsWith("/admin/subscriptions") || pathname.startsWith("/admin/plans")
+                    ? "bg-primary/20 text-primary scale-105"
+                    : "text-slate-400"
+                }`}
+              >
+                <CreditCard className="size-4.5" />
+              </div>
+              <span className="text-[10px] leading-tight tracking-tight">Revenue</span>
+            </Link>
+
+            <Link
+              to="/admin/crm"
+              className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
+                pathname.startsWith("/admin/crm") || pathname.startsWith("/admin/ai")
+                  ? "text-primary font-bold"
+                  : "text-slate-400 hover:text-white font-medium"
+              }`}
+            >
+              <div
+                className={`grid place-items-center size-8 rounded-xl transition-all ${
+                  pathname.startsWith("/admin/crm") || pathname.startsWith("/admin/ai")
+                    ? "bg-primary/20 text-primary scale-105"
+                    : "text-slate-400"
+                }`}
+              >
+                <Bot className="size-4.5" />
+              </div>
+              <span className="text-[10px] leading-tight tracking-tight">CRM / AI</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-label="Open full admin menu"
+              className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
+                open ? "text-primary font-bold" : "text-slate-400 hover:text-white font-medium"
+              }`}
+            >
+              <div
+                className={`grid place-items-center size-8 rounded-xl transition-all ${
+                  open ? "bg-primary/20 text-primary scale-105" : "text-slate-400"
+                }`}
+              >
+                <Menu className="size-4.5" />
+              </div>
+              <span className="text-[10px] leading-tight tracking-tight">Menu</span>
+            </button>
+          </div>
+        </nav>
       </div>
 
       <AdminCommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />

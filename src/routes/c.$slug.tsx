@@ -283,7 +283,7 @@ function ClinicLayout() {
           .mod-no-walkin a[href*="/walkin"], .mod-no-walkin [data-cta="walkin"] { display: none !important; }
           .mod-no-consult [data-cta="online-consult"] { display: none !important; }
         `}</style>
-        <main className="flex-1 pb-16 md:pb-0">
+        <main className="flex-1 pb-20 md:pb-0">
           <Outlet />
         </main>
         <UniversalFloatingContact clinic={reactiveClinic} themeColor={theme} hasStickyBar={false} hideMobile={true} />

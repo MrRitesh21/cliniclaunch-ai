@@ -818,16 +818,23 @@ function DashboardLayout() {
     });
   }, [installedModuleIds, planModuleIds, org, role]);
 
-  // Show 4 primary items in the bottom tab bar, and make the 5th item "More"
-  const primaryMobileKeys = [
+  // Show 4 primary items in the bottom tab bar (Home, Appointments, OPD Consult/Queue, Patients), and 5th is More
+  const mobilePriorityKeys = [
     "/dashboard",
     "/dashboard/appointments",
+    "/dashboard/consult",
     "/dashboard/patients",
     "/dashboard/leads",
+    "/dashboard/prescriptions",
   ];
-  const primaryMobileNav = flatNav.filter((n) => primaryMobileKeys.includes(n.to));
-  const moreMobileNav = flatNav.filter((n) => !primaryMobileKeys.includes(n.to));
-  const totalTabsCount = Math.min(primaryMobileNav.length, 4) + 1;
+  const primaryMobileNav = mobilePriorityKeys
+    .map((key) => flatNav.find((n) => n.to === key))
+    .filter((n): n is NonNullable<typeof n> => Boolean(n))
+    .slice(0, 4);
+
+  const primaryPaths = new Set(primaryMobileNav.map((n) => n.to));
+  const moreMobileNav = flatNav.filter((n) => !primaryPaths.has(n.to));
+  const totalTabsCount = primaryMobileNav.length + 1;
 
   useEffect(() => {
     if (clinic === null && org === null && !authorityError) {
@@ -970,27 +977,45 @@ function DashboardLayout() {
           className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-16" : "md:pl-60"}`}
         >
           {/* Mobile top bar */}
-          <div className="md:hidden h-14 border-b flex items-center justify-between px-4 bg-background/95 backdrop-blur sticky top-0 z-20">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-slate-50 dark:bg-slate-900 p-1 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+          <div className="md:hidden h-14 border-b border-border/80 flex items-center justify-between px-3.5 bg-background/95 backdrop-blur-xl sticky top-0 z-20 shadow-xs">
+            <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
+              <div className="size-8 rounded-xl bg-slate-50 dark:bg-slate-900 p-1 grid place-items-center border border-border/20 overflow-hidden shadow-xs shrink-0">
                 <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
               </div>
-              <span className="font-display text-base">{platformName}</span>
+              <div className="min-w-0">
+                <span className="font-display font-bold text-sm tracking-tight truncate block">
+                  {platformName}
+                </span>
+                {clinic?.clinic_name && (
+                  <span className="text-[10px] text-muted-foreground truncate block leading-none">
+                    {clinic.clinic_name}
+                  </span>
+                )}
+              </div>
             </Link>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 shrink-0">
               <NotificationInbox />
               {publicClinicUrl && (
-                <a href={publicClinicUrl} target="_blank" rel="noreferrer">
-                  <Button variant="ghost" size="icon" aria-label="View public site">
-                    <ExternalLink className="size-4" />
-                  </Button>
+                <a
+                  href={publicClinicUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="View public site"
+                  className="size-9 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground grid place-items-center transition-colors touch-manipulation"
+                >
+                  <ExternalLink className="size-4" />
                 </a>
               )}
               {/* Mobile hamburger for full nav */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="Open menu">
-                    <Menu className="size-5" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Open full practice menu"
+                    className="size-9 rounded-xl border-border/70 text-foreground touch-manipulation"
+                  >
+                    <Menu className="size-4" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-80 max-w-[85vw] p-0 flex flex-col bg-background/98 backdrop-blur-md border-r border-border/80 shadow-2xl">
@@ -1053,7 +1078,7 @@ function DashboardLayout() {
           <OfflineBanner />
 
           <div
-            className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-3 sm:px-5 lg:px-6 pt-3 pb-24 md:pb-6"} page-enter`}
+            className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-3 sm:px-5 lg:px-6 pt-3 pb-28 md:pb-6"} page-enter`}
           >
             {entitlement?.effective_state === "past_due" && (
               <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/40 p-3 mb-4 text-sm flex items-center justify-between gap-3">
@@ -1093,10 +1118,12 @@ function DashboardLayout() {
       {/* Mobile bottom tab bar — fixed firmly to screen viewport bottom */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/80 bg-background/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
+        style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}
+        role="navigation"
+        aria-label="Doctor Mobile Navigation"
       >
         <div
-          className="grid"
+          className="grid items-center h-14"
           style={{ gridTemplateColumns: `repeat(${totalTabsCount}, minmax(0, 1fr))` }}
         >
           {primaryMobileNav.slice(0, 4).map((n) => {
@@ -1105,7 +1132,7 @@ function DashboardLayout() {
               <Link
                 key={n.to}
                 to={n.to}
-                className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
                   active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
                 }`}
               >
@@ -1116,9 +1143,9 @@ function DashboardLayout() {
                       : "text-muted-foreground"
                   }`}
                 >
-                  <n.icon className="size-4" />
+                  <n.icon className="size-4.5" />
                 </div>
-                <span className="text-[10px] leading-none tracking-tight">{n.label}</span>
+                <span className="text-[10px] leading-tight tracking-tight font-medium truncate max-w-[64px]">{n.label}</span>
               </Link>
             );
           })}
@@ -1127,7 +1154,8 @@ function DashboardLayout() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className={`flex flex-col items-center justify-center gap-1 py-2 select-none transition-all active:scale-95 ${
+            aria-label="More navigation options"
+            className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
               mobileMenuOpen ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
             }`}
           >
@@ -1138,9 +1166,9 @@ function DashboardLayout() {
                   : "text-muted-foreground"
               }`}
             >
-              <Menu className="size-4" />
+              <Menu className="size-4.5" />
             </div>
-            <span className="text-[10px] leading-none tracking-tight">More</span>
+            <span className="text-[10px] leading-tight tracking-tight font-medium">More</span>
           </button>
         </div>
       </nav>

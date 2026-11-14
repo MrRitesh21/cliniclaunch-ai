@@ -53,24 +53,24 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Patients & CRM",
+      "name": "Live OPD Queue",
+      "short_name": "OPD Queue",
+      "description": "Live token caller & patient waiting room",
+      "url": "/dashboard/consult",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Patients & EHR",
       "short_name": "Patients",
       "description": "Search patient records & medical history",
       "url": "/dashboard/patients",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "WhatsApp Bot",
-      "short_name": "WhatsApp",
-      "description": "Automated reminders & review collection",
-      "url": "/dashboard/whatsapp",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Clinical Notes",
-      "short_name": "Consult",
-      "description": "EHR visit journals & e-prescriptions",
-      "url": "/dashboard/consult",
+      "name": "Digital Prescription",
+      "short_name": "New Rx",
+      "description": "Write and WhatsApp instant digital prescription",
+      "url": "/dashboard/prescriptions",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]

@@ -75,6 +75,7 @@ type Appt = {
   patient_age: number | null;
   patient_gender: string | null;
   problem: string;
+  notes?: string | null;
   scheduled_at: string;
   status: string;
   appointment_type: "online" | "offline";
