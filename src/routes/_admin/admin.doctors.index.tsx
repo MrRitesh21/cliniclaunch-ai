@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useEffect } from "react";
-import { listAdminDoctors, updateDoctorProfile } from "@/lib/admin.functions";
+import { listAdminDoctors, updateDoctorProfile, bulkDeleteDoctorAccounts } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -22,7 +23,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, Search, ExternalLink, ShieldAlert, Users, CreditCard, Clock, AlertTriangle, Building2, Phone } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Download, Search, ExternalLink, ShieldAlert, Users, CreditCard, Clock, AlertTriangle, Building2, Phone, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_admin/admin/doctors/")({
@@ -190,6 +201,64 @@ function DoctorsPage() {
     },
   });
 
+  // Bulk selection and delete actions
+  const bulkDeleteFn = useServerFn(bulkDeleteDoctorAccounts);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  // Clear selection whenever search filter or status changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [debounced, status]);
+
+  const pageIds = useMemo(() => paginatedRows.map((r) => r.id), [paginatedRows]);
+  const isAllPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const isSomePageSelected = pageIds.some((id) => selectedIds.has(id)) && !isAllPageSelected;
+
+  const toggleSelectAllPage = () => {
+    const next = new Set(selectedIds);
+    if (isAllPageSelected) {
+      pageIds.forEach((id) => next.delete(id));
+    } else {
+      pageIds.forEach((id) => next.add(id));
+    }
+    setSelectedIds(next);
+  };
+
+  const selectAllMatching = () => {
+    setSelectedIds(new Set(rows.map((r) => r.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const bulkDeleteMut = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteFn({ data: { ids } }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+      if (res.failCount > 0) {
+        toast.warning(`Deleted ${res.successCount} doctor(s), but ${res.failCount} failed.`);
+      } else {
+        toast.success(`Successfully deleted ${res.successCount} doctor account(s).`);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to delete selected doctors");
+    },
+  });
+
   function exportCsv() {
     const headers = [
       "Doctor",
@@ -319,6 +388,55 @@ function DoctorsPage() {
         </div>
       </Card>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <Card className="p-3 border-primary/40 bg-primary/5 dark:bg-primary/10 shadow-xs animate-in fade-in-50 duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Badge variant="default" className="px-2.5 py-0.5 text-xs font-semibold">
+                {selectedIds.size} Selected
+              </Badge>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                of {rows.length} total doctor{rows.length === 1 ? "" : "s"}
+              </span>
+              {selectedIds.size < rows.length && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAllMatching}
+                  className="h-7 text-xs text-primary hover:text-primary font-semibold hover:bg-primary/10"
+                >
+                  Select all {rows.length}
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                className="h-7 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </Button>
+            </div>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              disabled={bulkDeleteMut.isPending}
+              className="h-8 text-xs font-semibold gap-1.5 shadow-sm"
+            >
+              {bulkDeleteMut.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
+              <span>Delete Selected ({selectedIds.size})</span>
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Count Indicator */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
         <span>
@@ -344,9 +462,22 @@ function DoctorsPage() {
           </div>
         )}
         {paginatedRows.map((r) => (
-          <Card key={r.id} className="p-3.5 space-y-2.5 border-border/80">
+          <Card
+            key={r.id}
+            className={`p-3.5 space-y-2.5 border transition-all ${
+              selectedIds.has(r.id)
+                ? "border-primary/50 bg-primary/[0.03] ring-1 ring-primary/20 shadow-xs"
+                : "border-border/80"
+            }`}
+          >
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
+                <Checkbox
+                  checked={selectedIds.has(r.id)}
+                  onCheckedChange={() => toggleSelect(r.id)}
+                  aria-label={`Select ${r.doctorName}`}
+                  className="mt-0.5 shrink-0"
+                />
                 <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
                   {r.doctorName.charAt(0).toUpperCase()}
                 </div>
@@ -422,6 +553,13 @@ function DoctorsPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
               <tr>
+                <th className="w-10 px-3 py-2 text-center">
+                  <Checkbox
+                    checked={isAllPageSelected ? true : isSomePageSelected ? "indeterminate" : false}
+                    onCheckedChange={toggleSelectAllPage}
+                    aria-label="Select all doctors on this page"
+                  />
+                </th>
                 <th className="text-left px-3 py-2">Doctor</th>
                 <th className="text-left px-3 py-2">Clinic</th>
                 <th className="text-left px-3 py-2">Specialty</th>
@@ -435,20 +573,34 @@ function DoctorsPage() {
             <tbody className="divide-y">
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground/70">
+                  <td colSpan={9} className="p-6 text-center text-muted-foreground/70">
                     Loading…
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground/70">
+                  <td colSpan={9} className="p-6 text-center text-muted-foreground/70">
                     No doctors found.
                   </td>
                 </tr>
               )}
               {paginatedRows.map((r) => (
-                <tr key={r.id} className="hover:bg-muted/50">
+                <tr
+                  key={r.id}
+                  className={`transition-colors ${
+                    selectedIds.has(r.id)
+                      ? "bg-primary/5 hover:bg-primary/10"
+                      : "hover:bg-muted/50"
+                  }`}
+                >
+                  <td className="w-10 px-3 py-2 text-center">
+                    <Checkbox
+                      checked={selectedIds.has(r.id)}
+                      onCheckedChange={() => toggleSelect(r.id)}
+                      aria-label={`Select ${r.doctorName}`}
+                    />
+                  </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
@@ -694,6 +846,79 @@ function DoctorsPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent className="sm:max-w-[480px]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2.5 text-destructive mb-1">
+              <div className="size-9 rounded-full bg-destructive/10 grid place-items-center shrink-0">
+                <Trash2 className="size-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-lg font-bold">
+                Delete {selectedIds.size} Doctor Account{selectedIds.size === 1 ? "" : "s"}?
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              This action will permanently delete{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong> selected clinic and doctor
+              profile{selectedIds.size === 1 ? "" : "s"}, including all associated appointments, patient
+              records, subscriptions, and clinical data.
+              <br />
+              <br />
+              <span className="font-semibold text-destructive">
+                This action is irreversible and cannot be undone.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {/* List preview of selected doctors (up to 5 items) */}
+          <div className="max-h-36 overflow-y-auto rounded-lg border border-border/70 bg-muted/20 p-2 space-y-1 text-xs">
+            {rows
+              .filter((r) => selectedIds.has(r.id))
+              .slice(0, 5)
+              .map((r) => (
+                <div key={r.id} className="flex items-center justify-between text-muted-foreground">
+                  <span className="font-medium text-foreground truncate max-w-[220px]">
+                    {r.doctorName}
+                  </span>
+                  <span className="text-[11px] truncate max-w-[160px]">{r.clinicName}</span>
+                </div>
+              ))}
+            {selectedIds.size > 5 && (
+              <p className="text-[11px] text-muted-foreground italic text-center pt-1">
+                + {selectedIds.size - 5} more doctor{selectedIds.size - 5 === 1 ? "" : "s"}
+              </p>
+            )}
+          </div>
+
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={bulkDeleteMut.isPending} className="text-xs">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                bulkDeleteMut.mutate(Array.from(selectedIds));
+              }}
+              disabled={bulkDeleteMut.isPending}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold gap-1.5"
+            >
+              {bulkDeleteMut.isPending ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="size-3.5" />
+                  <span>Permanently Delete</span>
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

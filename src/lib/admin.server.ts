@@ -803,6 +803,26 @@ export async function deleteDoctorAccountImpl(input: any) {
   return { success: true };
 }
 
+export async function bulkDeleteDoctorAccountsImpl(input: { ids: string[] }) {
+  const admin = await getVerifiedAdmin();
+  if (!admin) throw new Error("Unauthorized");
+
+  const results: { id: string; success: boolean; error?: string }[] = [];
+  for (const id of input.ids) {
+    try {
+      await deleteDoctorAccountImpl({ id });
+      results.push({ id, success: true });
+    } catch (err: any) {
+      console.error(`[Admin Bulk Delete] Error deleting clinic/doctor ${id}:`, err);
+      results.push({ id, success: false, error: err.message || "Failed to delete" });
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+  const failCount = results.filter((r) => !r.success).length;
+  return { results, successCount, failCount };
+}
+
 export async function clearDoctorPatientsDataImpl(input: any) {
   const admin = await getVerifiedAdmin();
   if (!admin) throw new Error("Unauthorized");

@@ -101,6 +101,14 @@ export const deleteDoctorAccount = createServerFn({ method: "POST" })
     return deleteDoctorAccountImpl(input);
   });
 
+export const bulkDeleteDoctorAccounts = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(z.object({ ids: z.array(z.string()) }))
+  .handler(async ({ data: input }) => {
+    const { bulkDeleteDoctorAccountsImpl } = await import("./admin.server");
+    return bulkDeleteDoctorAccountsImpl(input);
+  });
+
 export const clearDoctorPatientsData = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
   .validator(z.object({ id: z.string() }))
