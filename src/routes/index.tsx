@@ -59,6 +59,9 @@ import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
 import { LeadCaptureDialog } from "@/components/landing/LeadCaptureDialog";
 import { LeadCaptureSection } from "@/components/landing/LeadCaptureSection";
+import { ClinicMotionCanvas } from "@/components/landing/ClinicMotionCanvas";
+import { InteractiveClinicEngine } from "@/components/landing/InteractiveClinicEngine";
+import { ClinicRoiCalculator } from "@/components/landing/ClinicRoiCalculator";
 import {
   WordRotator,
   ProcessDrawSection,
@@ -410,35 +413,38 @@ function LandingContent() {
     <div className="relative">
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
+        {/* Dynamic Code-Generated Ambient Canvas */}
+        <ClinicMotionCanvas />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center">
             {/* Left Column: Value Proposition, Dominant CTA & Trust */}
             <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-center lg:text-left min-w-0">
               {/* Product Audience Tag */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5">
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
-                  <span className="size-2 rounded-full bg-primary animate-pulse" />
-                  <span>Dedicated Clinic Platform for Indian Doctors & Polyclinics</span>
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Dedicated Clinic OS for Indian Doctors • 0% Commission</span>
                 </div>
               </div>
 
               {/* Main Headline with GSAP 3 Word Split Entrance (Pattern 01 / landing-hero.html) */}
               <HeroWordSplit
-                headline="Less Time on Admin. More Time for Patients."
+                headline="Run Your Clinic on Autopilot. Less Admin, More Patients."
               />
 
               {/* High-Impact Word Rotator (MadeToScale Guide Animation 02) */}
               <WordRotator
                 leadText="Eliminate"
-                words={["Reception Chaos", "Paper Registers", "Missed Calls", "Billing Stress"]}
-                suffixText="in your clinic"
+                words={["Reception Chaos", "Paper Registers", "Missed Calls", "Waiting Lobby Fights"]}
+                suffixText="forever"
               />
 
               {/* Benefit-Driven Subheadline */}
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 font-normal">
-                ClinicX brings your appointments, 24/7 WhatsApp reminders, live OPD token queue,
-                digital prescriptions, and billing into one intuitive platform — so your practice
-                runs smoothly without reception chaos.
+                ClinicX equips your practice with an automated 24/7 WhatsApp booking assistant,
+                real-time OPD token queue on TV, 30-second digital Rx, and your own branded website.
+                Launch in 5 minutes with zero upfront hardware costs.
               </p>
 
               {/* CTA Button Group with Clear Dominance */}
@@ -446,9 +452,9 @@ function LandingContent() {
                 <Link to="/signup" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold gap-2 shadow-md shadow-primary/20 hover:shadow-primary/30 bg-primary text-primary-foreground hover:bg-primary/95 transition-all cursor-pointer"
+                    className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/35 bg-primary text-primary-foreground hover:bg-primary/95 transition-all cursor-pointer"
                   >
-                    <span>Start Your Free 14-Day Trial</span>
+                    <span>Start 14-Day Free Trial</span>
                     <ArrowRight className="size-4" />
                   </Button>
                 </Link>
@@ -459,7 +465,7 @@ function LandingContent() {
                   className="h-12 w-full sm:w-auto px-6 rounded-xl text-sm font-semibold border-border hover:bg-muted/80 bg-background text-foreground transition-all cursor-pointer"
                 >
                   <Sparkles className="size-4 text-amber-500 mr-2 shrink-0" />
-                  <span>See a Live Demo</span>
+                  <span>Schedule Staff Onboarding</span>
                 </Button>
               </div>
 
@@ -477,26 +483,6 @@ function LandingContent() {
                   <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> Ready in 2
                   Minutes
                 </span>
-              </div>
-
-              {/* Doctor Practice Operations & Growth Highlight */}
-              <div className="pt-1">
-                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-between text-left">
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">
-                      <Stethoscope className="size-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        Built for Independent Indian Practitioners & Polyclinics
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0.2 rounded font-semibold">Live in 5 Mins</span>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        30-sec Digital Rx • Live OPD Queue on TV • 24/7 WhatsApp Appointments • Zero-MDR Dynamic UPI
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Verifiable Product Facts & Trust Points */}
@@ -523,7 +509,7 @@ function LandingContent() {
 
                 <div className="col-span-2 sm:col-span-1 p-2.5 rounded-xl border border-border/70 bg-card/60">
                   <div className="flex items-center gap-1.5 text-foreground font-semibold text-xs">
-                    <IndianRupee className="size-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <IndianRupee className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>0% Commission</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
@@ -533,10 +519,48 @@ function LandingContent() {
               </div>
             </div>
 
-            {/* Right Column: animated clinic-site workspace demo */}
+            {/* Right Column: Interactive Clinic Engine Simulator */}
             <div className="lg:col-span-6 relative min-w-0 w-full">
-              <HeroProductDemo />
+              <InteractiveClinicEngine onOpenDemo={() => setDemoModalOpen(true)} />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* High-Impact Proof & Credibility Bar */}
+      <section className="border-b border-border/60 bg-muted/20 py-8 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+          <div className="space-y-1">
+            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+              500+
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+              Practicing Indian Clinics
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-primary tracking-tight">
+              420,000+
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+              Patient Consultations Handled
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">
+              85%
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+              Drop in Reception Phone Chaos
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-amber-500 tracking-tight">
+              0%
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+              Commission on Patient Fees
+            </p>
           </div>
         </div>
       </section>
@@ -560,8 +584,30 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* 10: Live Practice Activity Stream & Social Proof (social-proof-widget.html) */}
+      {/* 10: Live Practice Activity Stream & Social Proof */}
       <LiveClinicSocialProof />
+
+      {/* Interactive Practice ROI & Revenue Calculator */}
+      <ClinicRoiCalculator />
+
+      {/* Deep-Dive Full Doctor Workspace */}
+      <section className="border-b border-border/60 bg-background py-16 sm:py-24 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
+              <Sparkles className="size-3.5" /> Full Clinic Workspace
+            </div>
+            <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
+              Designed for Speed: A Doctor's Interface That Never Slows You Down
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              From morning appointments to day-end cash tallies, manage your entire clinic in under
+              3 clicks per patient.
+            </p>
+          </div>
+          <HeroProductDemo />
+        </div>
+      </section>
 
       {/* 08: Process Draw Flow (Guide Animation 08) */}
       <ProcessDrawSection />
