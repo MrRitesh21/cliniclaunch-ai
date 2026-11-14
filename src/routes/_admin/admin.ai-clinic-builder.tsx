@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useDeferredValue } from "react";
 import {
   previewClinicSpreadsheet,
   batchCreateClinics,
@@ -91,6 +91,10 @@ function AdminAiClinicBuilderPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<"input" | "preview" | "results">("input");
+  const [previewPage, setPreviewPage] = useState(1);
+  const PREVIEW_PAGE_SIZE = 25;
+
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const [previewClinic, setPreviewClinic] = useState<{ slug: string; name: string } | null>(null);
   const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
@@ -173,21 +177,30 @@ function AdminAiClinicBuilderPage() {
     setSelectedIds(next);
   };
 
-  // Filter clinics
+  // Filter clinics with deferred search for lightning-fast typing
   const filteredClinics = useMemo(() => {
+    const term = deferredSearchQuery.trim().toLowerCase();
     return parsedClinics.filter((c) => {
       const matchesSearch =
-        !searchQuery ||
-        c.clinicName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.address.toLowerCase().includes(searchQuery.toLowerCase());
+        !term ||
+        c.clinicName.toLowerCase().includes(term) ||
+        c.doctorName.toLowerCase().includes(term) ||
+        c.specialty.toLowerCase().includes(term) ||
+        c.address.toLowerCase().includes(term) ||
+        c.phone?.includes(term);
       const matchesSpecialty =
         specialtyFilter === "all" ||
         c.specialty.toLowerCase().includes(specialtyFilter.toLowerCase());
       return matchesSearch && matchesSpecialty;
     });
-  }, [parsedClinics, searchQuery, specialtyFilter]);
+  }, [parsedClinics, deferredSearchQuery, specialtyFilter]);
+
+  const totalPreviewPages = Math.max(1, Math.ceil(filteredClinics.length / PREVIEW_PAGE_SIZE));
+  const currentPreviewPage = Math.min(previewPage, totalPreviewPages);
+  const paginatedClinics = useMemo(() => {
+    const start = (currentPreviewPage - 1) * PREVIEW_PAGE_SIZE;
+    return filteredClinics.slice(start, start + PREVIEW_PAGE_SIZE);
+  }, [filteredClinics, currentPreviewPage]);
 
   const uniqueSpecialties = useMemo(() => {
     const set = new Set<string>();
@@ -530,7 +543,13 @@ function AdminAiClinicBuilderPage() {
                   />
                 </div>
 
-                <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
+                <Select
+                  value={specialtyFilter}
+                  onValueChange={(v) => {
+                    setSpecialtyFilter(v);
+                    setPreviewPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-8 text-xs rounded-lg border border-border bg-background w-[180px]">
                     <SelectValue placeholder="All Specialties" />
                   </SelectTrigger>
@@ -579,8 +598,68 @@ function AdminAiClinicBuilderPage() {
               </div>
             </div>
 
-            {/* Clinics Table */}
-            <div className="border border-border/80 rounded-xl overflow-hidden text-xs max-h-[500px] overflow-y-auto">
+            {/* Pagination & Count Header */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <span>
+                Showing <strong className="text-foreground">{filteredClinics.length}</strong> clinics
+                {filteredClinics.length !== parsedClinics.length && ` (filtered from ${parsedClinics.length})`}
+              </span>
+              {totalPreviewPages > 1 && (
+                <span>
+                  Page <strong>{currentPreviewPage}</strong> of <strong>{totalPreviewPages}</strong>
+                </span>
+              )}
+            </div>
+
+            {/* Mobile Card View (< md) */}
+            <div className="grid grid-cols-1 gap-2.5 md:hidden">
+              {paginatedClinics.map((c) => {
+                const isSelected = selectedIds.has(c.id);
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => toggleSelectOne(c.id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                      isSelected
+                        ? "border-primary/50 bg-primary/5 shadow-xs"
+                        : "border-border/70 bg-card hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          className="size-4 rounded accent-primary pointer-events-none"
+                        />
+                        <div>
+                          <div className="font-bold text-foreground text-xs leading-tight">{c.clinicName}</div>
+                          <div className="text-[11px] text-muted-foreground">{c.doctorName}</div>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {c.specialty}
+                      </Badge>
+                    </div>
+
+                    <div className="text-[11px] text-muted-foreground line-clamp-2">{c.address}</div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40 font-mono">
+                      <span>{c.phone || "No phone"}</span>
+                      <div className="flex items-center gap-1 font-semibold text-amber-600 font-sans text-xs">
+                        <Star className="size-3 fill-amber-500 text-amber-500" />
+                        <span>{c.rating.toFixed(1)}</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">({c.reviewsCount})</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Clinics Table (Desktop: >= md) */}
+            <div className="hidden md:block border border-border/80 rounded-xl overflow-hidden text-xs max-h-[500px] overflow-y-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-muted/80 text-[11px] font-semibold text-muted-foreground sticky top-0 z-10">
                   <tr>
@@ -601,7 +680,7 @@ function AdminAiClinicBuilderPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {filteredClinics.map((c) => {
+                  {paginatedClinics.map((c) => {
                     const isSelected = selectedIds.has(c.id);
                     return (
                       <tr
@@ -651,6 +730,34 @@ function AdminAiClinicBuilderPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPreviewPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPreviewPage <= 1}
+                  onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}
+                  className="h-8 text-xs px-3"
+                >
+                  Previous
+                </Button>
+                <div className="text-xs text-muted-foreground">
+                  Page <span className="font-semibold text-foreground">{currentPreviewPage}</span> of{" "}
+                  <span className="font-semibold text-foreground">{totalPreviewPages}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPreviewPage >= totalPreviewPages}
+                  onClick={() => setPreviewPage((p) => Math.min(totalPreviewPages, p + 1))}
+                  className="h-8 text-xs px-3"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -689,8 +796,79 @@ function AdminAiClinicBuilderPage() {
               </div>
             </div>
 
-            {/* Results Table */}
-            <div className="border border-border/80 rounded-xl overflow-hidden text-xs max-h-[550px] overflow-y-auto">
+            {/* Mobile Cards for Results (< md) */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {generationResults.map((r, i) => (
+                <div key={i} className="p-3.5 rounded-xl border border-border/80 bg-card space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-foreground text-sm">{r.clinicName}</div>
+                      <div className="text-xs text-muted-foreground">{r.doctorName}</div>
+                    </div>
+                    {r.ok ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                        Live
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-[10px]">
+                        Failed
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs py-1 border-y border-border/40 font-mono">
+                    <span className="text-primary truncate max-w-[180px]">/c/{r.slug}</span>
+                    <div className="flex items-center gap-1 font-semibold text-amber-600 font-sans">
+                      <Star className="size-3 fill-amber-500 text-amber-500" />
+                      <span>{r.rating.toFixed(1)}</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">({r.reviewsCount})</span>
+                    </div>
+                  </div>
+
+                  {r.ok && (
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPreviewClinic({ slug: r.slug, name: r.clinicName })}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <Smartphone className="size-3 mr-1 text-primary" />
+                        Preview
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleWhatsAppPitch(r)}
+                        className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                      >
+                        <MessageCircle className="size-3 mr-1" />
+                        Pitch
+                      </Button>
+                      <a
+                        href={`/c/${r.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        <Globe className="size-3" />
+                        <span>Open</span>
+                      </a>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(`${window.location.origin}/c/${r.slug}`, "Live Website Link")}
+                        className="size-7 p-0 rounded-lg"
+                      >
+                        <Copy className="size-3 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Results Table (Desktop: >= md) */}
+            <div className="hidden md:block border border-border/80 rounded-xl overflow-hidden text-xs max-h-[550px] overflow-y-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-muted/80 text-[11px] font-semibold text-muted-foreground sticky top-0 z-10">
                   <tr>

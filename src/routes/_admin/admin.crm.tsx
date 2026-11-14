@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useDeferredValue } from "react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -221,6 +221,10 @@ export function AdminCrmPage() {
   // Filters state
   const [activeTab, setActiveTab] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [leadPage, setLeadPage] = useState(1);
+  const LEADS_PER_PAGE = 25;
+  const deferredSearch = useDeferredValue(search);
+
   const [isReconciling, setIsReconciling] = useState(false);
   const [mergingLeadId, setMergingLeadId] = useState<string | null>(null);
   const [settingUpLeadId, setSettingUpLeadId] = useState<string | null>(null);
@@ -589,23 +593,30 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
     }
   };
 
-  // Instant in-memory filtered leads (0ms tab switching)
+  // Instant in-memory filtered leads with deferred search (0ms lag, 60fps typing)
   const filteredLeads = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase();
     return (allLeads as CrmLead[]).filter((lead) => {
       if (activeTab !== "all" && lead.status !== activeTab) return false;
-      if (search.trim()) {
-        const s = search.toLowerCase();
+      if (term) {
         return (
-          lead.name.toLowerCase().includes(s) ||
-          lead.phone.includes(s) ||
-          (lead.clinic_name && lead.clinic_name.toLowerCase().includes(s)) ||
-          (lead.city && lead.city.toLowerCase().includes(s)) ||
-          (lead.specialty && lead.specialty.toLowerCase().includes(s))
+          lead.name.toLowerCase().includes(term) ||
+          lead.phone.includes(term) ||
+          (lead.clinic_name && lead.clinic_name.toLowerCase().includes(term)) ||
+          (lead.city && lead.city.toLowerCase().includes(term)) ||
+          (lead.specialty && lead.specialty.toLowerCase().includes(term))
         );
       }
       return true;
     });
-  }, [allLeads, activeTab, search]);
+  }, [allLeads, activeTab, deferredSearch]);
+
+  const totalLeadPages = Math.max(1, Math.ceil(filteredLeads.length / LEADS_PER_PAGE));
+  const currentLeadPage = Math.min(leadPage, totalLeadPages);
+  const paginatedLeads = useMemo(() => {
+    const start = (currentLeadPage - 1) * LEADS_PER_PAGE;
+    return filteredLeads.slice(start, start + LEADS_PER_PAGE);
+  }, [filteredLeads, currentLeadPage]);
 
   // Open pitch dialog for lead - INSTANT 0ms response!
   const handleOpenPitch = (lead: CrmLead, toneOverride?: typeof pitchTone) => {
@@ -1192,7 +1203,14 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
       {/* Pipeline Filter Tabs & Search */}
       <Card className="p-4 rounded-2xl border-border/80 bg-card space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => {
+              setActiveTab(val);
+              setLeadPage(1);
+            }}
+            className="w-full sm:w-auto"
+          >
             <TabsList className="h-9 p-1 bg-muted/60 rounded-xl flex flex-wrap gap-1">
               <TabsTrigger value="all" className="text-xs rounded-lg transition-all duration-150">
                 All ({stageCounts.all})
@@ -1223,14 +1241,135 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
             <Input
               placeholder="Search doctor, clinic, city..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setLeadPage(1);
+              }}
               className="h-9 pl-9 text-xs rounded-xl"
             />
           </div>
         </div>
 
-        {/* Leads Table */}
-        <div className="overflow-x-auto rounded-xl border border-border/60">
+        {/* Count & Pagination Header */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+          <span>
+            Showing <strong className="text-foreground">{filteredLeads.length}</strong> leads
+            {filteredLeads.length !== allLeads.length && ` (filtered from ${allLeads.length})`}
+          </span>
+          {totalLeadPages > 1 && (
+            <span>
+              Page <strong>{currentLeadPage}</strong> of <strong>{totalLeadPages}</strong>
+            </span>
+          )}
+        </div>
+
+        {/* Mobile Leads Cards View (< md) */}
+        <div className="grid grid-cols-1 gap-3 md:hidden">
+          {isLoadingLeads && allLeads.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <Loader2 className="size-5 animate-spin mx-auto mb-2 text-primary" />
+              Loading doctor leads...
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground space-y-1">
+              <Users className="size-6 mx-auto text-muted-foreground/60" />
+              <p className="font-medium text-foreground text-xs">No leads found in this stage</p>
+            </div>
+          ) : (
+            paginatedLeads.map((lead) => (
+              <div key={lead.id} className="p-3.5 rounded-xl border border-border/80 bg-card space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="size-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                      {lead.name.replace(/^Dr\.\s*/i, "").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-foreground text-sm flex items-center gap-1.5 flex-wrap">
+                        {lead.name}
+                        {lead.has_replied ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[9px] py-0 px-1 font-semibold">
+                            💬 Replied
+                          </Badge>
+                        ) : lead.autonomous_enabled ? (
+                          <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 text-[9px] py-0 px-1">
+                            ⚡ Auto Drip
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{lead.clinic_name || "Independent Clinic"}</div>
+                    </div>
+                  </div>
+                  {getStageBadge(lead.status)}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs py-1 border-y border-border/50">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase block">Specialty & City</span>
+                    <span className="font-medium text-foreground">{lead.specialty || "General"}</span>
+                    {lead.city && <span className="text-muted-foreground text-[11px] block">{lead.city}</span>}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase block">Phone / WhatsApp</span>
+                    <div className="flex items-center gap-1 font-mono">
+                      <span>{lead.phone}</span>
+                      <a
+                        href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-600 hover:text-emerald-700"
+                      >
+                        <ExternalLink className="size-3" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-1.5 flex-wrap pt-1">
+                  <Select
+                    value={lead.status}
+                    onValueChange={(val) => handleStatusChange(lead.id, val)}
+                  >
+                    <SelectTrigger className="h-7 text-[11px] w-28 rounded-lg border-border/80">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New Lead</SelectItem>
+                      <SelectItem value="outreach_sent">Outreach</SelectItem>
+                      <SelectItem value="demo_sent">Demo Sent</SelectItem>
+                      <SelectItem value="in_conversation">In Conversation</SelectItem>
+                      <SelectItem value="followup_1">Follow-up 1</SelectItem>
+                      <SelectItem value="followup_2">Follow-up 2</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenPitch(lead, "app_store_comprehensive")}
+                      className="h-7 rounded-lg text-xs font-bold bg-primary text-primary-foreground gap-1 px-2"
+                    >
+                      <Sparkles className="size-3 text-amber-400" />
+                      <span>Pitch</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenEdit(lead)}
+                      className="h-7 rounded-lg text-xs px-2"
+                    >
+                      <Pencil className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Leads Table (Desktop: >= md) */}
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-border/60">
           <table className="w-full text-left text-xs sm:text-sm">
             <thead className="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider font-semibold border-b">
               <tr>
@@ -1259,7 +1398,7 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => (
+                paginatedLeads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2.5">
@@ -1586,6 +1725,34 @@ Dr. Sneha Kulkarni,9765432109,Care & Cure Child Clinic,Pediatrician,Pune,Follow-
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalLeadPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentLeadPage <= 1}
+              onClick={() => setLeadPage((p) => Math.max(1, p - 1))}
+              className="h-8 text-xs px-3"
+            >
+              Previous
+            </Button>
+            <div className="text-xs text-muted-foreground">
+              Page <span className="font-semibold text-foreground">{currentLeadPage}</span> of{" "}
+              <span className="font-semibold text-foreground">{totalLeadPages}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentLeadPage >= totalLeadPages}
+              onClick={() => setLeadPage((p) => Math.min(totalLeadPages, p + 1))}
+              className="h-8 text-xs px-3"
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* AI Human Pitch & WhatsApp Dispatch Modal */}

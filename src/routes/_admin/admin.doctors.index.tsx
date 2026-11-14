@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { listAdminDoctors, updateDoctorProfile } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, Search, ExternalLink, ShieldAlert } from "lucide-react";
+import { Download, Search, ExternalLink, ShieldAlert, Users, CreditCard, Clock, AlertTriangle, Building2, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_admin/admin/doctors/")({
@@ -66,16 +66,23 @@ function DoctorsPage() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>("all");
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 20;
 
-  // simple debounce
-  useMemo(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
+  // Proper React debounce effect without memory leaks or concurrent tearing
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebounced(search);
+      setPage(1);
+    }, 250);
     return () => clearTimeout(t);
   }, [search]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-doctors", debounced, status],
     queryFn: () => fn({ data: { search: debounced || undefined, status } }),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   type Row = {
@@ -93,6 +100,20 @@ function DoctorsPage() {
     periodEnd: string | null;
   };
   const rows: Row[] = (data ?? []) as Row[];
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * PER_PAGE;
+    return rows.slice(start, start + PER_PAGE);
+  }, [rows, currentPage]);
+
+  const activeCount = useMemo(() => rows.filter((r) => r.status === "active").length, [rows]);
+  const trialingCount = useMemo(() => rows.filter((r) => r.status === "trialing").length, [rows]);
+  const pastDueCount = useMemo(
+    () => rows.filter((r) => r.status === "past_due" || r.status === "suspended").length,
+    [rows]
+  );
 
   // Edit Doctor Profile states and mutation
   const queryClient = useQueryClient();
@@ -212,6 +233,7 @@ function DoctorsPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
+      {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-display">All Doctors</h1>
@@ -219,12 +241,52 @@ function DoctorsPage() {
             Directory of registered clinics and doctor profiles ({rows.length} {rows.length === 1 ? "doctor" : "doctors"}).
           </p>
         </div>
-        <Button onClick={exportCsv} variant="outline">
+        <Button onClick={exportCsv} variant="outline" size="sm">
           <Download className="size-4 mr-1.5" />
           Export CSV
         </Button>
       </div>
 
+      {/* Summary KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3.5 space-y-1 border-border/80">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>Total Clinics</span>
+            <Users className="size-4 text-blue-500" />
+          </div>
+          <div className="text-2xl font-bold font-display text-foreground">{rows.length}</div>
+          <p className="text-[11px] text-muted-foreground">Registered doctors</p>
+        </Card>
+
+        <Card className="p-3.5 space-y-1 border-border/80">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>Active Practices</span>
+            <CreditCard className="size-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-bold font-display text-emerald-600 dark:text-emerald-400">{activeCount}</div>
+          <p className="text-[11px] text-muted-foreground">Paid subscriptions</p>
+        </Card>
+
+        <Card className="p-3.5 space-y-1 border-border/80">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>Trialing Doctors</span>
+            <Clock className="size-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-bold font-display text-amber-600 dark:text-amber-400">{trialingCount}</div>
+          <p className="text-[11px] text-muted-foreground">Free trial window</p>
+        </Card>
+
+        <Card className="p-3.5 space-y-1 border-border/80">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+            <span>Needs Attention</span>
+            <AlertTriangle className="size-4 text-rose-500" />
+          </div>
+          <div className="text-2xl font-bold font-display text-rose-600 dark:text-rose-400">{pastDueCount}</div>
+          <p className="text-[11px] text-muted-foreground">Past due or suspended</p>
+        </Card>
+      </div>
+
+      {/* Filter and Search Bar */}
       <Card className="p-3">
         <div className="flex flex-wrap gap-2">
           <div className="relative flex-1 min-w-[200px]">
@@ -233,14 +295,17 @@ function DoctorsPage() {
               placeholder="Search name, clinic, email, phone, slug…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
+              className="pl-8 h-9 text-xs sm:text-sm"
             />
           </div>
           <Select
             value={status}
-            onValueChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])}
+            onValueChange={(v) => {
+              setStatus(v as (typeof STATUS_OPTIONS)[number]);
+              setPage(1);
+            }}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] h-9 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -254,7 +319,105 @@ function DoctorsPage() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
+      {/* Count Indicator */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+        <span>
+          Showing <strong className="text-foreground">{rows.length}</strong> matching doctors
+        </span>
+        {totalPages > 1 && (
+          <span>
+            Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+          </span>
+        )}
+      </div>
+
+      {/* Mobile Doctor Cards (< md) */}
+      <div className="grid grid-cols-1 gap-3 md:hidden">
+        {isLoading && (
+          <div className="p-6 text-center text-muted-foreground text-xs">
+            Loading doctors directory…
+          </div>
+        )}
+        {!isLoading && rows.length === 0 && (
+          <div className="p-6 text-center text-muted-foreground text-xs">
+            No doctors found matching filters.
+          </div>
+        )}
+        {paginatedRows.map((r) => (
+          <Card key={r.id} className="p-3.5 space-y-2.5 border-border/80">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                  {r.doctorName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground text-sm flex items-center gap-1.5 flex-wrap">
+                    <span>{r.doctorName}</span>
+                    {r.status === "suspended" && <ShieldAlert className="size-3.5 text-red-500" />}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{r.clinicName}</div>
+                </div>
+              </div>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${statusColor(r.status)}`}
+              >
+                {r.status}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs py-1 border-y border-border/50">
+              <div>
+                <span className="text-[10px] text-muted-foreground uppercase block">Specialization</span>
+                <span className="font-medium text-foreground">{r.specialization || "General"}</span>
+                {r.city && <span className="text-muted-foreground text-[11px] block">{r.city}</span>}
+              </div>
+              <div>
+                <span className="text-[10px] text-muted-foreground uppercase block">Plan & Joined</span>
+                <Badge variant={planVariant(r.plan)} className="text-[10px] py-0 px-1.5 mr-1.5">
+                  {r.plan}
+                </Badge>
+                <span className="text-[11px] text-muted-foreground block">{new Date(r.joined).toLocaleDateString()}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <div className="font-mono text-xs text-muted-foreground">
+                {r.phone || r.email || "—"}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                  <a href={`/c/${r.slug}`} target="_blank" rel="noreferrer" title="Public site">
+                    <ExternalLink className="size-3" />
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                  <Link to="/admin/doctors/$id" params={{ id: r.id }}>
+                    View
+                  </Link>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => startEdit(r)} className="h-7 px-2 text-xs">
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => {
+                    document.cookie = `impersonating_doctor_id=${r.id}; path=/; max-age=28800`;
+                    toast.success(`Impersonating ${r.doctorName}. Redirecting...`);
+                    window.location.href = "/dashboard";
+                  }}
+                >
+                  Login
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Doctors Table (>= md) */}
+      <Card className="hidden md:block overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
@@ -284,7 +447,7 @@ function DoctorsPage() {
                   </td>
                 </tr>
               )}
-              {rows.map((r) => (
+              {paginatedRows.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/50">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
@@ -353,6 +516,34 @@ function DoctorsPage() {
           </table>
         </div>
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="h-8 text-xs px-3"
+          >
+            Previous
+          </Button>
+          <div className="text-xs text-muted-foreground">
+            Page <span className="font-semibold text-foreground">{currentPage}</span> of{" "}
+            <span className="font-semibold text-foreground">{totalPages}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="h-8 text-xs px-3"
+          >
+            Next
+          </Button>
+        </div>
+      )}
 
       {editingDoctor && (
         <Dialog open={!!editingDoctor} onOpenChange={(open) => !open && setEditingDoctor(null)}>

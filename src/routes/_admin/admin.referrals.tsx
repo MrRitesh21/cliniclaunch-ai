@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useDeferredValue } from "react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,8 @@ function AdminReferralsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"creators" | "conversions" | "clicks">("creators");
 
+  const deferredSearch = useDeferredValue(search);
+
   // Modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -111,27 +113,35 @@ function AdminReferralsPage() {
   const listConversionsFn = useServerFn(listReferralConversions);
   const listClicksFn = useServerFn(listReferralClicks);
 
-  // Queries
+  // Queries with SWR caching & deferred search
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["admin-referral-stats"],
     queryFn: () => getStatsFn(),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: creators = [], isLoading: creatorsLoading } = useQuery({
-    queryKey: ["admin-referral-creators", search, statusFilter],
-    queryFn: () => listCreatorsFn({ data: { search, status: statusFilter } }),
+    queryKey: ["admin-referral-creators", deferredSearch, statusFilter],
+    queryFn: () => listCreatorsFn({ data: { search: deferredSearch, status: statusFilter } }),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: conversions = [], isLoading: conversionsLoading } = useQuery({
     queryKey: ["admin-referral-conversions"],
     queryFn: () => listConversionsFn({ data: { limit: 100 } }),
     enabled: activeTab === "conversions",
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: clicks = [], isLoading: clicksLoading } = useQuery({
     queryKey: ["admin-referral-clicks"],
     queryFn: () => listClicksFn({ data: { limit: 100 } }),
     enabled: activeTab === "clicks",
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   // Mutations
@@ -355,9 +365,106 @@ function AdminReferralsPage() {
               </Button>
             </Card>
           ) : (
-            <Card className="overflow-hidden border-border/80 shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+            <div className="space-y-4">
+              {/* Mobile Cards (< md) */}
+              <div className="grid grid-cols-1 gap-3 md:hidden">
+                {creators.map((c) => {
+                  const refUrl = getReferralUrl(c.code);
+                  const cr = c.click_count > 0 ? ((c.signup_count / c.click_count) * 100).toFixed(1) : "0.0";
+                  return (
+                    <Card key={c.id} className="p-4 space-y-3 border-border/80">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-foreground text-sm flex items-center gap-1.5 flex-wrap">
+                            <span>{c.creator_name}</span>
+                            {c.instagram_handle && (
+                              <span className="text-[11px] text-pink-600 bg-pink-500/10 px-1.5 py-0.5 rounded">
+                                @{c.instagram_handle}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {c.creator_phone || c.creator_email || "No contact info"}
+                          </div>
+                        </div>
+                        <Badge
+                          variant={c.status === "active" ? "default" : "secondary"}
+                          className={cn(
+                            "text-[10px] capitalize",
+                            c.status === "active" ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {c.status}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 text-xs">
+                        <span className="font-mono font-bold text-primary">{c.code}</span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(refUrl, "Referral link")}
+                            className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                          >
+                            <Copy className="size-3" /> Copy Link
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 py-1.5 border-y border-border/60 text-center text-xs">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase block">Clicks</span>
+                          <span className="font-bold text-foreground">{c.click_count || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase block">Signups</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{c.signup_count || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase block">Conv. Rate</span>
+                          <span className="font-mono font-medium">{cr}%</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[11px] text-muted-foreground">
+                          {c.trial_days || 14} Days Free Offer
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedCreatorForShare(c);
+                              setIsShareModalOpen(true);
+                            }}
+                            className="h-7 px-2 text-xs"
+                          >
+                            <Share2 className="size-3 mr-1 text-primary" /> Kit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const nextStatus = c.status === "active" ? "paused" : "active";
+                              updateMutation.mutate({ id: c.id, status: nextStatus });
+                            }}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {c.status === "active" ? "Pause" : "Activate"}
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table (>= md) */}
+              <Card className="hidden md:block overflow-hidden border-border/80 shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-muted/50 border-b text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
                       <th className="py-3 px-4">Creator & Channel</th>
@@ -515,7 +622,8 @@ function AdminReferralsPage() {
                 </table>
               </div>
             </Card>
-          )}
+          </div>
+        )}
         </TabsContent>
 
         {/* TAB 2: Signed-up Doctors & Conversions Table */}
@@ -533,69 +641,103 @@ function AdminReferralsPage() {
               </p>
             </Card>
           ) : (
-            <Card className="overflow-hidden border-border/80">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-muted/50 border-b text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-4">Doctor & Email</th>
-                      <th className="py-3 px-4">Clinic Practice</th>
-                      <th className="py-3 px-4">Referral Partner</th>
-                      <th className="py-3 px-4">Code Used</th>
-                      <th className="py-3 px-4">Trial Window</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Signed Up</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {conversions.map((conv) => (
-                      <tr key={conv.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-foreground">
-                            {conv.user_name || "Doctor"}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">{conv.user_email}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5">
-                            <Building2 className="size-3.5 text-primary" />
-                            <span className="font-medium text-foreground">
-                              {conv.clinic_name || "Setting up practice..."}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-foreground font-medium">
-                          {conv.creator_name || "Direct / Partner"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="font-mono bg-primary/10 text-primary font-bold px-2 py-0.5 rounded text-[11px]">
-                            {conv.referral_code}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="space-y-0.5 text-[11px]">
-                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                              {conv.trial_days || 14}-Day Free Trial
-                            </span>
-                            <div className="text-muted-foreground text-[10px]">
-                              Ends: {new Date(conv.trial_ends_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                            <CheckCircle2 className="size-3 mr-1" /> Active Trial
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-right text-muted-foreground text-[11px]">
-                          {new Date(conv.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="space-y-3">
+              {/* Mobile Conversions Cards (< md) */}
+              <div className="grid grid-cols-1 gap-2.5 md:hidden">
+                {conversions.map((conv) => (
+                  <Card key={conv.id} className="p-3.5 space-y-2 border-border/80">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-foreground text-sm">{conv.user_name || "Doctor"}</div>
+                        <div className="text-xs text-muted-foreground">{conv.user_email}</div>
+                      </div>
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">
+                        Active Trial
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium py-1 border-y border-border/50">
+                      <Building2 className="size-3 text-primary shrink-0" />
+                      <span>{conv.clinic_name || "Setting up practice..."}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                      <div>
+                        Partner: <strong className="text-foreground">{conv.creator_name || "Direct"}</strong>
+                      </div>
+                      <span className="font-mono bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded text-[10px]">
+                        {conv.referral_code}
+                      </span>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </Card>
+
+              {/* Desktop Conversions Table (>= md) */}
+              <Card className="hidden md:block overflow-hidden border-border/80">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-muted/50 border-b text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-4">Doctor & Email</th>
+                        <th className="py-3 px-4">Clinic Practice</th>
+                        <th className="py-3 px-4">Referral Partner</th>
+                        <th className="py-3 px-4">Code Used</th>
+                        <th className="py-3 px-4">Trial Window</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Signed Up</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {conversions.map((conv) => (
+                        <tr key={conv.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="font-medium text-foreground">
+                              {conv.user_name || "Doctor"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{conv.user_email}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="size-3.5 text-primary" />
+                              <span className="font-medium text-foreground">
+                                {conv.clinic_name || "Setting up practice..."}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-foreground font-medium">
+                            {conv.creator_name || "Direct / Partner"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono bg-primary/10 text-primary font-bold px-2 py-0.5 rounded text-[11px]">
+                              {conv.referral_code}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="space-y-0.5 text-[11px]">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                {conv.trial_days || 14}-Day Free Trial
+                              </span>
+                              <div className="text-muted-foreground text-[10px]">
+                                Ends: {new Date(conv.trial_ends_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                              <CheckCircle2 className="size-3 mr-1" /> Active Trial
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-right text-muted-foreground text-[11px]">
+                            {new Date(conv.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
           )}
         </TabsContent>
 
@@ -614,48 +756,69 @@ function AdminReferralsPage() {
               </p>
             </Card>
           ) : (
-            <Card className="overflow-hidden border-border/80">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-muted/50 border-b text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-4">Referral Code</th>
-                      <th className="py-3 px-4">Creator Partner</th>
-                      <th className="py-3 px-4">Referrer Source</th>
-                      <th className="py-3 px-4">Device / User Agent</th>
-                      <th className="py-3 px-4 text-right">Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {clicks.map((clk) => (
-                      <tr key={clk.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-primary">
-                          {clk.referral_code}
-                        </td>
-                        <td className="py-3 px-4 text-foreground font-medium">
-                          {clk.creator_name || "--"}
-                        </td>
-                        <td className="py-3 px-4 text-muted-foreground">
-                          {clk.referrer && clk.referrer !== "direct" ? (
-                            <span className="bg-muted px-2 py-0.5 rounded text-[11px]">
-                              {clk.referrer}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground italic">Direct / Bio Link</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-muted-foreground text-[11px] truncate max-w-xs">
-                          {clk.user_agent || "Unknown Browser"}
-                        </td>
-                        <td className="py-3 px-4 text-right text-muted-foreground text-[11px]">
-                          {new Date(clk.created_at).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="space-y-3">
+              {/* Mobile Clicks Feed (< md) */}
+              <div className="grid grid-cols-1 gap-2 md:hidden">
+                {clicks.map((clk) => (
+                  <Card key={clk.id} className="p-3 space-y-1.5 border-border/80 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-primary">{clk.referral_code}</span>
+                      <span className="text-[10px] text-muted-foreground">{new Date(clk.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div className="text-muted-foreground text-[11px]">
+                      Creator: <strong className="text-foreground">{clk.creator_name || "--"}</strong>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      Source: {clk.referrer || "Direct"}
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </Card>
+
+              {/* Desktop Clicks Table (>= md) */}
+              <Card className="hidden md:block overflow-hidden border-border/80">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-muted/50 border-b text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-4">Referral Code</th>
+                        <th className="py-3 px-4">Creator Partner</th>
+                        <th className="py-3 px-4">Referrer Source</th>
+                        <th className="py-3 px-4">Device / User Agent</th>
+                        <th className="py-3 px-4 text-right">Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {clicks.map((clk) => (
+                        <tr key={clk.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-primary">
+                            {clk.referral_code}
+                          </td>
+                          <td className="py-3 px-4 text-foreground font-medium">
+                            {clk.creator_name || "--"}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            {clk.referrer && clk.referrer !== "direct" ? (
+                              <span className="bg-muted px-2 py-0.5 rounded text-[11px]">
+                                {clk.referrer}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic">Direct / Bio Link</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground text-[11px] truncate max-w-xs">
+                            {clk.user_agent || "Unknown Browser"}
+                          </td>
+                          <td className="py-3 px-4 text-right text-muted-foreground text-[11px]">
+                            {new Date(clk.created_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
           )}
         </TabsContent>
       </Tabs>

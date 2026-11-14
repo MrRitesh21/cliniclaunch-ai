@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useDeferredValue } from "react";
 import {
   getAdminStats,
   getPlatformSystemHealth,
@@ -97,7 +97,7 @@ function AdminDashboard() {
   const maintenanceFn = useServerFn(checkMaintenanceStatus);
   const saveSettingsFn = useServerFn(saveSystemSettings);
 
-  // Queries
+  // Queries with SWR staleTime & smooth placeholder transitions
   const {
     data: stats,
     isLoading: statsLoading,
@@ -107,6 +107,8 @@ function AdminDashboard() {
   } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: () => statsFn(),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const {
@@ -117,23 +119,34 @@ function AdminDashboard() {
   } = useQuery({
     queryKey: ["admin-platform-health"],
     queryFn: () => healthFn(),
-    refetchInterval: 30000, // background heartbeat every 30s
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+    refetchInterval: 30000, // background heartbeat
+    refetchIntervalInBackground: false,
   });
 
   const { data: doctorsData, isLoading: doctorsLoading } = useQuery({
     queryKey: ["admin-dashboard-doctors"],
-    queryFn: () => doctorsFn({ data: { limit: 50 } }),
+    queryFn: () => doctorsFn({ data: { limit: 100 } }),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: maintenanceData, refetch: refetchMaintenance } = useQuery({
     queryKey: ["admin-maintenance-status"],
     queryFn: () => maintenanceFn(),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   // State
   const [activeTab, setActiveTab] = useState<"overview" | "tenants" | "health" | "activity">("overview");
   const [doctorSearch, setDoctorSearch] = useState("");
   const [doctorStatusFilter, setDoctorStatusFilter] = useState("all");
+  const [doctorPage, setDoctorPage] = useState(1);
+  const DOCTORS_PER_PAGE = 15;
+
+  const deferredDoctorSearch = useDeferredValue(doctorSearch);
 
   // Broadcast Modal State
   const [announceOpen, setAnnounceOpen] = useState(false);
@@ -261,21 +274,31 @@ function AdminDashboard() {
     toast.success("Clinic fleet export generated successfully");
   };
 
-  // Filtered doctors list for tenants tab
+  // Filtered doctors list for tenants tab with deferred search for 60fps typing
   const filteredDoctors = useMemo(() => {
     const list = (doctorsData ?? []) as any[];
+    const term = deferredDoctorSearch.trim().toLowerCase();
     return list.filter((doc) => {
       const matchSearch =
-        !doctorSearch ||
-        doc.doctorName?.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-        doc.clinicName?.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-        doc.phone?.includes(doctorSearch) ||
-        doc.specialization?.toLowerCase().includes(doctorSearch.toLowerCase());
+        !term ||
+        doc.doctorName?.toLowerCase().includes(term) ||
+        doc.clinicName?.toLowerCase().includes(term) ||
+        doc.phone?.includes(term) ||
+        doc.slug?.toLowerCase().includes(term) ||
+        doc.city?.toLowerCase().includes(term) ||
+        doc.specialization?.toLowerCase().includes(term);
 
       const matchStatus = doctorStatusFilter === "all" || doc.status === doctorStatusFilter;
       return matchSearch && matchStatus;
     });
-  }, [doctorsData, doctorSearch, doctorStatusFilter]);
+  }, [doctorsData, deferredDoctorSearch, doctorStatusFilter]);
+
+  const totalDoctorPages = Math.max(1, Math.ceil(filteredDoctors.length / DOCTORS_PER_PAGE));
+  const currentPage = Math.min(doctorPage, totalDoctorPages);
+  const paginatedDoctors = useMemo(() => {
+    const start = (currentPage - 1) * DOCTORS_PER_PAGE;
+    return filteredDoctors.slice(start, start + DOCTORS_PER_PAGE);
+  }, [filteredDoctors, currentPage]);
 
   const isMaintenanceActive = maintenanceData?.maintenance_mode === "true";
 
@@ -624,7 +647,13 @@ function AdminDashboard() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Select value={doctorStatusFilter} onValueChange={(v) => setDoctorStatusFilter(v)}>
+                <Select
+                  value={doctorStatusFilter}
+                  onValueChange={(v) => {
+                    setDoctorStatusFilter(v);
+                    setDoctorPage(1);
+                  }}
+                >
                   <SelectTrigger className="w-36 h-9 text-xs">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -644,6 +673,7 @@ function AdminDashboard() {
                   onClick={() => {
                     setDoctorSearch("");
                     setDoctorStatusFilter("all");
+                    setDoctorPage(1);
                   }}
                   className="h-9 text-xs"
                 >
@@ -652,8 +682,108 @@ function AdminDashboard() {
               </div>
             </div>
 
-            {/* Doctors Fleet Table */}
-            <div className="border border-border/70 rounded-xl overflow-x-auto bg-card">
+            {/* Doctors Count Indicator */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <span>
+                Showing <strong className="text-foreground">{filteredDoctors.length}</strong> matching clinics
+                {filteredDoctors.length !== (doctorsData as any[])?.length && ` (filtered from ${(doctorsData as any[])?.length || 0})`}
+              </span>
+              {totalDoctorPages > 1 && (
+                <span>
+                  Page <strong>{currentPage}</strong> of <strong>{totalDoctorPages}</strong>
+                </span>
+              )}
+            </div>
+
+            {/* Mobile Card View (< md) */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {doctorsLoading && (
+                <div className="py-8 text-center text-muted-foreground text-xs">
+                  Loading doctor fleet...
+                </div>
+              )}
+              {!doctorsLoading && paginatedDoctors.length === 0 && (
+                <div className="py-8 text-center text-muted-foreground text-xs">
+                  No doctors match the selected search criteria.
+                </div>
+              )}
+              {paginatedDoctors.map((doc: any) => (
+                <div key={doc.id} className="p-3.5 rounded-xl border border-border/70 bg-card space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                        {doc.doctorName}
+                        {doc.slug && (
+                          <a
+                            href={`/c/${doc.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <ExternalLink className="size-3" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{doc.clinicName}</div>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${
+                        doc.status === "active"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                          : doc.status === "trialing"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            : doc.status === "past_due"
+                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                              : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {doc.status || "trialing"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs py-1 border-y border-border/50">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block">Specialization</span>
+                      <span className="font-medium text-foreground">{doc.specialization || "General"}</span>
+                      {doc.city && <span className="text-muted-foreground text-[11px] block">{doc.city}</span>}
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase block">Phone</span>
+                      <span className="font-mono text-foreground">{doc.phone || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-1.5 pt-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => impersonateMut.mutate(doc.id)}
+                      disabled={impersonateMut.isPending}
+                      className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <LogIn className="size-3 mr-1" /> Login
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedClinic({ id: doc.id, name: doc.doctorName });
+                        setExtendOpen(true);
+                      }}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <Clock className="size-3 mr-1 text-amber-500" /> +Days
+                    </Button>
+                    <Button asChild variant="secondary" size="sm" className="h-7 px-2 text-xs">
+                      <Link to="/admin/doctors/$id" params={{ id: doc.id }}>Manage</Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Doctors Fleet Table (Desktop: >= md) */}
+            <div className="hidden md:block border border-border/70 rounded-xl overflow-x-auto bg-card">
               <table className="w-full text-xs text-left">
                 <thead className="bg-muted/60 text-muted-foreground font-semibold uppercase tracking-wider text-[10px] border-b border-border/60">
                   <tr>
@@ -666,7 +796,7 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {filteredDoctors.map((doc: any) => (
+                  {paginatedDoctors.map((doc: any) => (
                     <tr key={doc.id} className="hover:bg-muted/40 transition-colors">
                       <td className="py-3 px-4">
                         <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
@@ -771,6 +901,34 @@ function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalDoctorPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setDoctorPage((p) => Math.max(1, p - 1))}
+                  className="h-8 text-xs px-3"
+                >
+                  Previous
+                </Button>
+                <div className="text-xs text-muted-foreground">
+                  Page <span className="font-semibold text-foreground">{currentPage}</span> of{" "}
+                  <span className="font-semibold text-foreground">{totalDoctorPages}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalDoctorPages}
+                  onClick={() => setDoctorPage((p) => Math.min(totalDoctorPages, p + 1))}
+                  className="h-8 text-xs px-3"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
