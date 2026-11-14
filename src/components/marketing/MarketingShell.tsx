@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   HeartPulse,
+  Play,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
@@ -140,23 +141,25 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             </Button>
 
             <Link to="/login">
-              <Button variant="ghost" className="font-semibold text-sm">
-                Sign in
+              <Button variant="ghost" className="font-semibold text-sm text-slate-700 dark:text-slate-200 hover:text-foreground">
+                Sign In
               </Button>
             </Link>
 
             <Link to="/contact">
               <Button
                 variant="outline"
-                className="font-bold border-primary/40 text-primary hover:bg-primary/10 gap-1.5 h-9"
+                className="font-semibold border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl gap-1.5 h-9 px-3.5 text-xs shadow-2xs"
               >
-                <Sparkles className="size-3.5 text-amber-500" /> Live Demo
+                <Play className="size-3 text-blue-600 fill-blue-600" />
+                <span>Live Demo</span>
               </Button>
             </Link>
 
             <Link to="/login">
-              <Button className="font-bold bg-primary text-primary-foreground hover:bg-primary/95 gap-1.5 h-9 shadow-md shadow-primary/20 text-xs">
-                Get Started Free &rarr;
+              <Button className="font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-1.5 h-9 px-4 shadow-md shadow-blue-600/25 text-xs transition-all hover:scale-[1.02]">
+                <span>Get Started Free</span>
+                <ArrowRight className="size-3.5" />
               </Button>
             </Link>
           </div>

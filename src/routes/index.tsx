@@ -16,6 +16,7 @@ import {
   CreditCard,
   Globe,
   Calendar,
+  CalendarDays,
   FileText,
   Pill,
   FlaskConical,
@@ -62,6 +63,7 @@ import { LeadCaptureSection } from "@/components/landing/LeadCaptureSection";
 import { ClinicMotionCanvas } from "@/components/landing/ClinicMotionCanvas";
 import { InteractiveClinicEngine } from "@/components/landing/InteractiveClinicEngine";
 import { ClinicRoiCalculator } from "@/components/landing/ClinicRoiCalculator";
+import { HeroDashboardPreview } from "@/components/landing/HeroDashboardPreview";
 import {
   WordRotator,
   ProcessDrawSection,
@@ -406,53 +408,111 @@ function Landing() {
   );
 }
 
+function LaurelWreathBadge({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 text-center group">
+      {/* Left Laurel Branch */}
+      <svg
+        className="w-5 h-9 text-slate-400 dark:text-slate-500 shrink-0"
+        viewBox="0 0 24 40"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M12 2C10.5 4 8 7 8 11C8 13.5 9 16 10 18C8.5 19 6 21 6 24C6 26.5 7.5 28.5 9 30C7 31.5 5 34 5 37C5 38 5.5 39 6.5 39C7.5 39 8.5 37.5 9.5 35C11 36.5 13 37.5 15 38L14 36C12.5 35.5 11 34.5 10 33C12 32 13.5 30 13.5 27.5C13.5 25.5 12 23.5 10.5 22.5C12.5 21 14 18.5 14 15.5C14 12.5 12.5 9.5 11 8C13 6.5 14 4.5 14 2.5C14 2 13.5 2 13 2Z" />
+      </svg>
+
+      <div className="space-y-0.5">
+        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+          {title}
+        </p>
+        <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+          {subtitle}
+        </p>
+      </div>
+
+      {/* Right Laurel Branch */}
+      <svg
+        className="w-5 h-9 text-slate-400 dark:text-slate-500 shrink-0 scale-x-[-1]"
+        viewBox="0 0 24 40"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M12 2C10.5 4 8 7 8 11C8 13.5 9 16 10 18C8.5 19 6 21 6 24C6 26.5 7.5 28.5 9 30C7 31.5 5 34 5 37C5 38 5.5 39 6.5 39C7.5 39 8.5 37.5 9.5 35C11 36.5 13 37.5 15 38L14 36C12.5 35.5 11 34.5 10 33C12 32 13.5 30 13.5 27.5C13.5 25.5 12 23.5 10.5 22.5C12.5 21 14 18.5 14 15.5C14 12.5 12.5 9.5 11 8C13 6.5 14 4.5 14 2.5C14 2 13.5 2 13 2Z" />
+      </svg>
+    </div>
+  );
+}
+
 function LandingContent() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   return (
     <div className="relative">
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20">
+      <section className="relative overflow-hidden border-b border-slate-200/70 dark:border-slate-800 bg-gradient-to-b from-blue-50/40 via-background to-background dark:from-blue-950/20 dark:via-background dark:to-background">
+        {/* Ambient Soft Glow Blobs */}
+        <div className="absolute top-0 left-1/4 -translate-x-1/2 w-96 h-96 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="absolute top-1/3 right-0 w-[28rem] h-[28rem] bg-cyan-400/10 dark:bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+
         {/* Dynamic Code-Generated Ambient Canvas */}
         <ClinicMotionCanvas />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center">
-            {/* Left Column: Value Proposition, Dominant CTA & Trust */}
+            {/* Left Column: Value Proposition & High-Converting CTAs */}
             <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-center lg:text-left min-w-0">
               {/* Product Audience Tag */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
-                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Dedicated Clinic OS for Indian Doctors • 0% Commission</span>
+                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-blue-50/90 dark:bg-blue-950/60 px-4 py-1.5 text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 shadow-2xs">
+                  <div className="size-4 rounded-full bg-blue-600 text-white grid place-items-center font-bold text-[10px]">
+                    +
+                  </div>
+                  <span>All-in-One Clinic OS for Indian Doctors</span>
                 </div>
               </div>
 
-              {/* Main Headline with GSAP 3 Word Split Entrance (Pattern 01 / landing-hero.html) */}
-              <HeroWordSplit
-                headline="Run Your Clinic on Autopilot. Less Admin, More Patients."
-              />
-
-              {/* High-Impact Word Rotator (MadeToScale Guide Animation 02) */}
-              <WordRotator
-                leadText="Eliminate"
-                words={["Reception Chaos", "Paper Registers", "Missed Calls", "Waiting Lobby Fights"]}
-                suffixText="forever"
-              />
+              {/* Main Headline with Highlighted Patients */}
+              <h1 className="font-display text-3xl sm:text-5xl lg:text-[3.25rem] xl:text-[3.6rem] font-black tracking-tight text-slate-900 dark:text-white leading-[1.12]">
+                Run Your Clinic on <br className="hidden sm:inline" />
+                Autopilot. Less Admin, <br className="hidden sm:inline" />
+                More{" "}
+                <span className="relative inline-block text-blue-600 dark:text-blue-400 font-black">
+                  Patients.
+                  <svg
+                    className="absolute -bottom-2 left-0 w-full overflow-visible"
+                    viewBox="0 0 160 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 8.5C45 2.5 115 2 157 8"
+                      stroke="#2563EB"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+              </h1>
 
               {/* Benefit-Driven Subheadline */}
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 font-normal">
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl mx-auto lg:mx-0 font-normal">
                 ClinicX equips your practice with an automated 24/7 WhatsApp booking assistant,
-                real-time OPD token queue on TV, 30-second digital Rx, and your own branded website.
-                Launch in 5 minutes with zero upfront hardware costs.
+                real-time OPD token queue on TV, digital Rx, and your own branded website — all in
+                one place.
               </p>
 
               {/* CTA Button Group with Clear Dominance */}
-              <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
                 <Link to="/signup" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/35 bg-primary text-primary-foreground hover:bg-primary/95 transition-all cursor-pointer"
+                    className="h-13 w-full sm:w-auto px-7 rounded-xl text-sm sm:text-base font-bold gap-2 shadow-lg shadow-blue-600/25 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-all hover:scale-[1.02]"
                   >
                     <span>Start 14-Day Free Trial</span>
                     <ArrowRight className="size-4" />
@@ -462,68 +522,131 @@ function LandingContent() {
                   size="lg"
                   variant="outline"
                   onClick={() => setDemoModalOpen(true)}
-                  className="h-12 w-full sm:w-auto px-6 rounded-xl text-sm font-semibold border-border hover:bg-muted/80 bg-background text-foreground transition-all cursor-pointer"
+                  className="h-13 w-full sm:w-auto px-6 rounded-xl text-sm sm:text-base font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs gap-2"
                 >
-                  <Sparkles className="size-4 text-amber-500 mr-2 shrink-0" />
-                  <span>Schedule Staff Onboarding</span>
+                  <CalendarDays className="size-4 text-slate-600 dark:text-slate-300" />
+                  <span>Schedule Live Demo</span>
                 </Button>
               </div>
 
-              {/* Friction-reducing Micro-Copy */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-medium pt-0.5">
+              {/* Friction-reducing Micro-Copy with Checkmarks */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium pt-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> 14-Day Free
-                  Trial
+                  <Check className="size-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                  <span>14-Day Free Trial</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> No Credit
-                  Card Required
+                  <Check className="size-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                  <span>No Credit Card Required</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" /> Ready in 2
-                  Minutes
+                  <Check className="size-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                  <span>Ready in 2 Minutes</span>
                 </span>
-              </div>
-
-              {/* Verifiable Product Facts & Trust Points */}
-              <div className="pt-4 border-t border-border/60 grid grid-cols-2 sm:grid-cols-3 gap-3 text-left">
-                <div className="p-2.5 rounded-xl border border-border/70 bg-card/60">
-                  <div className="flex items-center gap-1.5 text-foreground font-semibold text-xs">
-                    <ShieldCheck className="size-3.5 text-primary shrink-0" />
-                    <span>256-Bit SSL</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Encrypted patient health records at rest & in transit
-                  </p>
-                </div>
-
-                <div className="p-2.5 rounded-xl border border-border/70 bg-card/60">
-                  <div className="flex items-center gap-1.5 text-foreground font-semibold text-xs">
-                    <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>ABDM Aligned</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Compatible with Indian digital health architecture
-                  </p>
-                </div>
-
-                <div className="col-span-2 sm:col-span-1 p-2.5 rounded-xl border border-border/70 bg-card/60">
-                  <div className="flex items-center gap-1.5 text-foreground font-semibold text-xs">
-                    <IndianRupee className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>0% Commission</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                    Direct UPI & cash settlements to your account
-                  </p>
-                </div>
               </div>
             </div>
 
-            {/* Right Column: Interactive Clinic Engine Simulator */}
-            <div className="lg:col-span-6 relative min-w-0 w-full">
-              <InteractiveClinicEngine onOpenDemo={() => setDemoModalOpen(true)} />
+            {/* Right Column: Hero Dashboard Preview with Animated Cursor Tour */}
+            <div className="lg:col-span-6 relative min-w-0 w-full flex items-center justify-center">
+              <HeroDashboardPreview onOpenDemo={() => setDemoModalOpen(true)} />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Under-Hero Feature Capsule Strip */}
+      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-4 sm:p-6 shadow-xl shadow-blue-500/5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+          {/* 1. Branded Clinic Website */}
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 grid place-items-center shrink-0 border border-blue-100 dark:border-blue-900">
+              <Laptop className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                Branded Clinic Website
+              </p>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Your own professional website
+              </p>
+            </div>
+          </div>
+
+          {/* 2. WhatsApp Automation */}
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 grid place-items-center shrink-0 border border-emerald-100 dark:border-emerald-900">
+              <MessageSquare className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                WhatsApp Automation
+              </p>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Bookings, reminders & lead alerts
+              </p>
+            </div>
+          </div>
+
+          {/* 3. OPD Token Queue */}
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 grid place-items-center shrink-0 border border-blue-100 dark:border-blue-900">
+              <CalendarDays className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                OPD Token Queue
+              </p>
+              <p className="text-[11px] text-slate-500 leading-snug">Real-time, TV ready display</p>
+            </div>
+          </div>
+
+          {/* 4. Digital Prescriptions */}
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 grid place-items-center shrink-0 border border-indigo-100 dark:border-indigo-900">
+              <FileText className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                Digital Prescriptions
+              </p>
+              <p className="text-[11px] text-slate-500 leading-snug">Create and share instantly</p>
+            </div>
+          </div>
+
+          {/* 5. Patient Records */}
+          <div className="flex items-center gap-3 col-span-2 md:col-span-1">
+            <div className="size-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 grid place-items-center shrink-0 border border-cyan-100 dark:border-cyan-900">
+              <BarChart3 className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                Patient Records
+              </p>
+              <p className="text-[11px] text-slate-500 leading-snug">Secure & paperless history</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Laurel Wreath Trust Badges Row */}
+      <section className="py-10 sm:py-12 border-b border-slate-200/70 dark:border-slate-800 bg-background/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 items-center justify-center">
+          <LaurelWreathBadge
+            title="256-bit SSL"
+            subtitle="Data Encrypted & Secure"
+          />
+          <LaurelWreathBadge
+            title="ABDM Aligned"
+            subtitle="Digital Health Ready"
+          />
+          <LaurelWreathBadge
+            title="100% Commission Free"
+            subtitle="Direct UPI & cash settlements"
+          />
+          <LaurelWreathBadge
+            title="Made for Indian Clinics"
+            subtitle="Clinic • Polyclinic • Specialty"
+          />
         </div>
       </section>
 
@@ -562,6 +685,25 @@ function LandingContent() {
               Commission on Patient Fees
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Clinic Engine Simulator */}
+      <section className="border-b border-border/60 bg-background py-16 sm:py-24 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
+              <Sparkles className="size-3.5" /> Interactive Multi-Channel Demo
+            </div>
+            <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
+              Experience the Full Power of ClinicX in Real Time
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Test drive our automated WhatsApp assistant, live TV token chime, and 30-second digital
+              prescriptions below.
+            </p>
+          </div>
+          <InteractiveClinicEngine onOpenDemo={() => setDemoModalOpen(true)} />
         </div>
       </section>
 
