@@ -10,26 +10,16 @@ import {
   Reply,
   Eye,
   EyeOff,
-  Link as LinkIcon,
   ExternalLink,
   Bot,
   Printer,
-  QrCode,
   ShieldCheck,
   PhoneCall,
   Phone,
-  Sparkles,
-  TrendingUp,
-  AlertTriangle,
   CheckCircle2,
   RefreshCw,
-  MapPin,
   Globe,
-  Award,
   Check,
-  Zap,
-  Sliders,
-  Flame,
   Unlink,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -51,12 +41,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  saveGooglePlaceId,
   syncGoogleReviews,
-  toggleGoogleReviewVisibility,
   saveGoogleGmbConnection,
   disconnectGoogleGmb,
   requestAiReviewReply,
@@ -87,23 +74,6 @@ type Review = {
   created_at: string;
 };
 
-// AI Keyword Analytics Data Model
-type KeywordMetric = {
-  word: string;
-  count: number;
-  sentiment: "positive" | "negative" | "neutral";
-};
-
-const KEYWORD_ANALYTICS: KeywordMetric[] = [
-  { word: "thorough doctor consultation", count: 48, sentiment: "positive" },
-  { word: "polite & helpful staff", count: 42, sentiment: "positive" },
-  { word: "clean & hygienic clinic", count: 39, sentiment: "positive" },
-  { word: "accurate diagnosis", count: 31, sentiment: "positive" },
-  { word: "quick relief / recovery", count: 26, sentiment: "positive" },
-  { word: "opd waiting time", count: 12, sentiment: "negative" },
-  { word: "parking space", count: 5, sentiment: "neutral" },
-];
-
 export function ReviewsPage() {
   const { org } = useOrganization();
   const clinic = useClinic();
@@ -115,13 +85,8 @@ export function ReviewsPage() {
   const [search, setSearch] = useState("");
   const [replying, setReplying] = useState<Review | null>(null);
 
-  // Multi-Platform Links
-  const [gmbUrl, setGmbUrl] = useState("");
-  const [practoUrl, setPractoUrl] = useState("");
-  const [justdialUrl, setJustdialUrl] = useState("");
-  const [savingPlatform, setSavingPlatform] = useState(false);
-
   // GMB Connection State
+  const [gmbUrl, setGmbUrl] = useState("");
   const [placeId, setPlaceId] = useState("");
   const [gmbBusinessName, setGmbBusinessName] = useState("");
   const [gmbAccountEmail, setGmbAccountEmail] = useState("");
@@ -129,26 +94,7 @@ export function ReviewsPage() {
   const [showGmbModal, setShowGmbModal] = useState(false);
   const [connectingGmb, setConnectingGmb] = useState(false);
   const [syncing, setSyncing] = useState(false);
-
-  // AI Auto-Reply Agent Toggle
-  const [autoReplyEnabled, setAutoReplyEnabled] = useState(true);
-
-  // Google Place Sync Data
-  const [googleReviews, setGoogleReviews] = useState<
-    Array<{
-      author: string;
-      photo: string | null;
-      rating: number;
-      text: string;
-      relative: string;
-      show_on_site: boolean;
-    }>
-  >([]);
-  const [googleRating, setGoogleRating] = useState<{
-    rating: number | null;
-    count: number | null;
-    syncedAt: string | null;
-  }>({ rating: null, count: null, syncedAt: null });
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
@@ -157,9 +103,7 @@ export function ReviewsPage() {
   const [waPatientName, setWaPatientName] = useState("");
   const [sendingWa, setSendingWa] = useState(false);
 
-  const savePlaceIdFn = useServerFn(saveGooglePlaceId);
   const syncFn = useServerFn(syncGoogleReviews);
-  const toggleFn = useServerFn(toggleGoogleReviewVisibility);
   const sendWaFn = useServerFn(sendTestWhatsapp);
   const saveGmbConnectionFn = useServerFn(saveGoogleGmbConnection);
   const disconnectGmbFn = useServerFn(disconnectGoogleGmb);
@@ -168,10 +112,6 @@ export function ReviewsPage() {
     if (!clinic) return;
     const c = clinic as unknown as {
       google_place_id?: string | null;
-      google_reviews?: unknown;
-      google_rating?: number | null;
-      google_rating_count?: number | null;
-      google_reviews_synced_at?: string | null;
       clinic_name?: string | null;
     };
     const orgObj = org as unknown as {
@@ -191,15 +131,6 @@ export function ReviewsPage() {
 
     const connected = Boolean(pId || orgObj?.google_business_profile_connected_at || url);
     setIsGmbConnected(connected);
-
-    setGoogleReviews(
-      Array.isArray(c.google_reviews) ? (c.google_reviews as typeof googleReviews) : [],
-    );
-    setGoogleRating({
-      rating: c.google_rating ?? null,
-      count: c.google_rating_count ?? null,
-      syncedAt: c.google_reviews_synced_at ?? null,
-    });
   }, [clinic, org]);
 
   const load = useCallback(async () => {
@@ -235,7 +166,7 @@ export function ReviewsPage() {
       });
       setIsGmbConnected(true);
       setShowGmbModal(false);
-      toast.success("Google My Business (GMB) successfully linked!");
+      toast.success("Google My Business (GMB) connected");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -253,15 +184,15 @@ export function ReviewsPage() {
         },
       });
       if (error) {
-        toast.info("Connecting via direct Google Place ID mode.");
+        toast.info("Please enter Google Place ID or profile URL below.");
       }
     } catch {
-      toast.info("Using Direct Google Business Profile connection.");
+      toast.info("Please enter Google Place ID or profile URL below.");
     }
   }
 
   async function handleDisconnectGmb() {
-    if (!clinic || !confirm("Disconnect Google My Business integration?")) return;
+    if (!clinic || !confirm("Disconnect Google My Business?")) return;
     try {
       await disconnectGmbFn({
         data: { clinic_id: clinic.id, organization_id: orgId || null },
@@ -278,18 +209,12 @@ export function ReviewsPage() {
     if (!clinic) return;
     if (!placeId) {
       setShowGmbModal(true);
-      return toast.info("Please connect your Google Place ID first.");
+      return toast.info("Please enter your Google Place ID first.");
     }
     setSyncing(true);
     try {
       const out = await syncFn({ data: { clinic_id: clinic.id } });
-      setGoogleReviews(out.reviews as typeof googleReviews);
-      setGoogleRating({
-        rating: out.rating ?? null,
-        count: out.rating_count ?? null,
-        syncedAt: new Date().toISOString(),
-      });
-      toast.success(`Synced ${out.reviews.length} Google reviews from Maps!`);
+      toast.success(`Synced ${out.reviews.length} reviews from Google Maps`);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -308,7 +233,7 @@ export function ReviewsPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete review?")) return;
+    if (!confirm("Delete this review?")) return;
     await supabase
       .from("reviews" as never)
       .delete()
@@ -317,30 +242,15 @@ export function ReviewsPage() {
     load();
   }
 
-  async function savePlatformLinks() {
-    if (!orgId) return;
-    setSavingPlatform(true);
-    const { error } = await supabase
-      .from("organizations")
-      .update({
-        google_business_profile_url: gmbUrl.trim() || null,
-        google_business_profile_connected_at: gmbUrl.trim() ? new Date().toISOString() : null,
-      })
-      .eq("id", orgId);
-    setSavingPlatform(false);
-    if (error) return toast.error(error.message);
-    toast.success("Platform review links saved!");
-  }
-
   async function handleSendWaRequest() {
     if (!waPatientPhone.trim()) return toast.error("Enter patient phone number");
     setSendingWa(true);
     const link = shareUrl;
     const clinicTitle = clinic?.clinic_name || org?.name || "our clinic";
-    const msg = `Dear ${waPatientName || "Patient"}, thank you for visiting ${clinicTitle}! Please take 30 seconds to share your experience: ${link}`;
+    const msg = `Dear ${waPatientName || "Patient"}, thank you for visiting ${clinicTitle}! Please share your experience: ${link}`;
     try {
       await sendWaFn({ data: { phone: waPatientPhone.trim(), message: msg } });
-      toast.success(`WhatsApp review request sent to ${waPatientPhone}!`);
+      toast.success(`Review request sent to ${waPatientPhone}`);
       setShowSendWaModal(false);
       setWaPatientPhone("");
       setWaPatientName("");
@@ -349,7 +259,6 @@ export function ReviewsPage() {
         `https://wa.me/${waPatientPhone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(msg)}`,
         "_blank",
       );
-      toast.info("Opened WhatsApp to send review link");
       setShowSendWaModal(false);
     } finally {
       setSendingWa(false);
@@ -359,16 +268,17 @@ export function ReviewsPage() {
   const filtered = useMemo(() => {
     let r = rows;
     if (filter === "critical") r = r.filter((x) => x.rating < 3);
-    else if (filter === "verified")
-      r = r.filter((x) => x.source === "verified_appointment" || x.category === "Verified Patient");
+    else if (filter === "positive") r = r.filter((x) => x.rating >= 4);
+    else if (filter === "pending_reply") r = r.filter((x) => !x.reply);
     else if (filter !== "all") r = r.filter((x) => x.status === filter);
 
     const q = search.trim().toLowerCase();
-    if (q)
+    if (q) {
       r = r.filter(
         (x) =>
           x.reviewer_name.toLowerCase().includes(q) || (x.comment ?? "").toLowerCase().includes(q),
       );
+    }
     return r;
   }, [rows, filter, search]);
 
@@ -379,22 +289,15 @@ export function ReviewsPage() {
     const verifiedCount = rows.filter(
       (r) => r.source === "verified_appointment" || r.category === "Verified Patient",
     ).length;
-
-    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    rows.forEach((r) => {
-      if (r.rating >= 1 && r.rating <= 5) {
-        distribution[r.rating as 5 | 4 | 3 | 2 | 1]++;
-      }
-    });
+    const repliedCount = rows.filter((r) => Boolean(r.reply)).length;
+    const responseRate = rows.length > 0 ? Math.round((repliedCount / rows.length) * 100) : 100;
 
     return {
       total: rows.length,
-      pending: rows.filter((r) => r.status === "pending").length,
-      approved: approved.length,
+      avg: avg > 0 ? avg.toFixed(1) : "5.0",
       critical,
       verifiedCount,
-      avg: avg.toFixed(1),
-      distribution,
+      responseRate,
     };
   }, [rows]);
 
@@ -403,25 +306,15 @@ export function ReviewsPage() {
     : "";
 
   return (
-    <div className="space-y-6 pb-12 w-full">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <div className="space-y-6 pb-12 w-full max-w-6xl mx-auto">
+      {/* 1. Header (Clean & Minimal) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl font-bold flex items-center gap-2 text-foreground">
-              <Star className="size-6 text-amber-500 fill-amber-500" /> Google Reviews &amp; GMB
-              Engine
-            </h1>
-            <Badge
-              variant="outline"
-              className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold"
-            >
-              Top 3 Maps SEO
-            </Badge>
-          </div>
+          <h1 className="font-display text-xl font-bold flex items-center gap-2 text-foreground">
+            <Star className="size-5 text-amber-500 fill-amber-500" /> Google Reviews &amp; GMB
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Direct GMB sync, human-variance AI review collection (Hinglish/English), AI
-            auto-replies, and Local 3-Pack Maps ranking.
+            Collect authentic patient reviews, auto-reply with AI, and grow your Google Maps rating.
           </p>
         </div>
 
@@ -431,7 +324,7 @@ export function ReviewsPage() {
               size="sm"
               variant="outline"
               onClick={() => setShowQrModal(true)}
-              className="h-8 text-xs rounded-xl gap-1.5 border-border/80 flex-1 sm:flex-initial"
+              className="h-8 text-xs rounded-lg gap-1.5"
             >
               <Printer className="size-3.5" /> Standee QR
             </Button>
@@ -439,47 +332,50 @@ export function ReviewsPage() {
           <Button
             size="sm"
             onClick={() => setShowSendWaModal(true)}
-            className="h-8 text-xs font-semibold rounded-xl gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial shadow-xs"
+            className="h-8 text-xs font-semibold rounded-lg gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
           >
             <MessageSquare className="size-3.5" /> Send Review Link
           </Button>
         </div>
       </div>
 
-      {/* 1. Google Business Profile (GMB) Direct Connect Banner */}
-      <Card className="p-4 bg-gradient-to-r from-blue-500/[0.07] via-background to-emerald-500/[0.05] border-blue-500/30 shadow-xs space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      {/* 2. Top Action Bar: GMB Status & Smart Link in 1 Clean Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left: GMB Status */}
+        <Card className="p-4 flex items-center justify-between gap-3 border shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-white dark:bg-card border shadow-xs grid place-items-center font-bold text-lg text-blue-600">
+            <div className="size-9 rounded-lg bg-blue-600/10 text-blue-600 grid place-items-center font-bold text-base shrink-0">
               G
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-foreground">
-                  Google My Business (GMB) Integration
-                </h3>
+                <span className="font-semibold text-xs text-foreground truncate">
+                  {isGmbConnected
+                    ? gmbBusinessName || "Google My Business"
+                    : "Google Business Profile"}
+                </span>
                 {isGmbConnected ? (
-                  <Badge className="bg-emerald-600 text-white text-[10px] h-5 px-2 gap-1">
-                    <CheckCircle2 className="size-3" /> Connected
-                  </Badge>
-                ) : (
                   <Badge
                     variant="outline"
-                    className="text-[10px] h-5 px-2 border-amber-500/40 text-amber-600"
+                    className="text-[10px] h-4 px-1.5 bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-medium"
                   >
-                    Not Connected
+                    Connected
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">
+                    Not Linked
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {isGmbConnected
-                  ? `Linked: ${gmbBusinessName || "Clinic Listing"} • Place ID: ${placeId || "Configured"}`
-                  : "Connect your clinic's Google account to sync live reviews, auto-reply with SEO keywords, and climb Maps rankings."}
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                {isGmbConnected && placeId
+                  ? `Place ID: ${placeId}`
+                  : "Link to sync Maps reviews & direct review link"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {isGmbConnected ? (
               <>
                 <Button
@@ -487,376 +383,148 @@ export function ReviewsPage() {
                   variant="outline"
                   onClick={syncNow}
                   disabled={syncing}
-                  className="h-8 text-xs rounded-xl gap-1"
+                  className="h-7 text-xs px-2.5 rounded-lg gap-1"
                 >
-                  <RefreshCw className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
-                  {syncing ? "Syncing…" : "Sync Reviews"}
+                  <RefreshCw className={`size-3 ${syncing ? "animate-spin" : ""}`} />
+                  {syncing ? "Syncing" : "Sync"}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => setShowGmbModal(true)}
-                  className="h-8 text-xs rounded-xl"
+                  className="h-7 text-xs px-2 rounded-lg text-muted-foreground hover:text-foreground"
                 >
-                  Configure
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleDisconnectGmb}
-                  title="Disconnect GMB"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive rounded-xl"
-                >
-                  <Unlink className="size-3.5" />
+                  Edit
                 </Button>
               </>
             ) : (
               <Button
                 size="sm"
                 onClick={() => setShowGmbModal(true)}
-                className="h-8 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-xs"
+                className="h-7 text-xs px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
               >
-                <Globe className="size-3.5" /> Connect Google Account (GMB)
+                Connect GMB
               </Button>
             )}
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* 2. Google Maps Local 3-Pack Optimizer (Powered by /seo-maps Intelligence) */}
-      <Card className="p-4 border-amber-500/30 bg-amber-500/[0.02] shadow-xs space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Flame className="size-4 text-amber-500 fill-amber-500" />
-            <h2 className="font-bold text-sm text-foreground">
-              Google Maps Top 3 Ranking Optimizer
-            </h2>
+        {/* Right: Smart Review URL */}
+        <Card className="p-4 flex flex-col justify-center gap-2 border shadow-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-foreground">Smart Review Link</span>
+            {copiedLink ? (
+              <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                <Check className="size-3" /> Copied!
+              </span>
+            ) : null}
           </div>
-          <div className="flex items-center gap-2">
-            <Badge
+          <div className="flex items-center gap-1.5">
+            <Input
+              readOnly
+              value={shareUrl}
+              className="h-7 text-xs font-mono bg-muted/30 border-muted rounded-lg"
+            />
+            <Button
+              size="sm"
               variant="outline"
-              className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+              onClick={() => {
+                if (!shareUrl) return;
+                navigator.clipboard.writeText(shareUrl);
+                setCopiedLink(true);
+                setTimeout(() => setCopiedLink(false), 2000);
+                toast.success("Review link copied!");
+              }}
+              className="h-7 text-xs px-2.5 rounded-lg shrink-0 gap-1"
             >
-              Rank Score: 94/100 (Top 3 Contender)
-            </Badge>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-2">
-              <span>AI Auto-Reply Agent:</span>
-              <Switch
-                checked={autoReplyEnabled}
-                onCheckedChange={(val) => {
-                  setAutoReplyEnabled(val);
-                  toast.success(val ? "AI Auto-Reply Agent active" : "AI Auto-Reply paused");
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-1 text-xs">
-          <div className="p-2.5 rounded-xl border bg-card space-y-1">
-            <p className="text-[11px] text-muted-foreground font-medium">Review Velocity</p>
-            <p className="font-bold text-foreground text-sm flex items-center gap-1">
-              <span>{stats.total >= 5 ? "Healthy (5+/mo)" : "Building (Target 5/mo)"}</span>
-              <Check className="size-3.5 text-emerald-500" />
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              Steady review flow beats spam algorithm
-            </p>
-          </div>
-
-          <div className="p-2.5 rounded-xl border bg-card space-y-1">
-            <p className="text-[11px] text-muted-foreground font-medium">
-              Hinglish / Natural Diversity
-            </p>
-            <p className="font-bold text-foreground text-sm flex items-center gap-1">
-              <span>High Randomness</span>
-              <Sparkles className="size-3.5 text-amber-500" />
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              Colloquial Hinglish + English variety
-            </p>
-          </div>
-
-          <div className="p-2.5 rounded-xl border bg-card space-y-1">
-            <p className="text-[11px] text-muted-foreground font-medium">Owner Response Rate</p>
-            <p className="font-bold text-foreground text-sm flex items-center gap-1">
-              <span>100% Target</span>
-              <Award className="size-3.5 text-blue-500" />
-            </p>
-            <p className="text-[10px] text-muted-foreground">AI replies with local SEO keywords</p>
-          </div>
-
-          <div className="p-2.5 rounded-xl border bg-card space-y-1">
-            <p className="text-[11px] text-muted-foreground font-medium">Local Geo-Relevance</p>
-            <p className="font-bold text-foreground text-sm flex items-center gap-1">
-              <span>Indexed</span>
-              <MapPin className="size-3.5 text-rose-500" />
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              Area &amp; specialty keywords matched
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* 3. Compact 4-KPI Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Total Reviews</p>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="font-display text-xl sm:text-2xl font-bold text-foreground">
-              {stats.total}
-            </span>
-            <span className="text-[10px] text-muted-foreground">collected</span>
-          </div>
-        </Card>
-
-        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Avg Rating</p>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="font-display text-xl sm:text-2xl font-bold text-amber-500">
-              ⭐ {stats.avg}
-            </span>
-            <span className="text-[10px] text-muted-foreground">/ 5.0</span>
-          </div>
-        </Card>
-
-        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Verified Patients</p>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="font-display text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {stats.verifiedCount}
-            </span>
-            <span className="text-[10px] text-muted-foreground">consulted</span>
-          </div>
-        </Card>
-
-        <Card className="p-3 sm:p-4 border-border/80 shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Protected Feedback</p>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="font-display text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400">
-              {stats.critical}
-            </span>
-            <span className="text-[10px] text-muted-foreground">offline (&lt;3★)</span>
+              <Copy className="size-3" /> Copy
+            </Button>
+            {shareUrl ? (
+              <a href={shareUrl} target="_blank" rel="noreferrer">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <ExternalLink className="size-3.5" />
+                </Button>
+              </a>
+            ) : null}
           </div>
         </Card>
       </div>
 
-      {/* Share Links & Multi-Platform Configuration */}
-      {shareUrl && (
-        <div className="grid md:grid-cols-5 gap-4">
-          {/* Left: Public Link & Platform Config */}
-          <div className="md:col-span-3 space-y-4">
-            <Card className="p-4 space-y-3">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">
-                Public Smart Review URL (AI Humanized)
-              </Label>
-              <div className="flex gap-2">
-                <Input readOnly value={shareUrl} className="font-mono text-xs rounded-xl h-9" />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareUrl);
-                    toast.success("Review link copied to clipboard!");
-                  }}
-                  className="h-9 rounded-xl text-xs gap-1"
-                >
-                  <Copy className="size-3.5" /> Copy
-                </Button>
-                <a href={shareUrl} target="_blank" rel="noreferrer">
-                  <Button variant="ghost" size="sm" className="h-9 rounded-xl text-xs gap-1">
-                    <ExternalLink className="size-3.5" /> Open
-                  </Button>
-                </a>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                When patients open this link, the AI automatically drafts a natural, human-written
-                review in <b>Hinglish</b> or <b>English</b> with Doctor name and local keywords.
-              </p>
-            </Card>
+      {/* 3. Core Stats (4 Clean Numbers in 1 Row) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-3.5 border shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Total Reviews</p>
+          <p className="font-display text-xl font-bold text-foreground mt-0.5">{stats.total}</p>
+        </Card>
 
-            {/* Multi-Platform Review Setup */}
-            <Card className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">
-                    Google Business &amp; Discovery Channels
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Connect official links for Google Maps, Practo, and Justdial.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={savePlatformLinks}
-                  disabled={savingPlatform}
-                  className="h-8 text-xs rounded-xl"
-                >
-                  {savingPlatform ? "Saving…" : "Save Platforms"}
-                </Button>
-              </div>
+        <Card className="p-3.5 border shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Average Rating</p>
+          <p className="font-display text-xl font-bold text-amber-500 mt-0.5">
+            ⭐ {stats.avg} <span className="text-xs text-muted-foreground font-normal">/ 5.0</span>
+          </p>
+        </Card>
 
-              <div className="space-y-2.5 text-xs">
-                <div>
-                  <Label className="text-[11px]">Google Business Profile / Maps URL</Label>
-                  <Input
-                    value={gmbUrl}
-                    onChange={(e) => setGmbUrl(e.target.value)}
-                    placeholder="https://g.page/r/... or Google Maps link"
-                    className="text-xs rounded-xl h-9 mt-1"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[11px]">Practo Doctor Profile URL (India)</Label>
-                    <Input
-                      value={practoUrl}
-                      onChange={(e) => setPractoUrl(e.target.value)}
-                      placeholder="https://www.practo.com/doctor/..."
-                      className="text-xs rounded-xl h-8 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[11px]">Justdial Listing URL (Optional)</Label>
-                    <Input
-                      value={justdialUrl}
-                      onChange={(e) => setJustdialUrl(e.target.value)}
-                      placeholder="https://www.justdial.com/..."
-                      className="text-xs rounded-xl h-8 mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
+        <Card className="p-3.5 border shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Response Rate</p>
+          <p className="font-display text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+            {stats.responseRate}%
+          </p>
+        </Card>
 
-          {/* Right: Rating Distribution */}
-          <Card className="p-4 md:col-span-2 flex flex-col justify-between">
-            <div>
-              <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">
-                Rating Distribution
-              </h3>
-              <div className="space-y-2">
-                {[5, 4, 3, 2, 1].map((stars) => {
-                  const count = stats.distribution[stars as 5 | 4 | 3 | 2 | 1] || 0;
-                  const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-                  return (
-                    <div key={stars} className="flex items-center gap-2 text-xs">
-                      <span className="w-8 font-semibold flex items-center gap-0.5 justify-end shrink-0">
-                        {stars} <Star className="size-3 fill-amber-400 text-amber-400" />
-                      </span>
-                      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-amber-400 rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="w-8 text-muted-foreground text-right shrink-0">{count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="text-[10px] text-muted-foreground italic border-t pt-3 mt-3">
-              💡 <b>GMB Local 3-Pack Factor:</b> Google prioritizes clinics that have steady 5-star
-              review velocity combined with 100% owner response rate.
-            </div>
-          </Card>
-        </div>
-      )}
+        <Card className="p-3.5 border shadow-xs bg-card">
+          <p className="text-[11px] text-muted-foreground font-medium">Private Feedback</p>
+          <p className="font-display text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+            {stats.critical}{" "}
+            <span className="text-xs text-muted-foreground font-normal">(&lt;3★)</span>
+          </p>
+        </Card>
+      </div>
 
-      {/* AI Sentiment & Keyword Mining */}
-      <Card className="p-5 space-y-4 border">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="size-4 text-primary" />
-            <h2 className="font-bold text-sm">AI Patient Sentiment &amp; Local SEO Keywords</h2>
-          </div>
-          <Badge
-            variant="outline"
-            className="text-[10px] bg-primary/10 text-primary border-primary/30"
-          >
-            Google NLP Sentiment Analysis
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="space-y-2">
-            <p className="font-semibold text-muted-foreground">Most Frequent Review Keywords</p>
-            <div className="flex flex-wrap gap-1.5">
-              {KEYWORD_ANALYTICS.map((kw) => (
-                <Badge
-                  key={kw.word}
-                  variant="outline"
-                  className={`text-xs px-2.5 py-1 rounded-xl font-medium ${
-                    kw.sentiment === "positive"
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                      : kw.sentiment === "negative"
-                        ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <span>{kw.word}</span>
-                  <span className="ml-1 opacity-75 font-mono">({kw.count})</span>
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl border bg-muted/20 space-y-2">
-            <p className="font-bold text-foreground flex items-center gap-1.5">
-              <Sparkles className="size-3.5 text-amber-500" /> Actionable Maps Ranking Strategy
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              Google Maps searches for "{clinic?.specialization || "doctor"} in{" "}
-              {clinic?.public_address?.split(",")?.[0] || "your area"}" place heavy weight on
-              patient reviews containing treatment names and staff politeness. The smart review link
-              automatically incorporates these terms!
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Review Filters & Search */}
-      <div className="space-y-2.5">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+      {/* 4. Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search patient name, phone, review comment…"
+            placeholder="Search reviews by name or text…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-9 text-xs rounded-xl border-border/80 bg-card"
+            className="pl-8 h-8 text-xs rounded-lg border-border/80 bg-background"
           />
         </div>
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {[
-            { key: "all", label: "All Reviews", count: rows.length },
-            { key: "critical", label: "Critical (<3★)", count: stats.critical },
-            { key: "verified", label: "Verified", count: stats.verifiedCount },
-            { key: "pending", label: "Pending", count: stats.pending },
-            { key: "approved", label: "Approved", count: stats.approved },
+            { key: "all", label: "All", count: rows.length },
             {
-              key: "hidden",
-              label: "Hidden",
-              count: rows.filter((r) => r.status === "hidden").length,
+              key: "pending_reply",
+              label: "Pending Reply",
+              count: rows.filter((r) => !r.reply).length,
             },
+            {
+              key: "positive",
+              label: "Positive (4-5★)",
+              count: rows.filter((r) => r.rating >= 4).length,
+            },
+            { key: "critical", label: "Attention (<3★)", count: stats.critical },
           ].map((f) => (
             <button
               key={f.key}
               type="button"
               onClick={() => setFilter(f.key)}
-              className={`text-xs px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap font-medium flex items-center gap-1.5 ${
+              className={`text-xs px-2.5 py-1 rounded-lg border transition-all whitespace-nowrap font-medium flex items-center gap-1.5 ${
                 filter === f.key
-                  ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
-                  : "bg-card border-border/80 text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
+                  : "bg-card border-border/70 text-muted-foreground hover:text-foreground"
               }`}
             >
               <span>{f.label}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full ${filter === f.key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}
+                className={`text-[10px] px-1 rounded-full ${filter === f.key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}
               >
                 {f.count}
               </span>
@@ -865,15 +533,15 @@ export function ReviewsPage() {
         </div>
       </div>
 
-      {/* Reviews Feed */}
+      {/* 5. Reviews Feed */}
       {loading ? (
-        <SkeletonRows rows={6} />
+        <SkeletonRows rows={5} />
       ) : filtered.length === 0 ? (
-        <Card className="p-8 text-center border-border/80 shadow-xs">
+        <Card className="p-8 text-center border shadow-xs">
           <EmptyState
-            icon={<MessageSquare className="size-6" />}
-            title="No reviews match your filter"
-            description="Share your public review URL or send a WhatsApp link to start collecting reviews."
+            icon={<MessageSquare className="size-6 text-muted-foreground" />}
+            title="No reviews found"
+            description="Send a review request link to patients to start collecting reviews."
           />
         </Card>
       ) : (
@@ -888,126 +556,84 @@ export function ReviewsPage() {
                 key={r.id}
                 className={`p-4 transition-all border shadow-xs ${
                   isCritical
-                    ? "border-rose-500/40 bg-rose-500/[0.02]"
+                    ? "border-rose-500/30 bg-rose-500/[0.02]"
                     : "border-border/80 bg-card hover:border-primary/40"
                 }`}
               >
-                <div className="space-y-2.5">
+                <div className="space-y-2">
+                  {/* Top Bar: Name, Rating, Badges, Date */}
                   <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-sm text-foreground">{r.reviewer_name}</span>
-                        <Stars value={r.rating} />
-                        {isVerified && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            <ShieldCheck className="size-3" /> Verified Patient
-                          </span>
-                        )}
-                        {isCritical && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">
-                            🚨 Offline Recovery
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <span>
-                          {new Date(r.created_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-xs text-foreground">
+                        {r.reviewer_name}
+                      </span>
+                      <Stars value={r.rating} />
+                      {isVerified && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                          <ShieldCheck className="size-3" /> Verified
                         </span>
-                        {r.reviewer_phone && (
-                          <span className="font-mono text-foreground flex items-center gap-1 font-medium">
-                            • <Phone className="size-3 text-emerald-600" /> {r.reviewer_phone}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {isCritical && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                          Offline Care
+                        </span>
+                      )}
+                      <span className="text-[11px] text-muted-foreground">
+                        •{" "}
+                        {new Date(r.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
                     </div>
 
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-semibold capitalize ${
-                        r.status === "approved"
-                          ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/5"
-                          : r.status === "hidden"
-                            ? "border-muted-foreground/30 text-muted-foreground bg-muted/40"
-                            : "border-amber-500/40 text-amber-600 bg-amber-500/5"
-                      }`}
-                    >
-                      {r.status}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      {isCritical && r.reviewer_phone && (
+                        <a href={`tel:${r.reviewer_phone}`}>
+                          <Button
+                            size="sm"
+                            className="h-6 text-[10px] font-semibold rounded bg-rose-600 hover:bg-rose-700 text-white gap-1 px-2"
+                          >
+                            <PhoneCall className="size-3" /> Call
+                          </Button>
+                        </a>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReplying(r)}
+                        className="h-6 text-[10px] font-medium rounded text-primary border-primary/30 hover:bg-primary/10 gap-1 px-2"
+                      >
+                        <Reply className="size-3" /> {r.reply ? "Edit Reply" : "AI Reply"}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => remove(r.id)}
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive rounded"
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
                   </div>
 
+                  {/* Review Text */}
                   {r.comment && (
-                    <p className="text-xs leading-relaxed text-foreground bg-muted/20 p-2.5 rounded-xl border border-border/60">
+                    <p className="text-xs leading-relaxed text-foreground bg-muted/20 p-2.5 rounded-lg border border-border/60">
                       "{r.comment}"
                     </p>
                   )}
 
+                  {/* Clinic Reply */}
                   {r.reply && (
-                    <div className="pl-3 border-l-2 border-primary text-xs bg-muted/30 p-2.5 rounded-xl space-y-1">
-                      <div className="font-bold text-primary flex items-center gap-1">
+                    <div className="pl-3 border-l-2 border-primary text-xs bg-muted/30 p-2 rounded-lg space-y-0.5">
+                      <div className="font-semibold text-[11px] text-primary flex items-center gap-1">
                         <Bot className="size-3" /> Clinic Reply:
                       </div>
                       <p className="text-muted-foreground leading-relaxed text-xs">{r.reply}</p>
                     </div>
                   )}
-
-                  <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-border/60 flex-wrap">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {isCritical && r.reviewer_phone && (
-                        <a href={`tel:${r.reviewer_phone}`}>
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white gap-1 shadow-xs"
-                          >
-                            <PhoneCall className="size-3" /> Call Patient
-                          </Button>
-                        </a>
-                      )}
-
-                      {r.status !== "approved" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(r.id, "approved")}
-                          className="h-7 text-xs font-medium rounded-lg text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-                        >
-                          <Eye className="size-3 mr-1" /> Approve
-                        </Button>
-                      )}
-
-                      {r.status !== "hidden" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setStatus(r.id, "hidden")}
-                          className="h-7 text-xs text-muted-foreground hover:bg-muted rounded-lg"
-                        >
-                          <EyeOff className="size-3 mr-1" /> Hide
-                        </Button>
-                      )}
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setReplying(r)}
-                        className="h-7 text-xs font-semibold rounded-lg text-primary border-primary/30 hover:bg-primary/10 gap-1"
-                      >
-                        <Reply className="size-3" /> AI SEO Reply
-                      </Button>
-                    </div>
-
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => remove(r.id)}
-                      className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
                 </div>
               </Card>
             );
@@ -1019,8 +645,8 @@ export function ReviewsPage() {
       {replying && (
         <ReplyDialog
           review={replying}
-          clinic={(clinic as Record<string, unknown> | null) ?? null}
-          org={(org as Record<string, unknown> | null) ?? null}
+          clinic={clinic as Record<string, unknown> | null}
+          org={org as Record<string, unknown> | null}
           onClose={() => setReplying(null)}
           onSaved={() => {
             setReplying(null);
@@ -1029,235 +655,181 @@ export function ReviewsPage() {
         />
       )}
 
-      {/* Google My Business Connection Modal */}
+      {/* GMB Connection Modal */}
       {showGmbModal && (
         <Dialog open={showGmbModal} onOpenChange={setShowGmbModal}>
           <DialogContent className="max-w-md p-6 rounded-2xl space-y-4">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold flex items-center gap-2">
-                <Globe className="size-5 text-blue-600" /> Connect Google My Business
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <Globe className="size-4 text-blue-600" /> Connect Google My Business
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs space-y-2">
-                <p className="font-semibold text-blue-900 dark:text-blue-300">
-                  Google Account Direct Sign-in
-                </p>
-                <p className="text-muted-foreground text-[11px] leading-relaxed">
-                  Sign in directly with the Google account managing your clinic's Google Business
-                  Profile.
-                </p>
-                <Button
-                  type="button"
-                  onClick={handleGoogleOAuthSignIn}
-                  className="w-full h-9 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border shadow-xs text-xs font-semibold flex items-center justify-center gap-2"
-                >
-                  <svg className="size-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  Sign in with Google (GMB Account)
-                </Button>
+            <form onSubmit={handleConnectGmb} className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Google Business Name</Label>
+                <Input
+                  value={gmbBusinessName}
+                  onChange={(e) => setGmbBusinessName(e.target.value)}
+                  placeholder="e.g. Apex Health Clinic"
+                  className="text-xs rounded-lg h-8"
+                />
               </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase">
-                  <span className="bg-background px-2 text-muted-foreground font-semibold">
-                    Or Enter Google Business Profile Details
-                  </span>
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Google Place ID *</Label>
+                <Input
+                  value={placeId}
+                  onChange={(e) => setPlaceId(e.target.value)}
+                  placeholder="ChIJ... (Find from Google Maps)"
+                  className="text-xs font-mono rounded-lg h-8"
+                  required
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Enables live Maps review sync and direct 5-star write-review link.
+                </p>
               </div>
 
-              <form onSubmit={handleConnectGmb} className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Google Business Name</Label>
-                  <Input
-                    value={gmbBusinessName}
-                    onChange={(e) => setGmbBusinessName(e.target.value)}
-                    placeholder="e.g. Apex Dental & Skin Care"
-                    className="text-xs rounded-xl h-9"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Google Maps / Review URL (Optional)</Label>
+                <Input
+                  value={gmbUrl}
+                  onChange={(e) => setGmbUrl(e.target.value)}
+                  placeholder="https://g.page/r/... or Google Maps link"
+                  className="text-xs rounded-lg h-8"
+                />
+              </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs">Google Place ID</Label>
-                  <Input
-                    value={placeId}
-                    onChange={(e) => setPlaceId(e.target.value)}
-                    placeholder="ChIJ... (From Google Maps Place ID Finder)"
-                    className="text-xs font-mono rounded-xl h-9"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Required to fetch live Google Reviews &amp; direct 5-star write-review links.
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Google Review Profile URL</Label>
-                  <Input
-                    value={gmbUrl}
-                    onChange={(e) => setGmbUrl(e.target.value)}
-                    placeholder="https://g.page/r/... or Google Maps URL"
-                    className="text-xs rounded-xl h-9"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Connected Google Account Email (Optional)</Label>
-                  <Input
-                    type="email"
-                    value={gmbAccountEmail}
-                    onChange={(e) => setGmbAccountEmail(e.target.value)}
-                    placeholder="clinic.doctor@gmail.com"
-                    className="text-xs rounded-xl h-9"
-                  />
-                </div>
-
-                <DialogFooter className="pt-2">
+              <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
+                {isGmbConnected ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDisconnectGmb}
+                    className="h-8 text-xs text-destructive hover:bg-destructive/10 rounded-lg gap-1"
+                  >
+                    <Unlink className="size-3.5" /> Disconnect
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowGmbModal(false)}
-                    className="h-9 text-xs rounded-xl"
+                    className="h-8 text-xs rounded-lg"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     size="sm"
-                    disabled={connectingGmb}
-                    className="h-9 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={connectingGmb || !placeId.trim()}
+                    className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {connectingGmb ? "Saving…" : "Save & Link GMB"}
+                    {connectingGmb ? "Saving…" : "Save GMB"}
                   </Button>
-                </DialogFooter>
-              </form>
-            </div>
+                </div>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Printable Waiting Room QR Standee Modal */}
+      {/* Standee QR Modal */}
       {showQrModal && (
         <Dialog open={showQrModal} onOpenChange={setShowQrModal}>
-          <DialogContent className="max-w-md p-6 rounded-2xl">
-            <DialogHeader className="flex flex-row items-center justify-between border-b pb-2">
-              <DialogTitle className="text-base font-bold flex items-center gap-2">
-                <Printer className="size-4 text-primary" /> Printable Reception QR Standee
+          <DialogContent className="max-w-sm p-6 rounded-2xl">
+            <DialogHeader className="border-b pb-2">
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <Printer className="size-4 text-primary" /> Reception QR Standee
               </DialogTitle>
             </DialogHeader>
 
             <div
               id="printable-standee"
-              className="border-2 border-primary/20 bg-background rounded-2xl p-6 text-center space-y-4 my-2 shadow-lg"
+              className="border bg-background rounded-xl p-5 text-center space-y-3 my-2 shadow-xs"
             >
-              <div className="space-y-1">
-                <div className="size-12 rounded-full bg-primary/10 text-primary grid place-items-center mx-auto font-bold text-lg">
-                  {(clinic?.clinic_name || org?.name || "C").charAt(0)}
-                </div>
-                <h3 className="font-bold text-lg">
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-base text-foreground">
                   {clinic?.clinic_name || org?.name || "Our Clinic"}
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  {clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Doctor Consultation"} •{" "}
-                  {clinic?.specialization || "Healthcare"}
-                </p>
-              </div>
-
-              <div className="bg-white p-3 rounded-xl border w-fit mx-auto shadow-xs">
-                <QRCodeSVG value={shareUrl} size={180} level="M" />
-              </div>
-
-              <div className="space-y-1">
-                <p className="font-bold text-sm text-primary">Scan to Share Your Feedback</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Takes only 30 seconds • AI drafts your feedback automatically!
+                  {clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : "Doctor Consultation"}
                 </p>
+              </div>
+
+              <div className="bg-white p-2.5 rounded-lg border w-fit mx-auto shadow-xs">
+                <QRCodeSVG value={shareUrl} size={150} level="M" />
+              </div>
+
+              <div className="space-y-0.5">
+                <p className="font-semibold text-xs text-primary">Scan to Leave Feedback</p>
+                <p className="text-[10px] text-muted-foreground">Takes only 30 seconds</p>
               </div>
             </div>
 
-            <DialogFooter className="flex justify-between items-center sm:justify-between pt-2">
+            <DialogFooter className="flex justify-between items-center sm:justify-between pt-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowQrModal(false)}
-                className="h-9 text-xs rounded-xl"
+                className="h-8 text-xs rounded-lg"
               >
                 Close
               </Button>
               <Button
                 size="sm"
                 onClick={() => window.print()}
-                className="h-9 text-xs font-semibold rounded-xl bg-primary text-primary-foreground gap-1.5"
+                className="h-8 text-xs font-semibold rounded-lg bg-primary text-primary-foreground gap-1.5"
               >
-                <Printer className="size-3.5" /> Print Standee (A5/Paper)
+                <Printer className="size-3.5" /> Print
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Send WhatsApp Review Request Modal */}
+      {/* Send WhatsApp Modal */}
       {showSendWaModal && (
         <Dialog open={showSendWaModal} onOpenChange={setShowSendWaModal}>
-          <DialogContent className="max-w-md p-6 rounded-2xl space-y-4">
+          <DialogContent className="max-w-sm p-5 rounded-2xl space-y-3">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold flex items-center gap-2">
-                <MessageSquare className="size-4 text-green-600" /> Send WhatsApp Review Request
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <MessageSquare className="size-4 text-emerald-600" /> Send WhatsApp Review Link
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="space-y-1">
                 <Label className="text-xs">Patient Name</Label>
                 <Input
                   value={waPatientName}
                   onChange={(e) => setWaPatientName(e.target.value)}
-                  placeholder="e.g. Priya Sharma"
-                  className="text-xs rounded-xl h-9"
+                  placeholder="e.g. Rahul Sharma"
+                  className="text-xs rounded-lg h-8"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Patient WhatsApp Phone</Label>
+                <Label className="text-xs">WhatsApp Number</Label>
                 <Input
                   value={waPatientPhone}
                   onChange={(e) => setWaPatientPhone(e.target.value)}
                   placeholder="+919876543210"
-                  className="text-xs font-mono rounded-xl h-9"
+                  className="text-xs font-mono rounded-lg h-8"
                 />
-              </div>
-              <div className="p-2.5 rounded-xl bg-muted/30 border text-[11px] text-muted-foreground">
-                <strong>Preview:</strong> "Dear {waPatientName || "Patient"}, thank you for visiting{" "}
-                {clinic?.clinic_name || org?.name || "our clinic"}! Please take 30 seconds to share
-                your experience: {shareUrl}"
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowSendWaModal(false)}
-                className="h-9 text-xs rounded-xl"
+                className="h-8 text-xs rounded-lg"
               >
                 Cancel
               </Button>
@@ -1265,9 +837,9 @@ export function ReviewsPage() {
                 size="sm"
                 onClick={handleSendWaRequest}
                 disabled={sendingWa || !waPatientPhone.trim()}
-                className="h-9 text-xs font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                className="h-8 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               >
-                <MessageSquare className="size-3.5" /> Send Request
+                <MessageSquare className="size-3.5" /> Send
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1283,7 +855,7 @@ function Stars({ value }: { value: number }) {
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
-          className={`size-3.5 ${i <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`}
+          className={`size-3 ${i <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`}
         />
       ))}
     </div>
@@ -1337,10 +909,9 @@ function ReplyDialog({
 
       if (res?.reply) {
         setReply(res.reply);
-        toast.success("AI SEO Reply generated!");
+        toast.success("AI Reply generated");
       }
     } catch {
-      // Fallback
       const name = review.reviewer_name || "Patient";
       const doc = typeof clinic?.doctor_name === "string" ? clinic.doctor_name : "Doctor";
       const clinicName =
@@ -1352,14 +923,14 @@ function ReplyDialog({
 
       if (review.rating >= 4) {
         setReply(
-          `Dear ${name}, thank you so much for your positive review! Dr. ${doc} and our entire medical team at ${clinicName} are delighted to hear you had a great experience. We wish you good health!`,
+          `Dear ${name}, thank you so much for your review! Dr. ${doc} and our team at ${clinicName} are glad you had a positive experience. Wishing you good health!`,
         );
       } else {
         setReply(
-          `Dear ${name}, thank you for your feedback. We apologize that your experience did not meet expectations. Please contact our clinic manager directly so we can resolve this personally.`,
+          `Dear ${name}, thank you for your feedback. We apologize for any inconvenience. Please reach out to our clinic team directly so we can resolve this personally.`,
         );
       }
-      toast.success("AI reply template generated");
+      toast.success("Reply template generated");
     } finally {
       setGenerating(false);
     }
@@ -1373,51 +944,48 @@ function ReplyDialog({
       .eq("id", review.id);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Reply saved successfully");
+    toast.success("Reply saved");
     onSaved();
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md p-6 rounded-2xl space-y-3">
+      <DialogContent className="sm:max-w-md p-5 rounded-2xl space-y-3">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center pr-6 text-sm font-bold">
-            <span>
-              Reply to {review.reviewer_name} ({review.rating}★)
-            </span>
+            <span>Reply to {review.reviewer_name}</span>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={generateAiReply}
               disabled={generating}
-              className="h-7 text-xs text-primary gap-1 shrink-0 font-semibold"
+              className="h-6 text-xs text-primary gap-1 font-semibold"
             >
-              <Bot className="size-3.5 animate-pulse" />{" "}
-              {generating ? "Generating..." : "✨ AI Auto-Reply"}
+              <Bot className="size-3" /> {generating ? "Generating..." : "✨ AI Draft"}
             </Button>
           </DialogTitle>
         </DialogHeader>
 
         <Textarea
-          rows={5}
+          rows={4}
           value={reply}
           onChange={(e) => setReply(e.target.value)}
-          placeholder="Type or generate AI reply with local SEO keywords…"
-          className="text-xs resize-none leading-relaxed rounded-xl"
+          placeholder="Type or generate reply…"
+          className="text-xs resize-none leading-relaxed rounded-lg"
         />
 
-        <DialogFooter className="flex justify-between items-center sm:justify-between">
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 text-xs rounded-xl">
+        <DialogFooter className="flex justify-between items-center sm:justify-between pt-1">
+          <Button variant="ghost" size="sm" onClick={onClose} className="h-7 text-xs rounded-lg">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={save}
             disabled={saving}
-            className="h-8 text-xs font-semibold rounded-xl px-4"
+            className="h-7 text-xs font-semibold rounded-lg px-3"
           >
-            {saving ? "Saving…" : "Save & Approve Reply"}
+            {saving ? "Saving…" : "Save Reply"}
           </Button>
         </DialogFooter>
       </DialogContent>
