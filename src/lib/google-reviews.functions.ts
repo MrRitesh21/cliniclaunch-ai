@@ -177,3 +177,24 @@ export const requestAiReviewReply = createServerFn({ method: "POST" })
     });
     return { reply };
   });
+
+export const fetchGoogleProfiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        provider_token: z.string().nullable().optional(),
+        query: z.string().max(200).nullable().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { fetchGoogleBusinessProfiles } = await import("@/lib/google-reviews.server");
+    return await fetchGoogleBusinessProfiles({
+      clinicId: data.clinic_id,
+      providerToken: data.provider_token,
+      query: data.query,
+    });
+  });

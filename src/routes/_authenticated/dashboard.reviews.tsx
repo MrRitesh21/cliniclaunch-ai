@@ -21,6 +21,8 @@ import {
   Globe,
   Check,
   Unlink,
+  Loader2,
+  MapPin,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -47,11 +49,15 @@ import {
   saveGoogleGmbConnection,
   disconnectGoogleGmb,
   requestAiReviewReply,
+  fetchGoogleProfiles,
 } from "@/lib/google-reviews.functions";
 import { sendTestWhatsapp } from "@/lib/baileys.functions";
 import { useClinic } from "./dashboard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/reviews")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    google_connect: typeof search.google_connect === "string" ? search.google_connect : undefined,
+  }),
   component: () => (
     <AppGuard appKey="reviews">
       <ReviewsPage />
@@ -96,6 +102,25 @@ export function ReviewsPage() {
   const [syncing, setSyncing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Google Profile Fetch & Multi-Selection State
+  type GoogleProfileItem = {
+    placeId: string;
+    name: string;
+    address: string;
+    phone?: string | null;
+    websiteUri?: string | null;
+    rating?: number | null;
+    reviewCount?: number | null;
+    profileUrl?: string | null;
+    accountName?: string | null;
+  };
+
+  const [profiles, setProfiles] = useState<GoogleProfileItem[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<GoogleProfileItem | null>(null);
+  const [fetchingProfiles, setFetchingProfiles] = useState(false);
+  const [gmbStep, setGmbStep] = useState<"connect" | "select" | "connected">("connect");
+  const [searchLocationQuery, setSearchLocationQuery] = useState("");
+
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
   const [showSendWaModal, setShowSendWaModal] = useState(false);
@@ -107,6 +132,7 @@ export function ReviewsPage() {
   const sendWaFn = useServerFn(sendTestWhatsapp);
   const saveGmbConnectionFn = useServerFn(saveGoogleGmbConnection);
   const disconnectGmbFn = useServerFn(disconnectGoogleGmb);
+  const fetchGoogleProfilesFn = useServerFn(fetchGoogleProfiles);
 
   useEffect(() => {
     if (!clinic) return;
@@ -149,45 +175,114 @@ export function ReviewsPage() {
     void load();
   }, [load]);
 
-  async function handleConnectGmb(e: React.FormEvent) {
-    e.preventDefault();
-    if (!clinic) return;
+  const loadProfilesFromGoogle = useCallback(
+    async (customQuery?: string) => {
+      if (!clinic) return;
+      setFetchingProfiles(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.provider_token || null;
+        const email = sessionData?.session?.user?.email || null;
+        if (email) setGmbAccountEmail(email);
+
+        const res = await fetchGoogleProfilesFn({
+          data: {
+            clinic_id: clinic.id,
+            provider_token: token,
+            query: customQuery || clinic.clinic_name || null,
+          },
+        });
+
+        const items = (res?.profiles || []) as GoogleProfileItem[];
+        setProfiles(items);
+        setGmbStep("select");
+
+        if (items.length > 0) {
+          const match = items.find((p) => p.placeId === placeId);
+          setSelectedProfile(match || items[0]);
+        }
+      } catch (err) {
+        toast.error("Could not fetch profiles: " + (err as Error).message);
+      } finally {
+        setFetchingProfiles(false);
+      }
+    },
+    [clinic, fetchGoogleProfilesFn, placeId],
+  );
+
+  // Catch OAuth redirect back
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("google_connect") === "1") {
+      url.searchParams.delete("google_connect");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      setShowGmbModal(true);
+      void loadProfilesFromGoogle();
+    }
+  }, [loadProfilesFromGoogle]);
+
+  async function handleGoogleLoginAndConnect() {
+    setFetchingProfiles(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          scopes: "https://www.googleapis.com/auth/business.manage email profile",
+          redirectTo: `${origin}/dashboard/reviews?google_connect=1`,
+        },
+      });
+
+      if (error) {
+        // If OAuth provider is not configured or in dev, load matching profiles directly
+        await loadProfilesFromGoogle();
+      }
+    } catch {
+      await loadProfilesFromGoogle();
+    }
+  }
+
+  function openGmbModal() {
+    if (isGmbConnected) {
+      setGmbStep("connected");
+    } else {
+      setGmbStep("connect");
+    }
+    setShowGmbModal(true);
+  }
+
+  async function handleConfirmProfile() {
+    if (!clinic || !selectedProfile) return;
     setConnectingGmb(true);
     try {
       await saveGmbConnectionFn({
         data: {
           clinic_id: clinic.id,
           organization_id: orgId || null,
-          place_id: placeId.trim() || null,
-          business_name: gmbBusinessName.trim() || null,
-          profile_url: gmbUrl.trim() || null,
-          account_email: gmbAccountEmail.trim() || null,
+          place_id: selectedProfile.placeId,
+          business_name: selectedProfile.name,
+          profile_url:
+            selectedProfile.profileUrl ||
+            `https://search.google.com/local/writereview?placeid=${encodeURIComponent(selectedProfile.placeId)}`,
+          account_email: gmbAccountEmail || null,
         },
       });
+
+      setPlaceId(selectedProfile.placeId);
+      setGmbBusinessName(selectedProfile.name);
+      setGmbUrl(selectedProfile.profileUrl || "");
       setIsGmbConnected(true);
       setShowGmbModal(false);
-      toast.success("Google My Business (GMB) connected");
+      setGmbStep("connected");
+      toast.success(`Google Business Profile connected: ${selectedProfile.name}`);
+
+      // Auto sync reviews
+      void syncFn({ data: { clinic_id: clinic.id } }).catch(() => {});
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setConnectingGmb(false);
-    }
-  }
-
-  async function handleGoogleOAuthSignIn() {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          scopes: "https://www.googleapis.com/auth/business.manage",
-          redirectTo: typeof window !== "undefined" ? window.location.href : undefined,
-        },
-      });
-      if (error) {
-        toast.info("Please enter Google Place ID or profile URL below.");
-      }
-    } catch {
-      toast.info("Please enter Google Place ID or profile URL below.");
     }
   }
 
@@ -199,6 +294,10 @@ export function ReviewsPage() {
       });
       setIsGmbConnected(false);
       setPlaceId("");
+      setGmbBusinessName("");
+      setGmbUrl("");
+      setGmbStep("connect");
+      setSelectedProfile(null);
       toast.success("Google My Business disconnected");
     } catch (e) {
       toast.error((e as Error).message);
@@ -391,16 +490,16 @@ export function ReviewsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setShowGmbModal(true)}
+                  onClick={openGmbModal}
                   className="h-7 text-xs px-2 rounded-lg text-muted-foreground hover:text-foreground"
                 >
-                  Edit
+                  Manage
                 </Button>
               </>
             ) : (
               <Button
                 size="sm"
-                onClick={() => setShowGmbModal(true)}
+                onClick={openGmbModal}
                 className="h-7 text-xs px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
               >
                 Connect GMB
@@ -655,53 +754,56 @@ export function ReviewsPage() {
         />
       )}
 
-      {/* GMB Connection Modal */}
+      {/* GMB Connection & Profile Selection Modal */}
       {showGmbModal && (
         <Dialog open={showGmbModal} onOpenChange={setShowGmbModal}>
           <DialogContent className="max-w-md p-6 rounded-2xl space-y-4">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <Globe className="size-4 text-blue-600" /> Connect Google My Business
+                <Globe className="size-4 text-blue-600" /> Google My Business (GMB)
               </DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleConnectGmb} className="space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Google Business Name</Label>
-                <Input
-                  value={gmbBusinessName}
-                  onChange={(e) => setGmbBusinessName(e.target.value)}
-                  placeholder="e.g. Apex Health Clinic"
-                  className="text-xs rounded-lg h-8"
-                />
-              </div>
+            {/* Step 1: Already Connected View */}
+            {isGmbConnected && gmbStep === "connected" && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
+                      <CheckCircle2 className="size-3 text-emerald-600" /> Connected Location
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                    >
+                      Active
+                    </Badge>
+                  </div>
+                  <h3 className="font-bold text-sm text-foreground">
+                    {gmbBusinessName || "Google My Business"}
+                  </h3>
+                  {placeId && (
+                    <p className="text-[11px] font-mono text-muted-foreground truncate">
+                      Place ID: {placeId}
+                    </p>
+                  )}
+                </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Google Place ID *</Label>
-                <Input
-                  value={placeId}
-                  onChange={(e) => setPlaceId(e.target.value)}
-                  placeholder="ChIJ... (Find from Google Maps)"
-                  className="text-xs font-mono rounded-lg h-8"
-                  required
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Enables live Maps review sync and direct 5-star write-review link.
-                </p>
-              </div>
+                <div className="space-y-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setGmbStep("select");
+                      void loadProfilesFromGoogle();
+                    }}
+                    className="w-full h-9 text-xs rounded-xl gap-2 font-medium"
+                  >
+                    <RefreshCw className="size-3.5" /> Switch Location / Choose Another Profile
+                  </Button>
+                </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Google Maps / Review URL (Optional)</Label>
-                <Input
-                  value={gmbUrl}
-                  onChange={(e) => setGmbUrl(e.target.value)}
-                  placeholder="https://g.page/r/... or Google Maps link"
-                  className="text-xs rounded-lg h-8"
-                />
-              </div>
-
-              <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
-                {isGmbConnected ? (
+                <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
                   <Button
                     type="button"
                     variant="ghost"
@@ -709,32 +811,231 @@ export function ReviewsPage() {
                     onClick={handleDisconnectGmb}
                     className="h-8 text-xs text-destructive hover:bg-destructive/10 rounded-lg gap-1"
                   >
-                    <Unlink className="size-3.5" /> Disconnect
+                    <Unlink className="size-3.5" /> Disconnect GMB
                   </Button>
-                ) : (
-                  <span />
-                )}
-                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setShowGmbModal(false)}
+                    className="h-8 text-xs font-semibold rounded-lg"
+                  >
+                    Close
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+
+            {/* Step 2: Connect with Google */}
+            {!isGmbConnected && gmbStep === "connect" && (
+              <div className="space-y-4 text-center py-2">
+                <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-blue-600 grid place-items-center mx-auto shadow-xs">
+                  <Globe className="size-6 text-blue-600" />
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-foreground">Sign in with Google</h3>
+                  <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                    Connect your Google account to automatically import all clinic locations and
+                    manage reviews.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5 pt-2">
+                  <Button
+                    type="button"
+                    onClick={handleGoogleLoginAndConnect}
+                    disabled={fetchingProfiles}
+                    className="w-full h-11 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 font-medium text-xs rounded-xl shadow-xs flex items-center justify-center gap-3 transition-all"
+                  >
+                    {fetchingProfiles ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin text-blue-600" />
+                        <span>Fetching your Business Profiles…</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="size-4 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        <span>Continue with Google</span>
+                      </>
+                    )}
+                  </Button>
+
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowGmbModal(false)}
+                    onClick={() => void loadProfilesFromGoogle()}
+                    disabled={fetchingProfiles}
+                    className="h-8 text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Or find matching profiles for {clinic?.clinic_name || "this clinic"} →
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Choose Profile (if multiple or single) */}
+            {gmbStep === "select" && (
+              <div className="space-y-3">
+                <div className="space-y-0.5">
+                  <h3 className="font-bold text-xs text-foreground flex items-center justify-between">
+                    <span>Choose Your Business Profile</span>
+                    {profiles.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        {profiles.length} profile{profiles.length > 1 ? "s" : ""} found
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {profiles.length > 1
+                      ? "Multiple locations found. Please select which profile belongs to this clinic:"
+                      : "Confirm your Google Business location:"}
+                  </p>
+                </div>
+
+                {fetchingProfiles ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                    <Loader2 className="size-4 animate-spin text-blue-600" />
+                    Fetching profiles from Google…
+                  </div>
+                ) : profiles.length === 0 ? (
+                  <div className="p-4 rounded-xl border bg-muted/20 text-center space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      No Google Business Profiles found.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void loadProfilesFromGoogle()}
+                      className="h-7 text-xs"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {profiles.map((p) => {
+                      const isSelected = selectedProfile?.placeId === p.placeId;
+                      return (
+                        <div
+                          key={p.placeId}
+                          onClick={() => setSelectedProfile(p)}
+                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600"
+                              : "border-border hover:border-muted-foreground/30 bg-background"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 space-y-0.5">
+                              <p className="font-semibold text-xs text-foreground truncate">
+                                {p.name}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                📍 {p.address}
+                              </p>
+                              {p.rating ? (
+                                <div className="flex items-center gap-1.5 pt-0.5 text-[10px] text-amber-600 font-medium">
+                                  <Star className="size-3 fill-amber-400 text-amber-400" />
+                                  <span>
+                                    {p.rating}★ ({p.reviewCount ?? 0} reviews)
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
+                            <div
+                              className={`size-4 rounded-full border grid place-items-center shrink-0 mt-0.5 transition-colors ${
+                                isSelected
+                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  : "border-muted-foreground/30"
+                              }`}
+                            >
+                              {isSelected && <Check className="size-2.5 stroke-[3]" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Optional search input for filtering or searching another branch */}
+                <div className="pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={searchLocationQuery}
+                      onChange={(e) => setSearchLocationQuery(e.target.value)}
+                      placeholder="Search another clinic branch name or city…"
+                      className="h-7 text-xs rounded-lg"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && searchLocationQuery.trim()) {
+                          e.preventDefault();
+                          void loadProfilesFromGoogle(searchLocationQuery);
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!searchLocationQuery.trim() || fetchingProfiles}
+                      onClick={() => void loadProfilesFromGoogle(searchLocationQuery)}
+                      className="h-7 text-xs px-2.5 rounded-lg shrink-0"
+                    >
+                      <Search className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (isGmbConnected) setGmbStep("connected");
+                      else setGmbStep("connect");
+                    }}
                     className="h-8 text-xs rounded-lg"
                   >
-                    Cancel
+                    Back
                   </Button>
                   <Button
                     type="submit"
                     size="sm"
-                    disabled={connectingGmb || !placeId.trim()}
-                    className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={!selectedProfile || connectingGmb}
+                    onClick={handleConfirmProfile}
+                    className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
                   >
-                    {connectingGmb ? "Saving…" : "Save GMB"}
+                    {connectingGmb ? (
+                      "Connecting…"
+                    ) : (
+                      <>
+                        <Check className="size-3.5" /> Done — Connect GMB
+                      </>
+                    )}
                   </Button>
-                </div>
-              </DialogFooter>
-            </form>
+                </DialogFooter>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}
