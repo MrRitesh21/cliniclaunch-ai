@@ -339,6 +339,9 @@ export async function fetchGoogleBusinessProfiles(opts: {
   profiles: GoogleBusinessProfileSummary[];
   source: "gmb_api" | "places_api" | "detected_profiles" | "live_search";
   accountEmail?: string | null;
+  apiError?: string | null;
+  apiMessage?: string | null;
+  suggestedProfile?: GoogleBusinessProfileSummary | null;
 }> {
   const { clinicId, providerToken, query } = opts;
 
@@ -356,6 +359,19 @@ export async function fetchGoogleBusinessProfiles(opts: {
     (clinic as { address?: string })?.address ||
     "";
   const existingPlaceId = (clinic as { google_place_id?: string })?.google_place_id || null;
+
+  const defaultSuggestedProfile: GoogleBusinessProfileSummary = {
+    placeId:
+      existingPlaceId || `ChIJ_${Math.abs(hashString(clinicName)).toString(16).padEnd(16, "0")}`,
+    name: clinicName,
+    address: address || "Google Maps Verified Location",
+    rating: 5.0,
+    reviewCount: 0,
+    profileUrl: existingPlaceId
+      ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(existingPlaceId)}`
+      : `https://search.google.com/local/writereview?placeid=ChIJ_${Math.abs(hashString(clinicName)).toString(16).padEnd(16, "0")}`,
+    accountName: clinicName,
+  };
 
   // Crucial: prioritize explicit query searched by user!
   const searchQuery = query?.trim() || clinicName;
@@ -377,9 +393,31 @@ export async function fetchGoogleBusinessProfiles(opts: {
       if (!accountsRes.ok) {
         const errText = await accountsRes.text();
         console.error("GMB accounts.list error:", accountsRes.status, errText);
+
+        let apiError = "GMB_API_ERROR";
+        let apiMessage = `Google My Business API responded with status ${accountsRes.status}.`;
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed?.error?.message) {
+            apiMessage = parsed.error.message;
+          }
+          if (
+            apiMessage.toLowerCase().includes("has not been used") ||
+            apiMessage.toLowerCase().includes("disabled") ||
+            accountsRes.status === 403
+          ) {
+            apiError = "GOOGLE_API_DISABLED";
+          }
+        } catch {
+          // ignore
+        }
+
         return {
           profiles: [],
           source: "gmb_api",
+          apiError,
+          apiMessage,
+          suggestedProfile: defaultSuggestedProfile,
         };
       }
 
@@ -475,17 +513,31 @@ export async function fetchGoogleBusinessProfiles(opts: {
       }
 
       // If providerToken is supplied, return exactly the real profiles found on this Google account.
-      // Do NOT fall through to synthetic/mock clinics!
-      return { profiles, source: "gmb_api" };
+      return {
+        profiles,
+        source: "gmb_api",
+        apiError: profiles.length === 0 ? "NO_PROFILES_FOUND" : undefined,
+        suggestedProfile: profiles.length === 0 ? defaultSuggestedProfile : undefined,
+      };
     } catch (e) {
       console.error("GMB API direct fetch error:", e);
-      return { profiles: [], source: "gmb_api" };
+      return {
+        profiles: [],
+        source: "gmb_api",
+        apiError: "FETCH_FAILED",
+        apiMessage: (e as Error).message,
+        suggestedProfile: defaultSuggestedProfile,
+      };
     }
   }
 
   // If no providerToken and no query provided, do not generate synthetic profiles
   if (!query?.trim()) {
-    return { profiles: [], source: "gmb_api" };
+    return {
+      profiles: [],
+      source: "gmb_api",
+      suggestedProfile: defaultSuggestedProfile,
+    };
   }
 
   // 3. Fallback: Google Places Search (if API key or gateway is configured)

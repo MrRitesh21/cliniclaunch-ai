@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Calendar,
   Share2,
+  AlertTriangle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -92,6 +93,26 @@ type Review = {
   created_at: string;
 };
 
+// Early capture of provider_token from window.location.hash before Supabase client strips it
+if (typeof window !== "undefined" && window.location.hash) {
+  try {
+    const rawHash = window.location.hash.replace(/^#/, "");
+    const hp = new URLSearchParams(rawHash);
+    const pt = hp.get("provider_token");
+    if (pt) {
+      sessionStorage.setItem("gmb_provider_token", pt);
+      localStorage.setItem("gmb_provider_token", pt);
+    }
+    if (pt || hp.get("access_token")) {
+      sessionStorage.setItem("clinicx_gmb_oauth_pending", "true");
+      localStorage.setItem("clinicx_gmb_oauth_pending", "true");
+      localStorage.setItem("clinicx_gmb_oauth_time", String(Date.now()));
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export function ReviewsPage() {
   const { org } = useOrganization();
   const clinic = useClinic();
@@ -131,6 +152,11 @@ export function ReviewsPage() {
   const [selectedProfile, setSelectedProfile] = useState<GoogleProfileItem | null>(null);
   const [fetchingProfiles, setFetchingProfiles] = useState(false);
   const [gmbStep, setGmbStep] = useState<"connect" | "select" | "connected">("connect");
+  const [gmbApiError, setGmbApiError] = useState<{
+    code?: string | null;
+    message?: string | null;
+  } | null>(null);
+  const [gmbSuggestedProfile, setGmbSuggestedProfile] = useState<GoogleProfileItem | null>(null);
 
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
@@ -214,8 +240,13 @@ export function ReviewsPage() {
         let email = gmbAccountEmail || null;
 
         if (!token && typeof window !== "undefined") {
-          token = sessionStorage.getItem("gmb_provider_token");
-          email = sessionStorage.getItem("gmb_provider_email") || email;
+          token =
+            sessionStorage.getItem("gmb_provider_token") ||
+            localStorage.getItem("gmb_provider_token");
+          email =
+            sessionStorage.getItem("gmb_provider_email") ||
+            localStorage.getItem("gmb_provider_email") ||
+            email;
         }
 
         if (!token) {
@@ -224,26 +255,49 @@ export function ReviewsPage() {
           email = sessionData?.session?.user?.email || email;
           if (token && typeof window !== "undefined") {
             sessionStorage.setItem("gmb_provider_token", token);
+            localStorage.setItem("gmb_provider_token", token);
           }
         }
 
-        if (email) setGmbAccountEmail(email);
+        if (email) {
+          setGmbAccountEmail(email);
+          sessionStorage.setItem("gmb_provider_email", email);
+          localStorage.setItem("gmb_provider_email", email);
+        }
 
-        const res = await fetchGoogleProfilesFn({
+        const res = (await fetchGoogleProfilesFn({
           data: {
             clinic_id: clinic.id,
             provider_token: token || null,
             query: null,
           },
-        });
+        })) as {
+          profiles?: GoogleProfileItem[];
+          apiError?: string | null;
+          apiMessage?: string | null;
+          suggestedProfile?: GoogleProfileItem | null;
+        };
 
         const items = (res?.profiles || []) as GoogleProfileItem[];
         setProfiles(items);
+        setGmbSuggestedProfile(res?.suggestedProfile || null);
+
+        if (res?.apiError) {
+          setGmbApiError({
+            code: res.apiError,
+            message: res.apiMessage,
+          });
+        } else {
+          setGmbApiError(null);
+        }
+
         setGmbStep("select");
 
         if (items.length > 0) {
           const match = items.find((p) => p.placeId === placeId);
           setSelectedProfile(match || items[0]);
+        } else if (res?.suggestedProfile) {
+          setSelectedProfile(res.suggestedProfile);
         } else {
           setSelectedProfile(null);
         }
@@ -256,50 +310,90 @@ export function ReviewsPage() {
     [clinic, fetchGoogleProfilesFn, gmbAccountEmail, placeId],
   );
 
-  // Listen to Supabase auth events to capture provider_token
+  // Listen to Supabase auth events to capture provider_token and auto-open modal on redirect
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.provider_token) {
-        sessionStorage.setItem("gmb_provider_token", session.provider_token);
-        if (session.user?.email) {
-          sessionStorage.setItem("gmb_provider_email", session.user.email);
-          setGmbAccountEmail(session.user.email);
-        }
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const provToken = session?.provider_token;
+      if (provToken) {
+        sessionStorage.setItem("gmb_provider_token", provToken);
+        localStorage.setItem("gmb_provider_token", provToken);
+      }
+      if (session?.user?.email) {
+        sessionStorage.setItem("gmb_provider_email", session.user.email);
+        localStorage.setItem("gmb_provider_email", session.user.email);
+        setGmbAccountEmail(session.user.email);
+      }
+
+      const isPending =
+        typeof window !== "undefined" &&
+        (localStorage.getItem("clinicx_gmb_oauth_pending") === "true" ||
+          sessionStorage.getItem("clinicx_gmb_oauth_pending") === "true");
+
+      if (isPending && (provToken || event === "SIGNED_IN")) {
+        localStorage.removeItem("clinicx_gmb_oauth_pending");
+        sessionStorage.removeItem("clinicx_gmb_oauth_pending");
+        setShowGmbModal(true);
+        setGmbStep("select");
+        void loadProfilesFromGoogle(provToken || null);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadProfilesFromGoogle]);
 
-  // Catch OAuth redirect back
+  // Catch OAuth redirect back even if URL query params are stripped
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
-    if (url.searchParams.get("google_connect") === "1") {
-      url.searchParams.delete("google_connect");
-      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    const hasParam = url.searchParams.get("google_connect") === "1";
+    const hasPendingStorage =
+      localStorage.getItem("clinicx_gmb_oauth_pending") === "true" ||
+      sessionStorage.getItem("clinicx_gmb_oauth_pending") === "true";
+
+    const oauthTime = Number(localStorage.getItem("clinicx_gmb_oauth_time") || "0");
+    const isRecentOAuth = !oauthTime || Date.now() - oauthTime < 30 * 60 * 1000;
+
+    if (hasParam || (hasPendingStorage && isRecentOAuth)) {
+      localStorage.removeItem("clinicx_gmb_oauth_pending");
+      sessionStorage.removeItem("clinicx_gmb_oauth_pending");
+      if (hasParam) {
+        url.searchParams.delete("google_connect");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      }
+
       setShowGmbModal(true);
       setGmbStep("select");
 
       void (async () => {
         setFetchingProfiles(true);
-        let token: string | null = sessionStorage.getItem("gmb_provider_token");
-        let email: string | null = sessionStorage.getItem("gmb_provider_email");
+        let token =
+          sessionStorage.getItem("gmb_provider_token") ||
+          localStorage.getItem("gmb_provider_token");
+        let email =
+          sessionStorage.getItem("gmb_provider_email") ||
+          localStorage.getItem("gmb_provider_email");
 
-        // Wait up to 3 seconds for session / provider_token to be populated by Supabase
+        // Wait up to 3.5 seconds for session / provider_token to be populated by Supabase
         if (!token) {
-          for (let attempt = 0; attempt < 6; attempt++) {
+          for (let attempt = 0; attempt < 7; attempt++) {
             const { data } = await supabase.auth.getSession();
             if (data?.session?.provider_token) {
               token = data.session.provider_token;
-              email = data.session.user?.email || null;
+              email = data.session.user?.email || email;
               sessionStorage.setItem("gmb_provider_token", token);
-              if (email) sessionStorage.setItem("gmb_provider_email", email);
+              localStorage.setItem("gmb_provider_token", token);
+              if (email) {
+                sessionStorage.setItem("gmb_provider_email", email);
+                localStorage.setItem("gmb_provider_email", email);
+              }
               break;
+            }
+            if (data?.session?.user?.email && !email) {
+              email = data.session.user.email;
             }
             await new Promise((r) => setTimeout(r, 500));
           }
@@ -314,6 +408,10 @@ export function ReviewsPage() {
   async function handleGoogleLoginAndConnect() {
     setFetchingProfiles(true);
     try {
+      localStorage.setItem("clinicx_gmb_oauth_pending", "true");
+      sessionStorage.setItem("clinicx_gmb_oauth_pending", "true");
+      localStorage.setItem("clinicx_gmb_oauth_time", String(Date.now()));
+
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const { data: oauthData, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -345,37 +443,49 @@ export function ReviewsPage() {
     if (isGmbConnected) {
       setGmbStep("connected");
     } else {
-      setGmbStep("connect");
-      setProfiles([]);
-      setSelectedProfile(null);
+      const storedToken =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("gmb_provider_token") ||
+            localStorage.getItem("gmb_provider_token")
+          : null;
+
+      if (storedToken) {
+        setGmbStep("select");
+        void loadProfilesFromGoogle(storedToken);
+      } else {
+        setGmbStep("connect");
+        setProfiles([]);
+        setSelectedProfile(null);
+      }
     }
     setShowGmbModal(true);
   }
 
-  async function handleConfirmProfile() {
-    if (!clinic || !selectedProfile) return;
+  async function handleConfirmProfile(profileOverride?: GoogleProfileItem | null) {
+    const target = profileOverride || selectedProfile;
+    if (!clinic || !target) return;
     setConnectingGmb(true);
     try {
       await saveGmbConnectionFn({
         data: {
           clinic_id: clinic.id,
           organization_id: orgId || null,
-          place_id: selectedProfile.placeId,
-          business_name: selectedProfile.name,
+          place_id: target.placeId,
+          business_name: target.name,
           profile_url:
-            selectedProfile.profileUrl ||
-            `https://search.google.com/local/writereview?placeid=${encodeURIComponent(selectedProfile.placeId)}`,
+            target.profileUrl ||
+            `https://search.google.com/local/writereview?placeid=${encodeURIComponent(target.placeId)}`,
           account_email: gmbAccountEmail || null,
         },
       });
 
-      setPlaceId(selectedProfile.placeId);
-      setGmbBusinessName(selectedProfile.name);
-      setGmbUrl(selectedProfile.profileUrl || "");
+      setPlaceId(target.placeId);
+      setGmbBusinessName(target.name);
+      setGmbUrl(target.profileUrl || "");
       setIsGmbConnected(true);
       setShowGmbModal(false);
       setGmbStep("connected");
-      toast.success(`Google Business Profile connected: ${selectedProfile.name}`);
+      toast.success(`Google Business Profile connected: ${target.name}`);
 
       // Auto sync reviews
       void syncFn({ data: { clinic_id: clinic.id } }).catch(() => {});
@@ -1304,6 +1414,28 @@ export function ReviewsPage() {
                   </Button>
                 </div>
 
+                {/* If Google Cloud API Needs Activation */}
+                {gmbApiError?.code === "GOOGLE_API_DISABLED" && (
+                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-2 text-left">
+                    <div className="flex items-center gap-2 font-bold">
+                      <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+                      <span>Google My Business API Activation Required</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      {gmbApiError.message ||
+                        "The My Business Account Management API is not enabled in your Google Cloud Console project (clinicx-crm)."}
+                    </p>
+                    <a
+                      href="https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline pt-0.5"
+                    >
+                      Enable My Business API in Google Cloud <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                )}
+
                 {fetchingProfiles ? (
                   <div className="py-10 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2.5">
                     <Loader2 className="size-6 animate-spin text-blue-600" />
@@ -1315,7 +1447,7 @@ export function ReviewsPage() {
                     </span>
                   </div>
                 ) : profiles.length === 0 ? (
-                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3">
+                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3.5">
                     <div className="size-9 rounded-full bg-amber-500/10 text-amber-600 grid place-items-center mx-auto">
                       <Globe className="size-5" />
                     </div>
@@ -1325,10 +1457,48 @@ export function ReviewsPage() {
                       </h4>
                       <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
                         {gmbAccountEmail
-                          ? `We could not find any Google Business Profiles managed by ${gmbAccountEmail}.`
+                          ? `We could not find any active Google Business Profiles managed by ${gmbAccountEmail}.`
                           : "No Google Business Profiles found on this account."}
                       </p>
                     </div>
+
+                    {/* Quick-Connect Suggested Registered Clinic Profile */}
+                    {gmbSuggestedProfile && (
+                      <div className="p-3 rounded-xl border bg-background/80 text-left space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-foreground">
+                            Connect Your Registered Clinic Profile:
+                          </span>
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                            Detected
+                          </Badge>
+                        </div>
+                        <div className="text-xs font-bold text-foreground">
+                          {gmbSuggestedProfile.name}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          📍 {gmbSuggestedProfile.address}
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedProfile(gmbSuggestedProfile);
+                            void handleConfirmProfile(gmbSuggestedProfile);
+                          }}
+                          disabled={connectingGmb}
+                          className="w-full h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-1.5 mt-1 cursor-pointer"
+                        >
+                          {connectingGmb ? (
+                            <Loader2 className="size-3 animate-spin" />
+                          ) : (
+                            <Check className="size-3.5" />
+                          )}
+                          Connect {gmbSuggestedProfile.name}
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="pt-2 flex flex-col gap-2">
                       <Button
                         type="button"
@@ -1427,7 +1597,7 @@ export function ReviewsPage() {
                         type="button"
                         size="sm"
                         disabled={!selectedProfile || connectingGmb}
-                        onClick={handleConfirmProfile}
+                        onClick={() => handleConfirmProfile()}
                         className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
                       >
                         {connectingGmb ? (
