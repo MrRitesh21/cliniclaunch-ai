@@ -260,3 +260,91 @@ export const fetchGoogleProfiles = createServerFn({ method: "POST" })
       query: data.query,
     });
   });
+
+export const generateGmbSeoProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        focus_keywords: z.string().max(300).nullable().optional(),
+        tone: z.string().max(50).nullable().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { generateGmbSeoProfileRewrite } = await import("@/lib/google-reviews.server");
+    return await generateGmbSeoProfileRewrite({
+      clinicId: data.clinic_id,
+      focusKeywords: data.focus_keywords,
+      tone: data.tone,
+    });
+  });
+
+export const batchAutoReplyAllReviews = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        organization_id: z.string().uuid().nullable().optional(),
+        tone: z.string().max(50).nullable().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { batchAutoReplyReviews } = await import("@/lib/google-reviews.server");
+    return await batchAutoReplyReviews({
+      clinicId: data.clinic_id,
+      organizationId: data.organization_id,
+      tone: data.tone,
+    });
+  });
+
+export const generateDailyPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        post_type: z.enum(["whats_new", "health_tip", "special_offer", "faq_spotlight", "event"]),
+        custom_topic: z.string().max(300).nullable().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { generateDailyGmbPost } = await import("@/lib/google-reviews.server");
+    return await generateDailyGmbPost({
+      clinicId: data.clinic_id,
+      postType: data.post_type,
+      customTopic: data.custom_topic,
+    });
+  });
+
+export const fetchPhotoScheduler = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) => z.object({ clinic_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { getGmbPhotoSchedulerData } = await import("@/lib/google-reviews.server");
+    return await getGmbPhotoSchedulerData({ clinicId: data.clinic_id });
+  });
+
+export const fetchGmbAnalytics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        period: z.enum(["7d", "30d", "90d"]).optional().default("30d"),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { getGmbAnalyticsData } = await import("@/lib/google-reviews.server");
+    return await getGmbAnalyticsData({ clinicId: data.clinic_id, period: data.period });
+  });

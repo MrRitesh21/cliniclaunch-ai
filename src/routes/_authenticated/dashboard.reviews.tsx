@@ -23,6 +23,11 @@ import {
   Unlink,
   Loader2,
   MapPin,
+  Sparkles,
+  Camera,
+  TrendingUp,
+  Calendar,
+  Share2,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -51,9 +56,15 @@ import {
   requestAiReviewReply,
   fetchGoogleProfiles,
   clearAllClinicReviews,
+  batchAutoReplyAllReviews,
 } from "@/lib/google-reviews.functions";
 import { sendTestWhatsapp } from "@/lib/baileys.functions";
 import { useClinic } from "./dashboard";
+import { GmbSeoRewriteTab } from "@/components/gmb/GmbSeoRewriteTab";
+import { GmbGetReviewsTab } from "@/components/gmb/GmbGetReviewsTab";
+import { GmbDailyPostsTab } from "@/components/gmb/GmbDailyPostsTab";
+import { GmbPhotoSchedulerTab } from "@/components/gmb/GmbPhotoSchedulerTab";
+import { GmbAnalyticsTab } from "@/components/gmb/GmbAnalyticsTab";
 
 export const Route = createFileRoute("/_authenticated/dashboard/reviews")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -128,12 +139,19 @@ export function ReviewsPage() {
   const [waPatientName, setWaPatientName] = useState("");
   const [sendingWa, setSendingWa] = useState(false);
 
+  // 6 Google Business Profile Features Tabs
+  const [activeTab, setActiveTab] = useState<
+    "reviews" | "seo_rewrite" | "get_reviews" | "posts" | "photo_scheduler" | "analytics"
+  >("reviews");
+  const [batchReplying, setBatchReplying] = useState(false);
+
   const syncFn = useServerFn(syncGoogleReviews);
   const sendWaFn = useServerFn(sendTestWhatsapp);
   const saveGmbConnectionFn = useServerFn(saveGoogleGmbConnection);
   const disconnectGmbFn = useServerFn(disconnectGoogleGmb);
   const fetchGoogleProfilesFn = useServerFn(fetchGoogleProfiles);
   const clearAllReviewsFn = useServerFn(clearAllClinicReviews);
+  const batchAutoReplyFn = useServerFn(batchAutoReplyAllReviews);
 
   useEffect(() => {
     if (!clinic) return;
@@ -423,6 +441,39 @@ export function ReviewsPage() {
     }
   }
 
+  async function handleBatchAutoReply() {
+    if (!clinic) return;
+    const unreplied = rows.filter((r) => !r.reply || r.reply.trim() === "");
+    if (unreplied.length === 0) {
+      toast.info("All reviews already have replies!");
+      return;
+    }
+    if (
+      !confirm(
+        `Generate and publish SEO-rich AI replies to all ${unreplied.length} unanswered reviews?`,
+      )
+    ) {
+      return;
+    }
+    setBatchReplying(true);
+    try {
+      const res = await batchAutoReplyFn({
+        data: {
+          clinic_id: clinic.id,
+          organization_id: orgId || null,
+        },
+      });
+      toast.success(
+        `AI Auto-replied to ${res?.updatedCount || unreplied.length} reviews with Local SEO keywords!`,
+      );
+      await load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBatchReplying(false);
+    }
+  }
+
   async function syncNow() {
     if (!clinic) return;
     if (!placeId) {
@@ -672,217 +723,418 @@ export function ReviewsPage() {
         </Card>
       </div>
 
-      {/* 3. Core Stats (4 Clean Numbers in 1 Row) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-3.5 border shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Total Reviews</p>
-          <p className="font-display text-xl font-bold text-foreground mt-0.5">{stats.total}</p>
-        </Card>
-
-        <Card className="p-3.5 border shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Average Rating</p>
-          <p className="font-display text-xl font-bold text-amber-500 mt-0.5">
-            ⭐ {stats.avg} <span className="text-xs text-muted-foreground font-normal">/ 5.0</span>
-          </p>
-        </Card>
-
-        <Card className="p-3.5 border shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Response Rate</p>
-          <p className="font-display text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {stats.responseRate}%
-          </p>
-        </Card>
-
-        <Card className="p-3.5 border shadow-xs bg-card">
-          <p className="text-[11px] text-muted-foreground font-medium">Private Feedback</p>
-          <p className="font-display text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
-            {stats.critical}{" "}
-            <span className="text-xs text-muted-foreground font-normal">(&lt;3★)</span>
-          </p>
-        </Card>
-      </div>
-
-      {/* 4. Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search reviews by name or text…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-xs rounded-lg border-border/80 bg-background"
-          />
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {[
-            { key: "all", label: "All", count: rows.length },
-            {
-              key: "pending_reply",
-              label: "Pending Reply",
-              count: rows.filter((r) => !r.reply).length,
-            },
-            {
-              key: "positive",
-              label: "Positive (4-5★)",
-              count: rows.filter((r) => r.rating >= 4).length,
-            },
-            { key: "critical", label: "Attention (<3★)", count: stats.critical },
-          ].map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`text-xs px-2.5 py-1 rounded-lg border transition-all whitespace-nowrap font-medium flex items-center gap-1.5 ${
-                filter === f.key
-                  ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
-                  : "bg-card border-border/70 text-muted-foreground hover:text-foreground"
+      {/* 3. Google Business Profile Suite Navigation Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab("reviews")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            activeTab === "reviews"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <MessageSquare className="size-3.5" />
+          <span>Reviews &amp; AI Replies</span>
+          {rows.filter((r) => !r.reply).length > 0 && (
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                activeTab === "reviews"
+                  ? "bg-white/20 text-white"
+                  : "bg-amber-500/20 text-amber-600"
               }`}
             >
-              <span>{f.label}</span>
-              <span
-                className={`text-[10px] px-1 rounded-full ${filter === f.key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}
-              >
-                {f.count}
-              </span>
-            </button>
-          ))}
-
-          {rows.length > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAllReviews}
-              className="h-7 text-[11px] text-destructive hover:bg-destructive/10 px-2 rounded-lg gap-1 shrink-0 font-medium ml-auto"
-              title="Clear all reviews"
-            >
-              <Trash2 className="size-3" /> Clear Reviews
-            </Button>
+              {rows.filter((r) => !r.reply).length}
+            </span>
           )}
-        </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("seo_rewrite")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            activeTab === "seo_rewrite"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Sparkles className="size-3.5" />
+          <span>SEO Profile Rewrite</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("get_reviews")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            activeTab === "get_reviews"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Share2 className="size-3.5" />
+          <span>Get More Reviews</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("posts")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            activeTab === "posts"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Calendar className="size-3.5" />
+          <span>Daily SEO Posts</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("photo_scheduler")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            activeTab === "photo_scheduler"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Camera className="size-3.5" />
+          <span>AI Photo Scheduler</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("analytics")}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            activeTab === "analytics"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <TrendingUp className="size-3.5" />
+          <span>Performance Analytics</span>
+        </button>
       </div>
 
-      {/* 5. Reviews Feed */}
-      {loading ? (
-        <SkeletonRows rows={5} />
-      ) : filtered.length === 0 ? (
-        <Card className="p-8 text-center border shadow-xs">
-          <EmptyState
-            icon={<MessageSquare className="size-6 text-muted-foreground" />}
-            title="No reviews found"
-            description="Send a review request link to patients to start collecting reviews."
-          />
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((r) => {
-            const isVerified =
-              r.source === "verified_appointment" || r.category === "Verified Patient";
-            const isCritical = r.rating < 3;
+      {activeTab === "reviews" && (
+        <>
+          {/* 3. Core Stats (4 Clean Numbers in 1 Row) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card className="p-3.5 border shadow-xs bg-card">
+              <p className="text-[11px] text-muted-foreground font-medium">Total Reviews</p>
+              <p className="font-display text-xl font-bold text-foreground mt-0.5">{stats.total}</p>
+            </Card>
 
-            return (
-              <Card
-                key={r.id}
-                className={`p-4 transition-all border shadow-xs ${
-                  isCritical
-                    ? "border-rose-500/30 bg-rose-500/[0.02]"
-                    : "border-border/80 bg-card hover:border-primary/40"
-                }`}
-              >
-                <div className="space-y-2">
-                  {/* Top Bar: Name, Rating, Badges, Date */}
-                  <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-xs text-foreground">
-                        {r.reviewer_name}
-                      </span>
-                      <Stars value={r.rating} />
-                      {isVerified && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          <ShieldCheck className="size-3" /> Verified
-                        </span>
-                      )}
-                      {isCritical && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 border border-rose-500/20">
-                          Offline Care
-                        </span>
-                      )}
-                      <span className="text-[11px] text-muted-foreground">
-                        •{" "}
-                        {new Date(r.created_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
+            <Card className="p-3.5 border shadow-xs bg-card">
+              <p className="text-[11px] text-muted-foreground font-medium">Average Rating</p>
+              <p className="font-display text-xl font-bold text-amber-500 mt-0.5">
+                ⭐ {stats.avg}{" "}
+                <span className="text-xs text-muted-foreground font-normal">/ 5.0</span>
+              </p>
+            </Card>
 
-                    <div className="flex items-center gap-1">
-                      {isCritical && r.reviewer_phone && (
-                        <a href={`tel:${r.reviewer_phone}`}>
+            <Card className="p-3.5 border shadow-xs bg-card">
+              <p className="text-[11px] text-muted-foreground font-medium">Response Rate</p>
+              <p className="font-display text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {stats.responseRate}%
+              </p>
+            </Card>
+
+            <Card className="p-3.5 border shadow-xs bg-card">
+              <p className="text-[11px] text-muted-foreground font-medium">Private Feedback</p>
+              <p className="font-display text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                {stats.critical}{" "}
+                <span className="text-xs text-muted-foreground font-normal">(&lt;3★)</span>
+              </p>
+            </Card>
+          </div>
+
+          {/* 4. Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search reviews by name or text…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs rounded-lg border-border/80 bg-background"
+              />
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {[
+                { key: "all", label: "All", count: rows.length },
+                {
+                  key: "pending_reply",
+                  label: "Pending Reply",
+                  count: rows.filter((r) => !r.reply).length,
+                },
+                {
+                  key: "positive",
+                  label: "Positive (4-5★)",
+                  count: rows.filter((r) => r.rating >= 4).length,
+                },
+                { key: "critical", label: "Attention (<3★)", count: stats.critical },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border transition-all whitespace-nowrap font-medium flex items-center gap-1.5 ${
+                    filter === f.key
+                      ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
+                      : "bg-card border-border/70 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span>{f.label}</span>
+                  <span
+                    className={`text-[10px] px-1 rounded-full ${filter === f.key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}
+                  >
+                    {f.count}
+                  </span>
+                </button>
+              ))}
+
+              {rows.filter((r) => !r.reply).length > 0 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleBatchAutoReply}
+                  disabled={batchReplying}
+                  className="h-7 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2.5 rounded-lg gap-1.5 shrink-0 shadow-xs"
+                >
+                  {batchReplying ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Bot className="size-3" />
+                  )}
+                  <span>
+                    {batchReplying
+                      ? "Replying…"
+                      : `Auto-Reply All (${rows.filter((r) => !r.reply).length})`}
+                  </span>
+                </Button>
+              )}
+
+              {rows.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAllReviews}
+                  className="h-7 text-[11px] text-destructive hover:bg-destructive/10 px-2 rounded-lg gap-1 shrink-0 font-medium ml-auto"
+                  title="Clear all reviews"
+                >
+                  <Trash2 className="size-3" /> Clear Reviews
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* 5. Reviews Feed */}
+          {loading ? (
+            <SkeletonRows rows={5} />
+          ) : filtered.length === 0 ? (
+            <Card className="p-8 text-center border shadow-xs">
+              <EmptyState
+                icon={<MessageSquare className="size-6 text-muted-foreground" />}
+                title="No reviews found"
+                description="Send a review request link to patients to start collecting reviews."
+              />
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((r) => {
+                const isVerified =
+                  r.source === "verified_appointment" || r.category === "Verified Patient";
+                const isCritical = r.rating < 3;
+
+                return (
+                  <Card
+                    key={r.id}
+                    className={`p-4 transition-all border shadow-xs ${
+                      isCritical
+                        ? "border-rose-500/30 bg-rose-500/[0.02]"
+                        : "border-border/80 bg-card hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      {/* Top Bar: Name, Rating, Badges, Date */}
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-xs text-foreground">
+                            {r.reviewer_name}
+                          </span>
+                          <Stars value={r.rating} />
+                          {isVerified && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                              <ShieldCheck className="size-3" /> Verified
+                            </span>
+                          )}
+                          {isCritical && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                              Offline Care
+                            </span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">
+                            •{" "}
+                            {new Date(r.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          {isCritical && r.reviewer_phone && (
+                            <a href={`tel:${r.reviewer_phone}`}>
+                              <Button
+                                size="sm"
+                                className="h-6 text-[10px] font-semibold rounded bg-rose-600 hover:bg-rose-700 text-white gap-1 px-2"
+                              >
+                                <PhoneCall className="size-3" /> Call
+                              </Button>
+                            </a>
+                          )}
                           <Button
                             size="sm"
-                            className="h-6 text-[10px] font-semibold rounded bg-rose-600 hover:bg-rose-700 text-white gap-1 px-2"
+                            variant="outline"
+                            onClick={() => setReplying(r)}
+                            className="h-6 text-[10px] font-medium rounded text-primary border-primary/30 hover:bg-primary/10 gap-1 px-2"
                           >
-                            <PhoneCall className="size-3" /> Call
+                            <Reply className="size-3" /> {r.reply ? "Edit Reply" : "AI Reply"}
                           </Button>
-                        </a>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setReplying(r)}
-                        className="h-6 text-[10px] font-medium rounded text-primary border-primary/30 hover:bg-primary/10 gap-1 px-2"
-                      >
-                        <Reply className="size-3" /> {r.reply ? "Edit Reply" : "AI Reply"}
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => remove(r.id)}
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive rounded"
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Review Text */}
-                  {r.comment && (
-                    <p className="text-xs leading-relaxed text-foreground bg-muted/20 p-2.5 rounded-lg border border-border/60">
-                      "{r.comment}"
-                    </p>
-                  )}
-
-                  {/* Clinic Reply */}
-                  {r.reply && (
-                    <div className="pl-3 border-l-2 border-primary text-xs bg-muted/30 p-2 rounded-lg space-y-0.5">
-                      <div className="font-semibold text-[11px] text-primary flex items-center gap-1">
-                        <Bot className="size-3" /> Clinic Reply:
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => remove(r.id)}
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive rounded"
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-muted-foreground leading-relaxed text-xs">{r.reply}</p>
+
+                      {/* Review Text */}
+                      {r.comment && (
+                        <p className="text-xs leading-relaxed text-foreground bg-muted/20 p-2.5 rounded-lg border border-border/60">
+                          "{r.comment}"
+                        </p>
+                      )}
+
+                      {/* Clinic Reply */}
+                      {r.reply && (
+                        <div className="pl-3 border-l-2 border-primary text-xs bg-muted/30 p-2 rounded-lg space-y-0.5">
+                          <div className="font-semibold text-[11px] text-primary flex items-center gap-1">
+                            <Bot className="size-3" /> Clinic Reply:
+                          </div>
+                          <p className="text-muted-foreground leading-relaxed text-xs">{r.reply}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* AI Reply Dialog */}
+          {replying && (
+            <ReplyDialog
+              review={replying}
+              clinic={clinic as Record<string, unknown> | null}
+              org={org as Record<string, unknown> | null}
+              onClose={() => setReplying(null)}
+              onSaved={() => {
+                setReplying(null);
+                load();
+              }}
+            />
+          )}
+        </>
       )}
 
-      {/* AI Reply Dialog */}
-      {replying && (
-        <ReplyDialog
-          review={replying}
-          clinic={clinic as Record<string, unknown> | null}
-          org={org as Record<string, unknown> | null}
-          onClose={() => setReplying(null)}
-          onSaved={() => {
-            setReplying(null);
-            load();
-          }}
+      {activeTab === "seo_rewrite" && (
+        <GmbSeoRewriteTab
+          clinicId={clinic?.id || ""}
+          clinicName={clinic?.clinic_name || org?.name}
+          doctorName={clinic?.doctor_name}
+          specialization={
+            (clinic as Record<string, unknown> | null)?.specialization as string | undefined
+          }
+          city={
+            ((clinic as Record<string, unknown> | null)?.public_address as string | undefined)
+              ?.split(",")[1]
+              ?.trim() ||
+            ((clinic as Record<string, unknown> | null)?.address as string | undefined)
+              ?.split(",")[1]
+              ?.trim()
+          }
+        />
+      )}
+
+      {activeTab === "get_reviews" && (
+        <GmbGetReviewsTab
+          clinicName={clinic?.clinic_name || org?.name}
+          doctorName={clinic?.doctor_name}
+          shareUrl={shareUrl}
+          onOpenQrModal={() => setShowQrModal(true)}
+        />
+      )}
+
+      {activeTab === "posts" && (
+        <GmbDailyPostsTab
+          clinicId={clinic?.id || ""}
+          clinicName={clinic?.clinic_name || org?.name}
+          doctorName={clinic?.doctor_name}
+          specialization={
+            (clinic as Record<string, unknown> | null)?.specialization as string | undefined
+          }
+          city={
+            ((clinic as Record<string, unknown> | null)?.public_address as string | undefined)
+              ?.split(",")[1]
+              ?.trim() ||
+            ((clinic as Record<string, unknown> | null)?.address as string | undefined)
+              ?.split(",")[1]
+              ?.trim()
+          }
+          shareUrl={shareUrl}
+        />
+      )}
+
+      {activeTab === "photo_scheduler" && (
+        <GmbPhotoSchedulerTab
+          clinicId={clinic?.id || ""}
+          clinicName={clinic?.clinic_name || org?.name}
+          doctorName={clinic?.doctor_name}
+          specialization={
+            (clinic as Record<string, unknown> | null)?.specialization as string | undefined
+          }
+          city={
+            ((clinic as Record<string, unknown> | null)?.public_address as string | undefined)
+              ?.split(",")[1]
+              ?.trim() ||
+            ((clinic as Record<string, unknown> | null)?.address as string | undefined)
+              ?.split(",")[1]
+              ?.trim()
+          }
+        />
+      )}
+
+      {activeTab === "analytics" && (
+        <GmbAnalyticsTab
+          clinicId={clinic?.id || ""}
+          clinicName={clinic?.clinic_name || org?.name}
+          doctorName={clinic?.doctor_name}
+          city={
+            ((clinic as Record<string, unknown> | null)?.public_address as string | undefined)
+              ?.split(",")[1]
+              ?.trim() ||
+            ((clinic as Record<string, unknown> | null)?.address as string | undefined)
+              ?.split(",")[1]
+              ?.trim()
+          }
         />
       )}
 
