@@ -198,13 +198,18 @@ export function WalkinDeskPage() {
       const todayEnd = new Date();
       todayEnd.setHours(23, 59, 59, 999);
 
+      const effectiveOrgId = orgId || clinic?.organization_id;
+      let tokenQ = supabase
+        .from("queue_tokens")
+        .select("*")
+        .eq("queue_date", date)
+        .order("token_number", { ascending: true });
+      if (effectiveOrgId) {
+        tokenQ = tokenQ.eq("organization_id", effectiveOrgId);
+      }
+
       const [tokenRes, docRes, apptRes] = await Promise.all([
-        supabase
-          .from("queue_tokens")
-          .select("*")
-          .eq("queue_date", date)
-          .order("token_number", { ascending: true })
-          .then((res) => (res.error ? { data: [] } : res), () => ({ data: [] })),
+        tokenQ.then((res) => (res.error ? { data: [] } : res), () => ({ data: [] })),
         clinicId
           ? fetchDoctorsFn({ data: { clinic_id: clinicId, organization_id: orgId || null } })
               .then((d) => ({

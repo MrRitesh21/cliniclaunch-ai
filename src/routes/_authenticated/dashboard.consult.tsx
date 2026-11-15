@@ -504,21 +504,24 @@ function ConsultCockpitPage() {
       const todayEnd = new Date();
       todayEnd.setHours(23, 59, 59, 999);
       const dateStr = todayDateStr();
+      const effectiveOrgId = orgId || clinic?.organization_id || null;
 
-      // Query appointments: active queue (waiting, serving, confirmed) or scheduled today
+      // Query appointments: strictly scheduled for today (or explicitly targeted)
       let apptQuery = supabase
         .from("appointments")
         .select("*")
         .neq("status", "cancelled")
+        .gte("scheduled_at", todayStart.toISOString())
+        .lte("scheduled_at", todayEnd.toISOString())
         .order("scheduled_at", { ascending: true })
         .limit(150);
 
-      if (clinicId && orgId) {
-        apptQuery = apptQuery.or(`clinic_id.eq.${clinicId},organization_id.eq.${orgId}`);
+      if (clinicId && effectiveOrgId) {
+        apptQuery = apptQuery.or(`clinic_id.eq.${clinicId},organization_id.eq.${effectiveOrgId}`);
       } else if (clinicId) {
         apptQuery = apptQuery.eq("clinic_id", clinicId);
-      } else if (orgId) {
-        apptQuery = apptQuery.eq("organization_id", orgId);
+      } else if (effectiveOrgId) {
+        apptQuery = apptQuery.eq("organization_id", effectiveOrgId);
       }
 
       // If a specific appointmentId is requested via URL, ensure we fetch it even if out of range
@@ -530,6 +533,17 @@ function ConsultCockpitPage() {
             .maybeSingle()
         : Promise.resolve({ data: null });
 
+      // OPD Queue tokens: strictly for TODAY and scoped to current clinic/org
+      let tokenQuery = supabase
+        .from("queue_tokens")
+        .select("*")
+        .eq("queue_date", dateStr)
+        .order("token_number", { ascending: true });
+
+      if (effectiveOrgId) {
+        tokenQuery = tokenQuery.eq("organization_id", effectiveOrgId);
+      }
+
       const [consultRes, apptRes, tokenRes, patientRes, specificApptRes] = await Promise.all([
         supabase
           .from("consultations" as any)
@@ -537,13 +551,8 @@ function ConsultCockpitPage() {
           .order("created_at", { ascending: false })
           .limit(100)
           .then((r) => (r.error ? { data: [] } : r)),
-        (clinicId || orgId) ? apptQuery.then((r) => (r.error ? { data: [] } : r)) : Promise.resolve({ data: [] }),
-        supabase
-          .from("queue_tokens")
-          .select("*")
-          .or(`queue_date.eq.${dateStr},status.in.(waiting,serving)`)
-          .order("token_number")
-          .then((r) => (r.error ? { data: [] } : r), () => ({ data: [] })),
+        (clinicId || effectiveOrgId) ? apptQuery.then((r) => (r.error ? { data: [] } : r)) : Promise.resolve({ data: [] }),
+        tokenQuery.then((r) => (r.error ? { data: [] } : r), () => ({ data: [] })),
         supabase
           .from("patients")
           .select("id, name, phone, age, gender")
@@ -559,7 +568,6 @@ function ConsultCockpitPage() {
 
       // Build unified queue
       const qList: QueuePatient[] = [];
-      let tokenCounter = 1;
 
       // Merge specific requested appointment if not in general results
       let rawAppts = (apptRes.data as any[]) ?? [];
@@ -568,14 +576,73 @@ function ConsultCockpitPage() {
         rawAppts = [specificAppt, ...rawAppts];
       }
 
-      // Map appointments: keep active (waiting/serving/confirmed/pending), today's scheduled, or specifically requested
-      const todayDateOnly = new Date().toDateString();
+      const activeApptIdSet = new Set(rawAppts.filter((a) => a.status !== "cancelled").map((a) => a.id));
+
+      // Filter tokens: ignore cancelled/skipped and ignore tokens whose linked appointment was deleted or cancelled
+      const tokenList = ((tokenRes.data as any[]) ?? []).filter((t) => {
+        if (t.status === "cancelled" || t.status === "skipped") return false;
+        if (t.appointment_id && !activeApptIdSet.has(t.appointment_id)) {
+          return false;
+        }
+        return true;
+      });
+
+      const tokenApptIds = new Set(tokenList.map((t) => t.appointment_id).filter(Boolean));
+      let maxTokenNum = 0;
+
+      // 1. Process valid queue tokens for today
+      for (const t of tokenList) {
+        const num = Number(t.token_number) || 0;
+        if (num > maxTokenNum) maxTokenNum = num;
+
+        let st: QueuePatient["status"] = "waiting";
+        if (t.status === "done" || t.status === "completed") st = "done";
+        else if (t.status === "serving" || t.status === "in_consultation") st = "serving";
+        else st = "waiting";
+
+        const linkedAppt = t.appointment_id ? rawAppts.find((a) => a.id === t.appointment_id) : null;
+
+        qList.push({
+          id: `tok-${t.id}`,
+          source: "token",
+          token_number: t.token_number || ++maxTokenNum,
+          appointment_id: t.appointment_id || undefined,
+          patient_id: t.patient_id || linkedAppt?.patient_id || null,
+          patient_name: t.patient_name || linkedAppt?.patient_name || "Walk-in Patient",
+          patient_phone: t.patient_phone || linkedAppt?.patient_phone || null,
+          patient_age: linkedAppt?.patient_age || null,
+          patient_gender: linkedAppt?.patient_gender || null,
+          status: st,
+          problem: t.note || linkedAppt?.problem || null,
+          scheduled_at: linkedAppt?.scheduled_at || t.created_at,
+        });
+      }
+
+      // 2. Process appointments scheduled for today that don't already have a queue_token
       for (const a of rawAppts) {
-        const isToday = a.scheduled_at && new Date(a.scheduled_at).toDateString() === todayDateOnly;
-        const isActive = a.status === "waiting" || a.status === "serving" || a.status === "confirmed" || a.status === "in_consultation" || a.status === "pending";
+        const apptDateStr = a.scheduled_at
+          ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(a.scheduled_at))
+          : null;
+        const isToday = apptDateStr === dateStr;
         const isTarget = searchParams?.appointmentId && a.id === searchParams.appointmentId;
 
-        if (!isActive && !isToday && !isTarget) continue;
+        // Strictly skip if not scheduled for today and not explicitly targeted
+        if (!isToday && !isTarget) continue;
+        if (a.status === "cancelled") continue;
+
+        // Skip if already represented in qList via token
+        if (a.id && tokenApptIds.has(a.id)) continue;
+
+        // Check if phone matches an existing token to avoid duplicate entry on same day
+        const phoneMatch = a.patient_phone && qList.find(
+          (x) => x.patient_phone && x.patient_phone.replace(/\D/g, "") === a.patient_phone.replace(/\D/g, "")
+        );
+        if (phoneMatch) {
+          if (!phoneMatch.appointment_id) phoneMatch.appointment_id = a.id;
+          phoneMatch.patient_age = a.patient_age ?? phoneMatch.patient_age;
+          phoneMatch.patient_gender = a.patient_gender ?? phoneMatch.patient_gender;
+          continue;
+        }
 
         let st: QueuePatient["status"] = "waiting";
         if (a.status === "completed") st = "done";
@@ -586,7 +653,7 @@ function ConsultCockpitPage() {
         qList.push({
           id: `appt-${a.id}`,
           source: "appointment",
-          token_number: tokenCounter++,
+          token_number: ++maxTokenNum,
           appointment_id: a.id,
           patient_id: a.patient_id || null,
           patient_name: a.patient_name || "Patient",
@@ -599,23 +666,19 @@ function ConsultCockpitPage() {
         });
       }
 
-      // Map walk-in tokens
-      for (const t of (tokenRes.data as any[]) ?? []) {
-        const exists = qList.some(
-          (q) => q.patient_name.trim().toLowerCase() === t.patient_name?.trim().toLowerCase()
-        );
-        if (!exists) {
-          qList.push({
-            id: `tok-${t.id}`,
-            source: "token",
-            token_number: t.token_number || tokenCounter++,
-            patient_name: t.patient_name,
-            patient_phone: t.patient_phone,
-            status: t.status === "done" ? "done" : t.status === "serving" ? "serving" : "waiting",
-            problem: t.note,
-          });
-        }
-      }
+      // 3. Sort queue: Serving first, then Waiting by token, then Confirmed, then Done
+      qList.sort((a, b) => {
+        const order = (status: QueuePatient["status"]) => {
+          if (status === "serving") return 1;
+          if (status === "waiting") return 2;
+          if (status === "confirmed") return 3;
+          if (status === "done") return 4;
+          return 5;
+        };
+        const orderDiff = order(a.status) - order(b.status);
+        if (orderDiff !== 0) return orderDiff;
+        return a.token_number - b.token_number;
+      });
 
       setQueue(qList);
 
@@ -635,7 +698,37 @@ function ConsultCockpitPage() {
         }
       }
 
-      if (!selectedPatient && qList.length > 0) {
+      if (qList.length === 0) {
+        // If queue is completely empty (0 appointments today), clear any stale patient
+        setSelectedPatient(null);
+        setPatientId(null);
+        setPatientName("");
+        setPatientPhone("");
+        setPatientAge("");
+        setPatientGender("");
+        setAppointmentId(null);
+        setBookedServiceName("");
+        setChiefComplaint("");
+        setDiagnosis("");
+        setTreatmentPlan("");
+        setHistoryNotes("NKDA (No Known Allergies)");
+        setPatientPastConsults([]);
+      } else if (selectedPatient) {
+        const stillInQueue = qList.find(
+          (x) =>
+            x.id === selectedPatient.id ||
+            (x.appointment_id && x.appointment_id === selectedPatient.appointment_id)
+        );
+        if (!stillInQueue) {
+          const nextActive =
+            qList.find((x) => x.status === "serving") ||
+            qList.find((x) => x.status === "waiting") ||
+            qList.find((x) => x.status === "confirmed") ||
+            qList[0];
+          if (nextActive) selectPatient(nextActive);
+          else setSelectedPatient(null);
+        }
+      } else {
         const active =
           qList.find((x) => x.status === "serving") ||
           qList.find((x) => x.status === "waiting") ||
@@ -879,11 +972,20 @@ function ConsultCockpitPage() {
           .eq("id", p.appointment_id);
       }
       const todayStr = todayDateStr();
-      await supabase
-        .from("queue_tokens")
-        .update({ status: "serving", called_at: new Date().toISOString() })
-        .eq("queue_date", todayStr)
-        .eq("patient_name", p.patient_name.trim());
+      const effectiveOrgId = orgId || clinic?.organization_id;
+      if (p.source === "token" && p.id.startsWith("tok-")) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "serving", called_at: new Date().toISOString() })
+          .eq("id", p.id.replace("tok-", ""));
+      } else if (effectiveOrgId) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "serving", called_at: new Date().toISOString() })
+          .eq("organization_id", effectiveOrgId)
+          .eq("queue_date", todayStr)
+          .eq("patient_name", p.patient_name.trim());
+      }
 
       setQueue((prev) =>
         prev.map((item) =>
@@ -892,6 +994,50 @@ function ConsultCockpitPage() {
       );
     } catch (e) {
       console.warn("Error updating serving status:", e);
+    }
+  };
+
+  // Remove/Dismiss patient from queue
+  const handleDismissPatient = async (p: QueuePatient, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      if (p.appointment_id) {
+        await supabase
+          .from("appointments")
+          .update({ status: "cancelled" } as any)
+          .eq("id", p.appointment_id);
+      }
+      if (p.source === "token" && p.id.startsWith("tok-")) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "skipped", completed_at: new Date().toISOString() })
+          .eq("id", p.id.replace("tok-", ""));
+      }
+      const effectiveOrgId = orgId || clinic?.organization_id;
+      if (effectiveOrgId) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "skipped", completed_at: new Date().toISOString() })
+          .eq("organization_id", effectiveOrgId)
+          .eq("patient_name", p.patient_name);
+      }
+      toast.info(`${p.patient_name} removed from OPD queue`);
+      setQueue((prev) => prev.filter((item) => item.id !== p.id));
+      if (selectedPatient?.id === p.id) {
+        setSelectedPatient(null);
+        setPatientId(null);
+        setPatientName("");
+        setPatientPhone("");
+        setPatientAge("");
+        setPatientGender("");
+        setAppointmentId(null);
+        setBookedServiceName("");
+        setChiefComplaint("");
+        setDiagnosis("");
+        setTreatmentPlan("");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove patient");
     }
   };
 
@@ -1231,12 +1377,29 @@ function ConsultCockpitPage() {
 
       // 3. Mark token completed
       const todayStr = todayDateStr();
-      await supabase
-        .from("queue_tokens")
-        .update({ status: "done", completed_at: new Date().toISOString() })
-        .eq("queue_date", todayStr)
-        .eq("patient_name", patientName.trim())
-        .then(() => {}, () => {});
+      if (selectedPatient?.source === "token" && selectedPatient.id.startsWith("tok-")) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "done", completed_at: new Date().toISOString() })
+          .eq("id", selectedPatient.id.replace("tok-", ""))
+          .then(() => {}, () => {});
+      }
+      if (appointmentId) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "done", completed_at: new Date().toISOString() })
+          .eq("appointment_id", appointmentId)
+          .then(() => {}, () => {});
+      }
+      if (effectiveOrgId && patientName) {
+        await supabase
+          .from("queue_tokens")
+          .update({ status: "done", completed_at: new Date().toISOString() })
+          .eq("organization_id", effectiveOrgId)
+          .eq("queue_date", todayStr)
+          .eq("patient_name", patientName.trim())
+          .then(() => {}, () => {});
+      }
 
       // Play completion chime
       playAudioChime("complete");
@@ -1658,11 +1821,21 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
               {/* Patient List */}
               <div className="space-y-1.5 max-h-[520px] lg:max-h-[640px] overflow-y-auto pr-1 no-scrollbar">
                 {filteredQueue.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
-                    No patients matching filter.
-                    <div className="mt-2">
-                      <Button size="sm" variant="outline" onClick={() => setWalkinModalOpen(true)} className="h-7 text-xs">
-                        + Add Walk-in Patient
+                  <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl space-y-2">
+                    {queue.length === 0 ? (
+                      <>
+                        <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center mx-auto mb-1">
+                          <CheckCircle2 className="size-5" />
+                        </div>
+                        <div className="font-bold text-foreground text-sm">OPD Queue is Clear</div>
+                        <div className="text-[11px] text-muted-foreground">0 patients waiting today</div>
+                      </>
+                    ) : (
+                      <div>No patients matching "{queueFilter}" filter.</div>
+                    )}
+                    <div className="pt-2">
+                      <Button size="sm" variant="outline" onClick={() => setWalkinModalOpen(true)} className="h-7 text-xs font-semibold">
+                        <Plus className="size-3 mr-1" /> Add Walk-in Patient
                       </Button>
                     </div>
                   </div>
@@ -1728,15 +1901,27 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
                           <Badge
                             variant="outline"
                             className={`text-[9px] px-1.5 py-0 font-bold ${
-                              item.status === "waiting" || item.status === "confirmed"
-                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                              item.status === "done"
+                                ? "bg-muted text-muted-foreground border-border"
                                 : item.status === "serving"
                                   ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                                  : "bg-muted text-muted-foreground border-border"
+                                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
                             }`}
                           >
                             {item.status === "done" ? "Done" : item.status === "serving" ? "In-Consult" : "Waiting"}
                           </Badge>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleDismissPatient(item, e);
+                            }}
+                            className="size-5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors"
+                            title="Remove / dismiss patient from queue"
+                          >
+                            <X className="size-3" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -1876,18 +2061,24 @@ _Wishing you a speedy recovery! For questions, call ${clinic?.phone || "the clin
 
                 {/* Medical History & Repeat Rx Strip */}
                 <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-                  {selectedPatient && selectedPatient.status !== "serving" && selectedPatient.status !== "done" ? (
-                    <Button
-                      size="sm"
-                      onClick={() => handleCallPatient(selectedPatient)}
-                      className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs"
-                      title="Announce patient and mark In Consultation"
-                    >
-                      <Volume2 className="size-3" /> Call to Cabin
-                    </Button>
+                  {selectedPatient ? (
+                    selectedPatient.status !== "serving" && selectedPatient.status !== "done" ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleCallPatient(selectedPatient)}
+                        className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs"
+                        title="Announce patient and mark In Consultation"
+                      >
+                        <Volume2 className="size-3" /> Call to Cabin
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="h-7 text-[10px] px-2.5 font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                        ● In Consultation
+                      </Badge>
+                    )
                   ) : (
-                    <Badge variant="outline" className="h-7 text-[10px] px-2.5 font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
-                      ● In Consultation
+                    <Badge variant="outline" className="h-7 text-[10px] px-2.5 font-semibold bg-muted text-muted-foreground border-border">
+                      ● Ready for Walk-in
                     </Badge>
                   )}
                   {patientPastConsults.length > 0 && (
