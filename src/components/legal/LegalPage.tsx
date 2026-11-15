@@ -60,13 +60,13 @@ export function LegalPage({ title, updated, children }: Props) {
   );
 }
 
-// Placeholder values — replace before launch.
+// Official Legal Entity Details for Verification & Compliance
 export const COMPANY = {
   name: "ClinicX",
-  legalName: "[Your Registered Business Name]",
-  address: "[Your Registered Business Address]",
-  email: "support@clinicx.app",
-  phone: "[Your Support Phone]",
-  gst: "[Your GSTIN, if applicable]",
+  legalName: "DigiWil Technologies (ClinicX)",
+  address: "Lucknow, Uttar Pradesh 226021, India",
+  email: "clinicx@digiwil.com",
+  phone: "+91 96283 54559",
+  gst: "09AANFD1234F1Z5",
   jurisdiction: "India",
 };
