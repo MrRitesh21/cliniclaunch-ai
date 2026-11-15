@@ -990,7 +990,7 @@ function DashboardLayout() {
         </div>
       )}
 
-      <div className="flex-1 flex">
+      <div className={`flex-1 flex ${isWebsiteStudio ? "min-h-0 h-full overflow-hidden" : ""}`}>
         {/* Desktop sidebar */}
         <aside
           className={`hidden md:flex flex-col border-r bg-background fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 ease-in-out ${
@@ -1015,10 +1015,12 @@ function DashboardLayout() {
         </aside>
 
         <main
-          className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-16" : "md:pl-60"}`}
+          className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${
+            isMainSidebarCollapsed ? "md:pl-16" : "md:pl-60"
+          } ${isWebsiteStudio ? "h-[100dvh] max-h-[100dvh] min-h-0 overflow-hidden" : ""}`}
         >
           {/* Mobile top bar */}
-          <div className="md:hidden h-14 border-b border-border/80 flex items-center justify-between px-3.5 bg-background/95 backdrop-blur-xl sticky top-0 z-20 shadow-xs">
+          <div className="md:hidden h-14 border-b border-border/80 flex items-center justify-between px-3.5 bg-background/95 backdrop-blur-xl sticky top-0 z-20 shadow-xs shrink-0">
             <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
               <div className="size-8 rounded-xl bg-slate-50 dark:bg-slate-900 p-1 grid place-items-center border border-border/20 overflow-hidden shadow-xs shrink-0">
                 <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
@@ -1084,7 +1086,7 @@ function DashboardLayout() {
           </div>
 
           {/* Desktop Productivity Toolbar */}
-          <div className="hidden md:flex h-14 border-b bg-background/95 backdrop-blur sticky top-0 z-10 px-6 items-center justify-between">
+          <div className="hidden md:flex h-14 border-b bg-background/95 backdrop-blur sticky top-0 z-10 px-6 items-center justify-between shrink-0">
             <div className="flex items-center gap-4 flex-1">
               {/* Global Search Trigger Placeholder */}
               <button className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-md px-3 py-1.5 border border-border/50 transition-colors w-64">
@@ -1123,8 +1125,8 @@ function DashboardLayout() {
 
           <div
             className={`flex-1 w-full max-w-none min-w-0 ${
-              pathname.startsWith("/dashboard/website")
-                ? "p-0 h-[calc(100dvh-3.5rem)] overflow-hidden flex flex-col"
+              isWebsiteStudio
+                ? "p-0 min-h-0 h-[calc(100dvh-3.5rem)] overflow-hidden flex flex-col"
                 : "px-3 sm:px-5 lg:px-6 pt-3 pb-28 md:pb-6"
             } page-enter`}
           >
@@ -1186,9 +1188,13 @@ function DashboardLayout() {
                 ) : null
               }
             >
-              <PullToRefresh>
+              {isWebsiteStudio ? (
                 <Outlet />
-              </PullToRefresh>
+              ) : (
+                <PullToRefresh>
+                  <Outlet />
+                </PullToRefresh>
+              )}
             </AuthorityBoundary>
           </div>
         </main>

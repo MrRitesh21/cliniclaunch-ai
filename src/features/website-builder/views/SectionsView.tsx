@@ -141,7 +141,7 @@ export function SectionsView() {
   const previewSrc = `/c/${clinic?.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}${isLiveEditMode ? "&edit=true" : ""}`;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex-1 flex min-h-0 min-w-0 h-full w-full overflow-hidden">
       {/* Left Panel: Sections Manager */}
       <div className="w-80 border-r border-border/40 bg-card/60 p-4 space-y-4 flex flex-col justify-between shrink-0 overflow-y-auto">
         <div className="space-y-3">

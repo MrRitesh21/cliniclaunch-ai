@@ -36,7 +36,7 @@ export function SectionPropertyPanel() {
   }
 
   return (
-    <div className="w-80 border-l border-border/40 bg-card/80 backdrop-blur-md h-[calc(100vh-4rem)] sticky top-16 flex flex-col justify-between shrink-0 overflow-y-auto z-20">
+    <div className="w-80 border-l border-border/40 bg-card/80 backdrop-blur-md h-full flex flex-col justify-between shrink-0 overflow-y-auto z-20">
       {/* Header */}
       <div className="p-4 border-b border-border/40 flex items-center justify-between">
         <div>

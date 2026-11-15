@@ -32,7 +32,7 @@ export function LiveEditView() {
   const previewSrc = `/c/${clinic?.slug}?_p=${previewBust}${previewToken ? `&preview=${encodeURIComponent(previewToken)}` : ""}&edit=true`;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-muted/20 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 h-full w-full bg-muted/20 overflow-hidden">
       {/* Top Banner Toolbar */}
       <div className="h-12 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 flex items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2">

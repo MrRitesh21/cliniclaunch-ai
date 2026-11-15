@@ -69,14 +69,14 @@ function WebsiteBuilderMainContent() {
   }${isLiveEditMode ? "&edit=true" : ""}`;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
       {activeTab === "live-edit" ? (
         <LiveEditView />
       ) : activeTab === "sections" ? (
         <SectionsView />
       ) : (
-        <div className="flex-1 flex flex-row min-h-0 min-w-0 overflow-hidden">
-          <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto w-full min-w-0">
+        <div className="flex-1 flex flex-row min-h-0 min-w-0 h-full overflow-hidden">
+          <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto w-full min-w-0 h-full">
             {activeTab === "overview" && <OverviewView />}
             {activeTab === "templates" && <TemplatesView />}
             {activeTab === "customize" && <CustomizeView />}
@@ -95,7 +95,7 @@ function WebsiteBuilderMainContent() {
 
           {/* Elevated Interactive Split Screen Live Preview */}
           {showSplitPreview && showPreviewPane && (
-            <aside className="hidden xl:flex w-[460px] 2xl:w-[500px] border-l border-border/60 bg-muted/20 p-5 flex-col shrink-0">
+            <aside className="hidden xl:flex w-[460px] 2xl:w-[500px] border-l border-border/60 bg-muted/20 p-5 flex-col shrink-0 h-full overflow-hidden">
               <div className="bg-card transition-all duration-300 rounded-2xl shadow-xl border border-border/80 overflow-hidden flex flex-col h-full w-full mx-auto">
                 {/* Browser Top Window Chrome */}
                 <div className="h-9 bg-muted/60 border-b border-border/60 px-3 flex items-center justify-between text-[11px] text-muted-foreground shrink-0 select-none">
@@ -249,10 +249,10 @@ function WebsiteMobileQuickTabs() {
 export function WebsiteBuilderApp({ clinic }: { clinic: any }) {
   return (
     <WebsiteBuilderProvider clinic={clinic}>
-      <div className="h-full w-full bg-background text-foreground flex flex-col font-sans antialiased overflow-hidden">
+      <div className="h-full w-full bg-background text-foreground flex flex-col font-sans antialiased min-h-0 overflow-hidden">
         <WebsiteHeader />
         <WebsiteMobileQuickTabs />
-        <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+        <div className="flex flex-1 min-h-0 min-w-0 h-full overflow-hidden">
           <WebsiteSidebarNav />
           <WebsiteBuilderMainContent />
         </div>

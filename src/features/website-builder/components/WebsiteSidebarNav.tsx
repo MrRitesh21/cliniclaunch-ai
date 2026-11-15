@@ -178,7 +178,7 @@ export function WebsiteSidebarNav() {
     <>
       {/* Desktop Persistent Workbench Sidebar */}
       <aside
-        className={`hidden lg:flex border-r border-border/60 bg-card/95 backdrop-blur-md flex-col justify-between shrink-0 h-full overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out z-20 select-none ${
+        className={`hidden lg:flex border-r border-border/60 bg-card/95 backdrop-blur-md flex-col justify-between shrink-0 h-full max-h-full overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out z-20 select-none sticky top-0 self-stretch ${
           isCollapsed ? "w-16 hover:w-64 group/studiosidebar shadow-xl hover:bg-card/95" : "w-64"
         }`}
       >
