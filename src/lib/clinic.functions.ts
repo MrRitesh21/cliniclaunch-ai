@@ -322,7 +322,10 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
   // Proactively sanitize placeholder doctor name in copy if doctor_name was updated
   if (clinic.doctor_name && clinic.doctor_name !== "Dr. Partner") {
     const doc = clinic.doctor_name;
-    if (typeof clinic.hero_subheadline === "string" && clinic.hero_subheadline.includes("Dr. Partner")) {
+    if (
+      typeof clinic.hero_subheadline === "string" &&
+      clinic.hero_subheadline.includes("Dr. Partner")
+    ) {
       clinic.hero_subheadline = clinic.hero_subheadline.replace(/Dr\.\s*Partner/gi, doc);
     }
     if (typeof clinic.about_text === "string" && clinic.about_text.includes("Dr. Partner")) {
@@ -336,7 +339,10 @@ async function fetchClinicData(slug: string, previewToken?: string, allowPreview
       if (typeof seo.meta_title === "string" && seo.meta_title.includes("Dr. Partner")) {
         seo.meta_title = seo.meta_title.replace(/Dr\.\s*Partner/gi, doc);
       }
-      if (typeof seo.meta_description === "string" && seo.meta_description.includes("Dr. Partner")) {
+      if (
+        typeof seo.meta_description === "string" &&
+        seo.meta_description.includes("Dr. Partner")
+      ) {
         seo.meta_description = seo.meta_description.replace(/Dr\.\s*Partner/gi, doc);
       }
       clinic.seo_config = seo;
@@ -424,7 +430,9 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
     const sb = await adminClient();
     const { data: clinic } = await sb
       .from("clinics")
-      .select("id, organization_id, doctor_name, specialization, clinic_name, public_address")
+      .select(
+        "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id",
+      )
       .eq("slug", data.slug)
       .maybeSingle();
 
@@ -434,7 +442,9 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
     if ((clinic as any).organization_id) {
       const { data: org } = await sb
         .from("organizations")
-        .select("id, name, logo_url, google_business_profile_url")
+        .select(
+          "id, name, logo_url, google_business_profile_url, google_place_id, google_business_name",
+        )
         .eq("id", (clinic as any).organization_id)
         .maybeSingle();
       orgData = org;
@@ -1657,13 +1667,11 @@ export const ensureDoctorMembership = createServerFn({ method: "POST" })
 
     if (!existing) {
       try {
-        await sb
-          .from("organization_members")
-          .insert({
-            organization_id: clinic.organization_id,
-            user_id: data.user_id,
-            role: "owner",
-          });
+        await sb.from("organization_members").insert({
+          organization_id: clinic.organization_id,
+          user_id: data.user_id,
+          role: "owner",
+        });
       } catch {}
     }
 
@@ -1713,4 +1721,3 @@ export const getDashboardDoctors = createServerFn({ method: "POST" })
     }
     return rows || [];
   });
-

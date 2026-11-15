@@ -10,7 +10,7 @@ import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useOrganization } from "@/hooks/useOrganization";
-import { AuthorityBoundary } from '@/components/app/AuthorityBoundary';
+import { AuthorityBoundary } from "@/components/app/AuthorityBoundary";
 import { recoveryRoute, trialMessage } from "@/components/billing/clinicx-ux";
 import { readCache, writeCache, clearCachePrefix } from "@/lib/persist-cache";
 import type { Database } from "@/integrations/supabase/types";
@@ -97,12 +97,23 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function SubscriptionExpiredView() {
-  return <div className="mx-auto max-w-lg rounded-xl border bg-card p-6 space-y-3">
-    <h2 className="font-display text-xl">Clinic operations are paused</h2>
-    <p className="text-sm text-muted-foreground">Expiry does not delete your records. Billing, account settings, support and authorized export remain available.</p>
-    <Link to="/dashboard/billing" className="text-primary underline">Choose a plan or export clinic data</Link>
-    <div><Link to="/dashboard/settings" className="text-sm underline">Account and clinic settings</Link></div>
-  </div>;
+  return (
+    <div className="mx-auto max-w-lg rounded-xl border bg-card p-6 space-y-3">
+      <h2 className="font-display text-xl">Clinic operations are paused</h2>
+      <p className="text-sm text-muted-foreground">
+        Expiry does not delete your records. Billing, account settings, support and authorized
+        export remain available.
+      </p>
+      <Link to="/dashboard/billing" className="text-primary underline">
+        Choose a plan or export clinic data
+      </Link>
+      <div>
+        <Link to="/dashboard/settings" className="text-sm underline">
+          Account and clinic settings
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 export function useClinic() {
@@ -111,11 +122,11 @@ export function useClinic() {
     if (typeof window === "undefined") return undefined;
     const targetId = getImpersonationCookie() || user?.id;
     if (targetId) {
-      const cachedClinic = readCache<Clinic>(
-        `clinic:${targetId}`,
-        24 * 60 * 60 * 1000,
-      );
-      if (cachedClinic && (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))) {
+      const cachedClinic = readCache<Clinic>(`clinic:${targetId}`, 24 * 60 * 60 * 1000);
+      if (
+        cachedClinic &&
+        (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))
+      ) {
         return cachedClinic;
       }
     }
@@ -141,20 +152,23 @@ export function useClinic() {
     const targetId = getImpersonationCookie() || user.id;
 
     // Paint the last known clinic instantly if state didn't already have it
-    const cachedClinic = readCache<Clinic>(
-      `clinic:${targetId}`,
-      24 * 60 * 60 * 1000,
-    );
-    if (cachedClinic && (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))) {
+    const cachedClinic = readCache<Clinic>(`clinic:${targetId}`, 24 * 60 * 60 * 1000);
+    if (
+      cachedClinic &&
+      (!cachedClinic.organization_id || isValidUuid(cachedClinic.organization_id))
+    ) {
       setClinic((prev) => prev || cachedClinic);
     }
 
     (async () => {
-      const isTargetUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+      const isTargetUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        targetId,
+      );
 
-      let orgId: string | undefined = cachedClinic?.organization_id && isValidUuid(cachedClinic.organization_id)
-        ? cachedClinic.organization_id
-        : undefined;
+      let orgId: string | undefined =
+        cachedClinic?.organization_id && isValidUuid(cachedClinic.organization_id)
+          ? cachedClinic.organization_id
+          : undefined;
 
       const membershipPromise = isTargetUuid
         ? supabase
@@ -201,7 +215,9 @@ export function useClinic() {
           if (fetched) {
             clinicData = fetched as any;
             if (isTargetUuid && clinicData?.id && !clinicData.id.startsWith("sso-")) {
-              ensureDoctorMembership({ data: { clinic_id: clinicData.id, user_id: targetId } }).catch(() => {});
+              ensureDoctorMembership({
+                data: { clinic_id: clinicData.id, user_id: targetId },
+              }).catch(() => {});
             }
           } else {
             const orgUuid = emailToDeterministicUuid(`org:${sso?.email || "demo-clinic"}`);
@@ -212,7 +228,9 @@ export function useClinic() {
               organization_id: orgUuid,
               slug: slugToLoad,
               doctor_name: sso?.name || CLEAN_DEMO_CLINIC_DATA.doctor_name,
-              clinic_name: sso?.name ? `${sso.name}'s Practice` : CLEAN_DEMO_CLINIC_DATA.clinic_name,
+              clinic_name: sso?.name
+                ? `${sso.name}'s Practice`
+                : CLEAN_DEMO_CLINIC_DATA.clinic_name,
               is_published: true,
               published_at: new Date().toISOString(),
             } as any;
@@ -275,8 +293,13 @@ const NAV_SECTIONS = [
     label: "Marketing",
     items: [
       { to: "/dashboard/website", label: "Website", icon: Palette, module: "website_builder" },
-      { to: "/dashboard/whatsapp", label: "WhatsApp AI Assistant", icon: MessageCircle, module: "whatsapp" },
-      { to: "/dashboard/reviews", label: "Reviews", icon: Star, module: "reviews" },
+      {
+        to: "/dashboard/whatsapp",
+        label: "WhatsApp AI Assistant",
+        icon: MessageCircle,
+        module: "whatsapp",
+      },
+      { to: "/dashboard/reviews", label: "Google Reviews & GMB", icon: Star, module: "reviews" },
       { to: "/dashboard/loyalty", label: "Loyalty", icon: QrCode, module: "loyalty" },
       { to: "/dashboard/marketing", label: "Marketing", icon: Megaphone, module: "marketing" },
       { to: "/dashboard/seo", label: "SEO & AI Ranking", icon: Search, module: "seo" },
@@ -343,7 +366,9 @@ const NavLink = memo(
             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground font-medium"
         }`}
       >
-        <div className={`grid place-items-center size-7 rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-muted/70 text-muted-foreground"}`}>
+        <div
+          className={`grid place-items-center size-7 rounded-lg transition-colors ${active ? "bg-primary text-primary-foreground" : "bg-muted/70 text-muted-foreground"}`}
+        >
           <item.icon className="size-3.5 shrink-0" />
         </div>
         <span
@@ -582,7 +607,16 @@ function DashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const clinic = useClinic();
   const { isReady, user } = useAuthReady();
-  const { org, role, installedModuleIds, planModuleIds, isSubscriptionExpired, entitlement, authorityError, refresh } = useOrganization();
+  const {
+    org,
+    role,
+    installedModuleIds,
+    planModuleIds,
+    isSubscriptionExpired,
+    entitlement,
+    authorityError,
+    refresh,
+  } = useOrganization();
   const router = useRouter();
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -611,7 +645,9 @@ function DashboardLayout() {
       setProfile({ full_name: user.user_metadata.full_name });
       return;
     }
-    const isUserUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+    const isUserUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      user.id,
+    );
     if (!isUserUuid) return;
 
     supabase
@@ -1018,7 +1054,10 @@ function DashboardLayout() {
                     <Menu className="size-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-80 max-w-[85vw] p-0 flex flex-col bg-background/98 backdrop-blur-md border-r border-border/80 shadow-2xl">
+                <SheetContent
+                  side="left"
+                  className="w-80 max-w-[85vw] p-0 flex flex-col bg-background/98 backdrop-blur-md border-r border-border/80 shadow-2xl"
+                >
                   <SheetHeader className="sr-only">
                     <SheetTitle>Navigation</SheetTitle>
                   </SheetHeader>
@@ -1081,32 +1120,63 @@ function DashboardLayout() {
             className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-3 sm:px-5 lg:px-6 pt-3 pb-28 md:pb-6"} page-enter`}
           >
             {entitlement?.effective_state === "past_due" && (
-              <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/40 p-3 mb-4 text-sm flex items-center justify-between gap-3">
-                <span>Payment failed. Please update your payment method to keep clinic operations active.</span>
+              <div
+                role="alert"
+                className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/40 p-3 mb-4 text-sm flex items-center justify-between gap-3"
+              >
+                <span>
+                  Payment failed. Please update your payment method to keep clinic operations
+                  active.
+                </span>
                 <Link to="/dashboard/billing" className="font-semibold underline shrink-0">
                   Update payment
                 </Link>
               </div>
             )}
-            {entitlement && !entitlement.can_write && entitlement.can_read && entitlement.effective_state !== "past_due" && <div role="status" className="rounded-lg border p-3 mb-4 text-sm">{trialMessage(entitlement)} New clinical records cannot be created.</div>}
-            <AuthorityBoundary allowed={recoveryRoute(pathname) || (!isSubscriptionExpired && !authorityError && (pathname === "/dashboard" || pathname === "/dashboard/" || !!entitlement))} fallback={authorityError && !recoveryRoute(pathname) ? (
-              <div role="alert" className="rounded-lg border p-6">
-                <p>{authorityError}</p>
-                <Button variant="outline" onClick={() => void refresh()} className="mt-3">
-                  Retry access check
-                </Button>
-              </div>
-            ) : org === undefined && !recoveryRoute(pathname) ? (
-              <div role="status" className="flex flex-col items-center justify-center p-12 text-center space-y-3">
-                <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground">Checking clinic access…</p>
-                <Button variant="ghost" size="sm" onClick={() => void refresh()} className="mt-2 text-xs">
-                  Taking longer than expected? Tap to retry
-                </Button>
-              </div>
-            ) : isSubscriptionExpired && !recoveryRoute(pathname) ? (
-              <SubscriptionExpiredView />
-            ) : null}>
+            {entitlement &&
+              !entitlement.can_write &&
+              entitlement.can_read &&
+              entitlement.effective_state !== "past_due" && (
+                <div role="status" className="rounded-lg border p-3 mb-4 text-sm">
+                  {trialMessage(entitlement)} New clinical records cannot be created.
+                </div>
+              )}
+            <AuthorityBoundary
+              allowed={
+                recoveryRoute(pathname) ||
+                (!isSubscriptionExpired &&
+                  !authorityError &&
+                  (pathname === "/dashboard" || pathname === "/dashboard/" || !!entitlement))
+              }
+              fallback={
+                authorityError && !recoveryRoute(pathname) ? (
+                  <div role="alert" className="rounded-lg border p-6">
+                    <p>{authorityError}</p>
+                    <Button variant="outline" onClick={() => void refresh()} className="mt-3">
+                      Retry access check
+                    </Button>
+                  </div>
+                ) : org === undefined && !recoveryRoute(pathname) ? (
+                  <div
+                    role="status"
+                    className="flex flex-col items-center justify-center p-12 text-center space-y-3"
+                  >
+                    <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-muted-foreground">Checking clinic access…</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void refresh()}
+                      className="mt-2 text-xs"
+                    >
+                      Taking longer than expected? Tap to retry
+                    </Button>
+                  </div>
+                ) : isSubscriptionExpired && !recoveryRoute(pathname) ? (
+                  <SubscriptionExpiredView />
+                ) : null
+              }
+            >
               <PullToRefresh>
                 <Outlet />
               </PullToRefresh>
@@ -1133,7 +1203,9 @@ function DashboardLayout() {
                 key={n.to}
                 to={n.to}
                 className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
-                  active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
+                  active
+                    ? "text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground font-medium"
                 }`}
               >
                 <div
@@ -1145,7 +1217,9 @@ function DashboardLayout() {
                 >
                   <n.icon className="size-4.5" />
                 </div>
-                <span className="text-[10px] leading-tight tracking-tight font-medium truncate max-w-[64px]">{n.label}</span>
+                <span className="text-[10px] leading-tight tracking-tight font-medium truncate max-w-[64px]">
+                  {n.label}
+                </span>
               </Link>
             );
           })}
@@ -1156,7 +1230,9 @@ function DashboardLayout() {
             onClick={() => setMobileMenuOpen(true)}
             aria-label="More navigation options"
             className={`flex flex-col items-center justify-center gap-0.5 py-1 select-none transition-all active:scale-95 touch-manipulation min-h-[48px] ${
-              mobileMenuOpen ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground font-medium"
+              mobileMenuOpen
+                ? "text-primary font-bold"
+                : "text-muted-foreground hover:text-foreground font-medium"
             }`}
           >
             <div

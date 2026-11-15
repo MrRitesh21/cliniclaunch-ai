@@ -42,32 +42,32 @@ export const Route = createFileRoute("/_authenticated/dashboard/modules")({
 });
 
 const MODULE_ROUTE_MAP: Record<string, string> = {
-  attendance: '/dashboard/attendance',
-  appointments: '/dashboard/appointments',
-  crm: '/dashboard/patients',
-  billing: '/dashboard/finance',
-  prescriptions: '/dashboard/prescriptions',
-  consultation: '/dashboard/consult',
-  whatsapp: '/dashboard/whatsapp',
-  reviews: '/dashboard/reviews',
-  staff: '/dashboard/staff',
-  inventory: '/dashboard/inventory',
-  pharmacy: '/dashboard/pharmacy',
-  lab: '/dashboard/lab',
-  analytics: '/dashboard/analytics',
-  marketing: '/dashboard/marketing',
-  seo: '/dashboard/seo',
-  loyalty: '/dashboard/loyalty',
-  ai_assistant: '/dashboard/assistant',
-  website_builder: '/dashboard/website',
-  qr_appointment: '/dashboard/qr',
-  queue: '/dashboard/queue',
-  doctors: '/dashboard/doctors',
-  records: '/dashboard/records',
-  emr: '/dashboard/records',
-  walkins: '/dashboard/walkins',
-  leads: '/dashboard/leads',
-  team: '/dashboard/team',
+  attendance: "/dashboard/attendance",
+  appointments: "/dashboard/appointments",
+  crm: "/dashboard/patients",
+  billing: "/dashboard/finance",
+  prescriptions: "/dashboard/prescriptions",
+  consultation: "/dashboard/consult",
+  whatsapp: "/dashboard/whatsapp",
+  reviews: "/dashboard/reviews",
+  staff: "/dashboard/staff",
+  inventory: "/dashboard/inventory",
+  pharmacy: "/dashboard/pharmacy",
+  lab: "/dashboard/lab",
+  analytics: "/dashboard/analytics",
+  marketing: "/dashboard/marketing",
+  seo: "/dashboard/seo",
+  loyalty: "/dashboard/loyalty",
+  ai_assistant: "/dashboard/assistant",
+  website_builder: "/dashboard/website",
+  qr_appointment: "/dashboard/qr",
+  queue: "/dashboard/queue",
+  doctors: "/dashboard/doctors",
+  records: "/dashboard/records",
+  emr: "/dashboard/records",
+  walkins: "/dashboard/walkins",
+  leads: "/dashboard/leads",
+  team: "/dashboard/team",
 };
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -77,9 +77,12 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Marketing: "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800",
-  Operations: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-  Clinical: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  Marketing:
+    "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+  Operations:
+    "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  Clinical:
+    "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
 };
 
 // Rich Doctor Benefit Guides for each ClinicX module
@@ -94,7 +97,11 @@ const MODULE_BENEFITS: Record<
 > = {
   attendance: {
     tagline: "A daily attendance register for your clinic team.",
-    benefits: ["One-click check-in and check-out using server time.", "Owner/admin corrections for present, late, half-day, absent and leave.", "Daily history and CSV reports within permitted clinic scope."],
+    benefits: [
+      "One-click check-in and check-out using server time.",
+      "Owner/admin corrections for present, late, half-day, absent and leave.",
+      "Daily history and CSV reports within permitted clinic scope.",
+    ],
     roiNote: "Keeps shift records and administrative corrections together.",
     highlights: ["Daily roster", "Shift history", "CSV reports", "Self-service"],
   },
@@ -118,10 +125,16 @@ const MODULE_BENEFITS: Record<
       "Collect verified 5-star Google review links right after consultations.",
     ],
     roiNote: "Reduces patient no-shows by up to 60% and saves 2+ receptionist hours daily.",
-    highlights: ["Official WhatsApp API", "Instant E-Prescription Delivery", "24/7 AI Booking", "Automated Reminders"],
+    highlights: [
+      "Official WhatsApp API",
+      "Instant E-Prescription Delivery",
+      "24/7 AI Booking",
+      "Automated Reminders",
+    ],
   },
   reviews: {
-    tagline: "Reputation powerhouse that converts happy patients into 5-star reviews automatically.",
+    tagline:
+      "Reputation powerhouse that converts happy patients into 5-star reviews automatically.",
     benefits: [
       "Generate printable QR standees for your clinic reception counter.",
       "Smart sentiment filtering: captures negative feedback privately before public posting.",
@@ -129,17 +142,24 @@ const MODULE_BENEFITS: Record<
       "AI-assisted review replies compliant with medical ethics & privacy guidelines.",
     ],
     roiNote: "Boosts clinic Google review count by 3x–5x within 60 days.",
-    highlights: ["QR Standee Generator", "Emergency Recovery Alert", "Verified Patient Badges", "AI Auto-Reply"],
+    highlights: [
+      "QR Standee Generator",
+      "Emergency Recovery Alert",
+      "Verified Patient Badges",
+      "AI Auto-Reply",
+    ],
   },
   prescriptions: {
-    tagline: "Lightning-fast E-Prescriptions with AI Drug Interaction checks & Indian brand database.",
+    tagline:
+      "Lightning-fast E-Prescriptions with AI Drug Interaction checks & Indian brand database.",
     benefits: [
       "Write complete digital prescriptions in under 30 seconds with smart autocomplete.",
       "Integrated 50,000+ Indian generic & branded medicine directory.",
       "Instant 1-tap WhatsApp PDF delivery with clinic branding and digital signature.",
       "Automatic dosage calculator & multi-drug interaction safety alerts.",
     ],
-    roiNote: "Eliminates handwriting errors, speeds up OPD turnover, and builds a permanent EMR history.",
+    roiNote:
+      "Eliminates handwriting errors, speeds up OPD turnover, and builds a permanent EMR history.",
     highlights: ["30-Sec Smart Rx", "50k+ Medicine DB", "1-Tap WhatsApp PDF", "Safety Drug Alerts"],
   },
   finance: {
@@ -162,10 +182,16 @@ const MODULE_BENEFITS: Record<
       "Built-in Google Analytics, Meta Pixel & conversion tracking.",
     ],
     roiNote: "Converts website visitors into confirmed booked appointments 24/7.",
-    highlights: ["Online Booking Portal", "Doctor Profile Showcase", "Mobile Touch Native", "Fast CDN Hosting"],
+    highlights: [
+      "Online Booking Portal",
+      "Doctor Profile Showcase",
+      "Mobile Touch Native",
+      "Fast CDN Hosting",
+    ],
   },
   multi_branch: {
-    tagline: "Centralized multi-clinic chain operations, centralized staff, slots & cross-branch reports.",
+    tagline:
+      "Centralized multi-clinic chain operations, centralized staff, slots & cross-branch reports.",
     benefits: [
       "Manage unlimited clinic branches and OPD centers from a single unified portal.",
       "Transfer patients, doctors, and appointment slots seamlessly between branches.",
@@ -173,7 +199,12 @@ const MODULE_BENEFITS: Record<
       "Scoped staff permissions: clinic-wide super admin or branch-restricted receptionists.",
     ],
     roiNote: "Cuts overhead costs for multi-location clinic chains by up to 40%.",
-    highlights: ["Unlimited Locations", "Cross-Branch Slots", "Central Reporting", "Scoped Staff RBAC"],
+    highlights: [
+      "Unlimited Locations",
+      "Cross-Branch Slots",
+      "Central Reporting",
+      "Scoped Staff RBAC",
+    ],
   },
   insurance_claims: {
     tagline: "Cashless TPA and health insurance claims with document uploads & settlement tracker.",
@@ -254,7 +285,8 @@ function ModulesPage() {
   }, [currentPlan?.module_ids, isEnterprise, isPlanAbove2000, modules, planModuleIds]);
   const noActivePlan = !currentPlan;
 
-  const attendanceVerified = !!user && authorityUserId === user.id && !!entitlement && !authorityError;
+  const attendanceVerified =
+    !!user && authorityUserId === user.id && !!entitlement && !authorityError;
   const attendanceAllowed =
     attendanceVerified &&
     !!entitlement?.can_write &&
@@ -262,24 +294,39 @@ function ModulesPage() {
       allowedModuleIds.has("attendance") ||
       planModuleIds.includes("attendance")) &&
     !unavailableModuleIds.includes("attendance");
-  const attendanceKey = JSON.stringify([user?.id, org?.id, role, authorityUserId, authorityGeneration, attendanceAllowed]);
+  const attendanceKey = JSON.stringify([
+    user?.id,
+    org?.id,
+    role,
+    authorityUserId,
+    authorityGeneration,
+    attendanceAllowed,
+  ]);
   const attendanceScope = useRef({ key: attendanceKey, generation: 0 });
   const attendanceLock = useRef<object | null>(null);
   const attendanceMounted = useRef(true);
-  useEffect(() => { attendanceMounted.current = true; return () => { attendanceMounted.current = false; }; }, []);
+  useEffect(() => {
+    attendanceMounted.current = true;
+    return () => {
+      attendanceMounted.current = false;
+    };
+  }, []);
   if (attendanceScope.current.key !== attendanceKey) {
-    attendanceScope.current = { key: attendanceKey, generation: attendanceScope.current.generation + 1 };
+    attendanceScope.current = {
+      key: attendanceKey,
+      generation: attendanceScope.current.generation + 1,
+    };
     attendanceLock.current = null;
   }
-  const attendanceAdmin = role === 'owner' || role === 'admin';
+  const attendanceAdmin = role === "owner" || role === "admin";
 
   useEffect(() => {
     setBusy(null);
     setSelectedModule(null);
   }, [org?.id]);
   useEffect(() => {
-    setBusy(previous => previous === 'attendance' ? null : previous);
-    setSelectedModule(previous => previous?.id === 'attendance' ? null : previous);
+    setBusy((previous) => (previous === "attendance" ? null : previous));
+    setSelectedModule((previous) => (previous?.id === "attendance" ? null : previous));
   }, [attendanceKey]);
 
   useEffect(() => {
@@ -290,7 +337,8 @@ function ModulesPage() {
         !org?.id ||
         !isValidUuid(org.id) ||
         (typeof window !== "undefined" &&
-          (localStorage.getItem("clinicx_sso_session") || document.cookie.includes("is_demo_session=true")))
+          (localStorage.getItem("clinicx_sso_session") ||
+            document.cookie.includes("is_demo_session=true")))
           ? Promise.resolve({ data: orgSub ?? null })
           : supabase.from("subscriptions").select("*").eq("organization_id", org.id).maybeSingle();
 
@@ -335,6 +383,12 @@ function ModulesPage() {
           attMod.min_plan = "professional";
         }
       }
+      const revMod = modulesList.find((mod) => mod.id === "reviews");
+      if (revMod) {
+        revMod.name = "Google Reviews & GMB Growth";
+        revMod.description =
+          "Direct GMB connection, Smart AI review collector with natural Hinglish/English keywords, AI auto-replies, and Top 3 Google Maps ranking.";
+      }
       setModules(modulesList);
       setPlans((p ?? []) as Plan[]);
       setSub((s ?? orgSub ?? null) as Subscription | null);
@@ -344,31 +398,57 @@ function ModulesPage() {
 
   async function toggle(m: Module) {
     if (!org) return;
-    if (m.id === 'attendance') {
+    if (m.id === "attendance") {
       if (!attendanceAdmin || !attendanceAllowed || attendanceLock.current) return;
       const token = attendanceScope.current.generation;
-      const lock = {}; attendanceLock.current = lock;
-      const current = () => attendanceMounted.current && attendanceScope.current.generation === token;
+      const lock = {};
+      attendanceLock.current = lock;
+      const current = () =>
+        attendanceMounted.current && attendanceScope.current.generation === token;
       const installed = installedModuleIds.includes(m.id);
       setBusy(m.id);
       try {
         const result = installed
-          ? await supabase.from('organization_modules').delete().eq('organization_id', org.id).eq('module_id', m.id)
-          : await supabase.from('organization_modules').insert({ organization_id: org.id, module_id: m.id });
-        if (result.error && result.error.code !== '23505') throw result.error;
+          ? await supabase
+              .from("organization_modules")
+              .delete()
+              .eq("organization_id", org.id)
+              .eq("module_id", m.id)
+          : await supabase
+              .from("organization_modules")
+              .insert({ organization_id: org.id, module_id: m.id });
+        if (result.error && result.error.code !== "23505") throw result.error;
         if (!current()) return;
-        const verified = await supabase.from('organization_modules').select('module_id').eq('organization_id', org.id).eq('module_id', m.id);
+        const verified = await supabase
+          .from("organization_modules")
+          .select("module_id")
+          .eq("organization_id", org.id)
+          .eq("module_id", m.id);
         if (!current()) return;
         if (verified.error) throw verified.error;
-        if (Boolean(verified.data?.length) === installed) throw new Error('Attendance installation was not confirmed. Refresh and retry.');
+        if (Boolean(verified.data?.length) === installed)
+          throw new Error("Attendance installation was not confirmed. Refresh and retry.");
         // The exact installation is confirmed under current authority. Notify before
         // our own refresh invalidates that authority generation.
-        toast.success(installed ? 'Staff Attendance uninstalled' : 'Staff Attendance installed. Use Open App to begin.');
+        toast.success(
+          installed
+            ? "Staff Attendance uninstalled"
+            : "Staff Attendance installed. Use Open App to begin.",
+        );
         await refresh();
       } catch (cause: any) {
-        if (current()) toast.error(cause?.message || (cause instanceof Error ? cause.message : 'Attendance installation failed. Check your connection and plan, then retry.'));
+        if (current())
+          toast.error(
+            cause?.message ||
+              (cause instanceof Error
+                ? cause.message
+                : "Attendance installation failed. Check your connection and plan, then retry."),
+          );
       } finally {
-        if (current() && attendanceLock.current === lock) { attendanceLock.current = null; setBusy(null); }
+        if (current() && attendanceLock.current === lock) {
+          attendanceLock.current = null;
+          setBusy(null);
+        }
       }
       return;
     }
@@ -483,7 +563,12 @@ function ModulesPage() {
               {modules.length} apps installed
             </div>
           </div>
-          <Button variant="outline" size="sm" asChild className="h-8 text-xs rounded-xl font-medium">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-8 text-xs rounded-xl font-medium"
+          >
             <a href="/dashboard/billing">Manage Plan</a>
           </Button>
         </Card>
@@ -532,7 +617,10 @@ function ModulesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {items.map((m) => {
                   const installed = installedModuleIds.includes(m.id);
-                  const allowed = m.id === 'attendance' ? attendanceAllowed && m.is_available : allowedModuleIds.has(m.id);
+                  const allowed =
+                    m.id === "attendance"
+                      ? attendanceAllowed && m.is_available
+                      : allowedModuleIds.has(m.id);
                   const locked = !installed && !allowed;
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const Icon =
@@ -607,32 +695,38 @@ function ModulesPage() {
                         </button>
 
                         {installed && MODULE_ROUTE_MAP[m.id] ? (
-                          <Button size="sm" asChild><Link to={MODULE_ROUTE_MAP[m.id] as any}>Open App</Link></Button>
-                        ) : <Button
-                          size="sm"
-                          variant={installed ? "outline" : locked ? "outline" : "default"}
-                          className={`text-xs h-8 px-3.5 rounded-xl font-semibold ${
-                            installed
-                              ? "text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-                              : locked
-                                ? "text-muted-foreground"
-                                : "bg-primary text-primary-foreground shadow-xs"
-                          }`}
-                          disabled={busy === m.id || locked || (m.id === 'attendance' && !attendanceAdmin)}
-                          onClick={() => toggle(m)}
-                        >
-                          {busy === m.id ? (
-                            <Icons.Loader2 className="size-3.5 animate-spin" />
-                          ) : installed ? (
-                            "Installed"
-                          ) : locked ? (
-                            <>
-                              <Lock className="size-3 mr-1" /> Locked
-                            </>
-                          ) : (
-                            "Install App"
-                          )}
-                        </Button>}
+                          <Button size="sm" asChild>
+                            <Link to={MODULE_ROUTE_MAP[m.id] as any}>Open App</Link>
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant={installed ? "outline" : locked ? "outline" : "default"}
+                            className={`text-xs h-8 px-3.5 rounded-xl font-semibold ${
+                              installed
+                                ? "text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                                : locked
+                                  ? "text-muted-foreground"
+                                  : "bg-primary text-primary-foreground shadow-xs"
+                            }`}
+                            disabled={
+                              busy === m.id || locked || (m.id === "attendance" && !attendanceAdmin)
+                            }
+                            onClick={() => toggle(m)}
+                          >
+                            {busy === m.id ? (
+                              <Icons.Loader2 className="size-3.5 animate-spin" />
+                            ) : installed ? (
+                              "Installed"
+                            ) : locked ? (
+                              <>
+                                <Lock className="size-3 mr-1" /> Locked
+                              </>
+                            ) : (
+                              "Install App"
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </Card>
                   );
@@ -645,7 +739,10 @@ function ModulesPage() {
 
       {/* App Details & Doctor Benefits Dialog */}
       {selectedModule && (
-        <Dialog open={Boolean(selectedModule)} onOpenChange={(open) => !open && setSelectedModule(null)}>
+        <Dialog
+          open={Boolean(selectedModule)}
+          onOpenChange={(open) => !open && setSelectedModule(null)}
+        >
           <DialogContent className="max-w-md p-5 sm:p-6 rounded-2xl">
             <DialogHeader className="space-y-2">
               <div className="flex items-start gap-3">
@@ -706,12 +803,21 @@ function ModulesPage() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-2 border-t">
-                {installedModuleIds.includes(selectedModule.id) && MODULE_ROUTE_MAP[selectedModule.id] && <Button asChild><Link to={MODULE_ROUTE_MAP[selectedModule.id] as any}>Open App</Link></Button>}
+                {installedModuleIds.includes(selectedModule.id) &&
+                  MODULE_ROUTE_MAP[selectedModule.id] && (
+                    <Button asChild>
+                      <Link to={MODULE_ROUTE_MAP[selectedModule.id] as any}>Open App</Link>
+                    </Button>
+                  )}
                 {installedModuleIds.includes(selectedModule.id) ? (
                   <Button
                     variant="outline"
                     onClick={() => toggle(selectedModule)}
-                    disabled={busy === selectedModule.id || (selectedModule.id === 'attendance' && (!attendanceAdmin || !attendanceAllowed))}
+                    disabled={
+                      busy === selectedModule.id ||
+                      (selectedModule.id === "attendance" &&
+                        (!attendanceAdmin || !attendanceAllowed))
+                    }
                     className="flex-1 h-9 text-xs font-semibold text-destructive hover:bg-destructive/10"
                   >
                     Uninstall Module
@@ -721,7 +827,8 @@ function ModulesPage() {
                     onClick={() => toggle(selectedModule)}
                     disabled={
                       busy === selectedModule.id ||
-                      (selectedModule.id === 'attendance' && (!attendanceAdmin || !attendanceAllowed)) ||
+                      (selectedModule.id === "attendance" &&
+                        (!attendanceAdmin || !attendanceAllowed)) ||
                       (!installedModuleIds.includes(selectedModule.id) &&
                         !allowedModuleIds.has(selectedModule.id))
                     }
@@ -731,7 +838,12 @@ function ModulesPage() {
                     (!allowedModuleIds.has(selectedModule.id) ||
                       (selectedModule.id === "attendance" && !attendanceAllowed)) ? (
                       <>
-                        <Lock className="size-3.5 mr-1" /> Requires {selectedModule.min_plan ? (selectedModule.min_plan.charAt(0).toUpperCase() + selectedModule.min_plan.slice(1)) : "Professional"} Plan
+                        <Lock className="size-3.5 mr-1" /> Requires{" "}
+                        {selectedModule.min_plan
+                          ? selectedModule.min_plan.charAt(0).toUpperCase() +
+                            selectedModule.min_plan.slice(1)
+                          : "Professional"}{" "}
+                        Plan
                       </>
                     ) : (
                       "Install & Enable App"
