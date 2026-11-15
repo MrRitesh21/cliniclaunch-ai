@@ -361,7 +361,7 @@ export async function fetchGoogleBusinessProfiles(opts: {
   const searchQuery = query?.trim() || clinicName;
   const cityMatch = address.split(",")[1]?.trim() || address.split(",")[0]?.trim() || "";
 
-  // 2. If providerToken is present, query Google My Business API
+  // 2. If providerToken is present, query Google My Business API directly
   if (providerToken) {
     try {
       const accountsRes = await fetch(
@@ -374,17 +374,36 @@ export async function fetchGoogleBusinessProfiles(opts: {
         },
       );
 
-      if (accountsRes.ok) {
-        const accountsData = (await accountsRes.json()) as {
-          accounts?: Array<{ name: string; accountName?: string }>;
+      if (!accountsRes.ok) {
+        const errText = await accountsRes.text();
+        console.error("GMB accounts.list error:", accountsRes.status, errText);
+        return {
+          profiles: [],
+          source: "gmb_api",
         };
+      }
 
-        const profiles: GoogleBusinessProfileSummary[] = [];
+      const accountsData = (await accountsRes.json()) as {
+        accounts?: Array<{ name: string; accountName?: string }>;
+      };
 
-        if (Array.isArray(accountsData.accounts) && accountsData.accounts.length > 0) {
-          for (const acc of accountsData.accounts) {
-            const locRes = await fetch(
-              `https://mybusinessbusinessinformation.googleapis.com/v1/${acc.name}/locations?readMask=name,title,storefrontAddress,metadata,phoneNumbers,websiteUri`,
+      const profiles: GoogleBusinessProfileSummary[] = [];
+
+      if (Array.isArray(accountsData.accounts) && accountsData.accounts.length > 0) {
+        for (const acc of accountsData.accounts) {
+          let locRes = await fetch(
+            `https://mybusinessbusinessinformation.googleapis.com/v1/${acc.name}/locations?readMask=name,title,storefrontAddress,metadata,phoneNumbers,websiteUri&pageSize=100`,
+            {
+              headers: {
+                Authorization: `Bearer ${providerToken}`,
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          if (!locRes.ok && locRes.status === 400) {
+            locRes = await fetch(
+              `https://mybusinessbusinessinformation.googleapis.com/v1/${acc.name}/locations?readMask=title,storefrontAddress,phoneNumbers,websiteUri&pageSize=100`,
               {
                 headers: {
                   Authorization: `Bearer ${providerToken}`,
@@ -392,65 +411,81 @@ export async function fetchGoogleBusinessProfiles(opts: {
                 },
               },
             );
+          }
 
-            if (locRes.ok) {
-              const locData = (await locRes.json()) as {
-                locations?: Array<{
-                  name?: string;
-                  title?: string;
-                  storefrontAddress?: {
-                    addressLines?: string[];
-                    locality?: string;
-                    administrativeArea?: string;
-                    postalCode?: string;
-                  };
-                  metadata?: {
-                    placeId?: string;
-                    mapsUri?: string;
-                  };
-                  phoneNumbers?: {
-                    primaryPhone?: string;
-                  };
-                  websiteUri?: string;
-                }>;
-              };
+          if (locRes.ok) {
+            const locData = (await locRes.json()) as {
+              locations?: Array<{
+                name?: string;
+                title?: string;
+                storefrontAddress?: {
+                  addressLines?: string[];
+                  locality?: string;
+                  administrativeArea?: string;
+                  postalCode?: string;
+                };
+                metadata?: {
+                  placeId?: string;
+                  mapsUri?: string;
+                };
+                phoneNumbers?: {
+                  primaryPhone?: string;
+                };
+                websiteUri?: string;
+              }>;
+            };
 
-              if (Array.isArray(locData.locations)) {
-                for (const loc of locData.locations) {
-                  const placeId = loc.metadata?.placeId || loc.name || `loc-${Math.random()}`;
-                  const formattedAddr = [
-                    ...(loc.storefrontAddress?.addressLines || []),
-                    loc.storefrontAddress?.locality,
-                    loc.storefrontAddress?.administrativeArea,
-                    loc.storefrontAddress?.postalCode,
-                  ]
-                    .filter(Boolean)
-                    .join(", ");
+            if (Array.isArray(locData.locations)) {
+              for (const loc of locData.locations) {
+                const placeId =
+                  loc.metadata?.placeId ||
+                  loc.name?.replace(/^locations\//, "") ||
+                  `loc-${Math.random()}`;
+                const formattedAddr = [
+                  ...(loc.storefrontAddress?.addressLines || []),
+                  loc.storefrontAddress?.locality,
+                  loc.storefrontAddress?.administrativeArea,
+                  loc.storefrontAddress?.postalCode,
+                ]
+                  .filter(Boolean)
+                  .join(", ");
 
-                  profiles.push({
-                    placeId,
-                    name: loc.title || searchQuery,
-                    address: formattedAddr || address || "Clinic Location",
-                    phone: loc.phoneNumbers?.primaryPhone || null,
-                    websiteUri: loc.websiteUri || null,
-                    profileUrl:
-                      loc.metadata?.mapsUri ||
-                      `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`,
-                    accountName: acc.accountName || null,
-                  });
-                }
+                profiles.push({
+                  placeId,
+                  name: loc.title || "Business Location",
+                  address: formattedAddr || address || "Google Business Location",
+                  phone: loc.phoneNumbers?.primaryPhone || null,
+                  websiteUri: loc.websiteUri || null,
+                  profileUrl:
+                    loc.metadata?.mapsUri ||
+                    `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`,
+                  accountName: acc.accountName || null,
+                });
               }
             }
+          } else {
+            console.error(
+              "GMB locations.list error for",
+              acc.name,
+              locRes.status,
+              await locRes.text(),
+            );
           }
         }
-
-        if (profiles.length > 0) {
-          return { profiles, source: "gmb_api" };
-        }
       }
+
+      // If providerToken is supplied, return exactly the real profiles found on this Google account.
+      // Do NOT fall through to synthetic/mock clinics!
+      return { profiles, source: "gmb_api" };
     } catch (e) {
-      console.warn("GMB API direct fetch error, falling back to Places/Search:", e);
+      console.error("GMB API direct fetch error:", e);
+      return { profiles: [], source: "gmb_api" };
     }
+  }
+
+  // If no providerToken and no query provided, do not generate synthetic profiles
+  if (!query?.trim()) {
+    return { profiles: [], source: "gmb_api" };
   }
 
   // 3. Fallback: Google Places Search (if API key or gateway is configured)

@@ -120,8 +120,6 @@ export function ReviewsPage() {
   const [selectedProfile, setSelectedProfile] = useState<GoogleProfileItem | null>(null);
   const [fetchingProfiles, setFetchingProfiles] = useState(false);
   const [gmbStep, setGmbStep] = useState<"connect" | "select" | "connected">("connect");
-  const [searchLocationQuery, setSearchLocationQuery] = useState("");
-  const [lastSearchedQuery, setLastSearchedQuery] = useState("");
 
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
@@ -190,24 +188,34 @@ export function ReviewsPage() {
   }, [load]);
 
   const loadProfilesFromGoogle = useCallback(
-    async (customQuery?: string) => {
+    async (explicitToken?: string | null) => {
       if (!clinic) return;
-      const queryToUse =
-        customQuery !== undefined
-          ? customQuery.trim()
-          : searchLocationQuery.trim() || clinic.clinic_name || "";
       setFetchingProfiles(true);
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.provider_token || null;
-        const email = sessionData?.session?.user?.email || null;
+        let token = explicitToken ?? null;
+        let email = gmbAccountEmail || null;
+
+        if (!token && typeof window !== "undefined") {
+          token = sessionStorage.getItem("gmb_provider_token");
+          email = sessionStorage.getItem("gmb_provider_email") || email;
+        }
+
+        if (!token) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          token = sessionData?.session?.provider_token || null;
+          email = sessionData?.session?.user?.email || email;
+          if (token && typeof window !== "undefined") {
+            sessionStorage.setItem("gmb_provider_token", token);
+          }
+        }
+
         if (email) setGmbAccountEmail(email);
 
         const res = await fetchGoogleProfilesFn({
           data: {
             clinic_id: clinic.id,
-            provider_token: token,
-            query: queryToUse || null,
+            provider_token: token || null,
+            query: null,
           },
         });
 
@@ -227,22 +235,27 @@ export function ReviewsPage() {
         setFetchingProfiles(false);
       }
     },
-    [clinic, fetchGoogleProfilesFn, placeId, searchLocationQuery],
+    [clinic, fetchGoogleProfilesFn, gmbAccountEmail, placeId],
   );
 
-  // Auto-search debounce when in "select" step so live results update as user types
+  // Listen to Supabase auth events to capture provider_token
   useEffect(() => {
-    if (!showGmbModal || gmbStep !== "select") return;
-    const q = searchLocationQuery.trim();
-    if (!q || q === lastSearchedQuery) return;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.provider_token) {
+        sessionStorage.setItem("gmb_provider_token", session.provider_token);
+        if (session.user?.email) {
+          sessionStorage.setItem("gmb_provider_email", session.user.email);
+          setGmbAccountEmail(session.user.email);
+        }
+      }
+    });
 
-    const timer = setTimeout(() => {
-      setLastSearchedQuery(q);
-      void loadProfilesFromGoogle(q);
-    }, 450);
-
-    return () => clearTimeout(timer);
-  }, [searchLocationQuery, gmbStep, showGmbModal, lastSearchedQuery, loadProfilesFromGoogle]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Catch OAuth redirect back
   useEffect(() => {
@@ -252,7 +265,31 @@ export function ReviewsPage() {
       url.searchParams.delete("google_connect");
       window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
       setShowGmbModal(true);
-      void loadProfilesFromGoogle();
+      setGmbStep("select");
+
+      void (async () => {
+        setFetchingProfiles(true);
+        let token: string | null = sessionStorage.getItem("gmb_provider_token");
+        let email: string | null = sessionStorage.getItem("gmb_provider_email");
+
+        // Wait up to 3 seconds for session / provider_token to be populated by Supabase
+        if (!token) {
+          for (let attempt = 0; attempt < 6; attempt++) {
+            const { data } = await supabase.auth.getSession();
+            if (data?.session?.provider_token) {
+              token = data.session.provider_token;
+              email = data.session.user?.email || null;
+              sessionStorage.setItem("gmb_provider_token", token);
+              if (email) sessionStorage.setItem("gmb_provider_email", email);
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 500));
+          }
+        }
+
+        if (email) setGmbAccountEmail(email);
+        await loadProfilesFromGoogle(token);
+      })();
     }
   }, [loadProfilesFromGoogle]);
 
@@ -260,29 +297,29 @@ export function ReviewsPage() {
     setFetchingProfiles(true);
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      // Use skipBrowserRedirect: true so if Supabase provider is disabled, it won't crash on a raw 400 page
       const { data: oauthData, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           skipBrowserRedirect: true,
           scopes: "https://www.googleapis.com/auth/business.manage email profile",
           redirectTo: `${origin}/dashboard/reviews?google_connect=1`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent select_account",
+          },
         },
       });
 
       if (error || !oauthData?.url) {
-        toast.info(
-          "Google OAuth provider not enabled in Supabase. Searching Google Maps profiles directly…",
-        );
-        await loadProfilesFromGoogle();
+        toast.error("Google sign-in error: " + (error?.message || "Could not start Google login"));
+        setFetchingProfiles(false);
         return;
       }
 
-      // Provider URL is valid, navigate to Google OAuth
       window.location.assign(oauthData.url);
-    } catch {
-      toast.info("Searching clinic profiles directly on Google Maps…");
-      await loadProfilesFromGoogle();
+    } catch (err) {
+      toast.error("Google login failed: " + (err as Error).message);
+      setFetchingProfiles(false);
     }
   }
 
@@ -291,8 +328,8 @@ export function ReviewsPage() {
       setGmbStep("connected");
     } else {
       setGmbStep("connect");
-      setSearchLocationQuery(clinic?.clinic_name || "");
-      setLastSearchedQuery(clinic?.clinic_name || "");
+      setProfiles([]);
+      setSelectedProfile(null);
     }
     setShowGmbModal(true);
   }
@@ -930,289 +967,230 @@ export function ReviewsPage() {
               </div>
             )}
 
-            {/* Step 2: Connect via Google Maps Search or Google OAuth */}
+            {/* Step 2: Connect directly via Google Account */}
             {!isGmbConnected && gmbStep === "connect" && (
-              <div className="space-y-4 py-1">
-                {/* 1. Direct Search & Connect (1-Click & Recommended) */}
-                <div className="p-4 rounded-xl border bg-muted/20 space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="size-7 rounded-lg bg-blue-600/10 text-blue-600 grid place-items-center font-bold text-xs shrink-0">
-                      <Globe className="size-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-foreground">
-                        Search Business on Google Maps
-                      </h4>
-                      <p className="text-[10px] text-muted-foreground">
-                        Search and select any business profile to import reviews & enable AI replies
-                      </p>
-                    </div>
+              <div className="space-y-4 py-2">
+                <div className="p-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 space-y-3.5 text-center">
+                  <div className="size-12 rounded-2xl bg-blue-600 text-white grid place-items-center font-bold text-sm mx-auto shadow-sm">
+                    <Globe className="size-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-sm text-foreground">
+                      Connect Google Business Profile
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                      Sign in with your Google Account to automatically detect and connect all
+                      Google Business Profiles (GMB) for your clinic.
+                    </p>
                   </div>
 
-                  <div className="flex gap-2 pt-1">
-                    <Input
-                      value={searchLocationQuery}
-                      onChange={(e) => setSearchLocationQuery(e.target.value)}
-                      placeholder="e.g. Srivastava Tiffin Service, Clinic, or Business Name"
-                      className="h-9 text-xs rounded-xl bg-background"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          setLastSearchedQuery(searchLocationQuery.trim());
-                          void loadProfilesFromGoogle(searchLocationQuery);
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setLastSearchedQuery(searchLocationQuery.trim());
-                        void loadProfilesFromGoogle(searchLocationQuery);
-                      }}
-                      disabled={fetchingProfiles}
-                      className="h-9 text-xs font-semibold px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shrink-0 gap-1.5 shadow-xs"
-                    >
-                      {fetchingProfiles ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Search className="size-3.5" />
-                      )}
-                      Find Profile
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="relative text-center my-1">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-muted" />
-                  </div>
-                  <span className="relative bg-background px-2 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-                    Or Connect Google Account
-                  </span>
-                </div>
-
-                {/* 2. Google OAuth Button with Safe Fallback */}
-                <div className="space-y-1.5">
                   <Button
                     type="button"
                     onClick={handleGoogleLoginAndConnect}
                     disabled={fetchingProfiles}
-                    className="w-full h-10 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 font-medium text-xs rounded-xl shadow-xs flex items-center justify-center gap-2.5 transition-all"
+                    className="w-full h-11 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 font-medium text-xs rounded-xl shadow-xs flex items-center justify-center gap-2.5 transition-all cursor-pointer"
                   >
-                    <svg className="size-3.5 shrink-0" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      />
-                    </svg>
-                    <span>Sign in with Google Account</span>
+                    {fetchingProfiles ? (
+                      <Loader2 className="size-4 animate-spin text-blue-600" />
+                    ) : (
+                      <svg className="size-4 shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                        />
+                      </svg>
+                    )}
+                    <span>Continue with Google</span>
                   </Button>
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    Note: Direct Google Maps search works instantly without OAuth setup.
+                </div>
+
+                <div className="rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="size-3.5 text-blue-600" /> Ownership Note:
+                  </p>
+                  <p>
+                    Please choose the Google account that is registered as an <strong>Owner</strong>{" "}
+                    or <strong>Manager</strong> of your Google Business Profile.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Choose Profile (if multiple or single) */}
+            {/* Step 3: Choose Profile directly from connected Google account */}
             {gmbStep === "select" && (
-              <div className="space-y-3">
-                <div className="space-y-0.5">
-                  <h3 className="font-bold text-xs text-foreground flex items-center justify-between">
-                    <span>Choose Your Business Profile</span>
-                    {profiles.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground font-normal">
-                        {profiles.length} profile{profiles.length > 1 ? "s" : ""} found
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    Select your business profile to connect Google Reviews:
-                  </p>
-                </div>
-
-                {/* Instant Search Bar at TOP */}
-                <div className="flex items-center gap-1.5">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                    <Input
-                      value={searchLocationQuery}
-                      onChange={(e) => setSearchLocationQuery(e.target.value)}
-                      placeholder="Search business name (e.g. Srivastava Tiffin Service)"
-                      className="h-8 text-xs pl-8 pr-7 rounded-lg"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && searchLocationQuery.trim()) {
-                          e.preventDefault();
-                          setLastSearchedQuery(searchLocationQuery.trim());
-                          void loadProfilesFromGoogle(searchLocationQuery.trim());
-                        }
-                      }}
-                    />
-                    {searchLocationQuery ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchLocationQuery("");
-                          setLastSearchedQuery("");
-                          void loadProfilesFromGoogle("");
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-0.5"
-                      >
-                        ✕
-                      </button>
-                    ) : null}
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!searchLocationQuery.trim() || fetchingProfiles}
-                    onClick={() => {
-                      setLastSearchedQuery(searchLocationQuery.trim());
-                      void loadProfilesFromGoogle(searchLocationQuery.trim());
-                    }}
-                    className="h-8 text-xs px-3 rounded-lg shrink-0 gap-1"
-                  >
-                    {fetchingProfiles ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <Search className="size-3" />
-                    )}
-                    <span>Search</span>
-                  </Button>
-                </div>
-
-                {fetchingProfiles ? (
-                  <div className="py-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="size-5 animate-spin text-blue-600" />
-                    <span>Searching Google Maps for live profiles…</span>
-                  </div>
-                ) : profiles.length === 0 ? (
-                  <div className="p-4 rounded-xl border bg-muted/20 text-center space-y-2.5">
-                    <p className="text-xs font-medium text-foreground">
-                      No Google Business listings found for "{searchLocationQuery || "your query"}".
+              <div className="space-y-4">
+                {/* Connected account banner */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl border bg-muted/30">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+                      Google Account
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      You can connect with this business name directly:
+                    <p className="text-xs font-bold text-foreground truncate">
+                      {gmbAccountEmail || "Connected"}
                     </p>
-                    {searchLocationQuery.trim() ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          const customProfile: GoogleProfileItem = {
-                            placeId: "custom_" + Date.now(),
-                            name: searchLocationQuery.trim(),
-                            address:
-                              clinic?.public_address ||
-                              clinic?.address ||
-                              "Google Business Location",
-                            rating: 5.0,
-                            reviewCount: 1,
-                            profileUrl: "",
-                          };
-                          setProfiles([customProfile]);
-                          setSelectedProfile(customProfile);
-                        }}
-                        className="h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                      >
-                        Connect as "{searchLocationQuery.trim()}"
-                      </Button>
-                    ) : null}
                   </div>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {profiles.map((p) => {
-                      const isSelected = selectedProfile?.placeId === p.placeId;
-                      return (
-                        <div
-                          key={p.placeId}
-                          onClick={() => setSelectedProfile(p)}
-                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600 shadow-xs"
-                              : "border-border hover:border-muted-foreground/30 bg-background"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 space-y-0.5">
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-semibold text-xs text-foreground truncate">
-                                  {p.name}
-                                </p>
-                                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 shrink-0">
-                                  Live GMB
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground line-clamp-1">
-                                📍 {p.address}
-                              </p>
-                              {p.rating ? (
-                                <div className="flex items-center gap-1.5 pt-0.5 text-[10px] text-amber-600 font-medium">
-                                  <Star className="size-3 fill-amber-400 text-amber-400" />
-                                  <span>
-                                    {p.rating}★ ({p.reviewCount ?? 0} reviews)
-                                  </span>
-                                </div>
-                              ) : null}
-                            </div>
-                            <div
-                              className={`size-4 rounded-full border grid place-items-center shrink-0 mt-0.5 transition-colors ${
-                                isSelected
-                                  ? "border-blue-600 bg-blue-600 text-white"
-                                  : "border-muted-foreground/30"
-                              }`}
-                            >
-                              {isSelected && <Check className="size-2.5 stroke-[3]" />}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      if (isGmbConnected) setGmbStep("connected");
-                      else setGmbStep("connect");
-                    }}
-                    className="h-8 text-xs rounded-lg"
+                    onClick={handleGoogleLoginAndConnect}
+                    className="h-7 text-[11px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
                   >
-                    Back
+                    Switch Account
                   </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={!selectedProfile || connectingGmb}
-                    onClick={handleConfirmProfile}
-                    className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-                  >
-                    {connectingGmb ? (
-                      "Connecting…"
-                    ) : (
-                      <>
-                        <Check className="size-3.5" /> Done — Connect GMB
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
+                </div>
+
+                {fetchingProfiles ? (
+                  <div className="py-10 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2.5">
+                    <Loader2 className="size-6 animate-spin text-blue-600" />
+                    <span className="font-medium text-foreground">
+                      Fetching your Google Business Profiles…
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Reading accounts and locations from Google Business API
+                    </span>
+                  </div>
+                ) : profiles.length === 0 ? (
+                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3">
+                    <div className="size-9 rounded-full bg-amber-500/10 text-amber-600 grid place-items-center mx-auto">
+                      <Globe className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-foreground">
+                        No Google Business Profiles Found
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+                        {gmbAccountEmail
+                          ? `We could not find any Google Business Profiles managed by ${gmbAccountEmail}.`
+                          : "No Google Business Profiles found on this account."}
+                      </p>
+                    </div>
+                    <div className="pt-2 flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleGoogleLoginAndConnect}
+                        className="w-full h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-1.5"
+                      >
+                        <RefreshCw className="size-3" /> Sign in with a Different Google Account
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setGmbStep("connect")}
+                        className="w-full h-8 text-xs text-muted-foreground"
+                      >
+                        Back
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Choose Your Business Profile
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {profiles.length} location{profiles.length > 1 ? "s" : ""} found
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {profiles.map((p) => {
+                        const isSelected = selectedProfile?.placeId === p.placeId;
+                        return (
+                          <div
+                            key={p.placeId}
+                            onClick={() => setSelectedProfile(p)}
+                            className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                              isSelected
+                                ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600 shadow-xs"
+                                : "border-border hover:border-muted-foreground/30 bg-background"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-semibold text-xs text-foreground truncate">
+                                    {p.name}
+                                  </p>
+                                  <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 shrink-0">
+                                    Google Business
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                  📍 {p.address}
+                                </p>
+                                {p.rating ? (
+                                  <div className="flex items-center gap-1.5 pt-0.5 text-[10px] text-amber-600 font-medium">
+                                    <Star className="size-3 fill-amber-400 text-amber-400" />
+                                    <span>
+                                      {p.rating}★ ({p.reviewCount ?? 0} reviews)
+                                    </span>
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div
+                                className={`size-4 rounded-full border grid place-items-center shrink-0 mt-0.5 transition-colors ${
+                                  isSelected
+                                    ? "border-blue-600 bg-blue-600 text-white"
+                                    : "border-muted-foreground/30"
+                                }`}
+                              >
+                                {isSelected && <Check className="size-2.5 stroke-[3]" />}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (isGmbConnected) setGmbStep("connected");
+                          else setGmbStep("connect");
+                        }}
+                        className="h-8 text-xs rounded-lg"
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!selectedProfile || connectingGmb}
+                        onClick={handleConfirmProfile}
+                        className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                      >
+                        {connectingGmb ? (
+                          <>
+                            <Loader2 className="size-3 animate-spin" /> Connecting…
+                          </>
+                        ) : (
+                          <>
+                            <Check className="size-3.5" /> Done — Connect GMB
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
