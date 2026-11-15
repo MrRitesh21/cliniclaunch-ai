@@ -79,12 +79,16 @@ function LoginPage() {
       try {
         localStorage.setItem("clinicx_referral_code", clean);
         document.cookie = `clinicx_referral_code=${clean}; path=/; max-age=2592000; SameSite=Lax`;
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     } else if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("clinicx_referral_code");
         if (stored) setReferralCode(stored.trim().toUpperCase());
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
   }, [searchRef]);
 
@@ -125,26 +129,29 @@ function LoginPage() {
 
     let active = true;
     if (hasCachedSession()) {
-      navigate({ to: redirect ? (redirect as any) : "/dashboard", replace: true });
+      navigate({ to: redirect ? (redirect as never) : "/dashboard", replace: true });
     }
 
-    supabase.auth.getSession().then(({ data: sessionData }) => {
-      if (!active) return;
-      const data = { user: sessionData.session?.user ?? null };
-      if (data.user) {
-        if (searchEmail && data.user.email?.toLowerCase() !== searchEmail.toLowerCase()) {
-          supabase.auth.signOut().then(() => {
-            window.location.reload();
-          });
+    supabase.auth
+      .getSession()
+      .then(({ data: sessionData }) => {
+        if (!active) return;
+        const data = { user: sessionData.session?.user ?? null };
+        if (data.user) {
+          if (searchEmail && data.user.email?.toLowerCase() !== searchEmail.toLowerCase()) {
+            supabase.auth.signOut().then(() => {
+              window.location.reload();
+            });
+          } else {
+            navigate({ to: redirect ? (redirect as never) : "/dashboard", replace: true });
+          }
         } else {
-          navigate({ to: redirect ? (redirect as any) : "/dashboard", replace: true });
+          setCheckingAuth(false);
         }
-      } else {
-        setCheckingAuth(false);
-      }
-    }).catch(() => {
-      if (active) setCheckingAuth(false);
-    });
+      })
+      .catch(() => {
+        if (active) setCheckingAuth(false);
+      });
 
     return () => {
       active = false;
@@ -187,7 +194,7 @@ function LoginPage() {
         if (!phoneErr && phoneAuthData?.session) {
           setLoading(false);
           toast.success("Welcome back");
-          return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+          return navigate({ to: redirect ? (redirect as never) : "/dashboard" });
         }
       } catch (err) {
         console.warn("[signIn] Direct phone auth failed, checking registered clinic:", err);
@@ -207,14 +214,15 @@ function LoginPage() {
             setDemoSessionFlags();
             setLoading(false);
             toast.success(`Welcome back, ${authRes.doctorName || "Doctor"}!`);
-            return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+            return navigate({ to: redirect ? (redirect as never) : "/dashboard" });
           }
 
           // Sign in using registered email and resolved credentials
-          const { data: signInData, error: emailSignInErr } = await supabase.auth.signInWithPassword({
-            email: authRes.email,
-            password: authRes.password || password,
-          });
+          const { data: signInData, error: emailSignInErr } =
+            await supabase.auth.signInWithPassword({
+              email: authRes.email,
+              password: authRes.password || password,
+            });
 
           if (!emailSignInErr && signInData?.session) {
             if (authRes.clinicSlug) {
@@ -229,11 +237,13 @@ function LoginPage() {
                   authenticatedAt: new Date().toISOString(),
                 };
                 localStorage.setItem("clinicx_sso_session", JSON.stringify(ssoSession));
-              } catch {}
+              } catch {
+                /* ignore */
+              }
             }
             setLoading(false);
             toast.success(`Welcome back, ${authRes.doctorName || "Doctor"}!`);
-            return navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+            return navigate({ to: redirect ? (redirect as never) : "/dashboard" });
           }
 
           if (emailSignInErr) {
@@ -249,13 +259,16 @@ function LoginPage() {
 
       setLoading(false);
       return toast.error(
-        "Incorrect password or no clinic account found matching this mobile number."
+        "Incorrect password or no clinic account found matching this mobile number.",
       );
     }
 
     // Flow B: Standard Email + Password Login
     const cleanEmail = rawInput.toLowerCase();
-    if (cleanEmail === DEMO_CREDENTIALS.email.toLowerCase() && password === DEMO_CREDENTIALS.password) {
+    if (
+      cleanEmail === DEMO_CREDENTIALS.email.toLowerCase() &&
+      password === DEMO_CREDENTIALS.password
+    ) {
       setDemoSessionFlags();
     }
 
@@ -267,9 +280,14 @@ function LoginPage() {
       const code = (error as { code?: string }).code ?? "";
       let message = error.message;
       if (code === "email_not_confirmed" || /email.*not.*confirmed/i.test(error.message)) {
-        message = "Your email isn't confirmed yet. Check your inbox for the confirmation link, then try again.";
-      } else if (code === "invalid_credentials" || /invalid login credentials/i.test(error.message)) {
-        message = "Incorrect email/mobile number or password. If you haven't registered on this local instance yet, switch to the Sign up tab.";
+        message =
+          "Your email isn't confirmed yet. Check your inbox for the confirmation link, then try again.";
+      } else if (
+        code === "invalid_credentials" ||
+        /invalid login credentials/i.test(error.message)
+      ) {
+        message =
+          "Incorrect email/mobile number or password. If you haven't registered on this local instance yet, switch to the Sign up tab.";
       } else if (code === "over_request_rate_limit" || /too many requests/i.test(error.message)) {
         message = "Too many sign-in attempts. Please wait a minute and try again.";
       } else if (code === "user_not_found") {
@@ -279,7 +297,7 @@ function LoginPage() {
     }
 
     toast.success("Welcome back");
-    navigate({ to: redirect ? (redirect as any) : "/dashboard" });
+    navigate({ to: redirect ? (redirect as never) : "/dashboard" });
   }
 
   async function signUp(e: React.FormEvent) {
@@ -305,7 +323,9 @@ function LoginPage() {
     if (error) return toast.error(error.message);
 
     // Attribute referral conversion if referred
-    const effectiveRef = referralCode || (typeof window !== "undefined" ? localStorage.getItem("clinicx_referral_code") : null);
+    const effectiveRef =
+      referralCode ||
+      (typeof window !== "undefined" ? localStorage.getItem("clinicx_referral_code") : null);
     if (effectiveRef) {
       trackReferralSignup({
         data: {
@@ -319,10 +339,47 @@ function LoginPage() {
 
     if (data?.session) {
       toast.success("Account created successfully!");
-      navigate({ to: redirect ? (redirect as any) : "/onboarding" });
+      navigate({ to: redirect ? (redirect as never) : "/onboarding" });
     } else {
       toast.success("Account created. Please check your email or sign in.");
       setActiveTab("signin");
+    }
+  }
+
+  async function signInWithGoogle() {
+    setLoading(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const targetPath = redirect ? (redirect as string) : "/dashboard";
+      const redirectTo = `${origin}${targetPath.startsWith("/") ? targetPath : `/${targetPath}`}`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) {
+        setLoading(false);
+        const msg = error.message || "";
+        if (/provider.*not.*enabled/i.test(msg)) {
+          return toast.error(
+            "Google provider is not enabled yet in your Supabase Auth dashboard. Go to Authentication > Providers > Google to enable it.",
+          );
+        }
+        return toast.error("Google sign in failed: " + msg);
+      }
+      if (data?.url) {
+        window.location.assign(data.url);
+      }
+    } catch (err) {
+      setLoading(false);
+      toast.error("Failed to connect to Google: " + (err as Error).message);
     }
   }
 
@@ -445,7 +502,44 @@ function LoginPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="signin">
+              <TabsContent value="signin" className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={signInWithGoogle}
+                  disabled={loading}
+                  className="w-full h-11 font-medium text-sm flex items-center justify-center gap-2.5 rounded-xl border border-border hover:bg-muted/40 transition-all shadow-xs"
+                >
+                  <svg className="size-4 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Sign in with Google</span>
+                </Button>
+
+                <div className="relative text-center my-3">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border" />
+                  </div>
+                  <span className="relative bg-background px-3 text-[11px] uppercase font-medium text-muted-foreground tracking-wider">
+                    Or with email / phone
+                  </span>
+                </div>
+
                 <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="identifier">Email or Mobile Number</Label>
@@ -508,7 +602,44 @@ function LoginPage() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup">
+              <TabsContent value="signup" className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={signInWithGoogle}
+                  disabled={loading}
+                  className="w-full h-11 font-medium text-sm flex items-center justify-center gap-2.5 rounded-xl border border-border hover:bg-muted/40 transition-all shadow-xs"
+                >
+                  <svg className="size-4 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Sign up with Google</span>
+                </Button>
+
+                <div className="relative text-center my-3">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border" />
+                  </div>
+                  <span className="relative bg-background px-3 text-[11px] uppercase font-medium text-muted-foreground tracking-wider">
+                    Or with email
+                  </span>
+                </div>
+
                 <form onSubmit={signUp} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="fname">Full name</Label>
