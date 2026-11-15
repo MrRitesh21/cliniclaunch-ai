@@ -39,12 +39,17 @@ export interface ActivationClinic {
   invoicing_configured?: boolean;
   consultation_fee?: number | null;
 }
-export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | null, clinic: ActivationClinic | null) {
+export interface ActivationStep {
+  key: string;
+  label: string;
+  description: string;
+  done: boolean;
+  to: string;
+}
+
+export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | null, clinic: ActivationClinic | null): ActivationStep[] {
   const usage = u ?? ({} as Partial<NonNullable<SubscriptionSnapshot["usage"]>>);
   const doctorsCount = usage.doctors ?? 0;
-  const patientsCount = usage.patients ?? 0;
-  const appointmentsCount = usage.appointments ?? 0;
-  const prescriptionsCount = usage.prescriptions ?? 0;
 
   const wh = clinic?.working_hours as {
     start?: string;
@@ -68,38 +73,33 @@ export function activationSteps(u: SubscriptionSnapshot["usage"] | undefined | n
     {
       key: "profile",
       label: "Complete clinic profile",
+      description: "Name, address & registration",
       done:
         !!clinic?.clinic_name?.trim() &&
         !!clinic?.doctor_name?.trim() &&
         !!clinic?.specialization?.trim(),
       to: "/dashboard/settings",
     },
-    { key: "doctor", label: "Add doctor", done: hasDoctor, to: "/dashboard/doctors" },
-    { key: "hours", label: "Set clinic hours", done: hours, to: "/dashboard/settings" },
-    { key: "patient", label: "Add first patient", done: patientsCount > 0, to: "/dashboard/patients" },
     {
-      key: "appointment",
-      label: "Create appointment",
-      done: appointmentsCount > 0,
-      to: "/dashboard/appointments",
+      key: "doctor",
+      label: "Add doctor",
+      description: "Doctors & OPD schedules",
+      done: hasDoctor,
+      to: "/dashboard/doctors",
     },
     {
-      key: "prescription",
-      label: "Create prescription",
-      done: prescriptionsCount > 0,
-      to: "/dashboard/prescriptions",
+      key: "hours",
+      label: "Set clinic hours",
+      description: "Weekly shifts & timings",
+      done: hours,
+      to: "/dashboard/settings",
     },
     {
       key: "billing",
       label: "Configure billing & OPD fees",
+      description: "Consultation fees & invoices",
       done: isBillingConfigured,
       to: "/dashboard/finance?tab=settings",
-    },
-    {
-      key: "booking",
-      label: "Configure online booking",
-      done: clinic?.is_published === true && hours,
-      to: "/dashboard/settings",
     },
   ];
 }

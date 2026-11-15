@@ -97,6 +97,7 @@ export function AuthorityBoundary({ allowed, fallback, children }: {
   return <>
     {authorityPending && !mounted ? <span role="status" className="sr-only">Verifying clinic access…</span> : !allowed && fallback}
     <div key={authorityScope ?? 'unverified'} hidden={!mounted} inert={!mounted}
+      className="h-full flex-1 flex flex-col min-h-0 overflow-hidden"
       onClickCapture={blockPending} onSubmitCapture={blockPending} onKeyDownCapture={blockPending}
       onPointerDownCapture={blockPending} onChangeCapture={blockPending}
       onInputCapture={blockPending} onKeyUpCapture={blockPending}>

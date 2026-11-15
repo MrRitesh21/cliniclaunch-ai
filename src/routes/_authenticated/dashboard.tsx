@@ -605,6 +605,7 @@ function SidebarContent({
 function DashboardLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isWebsiteStudio = pathname.startsWith("/dashboard/website");
   const clinic = useClinic();
   const { isReady, user } = useAuthReady();
   const {
@@ -932,7 +933,11 @@ function DashboardLayout() {
   }, [isDemoUser, user]);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-surface">
+    <div
+      className={`min-h-[100dvh] flex flex-col bg-surface ${
+        isWebsiteStudio ? "h-[100dvh] max-h-[100dvh] overflow-hidden" : ""
+      }`}
+    >
       {isDemoUser && (
         <div
           className={`bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md z-50 transition-all duration-300 ${isMainSidebarCollapsed ? "md:pl-20" : "md:pl-64"}`}

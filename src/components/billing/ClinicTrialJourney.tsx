@@ -14,8 +14,19 @@ import {
   ArrowRight,
   Sparkles,
   ShieldCheck,
+  Building2,
+  Stethoscope,
+  Clock,
+  CreditCard,
   X,
 } from "lucide-react";
+
+const STEP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  profile: Building2,
+  doctor: Stethoscope,
+  hours: Clock,
+  billing: CreditCard,
+};
 
 export function ClinicTrialJourney({
   snapshot,
@@ -35,13 +46,13 @@ export function ClinicTrialJourney({
   const total = steps.length;
   const pct = Math.round((completed / total) * 100);
 
-  // By default, if the user has completed 7+ steps or practice is active, keep it collapsed so it doesn't crowd daily workflow
+  // If user has completed all steps, keep it collapsed by default to save dashboard vertical space
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("clinicx_journey_collapsed");
       if (saved !== null) return saved === "1";
     }
-    return completed >= 7;
+    return completed === total;
   });
 
   const toggleCollapse = () => {
@@ -72,7 +83,6 @@ export function ClinicTrialJourney({
     }
   };
 
-  const [skipped, setSkipped] = useState<string[]>([]);
   const remainingCount = total - completed;
   const isFullySetup = completed === total;
 
@@ -91,14 +101,20 @@ export function ClinicTrialJourney({
   return (
     <Card className="overflow-hidden border border-border/80 shadow-xs bg-card/90 transition-all">
       {/* Clean Interactive Header Bar */}
-      <div className="p-4 sm:p-5 flex flex-col gap-3.5">
+      <div className="p-4 sm:p-5 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div
+              className={`size-9 rounded-xl grid place-items-center shrink-0 transition-colors ${
+                isFullySetup
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/25"
+                  : "bg-primary/10 text-primary ring-1 ring-primary/20"
+              }`}
+            >
               {isFullySetup ? (
-                <ShieldCheck className="size-4.5" />
+                <ShieldCheck className="size-5" />
               ) : (
-                <Sparkles className="size-4" />
+                <Sparkles className="size-4.5" />
               )}
             </div>
             <div>
@@ -109,17 +125,19 @@ export function ClinicTrialJourney({
                 <Badge
                   variant="outline"
                   className={`text-[11px] font-semibold px-2 py-0.5 capitalize ${
-                    snapshot?.effective_state === "active"
-                      ? "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
-                      : "border-blue-500/30 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20"
+                    isFullySetup
+                      ? "border-emerald-500/30 text-emerald-600 bg-emerald-500/10 dark:bg-emerald-950/30"
+                      : snapshot?.effective_state === "active"
+                        ? "border-emerald-500/30 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20"
+                        : "border-blue-500/30 text-blue-600 bg-blue-50/50 dark:bg-blue-950/20"
                   }`}
                 >
-                  {stateLabel}
+                  {isFullySetup ? "Setup Complete" : stateLabel}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isFullySetup
-                  ? "Setup 100% complete — all clinical & automation tools are operational."
+                  ? "All 4 setup milestones finished (100%) — all clinical & practice tools are operational."
                   : `${completed} of ${total} setup milestones finished (${pct}%)`}
               </p>
             </div>
@@ -154,82 +172,102 @@ export function ClinicTrialJourney({
 
         {/* Minimalist Progress Meter */}
         <div className="space-y-1.5">
-          <Progress value={pct} className="h-2 rounded-full bg-muted" />
+          <Progress
+            value={pct}
+            className={`h-2 rounded-full ${isFullySetup ? "[&>div]:bg-emerald-500" : ""}`}
+          />
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>
               {isFullySetup
-                ? "All modules ready"
+                ? "All 4 foundation modules ready"
                 : remainingCount === 1
                   ? "1 step left to complete setup"
                   : `${remainingCount} steps remaining`}
             </span>
-            <span className="font-semibold text-foreground">{pct}%</span>
+            <span
+              className={`font-semibold ${
+                isFullySetup ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+              }`}
+            >
+              {pct}%
+            </span>
           </div>
         </div>
       </div>
 
       {/* Expandable Checklist Details */}
       {checklist && !isCollapsed && (
-        <div className="border-t border-border/70 p-4 sm:p-5 bg-muted/15 space-y-3 animate-in fade-in-50 duration-200">
+        <div className="border-t border-border/70 p-4 sm:p-5 bg-muted/15 space-y-3.5 animate-in fade-in-50 duration-200">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Setup Milestones
+              Foundation Setup Milestones
             </h3>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {completed}/{total} Completed
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Sleek 4-column responsive grid on desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {steps.map((s) => {
-              const isSkipped = skipped.includes(s.key);
+              const Icon = STEP_ICONS[s.key] || Sparkles;
               return (
                 <div
                   key={s.key}
-                  className={`flex items-center justify-between gap-2 p-2.5 rounded-lg border text-xs transition-colors ${
+                  className={`group relative flex flex-col justify-between p-3.5 rounded-xl border text-xs transition-all ${
                     s.done
-                      ? "bg-emerald-500/5 border-emerald-500/20 text-foreground"
-                      : "bg-card border-border/80 text-foreground"
+                      ? "bg-emerald-500/[0.04] border-emerald-500/25 dark:bg-emerald-950/20"
+                      : "bg-card border-border/80 hover:border-primary/40 hover:shadow-xs"
                   }`}
                 >
-                  <Link
-                    to={s.to as "/dashboard/settings"}
-                    className="flex items-center gap-2 hover:underline flex-1 min-w-0"
-                  >
-                    {s.done ? (
-                      <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                    ) : (
-                      <div className="size-4 rounded-full border border-muted-foreground/40 shrink-0 grid place-items-center" />
-                    )}
-                    <span className={`truncate ${s.done ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-                      {s.label}
-                    </span>
-                  </Link>
-
-                  {!s.done && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      {["billing", "booking"].includes(s.key) && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-1.5 text-[10px] text-muted-foreground"
-                          onClick={() =>
-                            setSkipped((old) =>
-                              old.includes(s.key) ? old.filter((k) => k !== s.key) : [...old, s.key],
-                            )
-                          }
-                        >
-                          {isSkipped ? "Undo" : "Skip"}
-                        </Button>
-                      )}
-                      <Link
-                        to={s.to as "/dashboard/settings"}
-                        className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div
+                        className={`size-7 rounded-lg grid place-items-center transition-colors ${
+                          s.done
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                        }`}
                       >
-                        Setup <ArrowRight className="size-3" />
-                      </Link>
+                        <Icon className="size-3.5" />
+                      </div>
+                      {s.done ? (
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="size-3.5" />
+                          <span>Done</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                          Required
+                        </span>
+                      )}
                     </div>
-                  )}
+
+                    <div>
+                      <h4 className="font-semibold text-foreground text-xs leading-tight line-clamp-1">
+                        {s.label}
+                      </h4>
+                      {s.description && (
+                        <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                          {s.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-2.5 mt-2 border-t border-border/50 flex items-center justify-between">
+                    <Link
+                      to={s.to as "/dashboard/settings"}
+                      className={`inline-flex items-center gap-1 text-[11px] font-semibold transition-colors ${
+                        s.done
+                          ? "text-muted-foreground hover:text-foreground"
+                          : "text-primary hover:underline font-bold"
+                      }`}
+                    >
+                      <span>{s.done ? "Review" : "Setup now"}</span>
+                      <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  </div>
                 </div>
               );
             })}
@@ -237,7 +275,10 @@ export function ClinicTrialJourney({
 
           <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/40">
             <span>Need to upgrade or change subscription?</span>
-            <Link to="/dashboard/billing" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+            <Link
+              to="/dashboard/billing"
+              className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+            >
               Compare plans <ArrowRight className="size-3" />
             </Link>
           </div>
