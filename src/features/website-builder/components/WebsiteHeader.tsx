@@ -18,13 +18,17 @@ import {
   Redo2,
   Save,
   Globe,
-  Wand2,
   ExternalLink,
   Loader2,
   Sparkles,
   Check,
   Rocket,
+  Copy,
+  CheckCircle2,
+  Stethoscope,
+  MousePointerClick,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { DeviceMode } from "../types";
 
 export function WebsiteHeader() {
@@ -45,15 +49,23 @@ export function WebsiteHeader() {
     redo,
     save,
     togglePublish,
-    previewBust,
-    previewToken,
     setIsFloatingAIOpen,
-    isLiveEditMode,
-    setIsLiveEditMode,
   } = useWebsiteBuilder();
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const publicUrl = `/c/${clinic?.slug}`;
+  const fullPublicUrl = typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : publicUrl;
+
+  const handleCopyUrl = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(fullPublicUrl);
+      setCopied(true);
+      toast.success("Clinic website link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleConfirmPublish = async () => {
     setShowPublishDialog(false);
@@ -62,88 +74,123 @@ export function WebsiteHeader() {
   };
 
   return (
-    <header className="h-16 border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-30 px-4 flex items-center justify-between gap-3 shadow-xs">
-      {/* Brand & Status */}
-      <div className="flex items-center gap-3">
-        <div className="size-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white grid place-items-center font-bold text-lg shadow-sm">
-          W
+    <header className="h-16 border-b border-border/60 bg-background/95 backdrop-blur-md sticky top-0 z-30 px-3.5 sm:px-6 flex items-center justify-between gap-3 shadow-xs">
+      {/* Left: Clinic Identity & Live Status */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="size-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white grid place-items-center font-bold text-sm shadow-sm shrink-0">
+          <Stethoscope className="size-4.5" />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-semibold text-sm leading-none tracking-tight">
-              {clinic?.clinic_name || "Website Builder"}
+
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[140px] sm:max-w-[200px]">
+              {clinic?.clinic_name || "Clinic Website"}
             </h1>
-            <Badge
-              variant="outline"
-              className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${
+
+            {/* Live / Draft Pill */}
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
                 isPublished
-                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                  : "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
               }`}
             >
               <span
-                className={`size-1.5 rounded-full mr-1 inline-block ${isPublished ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`}
+                className={`size-1.5 rounded-full ${
+                  isPublished ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                }`}
               />
-              {isPublished ? "Live" : "Draft"}
-            </Badge>
+              <span>{isPublished ? "Live & Online" : "Draft Mode"}</span>
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-            <span>/c/{clinic?.slug}</span>
-            {dirty && <span className="text-amber-500 font-medium ml-1">· Unsaved edits</span>}
-          </p>
+
+          {/* Public Link with Copy Affordance */}
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-primary hover:underline flex items-center gap-1 truncate max-w-[160px] sm:max-w-[240px]"
+              title="Open public website in new tab"
+            >
+              <span>/c/{clinic?.slug}</span>
+              <ExternalLink className="size-3 shrink-0 opacity-70" />
+            </a>
+
+            <button
+              type="button"
+              onClick={handleCopyUrl}
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+              title="Copy public link"
+            >
+              {copied ? (
+                <Check className="size-3 text-emerald-500" />
+              ) : (
+                <Copy className="size-3 opacity-70" />
+              )}
+            </button>
+
+            {dirty && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 ml-1">
+                <span className="size-1 rounded-full bg-amber-500 animate-ping" />
+                Unsaved
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Device Breakpoint Switcher — Only show in Canvas/Editor views (sections & pages) */}
-      {(activeTab === "sections" || activeTab === "pages") && (
-        <div className="hidden md:flex items-center bg-muted/60 p-1 rounded-xl border border-border/50">
-          <button
-            onClick={() => setDeviceMode("desktop")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              deviceMode === "desktop"
-                ? "bg-background text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            title="Desktop view"
-          >
-            <Monitor className="size-3.5" />
-            <span>Desktop</span>
-          </button>
-          <button
-            onClick={() => setDeviceMode("tablet")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              deviceMode === "tablet"
-                ? "bg-background text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            title="Tablet view"
-          >
-            <Tablet className="size-3.5" />
-            <span>Tablet</span>
-          </button>
-          <button
-            onClick={() => setDeviceMode("mobile")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              deviceMode === "mobile"
-                ? "bg-background text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            title="Mobile view"
-          >
-            <Smartphone className="size-3.5" />
-            <span>Mobile</span>
-          </button>
-        </div>
-      )}
+      {/* Center: Device Mode Segmented Control (Visible on larger screens) */}
+      <div className="hidden lg:flex items-center bg-muted/60 p-1 rounded-xl border border-border/60">
+        <button
+          type="button"
+          onClick={() => setDeviceMode("desktop")}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            deviceMode === "desktop"
+              ? "bg-background text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          title="Desktop view"
+        >
+          <Monitor className="size-3.5" />
+          <span>Desktop</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setDeviceMode("tablet")}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            deviceMode === "tablet"
+              ? "bg-background text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          title="Tablet view"
+        >
+          <Tablet className="size-3.5" />
+          <span>Tablet</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setDeviceMode("mobile")}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            deviceMode === "mobile"
+              ? "bg-background text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          title="Mobile view"
+        >
+          <Smartphone className="size-3.5" />
+          <span>Mobile</span>
+        </button>
+      </div>
 
-      {/* Undo/Redo, AI, Save & Publish Actions */}
+      {/* Right: Actions Cluster (Undo/Redo, Live Edit, AI Studio, Save & Publish) */}
       <div className="flex items-center gap-2">
         {/* Undo / Redo */}
-        <div className="flex items-center gap-0.5 border border-border/60 rounded-lg p-0.5">
+        <div className="hidden sm:flex items-center gap-0.5 border border-border/70 rounded-xl p-0.5 bg-muted/30">
           <Button
             size="icon"
             variant="ghost"
-            className="size-8"
+            className="size-7 rounded-lg"
             disabled={!canUndo}
             onClick={undo}
             title="Undo (Ctrl+Z)"
@@ -153,7 +200,7 @@ export function WebsiteHeader() {
           <Button
             size="icon"
             variant="ghost"
-            className="size-8"
+            className="size-7 rounded-lg"
             disabled={!canRedo}
             onClick={redo}
             title="Redo (Ctrl+Shift+Z)"
@@ -167,55 +214,53 @@ export function WebsiteHeader() {
           size="sm"
           variant={activeTab === "live-edit" ? "default" : "outline"}
           onClick={() => setActiveTab(activeTab === "live-edit" ? "overview" : "live-edit")}
-          className={`h-9 px-3 gap-1.5 font-semibold text-xs rounded-xl ${
+          className={`h-8 sm:h-9 px-2.5 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 cursor-pointer transition-all ${
             activeTab === "live-edit"
-              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-              : "border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
+              ? "bg-blue-600 text-white shadow-xs hover:bg-blue-700"
+              : "border-border/80 text-foreground hover:bg-muted"
           }`}
-          title="Visually edit your website directly on the canvas"
+          title="Edit your website visually on canvas"
         >
-          <Sparkles className="size-3.5 text-indigo-500" />
-          <span className="hidden sm:inline">⚡ Live Edit</span>
+          <MousePointerClick className="size-3.5 text-blue-500" />
+          <span className="hidden sm:inline">Visual Editor</span>
         </Button>
 
-        {/* AI Assistant Floating Trigger */}
+        {/* AI Assistant Floating Studio Trigger */}
         <Button
           size="sm"
           variant="outline"
           onClick={() => setIsFloatingAIOpen(true)}
-          className="h-9 px-3 gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 font-medium text-xs rounded-xl"
+          className="h-8 sm:h-9 px-2.5 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 cursor-pointer hidden md:inline-flex"
         >
-          <Sparkles className="size-3.5 text-purple-500 animate-spin-slow" />
-          <span className="hidden sm:inline">AI Studio</span>
+          <Sparkles className="size-3.5 text-purple-500" />
+          <span>AI Polish</span>
         </Button>
 
-        {/* Live Site Preview Link */}
-        <a
-          href={publicUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="hidden sm:inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg hover:bg-muted transition"
-        >
-          <ExternalLink className="size-3.5" />
-          <span>Live site</span>
-        </a>
-
-        {/* Manual Save */}
+        {/* Save Changes Button */}
         <Button
           size="sm"
           variant={dirty ? "default" : "outline"}
           disabled={saving || !dirty}
           onClick={() => void save()}
-          className="h-9 px-3 text-xs font-semibold rounded-xl gap-1.5"
+          className={`h-8 sm:h-9 px-3 text-xs font-semibold rounded-xl gap-1.5 transition-all cursor-pointer ${
+            dirty
+              ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              : "border-border/70 text-muted-foreground bg-surface"
+          }`}
         >
-          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-          <span>{saving ? "Saving…" : dirty ? "Save" : "Saved"}</span>
+          {saving ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : dirty ? (
+            <Save className="size-3.5" />
+          ) : (
+            <Check className="size-3.5 text-emerald-500" />
+          )}
+          <span>{saving ? "Saving…" : dirty ? "Save Edits" : "Saved"}</span>
         </Button>
 
-        {/* Publish Toggle */}
+        {/* Publish to Web Button */}
         <Button
           size="sm"
-          variant={isPublished && !dirty ? "outline" : "default"}
           disabled={publishing}
           onClick={() => {
             if (!isPublished || dirty) {
@@ -224,20 +269,29 @@ export function WebsiteHeader() {
               void togglePublish(false);
             }
           }}
-          className={`h-9 px-4 text-xs font-semibold rounded-xl gap-1.5 transition-all ${
+          className={`h-8 sm:h-9 px-3.5 sm:px-4 text-xs font-bold rounded-xl gap-1.5 transition-all cursor-pointer shadow-xs ${
             isPublished && !dirty
-              ? "border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+              ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/20"
+              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
           }`}
         >
           {publishing ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : isPublished && !dirty ? (
-            <Check className="size-3.5 text-emerald-600" />
+            <CheckCircle2 className="size-3.5 text-emerald-600" />
           ) : (
-            <Globe className="size-3.5" />
+            <Rocket className="size-3.5" />
           )}
-          <span>{publishing ? "Updating…" : isPublished && !dirty ? "Live on Web" : isPublished && dirty ? "Publish Edits" : "Publish Site"}</span>
+          <span className="hidden sm:inline">
+            {publishing
+              ? "Publishing…"
+              : isPublished && !dirty
+                ? "Live on Web"
+                : isPublished && dirty
+                  ? "Publish Updates"
+                  : "Publish Live"}
+          </span>
+          <span className="sm:hidden">{isPublished ? "Live" : "Publish"}</span>
         </Button>
       </div>
 
@@ -250,30 +304,56 @@ export function WebsiteHeader() {
             </div>
             <DialogTitle className="text-lg font-bold">Publish to Live Website?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              This will publish your latest theme, colors, and layout customizations directly to your public clinic website at <strong className="text-foreground">{clinic?.clinic_name}</strong> (<code className="text-[11px] bg-muted px-1.5 py-0.5 rounded">/c/{clinic?.slug}</code>).
+              This will update your public clinic website at{" "}
+              <strong className="text-foreground">{clinic?.clinic_name}</strong> (
+              <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded">
+                /c/{clinic?.slug}
+              </code>
+              ) with your latest branding, services, and design customizations.
             </DialogDescription>
           </DialogHeader>
-          <div className="p-3 bg-muted/40 rounded-xl border border-border/60 text-xs space-y-1.5">
+
+          <div className="p-3.5 bg-muted/40 rounded-xl border border-border/60 text-xs space-y-2">
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Theme Color:</span>
-              <span className="font-mono text-foreground font-semibold">{clinic?.theme_color || "#2563eb"}</span>
+              <div className="flex items-center gap-1.5 font-medium text-foreground">
+                <span
+                  className="size-3 rounded-full border border-black/10 inline-block"
+                  style={{ backgroundColor: clinic?.theme_color || "#2563eb" }}
+                />
+                <span className="font-mono text-xs">{clinic?.theme_color || "#2563eb"}</span>
+              </div>
             </div>
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Template Style:</span>
-              <span className="capitalize text-foreground font-semibold">{clinic?.template || "Classic"}</span>
+              <span className="capitalize text-foreground font-semibold">
+                {clinic?.template || "Modern Clinical"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Instant Google Indexing:</span>
+              <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                <Check className="size-3" /> Auto-Synchronized
+              </span>
             </div>
           </div>
+
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" size="sm" onClick={() => setShowPublishDialog(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPublishDialog(false)}
+              className="rounded-xl text-xs"
+            >
               Cancel
             </Button>
             <Button
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1.5"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-1.5 text-xs font-bold"
               onClick={handleConfirmPublish}
             >
               <Globe className="size-3.5" />
-              <span>Confirm & Publish</span>
+              <span>Confirm &amp; Go Live</span>
             </Button>
           </DialogFooter>
         </DialogContent>

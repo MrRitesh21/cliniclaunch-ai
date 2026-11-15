@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useWebsiteBuilder } from "../context/WebsiteBuilderContext";
 import type { WebsiteTab } from "../types";
 import {
@@ -18,92 +18,59 @@ import {
   Globe,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronDown,
   Code2,
   MousePointerClick,
 } from "lucide-react";
 
-type NavItem = {
-  id: WebsiteTab;
-  label: string;
-  icon: React.ElementType;
-  badge?: string;
+type NavGroup = {
+  title: string;
+  items: {
+    id: WebsiteTab;
+    label: string;
+    icon: React.ElementType;
+    badge?: string;
+  }[];
 };
 
-const essentialItems: NavItem[] = [
-  { id: "overview", label: "Start here", icon: LayoutDashboard },
-  { id: "templates", label: "1. Pick a look", icon: Palette },
-  { id: "customize", label: "2. Clinic name & logo", icon: Sliders },
-  { id: "live-edit", label: "⚡ Live Visual Edit", icon: MousePointerClick, badge: "NEW" },
-  { id: "sections", label: "3. Edit content", icon: LayoutGrid },
-  { id: "settings", label: "4. Contact & popup", icon: Settings },
-  { id: "publish", label: "5. Go live", icon: Rocket },
-  { id: "widget", label: "Custom Website Widget", icon: Code2, badge: "NEW" },
+const navGroups: NavGroup[] = [
+  {
+    title: "DASHBOARD",
+    items: [{ id: "overview", label: "Studio Overview", icon: LayoutDashboard }],
+  },
+  {
+    title: "DESIGN & CONTENT",
+    items: [
+      { id: "templates", label: "Templates", icon: Palette },
+      { id: "customize", label: "Branding & Colors", icon: Sliders },
+      { id: "sections", label: "Page Sections", icon: LayoutGrid },
+      { id: "live-edit", label: "Visual Editor", icon: MousePointerClick, badge: "CANVAS" },
+      { id: "pages", label: "Pages & Nav", icon: Layers },
+      { id: "media", label: "Media Library", icon: Image },
+      { id: "theme", label: "Color Palettes", icon: Paintbrush },
+    ],
+  },
+  {
+    title: "GROWTH & MARKETING",
+    items: [
+      { id: "domain", label: "Custom Domain", icon: Globe },
+      { id: "seo", label: "SEO & Search", icon: Search },
+      { id: "widget", label: "Booking Widget", icon: Code2, badge: "EMBED" },
+      { id: "analytics", label: "Traffic Analytics", icon: BarChart3 },
+      { id: "ai", label: "AI Copywriter", icon: Sparkles, badge: "AI" },
+    ],
+  },
+  {
+    title: "CONFIGURATION",
+    items: [
+      { id: "settings", label: "Site Settings", icon: Settings },
+      { id: "integrations", label: "Integrations", icon: Plug },
+      { id: "publish", label: "Publish & Releases", icon: Rocket },
+    ],
+  },
 ];
-
-const advancedItems: NavItem[] = [
-  { id: "pages", label: "Pages", icon: Layers },
-  { id: "media", label: "Media Library", icon: Image },
-  { id: "theme", label: "Themes", icon: Paintbrush },
-  { id: "ai", label: "AI Assistant", icon: Sparkles, badge: "AI" },
-  { id: "seo", label: "SEO Center", icon: Search },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "integrations", label: "Integrations", icon: Plug },
-  { id: "domain", label: "Custom Domain", icon: Globe },
-];
-
-function NavButton({
-  item,
-  isActive,
-  isCollapsed,
-  onClick,
-}: {
-  item: NavItem;
-  isActive: boolean;
-  isCollapsed: boolean;
-  onClick: () => void;
-}) {
-  const Icon = item.icon;
-  return (
-    <button
-      onClick={onClick}
-      title={item.label}
-      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-        isActive
-          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-      }`}
-    >
-      <div className="flex items-center gap-2.5 min-w-0">
-        <Icon
-          className={`size-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`}
-        />
-        <span
-          className={`truncate transition-opacity duration-200 ${isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"}`}
-        >
-          {item.label}
-        </span>
-      </div>
-      {item.badge && (
-        <span
-          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-            isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"
-          } ${
-            isActive
-              ? "bg-primary-foreground/20 text-primary-foreground"
-              : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-          }`}
-        >
-          {item.badge}
-        </span>
-      )}
-    </button>
-  );
-}
 
 export function WebsiteSidebarNav() {
   const { activeTab, setActiveTab } = useWebsiteBuilder();
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("clinicx_studio_sidebar_collapsed") === "true";
@@ -123,19 +90,28 @@ export function WebsiteSidebarNav() {
 
   return (
     <aside
-      className={`border-r border-border/40 bg-card/70 backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out z-30 ${
+      className={`border-r border-border/60 bg-card/85 backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out z-30 select-none ${
         isCollapsed ? "w-16 hover:w-64 group/studiosidebar shadow-xl hover:bg-card/95" : "w-64"
       }`}
     >
-      <div className="p-2.5 space-y-1">
-        <div className="flex items-center justify-between px-2 py-1.5 text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider">
-          <span className={isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"}>
+      <div className="p-3 space-y-4">
+        {/* Sidebar Header & Toggle */}
+        <div className="flex items-center justify-between px-2 pt-1">
+          <span
+            className={`text-[10px] font-bold tracking-wider text-muted-foreground uppercase ${
+              isCollapsed ? "hidden group-hover/studiosidebar:inline" : "inline"
+            }`}
+          >
             Website Studio
           </span>
+
           <button
+            type="button"
             onClick={toggleCollapse}
-            className={`p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ${isCollapsed ? "hidden group-hover/studiosidebar:block ml-auto" : "ml-auto"}`}
-            title={isCollapsed ? "Expand Studio Sidebar" : "Collapse to Icon Rail"}
+            className={`p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer ${
+              isCollapsed ? "hidden group-hover/studiosidebar:block ml-auto" : "ml-auto"
+            }`}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? (
               <PanelLeftOpen className="size-4" />
@@ -145,55 +121,84 @@ export function WebsiteSidebarNav() {
           </button>
         </div>
 
-        <nav className="space-y-0.5">
-          {essentialItems.map((item) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={activeTab === item.id}
-              isCollapsed={isCollapsed}
-              onClick={() => setActiveTab(item.id)}
-            />
+        {/* Groups */}
+        <div className="space-y-4">
+          {navGroups.map((group) => (
+            <div key={group.title} className="space-y-1">
+              <p
+                className={`px-2 text-[9px] font-bold tracking-wider text-muted-foreground/70 uppercase ${
+                  isCollapsed ? "hidden group-hover/studiosidebar:block" : "block"
+                }`}
+              >
+                {group.title}
+              </p>
+
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveTab(item.id)}
+                      title={item.label}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-blue-600 text-white font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon
+                          className={`size-4 shrink-0 ${
+                            isActive ? "text-white" : "text-muted-foreground"
+                          }`}
+                        />
+                        <span
+                          className={`truncate ${
+                            isCollapsed
+                              ? "hidden group-hover/studiosidebar:inline"
+                              : "inline"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
+
+                      {item.badge && (
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                            isCollapsed
+                              ? "hidden group-hover/studiosidebar:inline"
+                              : "inline"
+                          } ${
+                            isActive
+                              ? "bg-white/20 text-white"
+                              : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ))}
-        </nav>
-
-        <div className="pt-2">
-          <button
-            onClick={() => setShowAdvanced((v) => !v)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 transition-colors ${isCollapsed ? "hidden group-hover/studiosidebar:flex" : "flex"}`}
-          >
-            <span>Advanced (optional)</span>
-            <ChevronDown
-              className={`size-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
-            />
-          </button>
-
-          {showAdvanced && (
-            <nav className="space-y-0.5 mt-1">
-              {advancedItems.map((item) => (
-                <NavButton
-                  key={item.id}
-                  item={item}
-                  isActive={activeTab === item.id}
-                  isCollapsed={isCollapsed}
-                  onClick={() => setActiveTab(item.id)}
-                />
-              ))}
-            </nav>
-          )}
         </div>
       </div>
 
-      {/* Footer Info Box */}
-      <div className="p-2.5 border-t border-border/40 bg-muted/20">
-        <div
-          className={`p-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 text-xs ${isCollapsed ? "hidden group-hover/studiosidebar:block" : "block"}`}
-        >
-          <p className="font-semibold text-foreground">ClinicX Pro Builder</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-            Framer & Webflow grade editor for healthcare practices.
-          </p>
-        </div>
+      {/* Footer Info */}
+      <div
+        className={`p-3 border-t border-border/50 text-[10px] text-muted-foreground ${
+          isCollapsed ? "hidden group-hover/studiosidebar:block" : "block"
+        }`}
+      >
+        <p className="font-semibold text-foreground truncate">ClinicX Web OS</p>
+        <p className="truncate opacity-75">Auto-synced with OPD &amp; WhatsApp</p>
       </div>
     </aside>
   );
