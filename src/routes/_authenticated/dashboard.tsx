@@ -1117,7 +1117,11 @@ function DashboardLayout() {
           <OfflineBanner />
 
           <div
-            className={`flex-1 w-full max-w-none min-w-0 ${pathname === "/dashboard/website" ? "p-0" : "px-3 sm:px-5 lg:px-6 pt-3 pb-28 md:pb-6"} page-enter`}
+            className={`flex-1 w-full max-w-none min-w-0 ${
+              pathname.startsWith("/dashboard/website")
+                ? "p-0 h-[calc(100dvh-3.5rem)] overflow-hidden flex flex-col"
+                : "px-3 sm:px-5 lg:px-6 pt-3 pb-28 md:pb-6"
+            } page-enter`}
           >
             {entitlement?.effective_state === "past_due" && (
               <div

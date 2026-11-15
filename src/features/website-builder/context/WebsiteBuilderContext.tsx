@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitClinicToGoogleServerFn } from "@/lib/gsc-pipeline.functions";
+import { setClinicPublishedStatusServerFn } from "@/lib/clinic-settings.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -113,6 +114,8 @@ type WebsiteBuilderContextType = {
   previewToken: string | null;
   isFloatingAIOpen: boolean;
   setIsFloatingAIOpen: (open: boolean) => void;
+  isMobileNavOpen: boolean;
+  setIsMobileNavOpen: (open: boolean) => void;
   isLiveEditMode: boolean;
   setIsLiveEditMode: (mode: boolean) => void;
   canUndo: boolean;
@@ -137,6 +140,8 @@ export function WebsiteBuilderProvider({
   children: React.ReactNode;
 }) {
   const submitGscFn = useServerFn(submitClinicToGoogleServerFn);
+  const togglePublishFn = useServerFn(setClinicPublishedStatusServerFn);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [activeTab, setActiveTabState] = useState<WebsiteTab>(() => {
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search);
@@ -148,6 +153,7 @@ export function WebsiteBuilderProvider({
 
   const setActiveTab = React.useCallback((tab: WebsiteTab) => {
     setActiveTabState(tab);
+    setIsMobileNavOpen(false);
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search);
       if (p.get("tab") !== tab) {
@@ -355,35 +361,42 @@ export function WebsiteBuilderProvider({
   // Publish toggle
   const togglePublish = useCallback(
     async (next: boolean) => {
-      if (!clinic) return;
+      if (!clinic?.id) return;
       setPublishing(true);
-      const now = new Date().toISOString();
-      const { error } = await supabase
-        .from("clinics")
-        .update({ is_published: next, published_at: next ? now : null })
-        .eq("id", clinic.id);
-      setPublishing(false);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      setIsPublished(next);
-      setPublishedAt(next ? now : null);
-      if (next) {
-        toast.success("Clinic website is now LIVE!", {
-          description: "Your site is accessible to patients worldwide.",
+      try {
+        const res = await togglePublishFn({
+          data: {
+            clinicId: clinic.id,
+            clinicSlug: clinic.slug,
+            isPublished: next,
+          },
         });
-        // Fire Google Search Console index request in background
-        try {
-          void submitGscFn({ data: { clinicId: clinic.id } });
-        } catch {}
-      } else {
-        toast.info("Website unpublished", {
-          description: "Your website is currently offline.",
-        });
+        if (!res?.ok) {
+          throw new Error("Failed to update website publish status");
+        }
+        setIsPublished(next);
+        setPublishedAt(res.publishedAt);
+        if (next) {
+          toast.success("Clinic website is now LIVE!", {
+            description: "Your site is accessible to patients worldwide.",
+          });
+          // Fire Google Search Console index request in background
+          try {
+            void submitGscFn({ data: { clinicId: clinic.id } });
+          } catch {}
+        } else {
+          toast.info("Website unpublished", {
+            description: "Your website is currently offline and hidden from public visitors.",
+          });
+        }
+      } catch (err: any) {
+        console.error("[togglePublish] error:", err);
+        toast.error(err?.message || "Failed to update publish status");
+      } finally {
+        setPublishing(false);
       }
     },
-    [clinic, submitGscFn],
+    [clinic, togglePublishFn, submitGscFn],
   );
 
   // Trigger GSC indexing
@@ -516,6 +529,8 @@ export function WebsiteBuilderProvider({
         previewToken,
         isFloatingAIOpen,
         setIsFloatingAIOpen,
+        isMobileNavOpen,
+        setIsMobileNavOpen,
         isLiveEditMode,
         setIsLiveEditMode,
         canUndo,

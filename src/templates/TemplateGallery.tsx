@@ -73,7 +73,7 @@ export function TemplateGallery({
   return (
     <div className="space-y-6 pb-12 w-full text-left">
       {/* ─── GALLERY HEADER ───────────────────────────────────────────── */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl relative overflow-hidden">
+      <div className="p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs text-indigo-300 font-mono font-medium">
@@ -81,7 +81,7 @@ export function TemplateGallery({
             <span>ClinicX Design System · 30 Bespoke Medical Architectures</span>
           </div>
 
-          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+          <h2 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
             Premium Clinic Website Template Collection
           </h2>
 
@@ -106,7 +106,7 @@ export function TemplateGallery({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -126,7 +126,7 @@ export function TemplateGallery({
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isSel
                     ? "bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900"
                     : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
@@ -140,14 +140,14 @@ export function TemplateGallery({
       </div>
 
       {/* ─── TEMPLATES GRID ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {filtered.map((tpl) => {
           const isCurrent = currentTemplateId === tpl.id;
 
           return (
             <Card
               key={tpl.id}
-              className={`overflow-hidden rounded-3xl border transition-all duration-300 flex flex-col justify-between hover:shadow-xl ${
+              className={`overflow-hidden rounded-2xl sm:rounded-3xl border transition-all duration-300 flex flex-col justify-between hover:shadow-xl ${
                 isCurrent
                   ? "border-2 border-indigo-600 ring-2 ring-indigo-600/20 bg-indigo-50/10"
                   : "border-border/80 hover:border-indigo-400 bg-card"

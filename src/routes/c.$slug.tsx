@@ -12,6 +12,16 @@ import { isPremiumTemplate } from "@/templates/registry";
 import { UniversalFloatingContact } from "@/components/site/UniversalFloatingContact";
 import { TemplateCustomizer } from "@/templates/shared/TemplateCustomizer";
 import { LiveEditOverlay } from "@/components/site/LiveEditOverlay";
+import {
+  Phone,
+  MapPin,
+  AlertCircle,
+  ShieldAlert,
+  Lock,
+  Stethoscope,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 export const Route = createFileRoute("/c/$slug")({
   validateSearch: (
@@ -34,14 +44,20 @@ export const Route = createFileRoute("/c/$slug")({
     edit: typeof s.edit === "string" ? s.edit : undefined,
   }),
 
-  loaderDeps: ({ search }) => ({ preview: search.preview, tpl: search.tpl }),
+  loaderDeps: ({ search }) => ({
+    preview: search.preview,
+    tpl: search.tpl,
+    customize: search.customize,
+    edit: search.edit,
+  }),
   loader: async ({ params, deps }) => {
+    const isExplicitPreview = Boolean(deps.preview || deps.customize || deps.edit);
     const [clinic, schema, template] = await Promise.all([
       getClinicBySlug({
         data: {
           slug: params.slug,
           preview_token: deps.preview,
-          allow_preview: true,
+          allow_preview: isExplicitPreview,
         },
       }),
       getClinicPublicSchema({ data: { slug: params.slug } }).catch(() => null),
@@ -50,7 +66,7 @@ export const Route = createFileRoute("/c/$slug")({
       ),
     ]);
     if (!clinic) throw notFound();
-    return { unpublished: false as const, clinic, schema, template };
+    return { unpublished: !clinic.is_published, clinic, schema, template };
   },
   head: ({ loaderData }) => {
     const c = loaderData?.clinic;
@@ -91,6 +107,7 @@ export const Route = createFileRoute("/c/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
         { property: "og:type", content: "website" },
+        ...(c.is_published ? [] : [{ name: "robots", content: "noindex, nofollow" }]),
         ...(image
           ? [
               { property: "og:image", content: image },
@@ -144,6 +161,128 @@ export const Route = createFileRoute("/c/$slug")({
   },
 });
 
+function DraftModeBanner({ slug }: { slug: string }) {
+  return (
+    <div className="bg-amber-500 text-slate-950 px-3 sm:px-4 py-2 text-xs font-semibold flex items-center justify-between sticky top-0 z-50 shadow-md">
+      <div className="flex items-center gap-2">
+        <span className="inline-block size-2 rounded-full bg-slate-950 animate-ping shrink-0" />
+        <span>
+          <strong>DRAFT PREVIEW:</strong> This website is currently unpublished and offline to the public.
+        </span>
+      </div>
+      <Link to="/dashboard/website">
+        <Button size="xs" variant="secondary" className="bg-slate-950 text-white hover:bg-slate-800 text-[11px] h-6 px-2.5 rounded-lg shrink-0">
+          Open Studio to Publish
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+function UnpublishedClinicPlaceholder({ clinic }: { clinic: SiteClinic }) {
+  const c = clinic;
+  const phone = c.public_phone || c.phone;
+  const address = c.public_address || c.address;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-background to-slate-100 dark:from-slate-950 dark:via-background dark:to-slate-900 flex flex-col justify-between p-4 sm:p-6 md:p-8">
+      {/* Top Bar */}
+      <div className="max-w-2xl w-full mx-auto flex items-center justify-between py-2 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <div className="size-8 rounded-xl bg-blue-600 text-white grid place-items-center font-bold text-xs shadow-xs">
+            <Stethoscope className="size-4" />
+          </div>
+          <span className="font-display font-bold text-sm tracking-tight text-foreground truncate max-w-[200px] sm:max-w-none">
+            {c.clinic_name || "Medical Practice"}
+          </span>
+        </div>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 shrink-0">
+          <span className="size-1.5 rounded-full bg-amber-500" />
+          Website Offline
+        </span>
+      </div>
+
+      {/* Main Notice Card */}
+      <div className="max-w-lg w-full mx-auto my-auto py-8 text-center space-y-6">
+        <div className="size-16 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 grid place-items-center mx-auto shadow-xs">
+          <AlertCircle className="size-8" />
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+            {c.clinic_name}
+          </h1>
+          {c.doctor_name && (
+            <p className="text-sm font-semibold text-primary">
+              {c.doctor_name}
+              {c.specialization ? ` • ${c.specialization}` : ""}
+            </p>
+          )}
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto pt-1 leading-relaxed">
+            This clinic website is temporarily offline for scheduled configuration and updates.
+            For direct patient queries or OPD visits, please use the contact details below.
+          </p>
+        </div>
+
+        {/* Direct Contact Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-2">
+          {phone && (
+            <a
+              href={`tel:${phone.replace(/\s+/g, "")}`}
+              className="p-3.5 rounded-2xl border border-border/80 bg-card hover:bg-muted/60 transition-all shadow-xs flex items-center gap-3 group"
+            >
+              <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
+                <Phone className="size-4 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Call Clinic
+                </p>
+                <p className="text-xs font-semibold text-foreground truncate">{phone}</p>
+              </div>
+            </a>
+          )}
+
+          {address && (
+            <div className="p-3.5 rounded-2xl border border-border/80 bg-card shadow-xs flex items-center gap-3">
+              <div className="size-9 rounded-xl bg-blue-500/10 text-blue-600 grid place-items-center shrink-0">
+                <MapPin className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Location
+                </p>
+                <p className="text-xs font-semibold text-foreground truncate" title={address}>
+                  {address}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Emergency Notice */}
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 dark:border-rose-950/60 dark:bg-rose-950/30 p-3 text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2.5 text-left">
+          <ShieldAlert className="size-4 shrink-0 mt-0.5 text-rose-600" />
+          <span>
+            <strong>Emergency Medical Care:</strong> For urgent or life-threatening emergencies,
+            please immediately visit your nearest emergency department or call 112 / 108.
+          </span>
+        </div>
+      </div>
+
+      {/* Footer / Clinic Owner Sign In */}
+      <div className="max-w-2xl w-full mx-auto pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground text-center sm:text-left">
+        <p>Clinic administration portal powered by ClinicX.</p>
+        <Link to="/dashboard/website">
+          <Button variant="outline" size="sm" className="h-8 text-xs rounded-xl gap-1.5 font-semibold">
+            <Lock className="size-3" /> Doctor &amp; Staff Login
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function ClinicLayout() {
   const data = Route.useLoaderData();
   const search = Route.useSearch();
@@ -153,11 +292,15 @@ function ClinicLayout() {
 
   // Only show the live customization tool if in preview/editor mode or if logged in as clinic staff
   const [canCustomize, setCanCustomize] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(() => {
+    return Boolean(typeof window !== "undefined" && !preview && !customize && !edit);
+  });
 
   useEffect(() => {
     // 1. Explicit editor or preview triggers
     if (preview || tpl || customize === "true" || edit === "true") {
       setCanCustomize(true);
+      setIsAuthChecking(false);
       return;
     }
 
@@ -169,7 +312,10 @@ function ClinicLayout() {
           setCanCustomize(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setIsAuthChecking(false);
+      });
   }, [preview, tpl, customize, edit]);
 
   useEffect(() => {
@@ -212,6 +358,20 @@ function ClinicLayout() {
   }
 
   const c = data.clinic as unknown as SiteClinic;
+
+  const isPreviewMode = Boolean(preview || customize === "true" || edit === "true" || canCustomize);
+
+  // If clinic website is unpublished and visitor is not clinic staff / previewer
+  if (!c.is_published && !isPreviewMode) {
+    if (isAuthChecking) {
+      return (
+        <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+          <Loader2 className="size-6 animate-spin text-primary" />
+        </div>
+      );
+    }
+    return <UnpublishedClinicPlaceholder clinic={c} />;
+  }
 
   const [currentTheme, setCurrentTheme] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -267,6 +427,7 @@ function ClinicLayout() {
   if (isEmbed) {
     return (
       <div className={`min-h-screen flex flex-col bg-background ${modCls}`} style={themeStyle}>
+        {!c.is_published && isPreviewMode && <DraftModeBanner slug={c.slug} />}
         <main className="flex-1">
           <Outlet />
         </main>
@@ -278,6 +439,7 @@ function ClinicLayout() {
   if (isPremium) {
     return (
       <div className={`min-h-screen flex flex-col ${modCls}`} style={themeStyle}>
+        {!c.is_published && isPreviewMode && <DraftModeBanner slug={c.slug} />}
         <style>{`
           .mod-no-appt a[href*="/book"], .mod-no-appt [data-cta="book"] { display: none !important; }
           .mod-no-walkin a[href*="/walkin"], .mod-no-walkin [data-cta="walkin"] { display: none !important; }
@@ -314,6 +476,7 @@ function ClinicLayout() {
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${modCls}`} style={themeStyle}>
+      {!c.is_published && isPreviewMode && <DraftModeBanner slug={c.slug} />}
       {/* Hide feature CTAs whose underlying app is not installed.
           Uses attribute selectors so all navbar/hero/cta variants react without per-variant edits. */}
       <style>{`

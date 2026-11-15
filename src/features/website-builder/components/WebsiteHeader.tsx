@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   Stethoscope,
   MousePointerClick,
+  PanelLeftOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { DeviceMode } from "../types";
@@ -50,6 +51,8 @@ export function WebsiteHeader() {
     save,
     togglePublish,
     setIsFloatingAIOpen,
+    isMobileNavOpen,
+    setIsMobileNavOpen,
   } = useWebsiteBuilder();
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -74,11 +77,24 @@ export function WebsiteHeader() {
   };
 
   return (
-    <header className="h-16 border-b border-border/60 bg-background/95 backdrop-blur-md sticky top-0 z-30 px-3.5 sm:px-6 flex items-center justify-between gap-3 shadow-xs">
+    <header className="h-14 sm:h-16 border-b border-border/60 bg-background/95 backdrop-blur-md shrink-0 sticky top-0 z-30 px-2.5 sm:px-6 flex items-center justify-between gap-2 sm:gap-3 shadow-xs">
       {/* Left: Clinic Identity & Live Status */}
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="size-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white grid place-items-center font-bold text-sm shadow-sm shrink-0">
-          <Stethoscope className="size-4.5" />
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile Drawer Trigger */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsMobileNavOpen(true)}
+          className="lg:hidden h-8 sm:h-9 px-2 sm:px-2.5 text-xs font-semibold rounded-xl gap-1.5 border-border/80 text-foreground shrink-0 cursor-pointer"
+          title="Open Website Studio Navigation Menu"
+        >
+          <PanelLeftOpen className="size-4 text-primary shrink-0" />
+          <span className="hidden sm:inline">Modules</span>
+        </Button>
+
+        <div className="size-8 sm:size-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white grid place-items-center font-bold text-sm shadow-sm shrink-0">
+          <Stethoscope className="size-4 sm:size-4.5" />
         </div>
 
         <div className="min-w-0">
@@ -214,15 +230,15 @@ export function WebsiteHeader() {
           size="sm"
           variant={activeTab === "live-edit" ? "default" : "outline"}
           onClick={() => setActiveTab(activeTab === "live-edit" ? "overview" : "live-edit")}
-          className={`h-8 sm:h-9 px-2.5 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 cursor-pointer transition-all ${
+          className={`h-8 sm:h-9 px-2 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 cursor-pointer transition-all ${
             activeTab === "live-edit"
               ? "bg-blue-600 text-white shadow-xs hover:bg-blue-700"
               : "border-border/80 text-foreground hover:bg-muted"
           }`}
           title="Edit your website visually on canvas"
         >
-          <MousePointerClick className="size-3.5 text-blue-500" />
-          <span className="hidden sm:inline">Visual Editor</span>
+          <MousePointerClick className="size-3.5 text-blue-500 shrink-0" />
+          <span className="hidden md:inline">Visual Editor</span>
         </Button>
 
         {/* AI Assistant Floating Studio Trigger */}
@@ -232,7 +248,7 @@ export function WebsiteHeader() {
           onClick={() => setIsFloatingAIOpen(true)}
           className="h-8 sm:h-9 px-2.5 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 cursor-pointer hidden md:inline-flex"
         >
-          <Sparkles className="size-3.5 text-purple-500" />
+          <Sparkles className="size-3.5 text-purple-500 shrink-0" />
           <span>AI Polish</span>
         </Button>
 
@@ -242,7 +258,7 @@ export function WebsiteHeader() {
           variant={dirty ? "default" : "outline"}
           disabled={saving || !dirty}
           onClick={() => void save()}
-          className={`h-8 sm:h-9 px-3 text-xs font-semibold rounded-xl gap-1.5 transition-all cursor-pointer ${
+          className={`h-8 sm:h-9 px-2.5 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 transition-all cursor-pointer ${
             dirty
               ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
               : "border-border/70 text-muted-foreground bg-surface"
@@ -255,7 +271,7 @@ export function WebsiteHeader() {
           ) : (
             <Check className="size-3.5 text-emerald-500" />
           )}
-          <span>{saving ? "Saving…" : dirty ? "Save Edits" : "Saved"}</span>
+          <span>{saving ? "Saving…" : dirty ? "Save" : "Saved"}</span>
         </Button>
 
         {/* Publish to Web Button */}

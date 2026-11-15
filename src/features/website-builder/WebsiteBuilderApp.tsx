@@ -19,6 +19,7 @@ import { SettingsView } from "./views/SettingsView";
 import { DomainView } from "./views/DomainView";
 import { WebsiteWidgetView } from "./views/WebsiteWidgetView";
 import { LiveEditView } from "./views/LiveEditView";
+import type { WebsiteTab } from "./types";
 import {
   Loader2,
   Monitor,
@@ -29,6 +30,14 @@ import {
   Eye,
   EyeOff,
   Lock,
+  LayoutDashboard,
+  Palette,
+  Sliders,
+  LayoutGrid,
+  Layers,
+  Paintbrush,
+  Search,
+  Rocket,
 } from "lucide-react";
 
 function WebsiteBuilderMainContent() {
@@ -66,8 +75,8 @@ function WebsiteBuilderMainContent() {
       ) : activeTab === "sections" ? (
         <SectionsView />
       ) : (
-        <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto w-full min-w-0">
+        <div className="flex-1 flex flex-row min-h-0 min-w-0 overflow-hidden">
+          <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto w-full min-w-0">
             {activeTab === "overview" && <OverviewView />}
             {activeTab === "templates" && <TemplatesView />}
             {activeTab === "customize" && <CustomizeView />}
@@ -198,12 +207,52 @@ function WebsiteBuilderMainContent() {
   );
 }
 
+const quickMobileTabs: { id: WebsiteTab; label: string; icon: React.ElementType }[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "templates", label: "Templates", icon: Palette },
+  { id: "customize", label: "Branding", icon: Sliders },
+  { id: "sections", label: "Sections", icon: LayoutGrid },
+  { id: "pages", label: "Pages", icon: Layers },
+  { id: "theme", label: "Colors", icon: Paintbrush },
+  { id: "seo", label: "SEO", icon: Search },
+  { id: "publish", label: "Publish", icon: Rocket },
+];
+
+function WebsiteMobileQuickTabs() {
+  const { activeTab, setActiveTab } = useWebsiteBuilder();
+
+  return (
+    <div className="lg:hidden shrink-0 border-b border-border/60 bg-card/85 backdrop-blur-xs px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar select-none z-20">
+      {quickMobileTabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+              isActive
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-background/80 text-muted-foreground hover:text-foreground border border-border/60"
+            }`}
+          >
+            <Icon className="size-3.5 shrink-0" />
+            <span>{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function WebsiteBuilderApp({ clinic }: { clinic: any }) {
   return (
     <WebsiteBuilderProvider clinic={clinic}>
-      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans antialiased">
+      <div className="h-full w-full bg-background text-foreground flex flex-col font-sans antialiased overflow-hidden">
         <WebsiteHeader />
-        <div className="flex flex-1 min-h-0">
+        <WebsiteMobileQuickTabs />
+        <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
           <WebsiteSidebarNav />
           <WebsiteBuilderMainContent />
         </div>

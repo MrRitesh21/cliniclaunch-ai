@@ -91,17 +91,17 @@ export function TemplatesView() {
     <div className="space-y-6 pb-12 w-full">
       {/* Top Mode Navigation Switcher */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/40 p-2 sm:p-2.5 rounded-2xl border border-border/60">
-        <div className="flex items-center gap-2 p-1 bg-background rounded-xl border border-border/60 shadow-xs">
+        <div className="flex items-center gap-1.5 p-1 bg-background rounded-xl border border-border/60 shadow-xs w-full sm:w-auto overflow-x-auto no-scrollbar">
           <button
             onClick={() => setViewMode("signature")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
               viewMode === "signature"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Sparkles className="size-3.5" />
-            <span>Signature Series (30 Masterpieces)</span>
+            <span>Signature Series (30)</span>
             {isCurrentSignature && (
               <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                 Active
@@ -110,14 +110,14 @@ export function TemplatesView() {
           </button>
           <button
             onClick={() => setViewMode("marketplace")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
               viewMode === "marketplace"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <LayoutGrid className="size-3.5" />
-            <span>Specialty Marketplace ({allTemplates.length})</span>
+            <span>Specialty Catalog ({allTemplates.length})</span>
           </button>
         </div>
 
