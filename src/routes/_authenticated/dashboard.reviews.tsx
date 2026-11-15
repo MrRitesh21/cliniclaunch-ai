@@ -50,6 +50,7 @@ import {
   disconnectGoogleGmb,
   requestAiReviewReply,
   fetchGoogleProfiles,
+  clearAllClinicReviews,
 } from "@/lib/google-reviews.functions";
 import { sendTestWhatsapp } from "@/lib/baileys.functions";
 import { useClinic } from "./dashboard";
@@ -133,6 +134,7 @@ export function ReviewsPage() {
   const saveGmbConnectionFn = useServerFn(saveGoogleGmbConnection);
   const disconnectGmbFn = useServerFn(disconnectGoogleGmb);
   const fetchGoogleProfilesFn = useServerFn(fetchGoogleProfiles);
+  const clearAllReviewsFn = useServerFn(clearAllClinicReviews);
 
   useEffect(() => {
     if (!clinic) return;
@@ -145,17 +147,28 @@ export function ReviewsPage() {
       google_business_profile_url?: string | null;
       google_place_id?: string | null;
       google_business_profile_connected_at?: string | null;
+      google_sync_status?: string | null;
     } | null;
 
+    // If GMB is explicitly disconnected, enforce disconnected state!
+    if (orgObj?.google_sync_status === "disconnected") {
+      setPlaceId("");
+      setGmbBusinessName("");
+      setGmbUrl("");
+      setIsGmbConnected(false);
+      return;
+    }
+
     const pId = c.google_place_id || orgObj?.google_place_id || "";
-    const bName = orgObj?.google_business_name || c.clinic_name || org?.name || "";
-    const url = orgObj?.google_business_profile_url || org?.google_business_profile_url || "";
+    const bName = orgObj?.google_business_name || "";
+    const url = orgObj?.google_business_profile_url || "";
 
     setPlaceId(pId);
     setGmbBusinessName(bName);
     setGmbUrl(url);
 
-    const connected = Boolean(pId || orgObj?.google_business_profile_connected_at || url);
+    // Only connected if Place ID is present AND sync status is not disconnected
+    const connected = Boolean(pId && orgObj?.google_sync_status !== "disconnected");
     setIsGmbConnected(connected);
   }, [clinic, org]);
 
@@ -226,19 +239,28 @@ export function ReviewsPage() {
     setFetchingProfiles(true);
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Use skipBrowserRedirect: true so if Supabase provider is disabled, it won't crash on a raw 400 page
+      const { data: oauthData, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
+          skipBrowserRedirect: true,
           scopes: "https://www.googleapis.com/auth/business.manage email profile",
           redirectTo: `${origin}/dashboard/reviews?google_connect=1`,
         },
       });
 
-      if (error) {
-        // If OAuth provider is not configured or in dev, load matching profiles directly
+      if (error || !oauthData?.url) {
+        toast.info(
+          "Google OAuth provider not enabled in Supabase. Searching Google Maps profiles directly…",
+        );
         await loadProfilesFromGoogle();
+        return;
       }
+
+      // Provider URL is valid, navigate to Google OAuth
+      window.location.assign(oauthData.url);
     } catch {
+      toast.info("Searching clinic profiles directly on Google Maps…");
       await loadProfilesFromGoogle();
     }
   }
@@ -287,18 +309,55 @@ export function ReviewsPage() {
   }
 
   async function handleDisconnectGmb() {
-    if (!clinic || !confirm("Disconnect Google My Business?")) return;
+    if (!clinic || !confirm("Disconnect Google My Business and clear all dummy/synced reviews?"))
+      return;
     try {
       await disconnectGmbFn({
-        data: { clinic_id: clinic.id, organization_id: orgId || null },
+        data: {
+          clinic_id: clinic.id,
+          organization_id: orgId || null,
+          delete_reviews: true,
+        },
       });
+
+      // Clear local component state immediately
       setIsGmbConnected(false);
       setPlaceId("");
       setGmbBusinessName("");
       setGmbUrl("");
       setGmbStep("connect");
       setSelectedProfile(null);
-      toast.success("Google My Business disconnected");
+      setProfiles([]);
+      setRows([]);
+
+      // Wipe localStorage cache for clinic so useClinic() won't repopulate stale google_place_id
+      if (typeof window !== "undefined") {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith("clinic:") || k.startsWith("clinic_slug:"))) {
+            localStorage.removeItem(k);
+          }
+        }
+      }
+
+      setShowGmbModal(false);
+      toast.success("Google My Business disconnected and reviews cleared");
+      await load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleClearAllReviews() {
+    if (!clinic || !confirm("Clear all reviews from this dashboard? This cannot be undone."))
+      return;
+    try {
+      await clearAllReviewsFn({
+        data: { clinic_id: clinic.id, organization_id: orgId || null },
+      });
+      setRows([]);
+      toast.success("All reviews cleared");
+      await load();
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -629,6 +688,19 @@ export function ReviewsPage() {
               </span>
             </button>
           ))}
+
+          {rows.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAllReviews}
+              className="h-7 text-[11px] text-destructive hover:bg-destructive/10 px-2 rounded-lg gap-1 shrink-0 font-medium ml-auto"
+              title="Clear all reviews"
+            >
+              <Trash2 className="size-3" /> Clear Reviews
+            </Button>
+          )}
         </div>
       </div>
 
@@ -801,6 +873,16 @@ export function ReviewsPage() {
                   >
                     <RefreshCw className="size-3.5" /> Switch Location / Choose Another Profile
                   </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAllReviews}
+                    className="w-full h-8 text-xs text-amber-600 hover:bg-amber-500/10 rounded-xl gap-1.5"
+                  >
+                    <Trash2 className="size-3" /> Clear All Reviews From Dashboard
+                  </Button>
                 </div>
 
                 <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
@@ -811,7 +893,7 @@ export function ReviewsPage() {
                     onClick={handleDisconnectGmb}
                     className="h-8 text-xs text-destructive hover:bg-destructive/10 rounded-lg gap-1"
                   >
-                    <Unlink className="size-3.5" /> Disconnect GMB
+                    <Unlink className="size-3.5" /> Disconnect GMB & Wipe Reviews
                   </Button>
                   <Button
                     type="button"
@@ -825,68 +907,101 @@ export function ReviewsPage() {
               </div>
             )}
 
-            {/* Step 2: Connect with Google */}
+            {/* Step 2: Connect via Google Maps Search or Google OAuth */}
             {!isGmbConnected && gmbStep === "connect" && (
-              <div className="space-y-4 text-center py-2">
-                <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-blue-600 grid place-items-center mx-auto shadow-xs">
-                  <Globe className="size-6 text-blue-600" />
+              <div className="space-y-4 py-1">
+                {/* 1. Direct Search & Connect (1-Click & Recommended) */}
+                <div className="p-4 rounded-xl border bg-muted/20 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-lg bg-blue-600/10 text-blue-600 grid place-items-center font-bold text-xs shrink-0">
+                      <Globe className="size-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-foreground">
+                        Search Clinic on Google Maps
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground">
+                        Find and import your live business profile & reviews without OAuth setup
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Input
+                      value={searchLocationQuery || clinic?.clinic_name || ""}
+                      onChange={(e) => setSearchLocationQuery(e.target.value)}
+                      placeholder="e.g. Ritesh Clinic or Doctor Name"
+                      className="h-9 text-xs rounded-xl bg-background"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void loadProfilesFromGoogle(
+                            searchLocationQuery || clinic?.clinic_name || undefined,
+                          );
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        void loadProfilesFromGoogle(
+                          searchLocationQuery || clinic?.clinic_name || undefined,
+                        )
+                      }
+                      disabled={fetchingProfiles}
+                      className="h-9 text-xs font-semibold px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shrink-0 gap-1.5 shadow-xs"
+                    >
+                      {fetchingProfiles ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Search className="size-3.5" />
+                      )}
+                      Find Clinic
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm text-foreground">Sign in with Google</h3>
-                  <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                    Connect your Google account to automatically import all clinic locations and
-                    manage reviews.
-                  </p>
+                <div className="relative text-center my-1">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-muted" />
+                  </div>
+                  <span className="relative bg-background px-2 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+                    Or Connect Google Account
+                  </span>
                 </div>
 
-                <div className="space-y-2.5 pt-2">
+                {/* 2. Google OAuth Button with Safe Fallback */}
+                <div className="space-y-1.5">
                   <Button
                     type="button"
                     onClick={handleGoogleLoginAndConnect}
                     disabled={fetchingProfiles}
-                    className="w-full h-11 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 font-medium text-xs rounded-xl shadow-xs flex items-center justify-center gap-3 transition-all"
+                    className="w-full h-10 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 font-medium text-xs rounded-xl shadow-xs flex items-center justify-center gap-2.5 transition-all"
                   >
-                    {fetchingProfiles ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin text-blue-600" />
-                        <span>Fetching your Business Profiles…</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="size-4 shrink-0" viewBox="0 0 24 24">
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                          />
-                        </svg>
-                        <span>Continue with Google</span>
-                      </>
-                    )}
+                    <svg className="size-3.5 shrink-0" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                    <span>Sign in with Google Account</span>
                   </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => void loadProfilesFromGoogle()}
-                    disabled={fetchingProfiles}
-                    className="h-8 text-[11px] text-muted-foreground hover:text-foreground"
-                  >
-                    Or find matching profiles for {clinic?.clinic_name || "this clinic"} →
-                  </Button>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Note: Google OAuth requires Google provider enabled in your Supabase Auth
+                    dashboard.
+                  </p>
                 </div>
               </div>
             )}

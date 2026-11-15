@@ -120,6 +120,7 @@ export const disconnectGoogleGmb = createServerFn({ method: "POST" })
       .object({
         clinic_id: z.string().uuid(),
         organization_id: z.string().uuid().optional().nullable(),
+        delete_reviews: z.boolean().optional().default(true),
       })
       .parse(i),
   )
@@ -127,11 +128,19 @@ export const disconnectGoogleGmb = createServerFn({ method: "POST" })
     await ownedClinic(data.clinic_id, getAuthUserId(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // 1. Wipe all Google sync data from clinics table
     await supabaseAdmin
       .from("clinics")
-      .update({ google_place_id: null } as never)
+      .update({
+        google_place_id: null,
+        google_reviews: null,
+        google_rating: null,
+        google_rating_count: null,
+        google_reviews_synced_at: null,
+      } as never)
       .eq("id", data.clinic_id);
 
+    // 2. Wipe all Google sync data from organizations table
     if (data.organization_id) {
       await supabaseAdmin
         .from("organizations")
@@ -143,7 +152,60 @@ export const disconnectGoogleGmb = createServerFn({ method: "POST" })
           google_business_profile_connected_at: null,
         } as never)
         .eq("id", data.organization_id);
+
+      // 3. Delete dummy / sample / Google reviews from reviews table
+      if (data.delete_reviews) {
+        await supabaseAdmin
+          .from("reviews" as never)
+          .delete()
+          .eq("organization_id", data.organization_id);
+      }
+    } else if (data.delete_reviews) {
+      await supabaseAdmin
+        .from("reviews" as never)
+        .delete()
+        .eq("clinic_id", data.clinic_id);
     }
+
+    return { ok: true };
+  });
+
+export const clearAllClinicReviews = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        organization_id: z.string().uuid().optional().nullable(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.organization_id) {
+      await supabaseAdmin
+        .from("reviews" as never)
+        .delete()
+        .eq("organization_id", data.organization_id);
+    } else {
+      await supabaseAdmin
+        .from("reviews" as never)
+        .delete()
+        .eq("clinic_id", data.clinic_id);
+    }
+
+    await supabaseAdmin
+      .from("clinics")
+      .update({
+        google_reviews: null,
+        google_rating: null,
+        google_rating_count: null,
+        google_reviews_synced_at: null,
+      } as never)
+      .eq("id", data.clinic_id);
+
     return { ok: true };
   });
 
