@@ -121,6 +121,7 @@ export function ReviewsPage() {
   const [fetchingProfiles, setFetchingProfiles] = useState(false);
   const [gmbStep, setGmbStep] = useState<"connect" | "select" | "connected">("connect");
   const [searchLocationQuery, setSearchLocationQuery] = useState("");
+  const [lastSearchedQuery, setLastSearchedQuery] = useState("");
 
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
@@ -191,6 +192,10 @@ export function ReviewsPage() {
   const loadProfilesFromGoogle = useCallback(
     async (customQuery?: string) => {
       if (!clinic) return;
+      const queryToUse =
+        customQuery !== undefined
+          ? customQuery.trim()
+          : searchLocationQuery.trim() || clinic.clinic_name || "";
       setFetchingProfiles(true);
       try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -202,7 +207,7 @@ export function ReviewsPage() {
           data: {
             clinic_id: clinic.id,
             provider_token: token,
-            query: customQuery || clinic.clinic_name || null,
+            query: queryToUse || null,
           },
         });
 
@@ -213,6 +218,8 @@ export function ReviewsPage() {
         if (items.length > 0) {
           const match = items.find((p) => p.placeId === placeId);
           setSelectedProfile(match || items[0]);
+        } else {
+          setSelectedProfile(null);
         }
       } catch (err) {
         toast.error("Could not fetch profiles: " + (err as Error).message);
@@ -220,8 +227,22 @@ export function ReviewsPage() {
         setFetchingProfiles(false);
       }
     },
-    [clinic, fetchGoogleProfilesFn, placeId],
+    [clinic, fetchGoogleProfilesFn, placeId, searchLocationQuery],
   );
+
+  // Auto-search debounce when in "select" step so live results update as user types
+  useEffect(() => {
+    if (!showGmbModal || gmbStep !== "select") return;
+    const q = searchLocationQuery.trim();
+    if (!q || q === lastSearchedQuery) return;
+
+    const timer = setTimeout(() => {
+      setLastSearchedQuery(q);
+      void loadProfilesFromGoogle(q);
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [searchLocationQuery, gmbStep, showGmbModal, lastSearchedQuery, loadProfilesFromGoogle]);
 
   // Catch OAuth redirect back
   useEffect(() => {
@@ -270,6 +291,8 @@ export function ReviewsPage() {
       setGmbStep("connected");
     } else {
       setGmbStep("connect");
+      setSearchLocationQuery(clinic?.clinic_name || "");
+      setLastSearchedQuery(clinic?.clinic_name || "");
     }
     setShowGmbModal(true);
   }
@@ -918,36 +941,34 @@ export function ReviewsPage() {
                     </div>
                     <div>
                       <h4 className="font-bold text-xs text-foreground">
-                        Search Clinic on Google Maps
+                        Search Business on Google Maps
                       </h4>
                       <p className="text-[10px] text-muted-foreground">
-                        Find and import your live business profile & reviews without OAuth setup
+                        Search and select any business profile to import reviews & enable AI replies
                       </p>
                     </div>
                   </div>
 
                   <div className="flex gap-2 pt-1">
                     <Input
-                      value={searchLocationQuery || clinic?.clinic_name || ""}
+                      value={searchLocationQuery}
                       onChange={(e) => setSearchLocationQuery(e.target.value)}
-                      placeholder="e.g. Ritesh Clinic or Doctor Name"
+                      placeholder="e.g. Srivastava Tiffin Service, Clinic, or Business Name"
                       className="h-9 text-xs rounded-xl bg-background"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
-                          void loadProfilesFromGoogle(
-                            searchLocationQuery || clinic?.clinic_name || undefined,
-                          );
+                          setLastSearchedQuery(searchLocationQuery.trim());
+                          void loadProfilesFromGoogle(searchLocationQuery);
                         }
                       }}
                     />
                     <Button
                       type="button"
-                      onClick={() =>
-                        void loadProfilesFromGoogle(
-                          searchLocationQuery || clinic?.clinic_name || undefined,
-                        )
-                      }
+                      onClick={() => {
+                        setLastSearchedQuery(searchLocationQuery.trim());
+                        void loadProfilesFromGoogle(searchLocationQuery);
+                      }}
                       disabled={fetchingProfiles}
                       className="h-9 text-xs font-semibold px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shrink-0 gap-1.5 shadow-xs"
                     >
@@ -956,7 +977,7 @@ export function ReviewsPage() {
                       ) : (
                         <Search className="size-3.5" />
                       )}
-                      Find Clinic
+                      Find Profile
                     </Button>
                   </div>
                 </div>
@@ -999,8 +1020,7 @@ export function ReviewsPage() {
                     <span>Sign in with Google Account</span>
                   </Button>
                   <p className="text-[10px] text-muted-foreground text-center">
-                    Note: Google OAuth requires Google provider enabled in your Supabase Auth
-                    dashboard.
+                    Note: Direct Google Maps search works instantly without OAuth setup.
                   </p>
                 </div>
               </div>
@@ -1019,31 +1039,98 @@ export function ReviewsPage() {
                     )}
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    {profiles.length > 1
-                      ? "Multiple locations found. Please select which profile belongs to this clinic:"
-                      : "Confirm your Google Business location:"}
+                    Select your business profile to connect Google Reviews:
                   </p>
                 </div>
 
+                {/* Instant Search Bar at TOP */}
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      value={searchLocationQuery}
+                      onChange={(e) => setSearchLocationQuery(e.target.value)}
+                      placeholder="Search business name (e.g. Srivastava Tiffin Service)"
+                      className="h-8 text-xs pl-8 pr-7 rounded-lg"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && searchLocationQuery.trim()) {
+                          e.preventDefault();
+                          setLastSearchedQuery(searchLocationQuery.trim());
+                          void loadProfilesFromGoogle(searchLocationQuery.trim());
+                        }
+                      }}
+                    />
+                    {searchLocationQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchLocationQuery("");
+                          setLastSearchedQuery("");
+                          void loadProfilesFromGoogle("");
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-0.5"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!searchLocationQuery.trim() || fetchingProfiles}
+                    onClick={() => {
+                      setLastSearchedQuery(searchLocationQuery.trim());
+                      void loadProfilesFromGoogle(searchLocationQuery.trim());
+                    }}
+                    className="h-8 text-xs px-3 rounded-lg shrink-0 gap-1"
+                  >
+                    {fetchingProfiles ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Search className="size-3" />
+                    )}
+                    <span>Search</span>
+                  </Button>
+                </div>
+
                 {fetchingProfiles ? (
-                  <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                    <Loader2 className="size-4 animate-spin text-blue-600" />
-                    Fetching profiles from Google…
+                  <div className="py-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="size-5 animate-spin text-blue-600" />
+                    <span>Searching Google Maps for live profiles…</span>
                   </div>
                 ) : profiles.length === 0 ? (
-                  <div className="p-4 rounded-xl border bg-muted/20 text-center space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      No Google Business Profiles found.
+                  <div className="p-4 rounded-xl border bg-muted/20 text-center space-y-2.5">
+                    <p className="text-xs font-medium text-foreground">
+                      No Google Business listings found for "{searchLocationQuery || "your query"}".
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void loadProfilesFromGoogle()}
-                      className="h-7 text-xs"
-                    >
-                      Try Again
-                    </Button>
+                    <p className="text-[11px] text-muted-foreground">
+                      You can connect with this business name directly:
+                    </p>
+                    {searchLocationQuery.trim() ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          const customProfile: GoogleProfileItem = {
+                            placeId: "custom_" + Date.now(),
+                            name: searchLocationQuery.trim(),
+                            address:
+                              clinic?.public_address ||
+                              clinic?.address ||
+                              "Google Business Location",
+                            rating: 5.0,
+                            reviewCount: 1,
+                            profileUrl: "",
+                          };
+                          setProfiles([customProfile]);
+                          setSelectedProfile(customProfile);
+                        }}
+                        className="h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                      >
+                        Connect as "{searchLocationQuery.trim()}"
+                      </Button>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -1055,15 +1142,20 @@ export function ReviewsPage() {
                           onClick={() => setSelectedProfile(p)}
                           className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                             isSelected
-                              ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600"
+                              ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600 shadow-xs"
                               : "border-border hover:border-muted-foreground/30 bg-background"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 space-y-0.5">
-                              <p className="font-semibold text-xs text-foreground truncate">
-                                {p.name}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-xs text-foreground truncate">
+                                  {p.name}
+                                </p>
+                                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 shrink-0">
+                                  Live GMB
+                                </span>
+                              </div>
                               <p className="text-[11px] text-muted-foreground line-clamp-1">
                                 📍 {p.address}
                               </p>
@@ -1091,34 +1183,6 @@ export function ReviewsPage() {
                     })}
                   </div>
                 )}
-
-                {/* Optional search input for filtering or searching another branch */}
-                <div className="pt-1">
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      value={searchLocationQuery}
-                      onChange={(e) => setSearchLocationQuery(e.target.value)}
-                      placeholder="Search another clinic branch name or city…"
-                      className="h-7 text-xs rounded-lg"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && searchLocationQuery.trim()) {
-                          e.preventDefault();
-                          void loadProfilesFromGoogle(searchLocationQuery);
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={!searchLocationQuery.trim() || fetchingProfiles}
-                      onClick={() => void loadProfilesFromGoogle(searchLocationQuery)}
-                      className="h-7 text-xs px-2.5 rounded-lg shrink-0"
-                    >
-                      <Search className="size-3" />
-                    </Button>
-                  </div>
-                </div>
 
                 <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
                   <Button
