@@ -142,10 +142,11 @@ function PublicReviewPage() {
   }, [clinic]);
 
   const reviewContext: ReviewContext = useMemo(() => {
+    const businessTitle = org?.google_business_name || clinic?.clinic_name || org?.name || "Clinic";
     return {
-      doc: clinic?.doctor_name || "Doctor",
-      spec: clinic?.specialization || "Doctor",
-      clinic: clinic?.clinic_name || org?.name || "Clinic",
+      doc: clinic?.doctor_name || businessTitle,
+      spec: clinic?.specialization || "Professional Services",
+      clinic: businessTitle,
       city: geoContext.city,
       area: geoContext.area,
     };
@@ -323,7 +324,8 @@ function PublicReviewPage() {
           <div className="space-y-1.5">
             <h1 className="text-2xl font-display font-bold">Feedback Submitted!</h1>
             <p className="text-xs text-muted-foreground">
-              Thank you for sharing your experience with {clinic?.clinic_name || org.name}.
+              Thank you for sharing your experience with{" "}
+              {org?.google_business_name || clinic?.clinic_name || org?.name}.
             </p>
           </div>
 
@@ -403,7 +405,7 @@ function PublicReviewPage() {
             </div>
           )}
           <h1 className="font-display text-xl font-bold leading-tight text-foreground">
-            {clinic?.clinic_name || org.name}
+            {org?.google_business_name || clinic?.clinic_name || org?.name}
           </h1>
           {clinic?.doctor_name && (
             <p className="text-xs font-medium text-primary mt-0.5">

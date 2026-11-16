@@ -29,6 +29,7 @@ import {
   Calendar,
   Share2,
   AlertTriangle,
+  Edit3,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -58,6 +59,7 @@ import {
   fetchGoogleProfiles,
   clearAllClinicReviews,
   batchAutoReplyAllReviews,
+  updateReviewLinkSlug,
 } from "@/lib/google-reviews.functions";
 import { sendTestWhatsapp } from "@/lib/baileys.functions";
 import { useClinic } from "./dashboard";
@@ -159,6 +161,12 @@ export function ReviewsPage() {
   const [searchGmbQuery, setSearchGmbQuery] = useState("");
   const [isSearchingGmb, setIsSearchingGmb] = useState(false);
 
+  // Custom Review Link Slug
+  const [customSlug, setCustomSlug] = useState("");
+  const [customSlugInput, setCustomSlugInput] = useState("");
+  const [showEditSlugModal, setShowEditSlugModal] = useState(false);
+  const [savingSlug, setSavingSlug] = useState(false);
+
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
   const [showSendWaModal, setShowSendWaModal] = useState(false);
@@ -179,6 +187,7 @@ export function ReviewsPage() {
   const fetchGoogleProfilesFn = useServerFn(fetchGoogleProfiles);
   const clearAllReviewsFn = useServerFn(clearAllClinicReviews);
   const batchAutoReplyFn = useServerFn(batchAutoReplyAllReviews);
+  const updateSlugFn = useServerFn(updateReviewLinkSlug);
 
   useEffect(() => {
     if (!clinic) return;
@@ -449,7 +458,13 @@ export function ReviewsPage() {
     if (!clinic || !target) return;
     setConnectingGmb(true);
     try {
-      await saveGmbConnectionFn({
+      const cleanBizSlug = target.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 45);
+
+      const res = await saveGmbConnectionFn({
         data: {
           clinic_id: clinic.id,
           organization_id: orgId || null,
@@ -459,8 +474,15 @@ export function ReviewsPage() {
             target.profileUrl ||
             `https://search.google.com/local/writereview?placeid=${encodeURIComponent(target.placeId)}`,
           account_email: gmbAccountEmail || null,
+          custom_slug: cleanBizSlug || undefined,
         },
       });
+
+      if (res?.slug) {
+        setCustomSlug(res.slug);
+      } else if (cleanBizSlug) {
+        setCustomSlug(cleanBizSlug);
+      }
 
       setPlaceId(target.placeId);
       setGmbBusinessName(target.name);
@@ -468,7 +490,7 @@ export function ReviewsPage() {
       setIsGmbConnected(true);
       setShowGmbModal(false);
       setGmbStep("connected");
-      toast.success(`Google Business Profile connected: ${target.name}`);
+      toast.success(`Google Business connected & review link matched: ${target.name}`);
 
       // Auto sync reviews
       void syncFn({ data: { clinic_id: clinic.id } }).catch(() => {});
@@ -476,6 +498,38 @@ export function ReviewsPage() {
       toast.error((e as Error).message);
     } finally {
       setConnectingGmb(false);
+    }
+  }
+
+  async function handleSaveCustomSlug() {
+    if (!clinic) return;
+    const clean = customSlugInput
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (clean.length < 2) {
+      toast.error("Slug must be at least 2 characters");
+      return;
+    }
+    setSavingSlug(true);
+    try {
+      const res = await updateSlugFn({
+        data: {
+          clinic_id: clinic.id,
+          organization_id: orgId || null,
+          slug: clean,
+        },
+      });
+      if (res?.slug) {
+        setCustomSlug(res.slug);
+        toast.success(`Smart Review Link updated: /r/${res.slug}`);
+        setShowEditSlugModal(false);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingSlug(false);
     }
   }
 
@@ -663,8 +717,9 @@ export function ReviewsPage() {
     };
   }, [rows]);
 
-  const shareUrl = org?.slug
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/r/${org.slug}`
+  const activeSlug = customSlug || (clinic as { slug?: string })?.slug || org?.slug || "";
+  const shareUrl = activeSlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/r/${activeSlug}`
     : "";
 
   return (
@@ -772,20 +827,34 @@ export function ReviewsPage() {
         </Card>
 
         {/* Right: Smart Review URL */}
-        <Card className="p-4 flex flex-col justify-center gap-2 border shadow-xs">
-          <div className="flex items-center justify-between gap-2">
+        <Card className="p-4 flex flex-col justify-center gap-2 border shadow-xs min-w-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-xs font-semibold text-foreground">Smart Review Link</span>
-            {copiedLink ? (
-              <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                <Check className="size-3" /> Copied!
-              </span>
-            ) : null}
+            <div className="flex items-center gap-1.5">
+              {copiedLink ? (
+                <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                  <Check className="size-3" /> Copied!
+                </span>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setCustomSlugInput(activeSlug);
+                  setShowEditSlugModal(true);
+                }}
+                className="h-6 text-[10px] font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 rounded-md gap-1 cursor-pointer"
+              >
+                <Edit3 className="size-3" /> Customize Link
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
             <Input
               readOnly
               value={shareUrl}
-              className="h-7 text-xs font-mono bg-muted/30 border-muted rounded-lg"
+              className="h-7 text-xs font-mono bg-muted/30 border-muted rounded-lg min-w-0 flex-1 truncate"
             />
             <Button
               size="sm"
@@ -797,7 +866,7 @@ export function ReviewsPage() {
                 setTimeout(() => setCopiedLink(false), 2000);
                 toast.success("Review link copied!");
               }}
-              className="h-7 text-xs px-2.5 rounded-lg shrink-0 gap-1"
+              className="h-7 text-xs px-2.5 rounded-lg shrink-0 gap-1 cursor-pointer"
             >
               <Copy className="size-3" /> Copy
             </Button>
@@ -806,7 +875,7 @@ export function ReviewsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground shrink-0"
+                  className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
                 >
                   <ExternalLink className="size-3.5" />
                 </Button>
@@ -1234,10 +1303,10 @@ export function ReviewsPage() {
       {/* GMB Connection & Profile Selection Modal */}
       {showGmbModal && (
         <Dialog open={showGmbModal} onOpenChange={setShowGmbModal}>
-          <DialogContent className="max-w-md p-6 rounded-2xl space-y-4">
-            <DialogHeader>
+          <DialogContent className="w-[95vw] sm:max-w-lg p-4 sm:p-6 rounded-2xl max-h-[92vh] flex flex-col gap-3 overflow-hidden box-border">
+            <DialogHeader className="pr-6 shrink-0">
               <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <Globe className="size-4 text-blue-600" /> Google My Business (GMB)
+                <Globe className="size-4 text-blue-600 shrink-0" /> Google My Business (GMB)
               </DialogTitle>
             </DialogHeader>
 
@@ -1375,10 +1444,10 @@ export function ReviewsPage() {
 
             {/* Step 3: Choose Profile directly from connected Google account */}
             {gmbStep === "select" && (
-              <div className="space-y-4">
+              <div className="space-y-3.5 overflow-y-auto overflow-x-hidden pr-0.5 max-h-[calc(92vh-100px)] min-w-0">
                 {/* Connected account banner */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl border bg-muted/30">
-                  <div className="min-w-0">
+                <div className="flex items-center justify-between p-2.5 rounded-xl border bg-muted/30 min-w-0 gap-2">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
                       Google Account
                     </p>
@@ -1391,21 +1460,22 @@ export function ReviewsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={handleGoogleLoginAndConnect}
-                    className="h-7 text-[11px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                    className="h-7 text-[11px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 shrink-0 cursor-pointer"
                   >
                     Switch Account
                   </Button>
                 </div>
 
                 {/* Search / Select Bar for Your Google Business */}
-                <div className="space-y-2.5 p-3 rounded-xl border bg-muted/20">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-2.5 p-3 rounded-xl border bg-muted/20 min-w-0">
+                  <div className="flex items-center justify-between gap-1 flex-wrap">
                     <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <Search className="size-3.5 text-blue-600" /> Search Your Business Listing
+                      <Search className="size-3.5 text-blue-600 shrink-0" /> Search Your Business
+                      Listing
                     </label>
                     <span className="text-[10px] text-muted-foreground">Live Google Maps</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Input
                       placeholder="e.g. Srivastava Tiffin Service, Schollora Intelligence, Awadh Dhaba..."
                       value={searchGmbQuery}
@@ -1416,7 +1486,7 @@ export function ReviewsPage() {
                           void handleSearchGmb();
                         }
                       }}
-                      className="h-9 text-xs bg-background"
+                      className="h-9 text-xs bg-background min-w-0 flex-1 truncate"
                     />
                     <Button
                       type="button"
@@ -1430,9 +1500,9 @@ export function ReviewsPage() {
                   </div>
 
                   {/* Quick-select chips matching user's real Google businesses */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      Your Google Businesses:
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-w-0">
+                    <span className="text-[10px] font-medium text-muted-foreground shrink-0">
+                      Your Businesses:
                     </span>
                     {[
                       "Schollora Intelligence",
@@ -1446,7 +1516,7 @@ export function ReviewsPage() {
                           setSearchGmbQuery(name);
                           void handleSearchGmb(name);
                         }}
-                        className="px-2 py-0.5 rounded-md border text-[10px] font-medium bg-background hover:bg-muted text-foreground transition-all cursor-pointer"
+                        className="px-2 py-0.5 rounded-md border text-[10px] font-medium bg-background hover:bg-muted text-foreground transition-all cursor-pointer max-w-[200px] truncate"
                       >
                         🔍 {name}
                       </button>
@@ -1454,16 +1524,18 @@ export function ReviewsPage() {
                   </div>
                 </div>
 
-                {/* If Google Cloud API Notice */}
-                {gmbApiError && gmbApiError.code !== "NO_PROFILES_FOUND" && (
-                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1 text-left">
+                {/* Only show notice if truly NO profiles found */}
+                {gmbApiError && profiles.length === 0 && (
+                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1 text-left break-words [overflow-wrap:anywhere] min-w-0">
                     <div className="flex items-center gap-1.5 font-semibold text-[11px]">
                       <AlertTriangle className="size-3.5 text-amber-600 shrink-0" />
-                      <span>Google API Note ({gmbApiError.code})</span>
+                      <span>Google API Note</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      {gmbApiError.message ||
-                        "Google My Business API access is pending or restricted in Google Cloud. You can search and link your business above directly."}
+                      {gmbApiError.message?.includes("Quota exceeded")
+                        ? "Google My Business API requests are temporarily rate-limited. You can search and link your business above directly."
+                        : gmbApiError.message ||
+                          "You can search and link your business listing above directly."}
                     </p>
                   </div>
                 )}
@@ -1479,7 +1551,7 @@ export function ReviewsPage() {
                     </span>
                   </div>
                 ) : profiles.length === 0 ? (
-                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3">
+                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3 min-w-0">
                     <div className="size-9 rounded-full bg-blue-500/10 text-blue-600 grid place-items-center mx-auto">
                       <Globe className="size-5" />
                     </div>
@@ -1498,7 +1570,7 @@ export function ReviewsPage() {
                         type="button"
                         size="sm"
                         onClick={handleGoogleLoginAndConnect}
-                        className="w-full h-8 text-xs font-semibold bg-white text-neutral-800 border border-neutral-300 hover:bg-neutral-50 rounded-lg gap-1.5"
+                        className="w-full h-8 text-xs font-semibold bg-white text-neutral-800 border border-neutral-300 hover:bg-neutral-50 rounded-lg gap-1.5 cursor-pointer"
                       >
                         <RefreshCw className="size-3" /> Re-authenticate with Google
                       </Button>
@@ -1507,14 +1579,14 @@ export function ReviewsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setGmbStep("connect")}
-                        className="w-full h-8 text-xs text-muted-foreground"
+                        className="w-full h-8 text-xs text-muted-foreground cursor-pointer"
                       >
                         Back
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground">
                         Choose Your Business Profile
@@ -1524,35 +1596,35 @@ export function ReviewsPage() {
                       </span>
                     </div>
 
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-52 sm:max-h-60 overflow-y-auto overflow-x-hidden pr-1 min-w-0">
                       {profiles.map((p) => {
                         const isSelected = selectedProfile?.placeId === p.placeId;
                         return (
                           <div
                             key={p.placeId}
                             onClick={() => setSelectedProfile(p)}
-                            className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                            className={`p-2.5 sm:p-3 rounded-xl border text-left cursor-pointer transition-all min-w-0 ${
                               isSelected
                                 ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-1 ring-blue-600 shadow-xs"
                                 : "border-border hover:border-muted-foreground/30 bg-background"
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0 space-y-0.5">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="font-semibold text-xs text-foreground truncate">
+                            <div className="flex items-start justify-between gap-2 min-w-0">
+                              <div className="min-w-0 flex-1 space-y-0.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-semibold text-xs text-foreground truncate max-w-[220px] sm:max-w-[280px]">
                                     {p.name}
                                   </p>
                                   <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 shrink-0">
                                     Google Business
                                   </span>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                <p className="text-[11px] text-muted-foreground line-clamp-1 break-words">
                                   📍 {p.address}
                                 </p>
                                 {p.rating ? (
                                   <div className="flex items-center gap-1.5 pt-0.5 text-[10px] text-amber-600 font-medium">
-                                    <Star className="size-3 fill-amber-400 text-amber-400" />
+                                    <Star className="size-3 fill-amber-400 text-amber-400 shrink-0" />
                                     <span>
                                       {p.rating}★ ({p.reviewCount ?? 0} reviews)
                                     </span>
@@ -1574,7 +1646,7 @@ export function ReviewsPage() {
                       })}
                     </div>
 
-                    <DialogFooter className="pt-2 flex items-center justify-between sm:justify-between">
+                    <div className="pt-2 flex items-center justify-between gap-2 border-t w-full shrink-0">
                       <Button
                         type="button"
                         variant="ghost"
@@ -1583,7 +1655,7 @@ export function ReviewsPage() {
                           if (isGmbConnected) setGmbStep("connected");
                           else setGmbStep("connect");
                         }}
-                        className="h-8 text-xs rounded-lg"
+                        className="h-8 text-xs rounded-lg shrink-0 cursor-pointer"
                       >
                         Back
                       </Button>
@@ -1592,7 +1664,7 @@ export function ReviewsPage() {
                         size="sm"
                         disabled={!selectedProfile || connectingGmb}
                         onClick={() => handleConfirmProfile()}
-                        className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                        className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shrink-0 px-3.5 cursor-pointer"
                       >
                         {connectingGmb ? (
                           <>
@@ -1604,11 +1676,113 @@ export function ReviewsPage() {
                           </>
                         )}
                       </Button>
-                    </DialogFooter>
+                    </div>
                   </div>
                 )}
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Review Link Slug Dialog */}
+      {showEditSlugModal && (
+        <Dialog open={showEditSlugModal} onOpenChange={setShowEditSlugModal}>
+          <DialogContent className="w-[95vw] sm:max-w-md p-5 rounded-2xl space-y-3.5">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <Edit3 className="size-4 text-blue-600" /> Customize Smart Review Link
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Custom Slug</Label>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono bg-muted/40 p-2 rounded-lg border">
+                  <span>/r/</span>
+                  <Input
+                    value={customSlugInput}
+                    onChange={(e) =>
+                      setCustomSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
+                    }
+                    placeholder="my-business-name"
+                    className="h-7 text-xs font-mono bg-background"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Only lowercase letters, numbers, and hyphens (e.g. schollora-intelligence).
+                </p>
+              </div>
+
+              {/* Quick suggestions based on connected business or clinic */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  Quick suggestions:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    gmbBusinessName
+                      ? gmbBusinessName
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-+|-+$/g, "")
+                          .slice(0, 35)
+                      : null,
+                    (clinic as { clinic_name?: string })?.clinic_name
+                      ? (clinic as { clinic_name: string }).clinic_name
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-+|-+$/g, "")
+                          .slice(0, 35)
+                      : null,
+                    org?.name
+                      ? org.name
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-+|-+$/g, "")
+                          .slice(0, 35)
+                      : null,
+                  ]
+                    .filter((s): s is string => Boolean(s && s.length >= 2))
+                    .map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => setCustomSlugInput(sug)}
+                        className="px-2 py-0.5 rounded-md border text-[10px] font-medium bg-background hover:bg-muted text-foreground transition-all cursor-pointer"
+                      >
+                        ⚡ {sug}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEditSlugModal(false)}
+                className="h-8 text-xs rounded-lg cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={savingSlug || !customSlugInput.trim()}
+                onClick={handleSaveCustomSlug}
+                className="h-8 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white gap-1.5 cursor-pointer"
+              >
+                {savingSlug ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Check className="size-3.5" />
+                )}
+                Save Link
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

@@ -83,6 +83,7 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
         business_name: z.string().trim().max(200).optional().nullable(),
         profile_url: z.string().trim().max(500).or(z.literal("")).optional().nullable(),
         account_email: z.string().trim().email().max(200).or(z.literal("")).optional().nullable(),
+        custom_slug: z.string().trim().max(80).optional().nullable(),
       })
       .parse(i),
   )
@@ -91,26 +92,98 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date().toISOString();
 
+    const clinicUpdates: Record<string, unknown> = {
+      google_place_id: data.place_id || null,
+    };
+    if (data.business_name) {
+      clinicUpdates.clinic_name = data.business_name;
+    }
+    if (data.custom_slug) {
+      const clean = data.custom_slug
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      if (clean.length >= 2) {
+        clinicUpdates.slug = clean;
+      }
+    }
+
     await supabaseAdmin
       .from("clinics")
-      .update({
+      .update(clinicUpdates as never)
+      .eq("id", data.clinic_id);
+
+    if (data.organization_id) {
+      const orgUpdates: Record<string, unknown> = {
+        google_business_name: data.business_name || null,
+        google_business_profile_url: data.profile_url || null,
         google_place_id: data.place_id || null,
-      } as never)
+        google_sync_status: "connected",
+        google_business_profile_connected_at: now,
+      };
+      if (clinicUpdates.slug) {
+        orgUpdates.slug = clinicUpdates.slug;
+      }
+
+      await supabaseAdmin
+        .from("organizations")
+        .update(orgUpdates as never)
+        .eq("id", data.organization_id);
+    }
+    return { ok: true, slug: clinicUpdates.slug as string | undefined };
+  });
+
+export const updateReviewLinkSlug = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        organization_id: z.string().uuid().optional().nullable(),
+        slug: z
+          .string()
+          .trim()
+          .min(2)
+          .max(80)
+          .regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase letters, numbers, and hyphens"),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const cleanSlug = data.slug
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const { data: existingClinic } = await supabaseAdmin
+      .from("clinics")
+      .select("id")
+      .eq("slug", cleanSlug)
+      .neq("id", data.clinic_id)
+      .maybeSingle();
+
+    if (existingClinic) {
+      throw new Error(`The slug "${cleanSlug}" is already in use. Please choose another.`);
+    }
+
+    await supabaseAdmin
+      .from("clinics")
+      .update({ slug: cleanSlug } as never)
       .eq("id", data.clinic_id);
 
     if (data.organization_id) {
       await supabaseAdmin
         .from("organizations")
-        .update({
-          google_business_name: data.business_name || null,
-          google_business_profile_url: data.profile_url || null,
-          google_place_id: data.place_id || null,
-          google_sync_status: "connected",
-          google_business_profile_connected_at: now,
-        } as never)
+        .update({ slug: cleanSlug } as never)
         .eq("id", data.organization_id);
     }
-    return { ok: true };
+
+    return { ok: true, slug: cleanSlug };
   });
 
 export const disconnectGoogleGmb = createServerFn({ method: "POST" })

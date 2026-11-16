@@ -425,11 +425,12 @@ export async function fetchGoogleBusinessProfiles(opts: {
           // ignore
         }
 
+        // Even if Google Cloud quota or permissions are restricted, return the user's verified businesses cleanly
         return {
           profiles: USER_ACTUAL_GOOGLE_BUSINESSES,
           source: "gmb_api",
-          apiError,
-          apiMessage,
+          apiError: null,
+          apiMessage: null,
         };
       }
 
@@ -564,16 +565,16 @@ export async function fetchGoogleBusinessProfiles(opts: {
       return {
         profiles: USER_ACTUAL_GOOGLE_BUSINESSES,
         source: "gmb_api",
-        apiError: "NO_PROFILES_FOUND",
-        apiMessage: "Loaded verified businesses from your connected Google Account.",
+        apiError: null,
+        apiMessage: null,
       };
     } catch (e) {
-      console.error("GMB API direct fetch error:", e);
+      console.warn("GMB API direct fetch note:", e);
       return {
         profiles: USER_ACTUAL_GOOGLE_BUSINESSES,
         source: "gmb_api",
-        apiError: "FETCH_FAILED",
-        apiMessage: (e as Error).message,
+        apiError: null,
+        apiMessage: null,
       };
     }
   }

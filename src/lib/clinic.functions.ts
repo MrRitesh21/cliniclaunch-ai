@@ -428,26 +428,70 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
   .validator((input: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(input))
   .handler(async ({ data }) => {
     const sb = await adminClient();
-    const { data: clinic } = await sb
+
+    // 1. Try finding clinic by slug
+    let { data: clinic } = await sb
       .from("clinics")
       .select(
-        "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id",
+        "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id, slug",
       )
       .eq("slug", data.slug)
       .maybeSingle();
 
-    if (!clinic) return { org: null, clinic: null };
+    interface OrgSummary {
+      id: string;
+      name: string;
+      logo_url: string | null;
+      google_business_profile_url: string | null;
+      google_place_id: string | null;
+      google_business_name: string | null;
+      slug?: string | null;
+    }
 
-    let orgData: any = null;
-    if ((clinic as any).organization_id) {
+    let orgData: OrgSummary | null = null;
+    const clinicOrgId = (clinic as { organization_id?: string | null } | null)?.organization_id;
+
+    // 2. If clinic not found, try finding by organizations.slug
+    if (!clinic) {
+      const { data: matchedOrg } = await sb
+        .from("organizations")
+        .select(
+          "id, name, logo_url, google_business_profile_url, google_place_id, google_business_name, slug",
+        )
+        .eq("slug", data.slug)
+        .maybeSingle();
+
+      if (matchedOrg) {
+        orgData = matchedOrg as OrgSummary;
+        const { data: c } = await sb
+          .from("clinics")
+          .select(
+            "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id, slug",
+          )
+          .eq("organization_id", matchedOrg.id)
+          .maybeSingle();
+        clinic = c;
+      }
+    } else if (clinicOrgId) {
       const { data: org } = await sb
         .from("organizations")
         .select(
-          "id, name, logo_url, google_business_profile_url, google_place_id, google_business_name",
+          "id, name, logo_url, google_business_profile_url, google_place_id, google_business_name, slug",
         )
-        .eq("id", (clinic as any).organization_id)
+        .eq("id", clinicOrgId)
         .maybeSingle();
-      orgData = org;
+      orgData = org as OrgSummary | null;
+    }
+
+    if (!orgData && clinic?.organization_id) {
+      const { data: org } = await sb
+        .from("organizations")
+        .select(
+          "id, name, logo_url, google_business_profile_url, google_place_id, google_business_name, slug",
+        )
+        .eq("id", clinic.organization_id)
+        .maybeSingle();
+      orgData = org as OrgSummary | null;
     }
 
     return { org: orgData, clinic };
