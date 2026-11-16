@@ -121,6 +121,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "ClinicX gives doctors a professional website, online appointment booking, and patient management — all set up in minutes.",
       },
+      ...(typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_GOOGLE_SITE_VERIFICATION
+        ? [
+            {
+              name: "google-site-verification",
+              content: (import.meta as any).env.VITE_GOOGLE_SITE_VERIFICATION as string,
+            },
+          ]
+        : []),
     ],
     links: [
       { rel: "stylesheet", href: appCss },

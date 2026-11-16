@@ -249,15 +249,21 @@ export async function handleWhatsAppIncomingRequest(
     }
 
     // ─── CHECK IF INCOMING MESSAGE IS TO PLATFORM WHATSAPP (RITESH HUMAN AI OUTREACH AGENT) ───
-    let isPlatformSession =
-      session_id === "platform-admin" ||
-      session_id === "default" ||
-      session_id === "platform" ||
-      session_id === "user-fa331c43-ae10-4a3d-bd95-483da978865e" ||
-      (to_phone && String(to_phone).replace(/[^\d]/g, "").includes("8354998343"));
+    const isExplicitClinicSession =
+      Boolean(clinic_id) ||
+      (typeof session_id === "string" &&
+        session_id.startsWith("user-") &&
+        session_id !== "user-fa331c43-ae10-4a3d-bd95-483da978865e");
 
-    // If session is not explicitly platform-admin, verify if the sender is an existing CRM doctor lead
-    if (!isPlatformSession) {
+    let isPlatformSession =
+      !isExplicitClinicSession &&
+      (session_id === "platform-admin" ||
+        session_id === "platform" ||
+        session_id === "user-fa331c43-ae10-4a3d-bd95-483da978865e" ||
+        (to_phone && String(to_phone).replace(/[^\d]/g, "").includes("8354998343")));
+
+    // If session is not an explicit clinic session and not platform-admin, check if the sender is a CRM doctor lead
+    if (!isPlatformSession && !isExplicitClinicSession) {
       try {
         const senderDigits = String(rawFrom).replace(/[^\d]/g, "");
         const pnDigits = body?.sender_pn ? String(body.sender_pn).replace(/[^\d]/g, "") : "";

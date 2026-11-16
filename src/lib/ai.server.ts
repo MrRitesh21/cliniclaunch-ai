@@ -167,8 +167,10 @@ export async function callAiWithProvider(opts: {
   user: string;
   temperature?: number;
   json?: boolean;
+  timeoutMs?: number;
 }): Promise<string> {
-  const { provider, model, apiKey, customBaseUrl, system, user, temperature = 0.2, json } = opts;
+  const { provider, model, apiKey, customBaseUrl, system, user, temperature = 0.2, json, timeoutMs = 4500 } = opts;
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
 
   // 1. Anthropic Claude (Messages API format)
   if (provider === "anthropic") {
@@ -187,6 +189,7 @@ export async function callAiWithProvider(opts: {
         system,
         messages: [{ role: "user", content: user }],
       }),
+      signal: timeoutSignal,
     });
 
     if (!res.ok) {
@@ -243,6 +246,7 @@ export async function callAiWithProvider(opts: {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal: timeoutSignal,
   });
 
   if (!res.ok) {
@@ -261,9 +265,11 @@ export async function callAI(opts: {
   json?: boolean;
   model?: string;
   temperature?: number;
+  timeoutMs?: number;
 }): Promise<string> {
   const config = await getAiGatewayConfig();
   const errors: string[] = [];
+  const timeoutMs = opts.timeoutMs || 4500;
 
   // Try configured admin provider first if key is available
   if (config.apiKey) {
@@ -277,6 +283,7 @@ export async function callAI(opts: {
         user: opts.user,
         temperature: opts.temperature ?? config.temperature,
         json: opts.json,
+        timeoutMs,
       });
     } catch (err: any) {
       console.warn(`[AI Gateway] Primary provider (${config.provider}) failed:`, err?.message);
@@ -299,6 +306,7 @@ export async function callAI(opts: {
         user: opts.user,
         temperature: opts.temperature ?? 0.2,
         json: opts.json,
+        timeoutMs,
       });
     } catch (err: any) {
       console.warn("[AI Gateway] OpenAI env fallback failed:", err?.message);
@@ -318,6 +326,7 @@ export async function callAI(opts: {
         user: opts.user,
         temperature: opts.temperature ?? 0.2,
         json: opts.json,
+        timeoutMs,
       });
     } catch (err: any) {
       console.warn("[AI Gateway] Gemini env fallback failed:", err?.message);
@@ -337,6 +346,7 @@ export async function callAI(opts: {
         user: opts.user,
         temperature: opts.temperature ?? 0.2,
         json: opts.json,
+        timeoutMs,
       });
     } catch (err: any) {
       console.warn("[AI Gateway] Groq env fallback failed:", err?.message);
@@ -356,6 +366,7 @@ export async function callAI(opts: {
         user: opts.user,
         temperature: opts.temperature ?? 0.2,
         json: opts.json,
+        timeoutMs,
       });
     } catch (err: any) {
       console.warn("[AI Gateway] OpenRouter env fallback failed:", err?.message);
@@ -382,6 +393,7 @@ export async function callAI(opts: {
           temperature: opts.temperature ?? 0.2,
           ...(opts.json ? { response_format: { type: "json_object" } } : {}),
         }),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (res.ok) {
         const j = await res.json();

@@ -61,6 +61,7 @@ async function postWebhook(payload: Record<string, any>): Promise<any> {
       method: "POST",
       headers: { "content-type": "application/json", "x-bridge-signature": sign(body) },
       body,
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {
       logger.warn({ status: res.status, event: payload.event, session: payload.session_id }, "Webhook non-2xx");

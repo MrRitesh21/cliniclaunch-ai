@@ -101,9 +101,10 @@ function PrivacyPage() {
 
       <h2>3. Google User Data & Google API Services Compliance</h2>
       <p>
-        ClinicX offers integrations with Google services, including Google Sign-In and Google
-        Business Profile (formerly Google My Business). When you authorize ClinicX via Google OAuth
-        2.0, our application requests access to specific Google scopes and user data:
+        <strong>ClinicX</strong> integrates with Google APIs, including Google Sign-In and the Google
+        Business Profile APIs (formerly Google My Business). When you authorize ClinicX using Google
+        OAuth 2.0, our application accesses only the minimal, necessary Google user data required to
+        provide user-facing practice management and reputation features.
       </p>
 
       <div className="overflow-x-auto my-4">
@@ -119,11 +120,11 @@ function PrivacyPage() {
             <tr className="border-b">
               <td className="p-2 border-r font-mono text-[11px]">email, profile, openid</td>
               <td className="p-2 border-r">
-                Email address, primary name, profile photo, Google user ID
+                Google account email address, verified name, profile picture, and unique Google ID.
               </td>
               <td className="p-2">
-                Authenticating your identity, logging you into your clinic dashboard, and verifying
-                account ownership.
+                Authenticating doctor/clinic owner identity, single sign-on (SSO), and verifying clinic
+                account ownership without storing passwords.
               </td>
             </tr>
             <tr className="border-b">
@@ -131,14 +132,15 @@ function PrivacyPage() {
                 https://www.googleapis.com/auth/business.manage
               </td>
               <td className="p-2 border-r">
-                Google Business Profile listing details (place ID, business name, address, category,
-                phone number), customer reviews, review ratings, review response status, and
-                location updates.
+                Google Business Profile listing metadata (business name, place ID, address, phone number,
+                category), public customer reviews, star ratings, reviewer public name/avatar, and review
+                reply publication status.
               </td>
               <td className="p-2">
-                Syncing verified patient reviews to your clinic website, viewing your Google Maps
-                reputation analytics, drafting AI-assisted review replies (published only after
-                doctor confirmation), and publishing clinic updates or photos.
+                1) Synchronizing verified Google Maps reviews to your doctor/clinic public website.<br />
+                2) Providing reputation performance analytics (total reviews, average star rating, response rate).<br />
+                3) Drafting AI-assisted review replies (which are published to Google only after doctor review and approval).<br />
+                4) Matching your Smart Review Link directly to your verified Google Place ID for one-tap patient review collection.
               </td>
             </tr>
           </tbody>
@@ -146,7 +148,7 @@ function PrivacyPage() {
       </div>
 
       <h3>Google API Limited Use Disclosure</h3>
-      <p className="p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 text-blue-900 dark:text-blue-200 font-medium text-sm leading-relaxed">
+      <p className="p-3.5 rounded-lg border bg-blue-50/60 dark:bg-blue-950/30 text-blue-950 dark:text-blue-100 font-medium text-sm leading-relaxed">
         <strong>
           ClinicX's use and transfer to any other app of information received from Google APIs will
           adhere to the{" "}
@@ -162,16 +164,15 @@ function PrivacyPage() {
         </strong>
       </p>
 
-      <p>In accordance with the Google Limited Use Policy, ClinicX explicitly commits:</p>
+      <p>In strict compliance with Google's Limited Use requirements and OAuth Trust &amp; Safety rules, ClinicX affirms:</p>
       <ul>
         <li>
           <strong>No Advertising:</strong> Google user data is NEVER used or transferred to serve
           advertisements, including personalized, retargeted, or interest-based ads.
         </li>
         <li>
-          <strong>No Selling of Google Data:</strong> We NEVER sell, license, trade, or transfer
-          Google user data to third parties, data brokers, advertising networks, or data
-          aggregators.
+          <strong>No Selling of Google Data:</strong> We NEVER sell, license, rent, trade, or transfer
+          Google user data to third parties, data brokers, advertising networks, or data aggregators.
         </li>
         <li>
           <strong>No AI Training on Private Data:</strong> We NEVER use Google user data to train,
@@ -181,7 +182,11 @@ function PrivacyPage() {
           <strong>Human Access Restriction:</strong> No human employees or contractors can read your
           private Google user data or OAuth tokens, unless you provide express prior consent for
           targeted technical troubleshooting, it is necessary for security investigations, or it is
-          mandated by applicable law.
+          mandated by applicable statutory law.
+        </li>
+        <li>
+          <strong>Minimal Access:</strong> ClinicX only requests OAuth scopes strictly necessary to
+          power the features actively used by the healthcare provider.
         </li>
       </ul>
 

@@ -730,6 +730,7 @@ Return raw valid JSON only without markdown formatting.`;
       user: `Recent Conversation:\n${opts.historyText}\n\nLatest Patient Message: "${opts.userMessage}"`,
       json: true,
       temperature: 0.1,
+      timeoutMs: 3200,
     });
 
     if (raw) {
@@ -784,36 +785,57 @@ export async function processWhatsAppMessage(params: {
     ? `${clinicCustomUrl}/book`
     : `${baseAppUrl}/c/${clinic.slug}/book`;
 
-  // 1. Fetch recent conversation history from whatsapp_logs
-  const { data: rawLogs } = await sb
-    .from("whatsapp_logs")
-    .select("template_key, message, created_at")
-    .eq("organization_id", clinic.organization_id)
-    .eq("patient_phone", patientPhone)
-    .order("created_at", { ascending: false })
-    .limit(6);
+  // 1. Parallelize initial lookups: conversation logs, doctors, patient profile, and upcoming appointment
+  const now = new Date();
+  const [logsRes, doctorsRes, patientRes, apptRes] = await Promise.all([
+    sb
+      .from("whatsapp_logs")
+      .select("template_key, message, created_at")
+      .eq("organization_id", clinic.organization_id)
+      .eq("patient_phone", patientPhone)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    sb
+      .from("doctors")
+      .select("id, name, specialization, qualification, consultation_fee, experience_years, bio, working_hours, is_active")
+      .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
+      .neq("is_active", false)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    sb
+      .from("patients")
+      .select("name")
+      .eq("clinic_id", clinic.id)
+      .eq("phone", patientPhone)
+      .limit(1)
+      .maybeSingle()
+      .catch(() => ({ data: null })),
+    sb
+      .from("appointments")
+      .select("id, scheduled_at, patient_name, status, doctor_id, problem")
+      .eq("clinic_id", clinic.id)
+      .eq("patient_phone", patientPhone)
+      .gte("scheduled_at", new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
+      .neq("status", "cancelled")
+      .order("scheduled_at", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+      .catch(() => ({ data: null })),
+  ]);
 
-  const logsList = (rawLogs || []).reverse();
-  const historyEntries = logsList.map((l) => {
+  const logsList = (logsRes.data || []).reverse();
+  const historyEntries = logsList.map((l: any) => {
     const role = l.template_key === "incoming_patient_msg" ? "Patient" : "Clinic Assistant";
     return `${role}: ${l.message}`;
   });
   const historyText = historyEntries.join("\n");
 
   const patientHistoryOnly = logsList
-    .filter((l) => l.template_key === "incoming_patient_msg")
-    .map((l) => l.message)
+    .filter((l: any) => l.template_key === "incoming_patient_msg")
+    .map((l: any) => l.message)
     .join(" ");
 
-  // 2. Fetch all active doctors in this clinic & organization
-  const { data: dbDoctors } = await sb
-    .from("doctors")
-    .select("id, name, specialization, qualification, consultation_fee, experience_years, bio, working_hours, is_active")
-    .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
-    .neq("is_active", false)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-
+  const dbDoctors = doctorsRes.data || [];
   const rawOwnerName = (clinic.doctor_name || "").trim();
   const cleanOwnerName = rawOwnerName.toLowerCase().replace(/^dr\.?\s*/, "").trim();
 
@@ -859,33 +881,8 @@ export async function processWhatsAppMessage(params: {
   const clinicServices = extractClinicServices(clinic);
   const clinicFaqs = extractClinicFaqs(clinic);
 
-  // 2b. Lookup returning patient to personalize name and greeting
-  let returningPatientName: string | null = null;
-  try {
-    const { data: pRecord } = await sb
-      .from("patients")
-      .select("name")
-      .eq("clinic_id", clinic.id)
-      .eq("phone", patientPhone)
-      .limit(1)
-      .maybeSingle();
-    if (pRecord?.name) {
-      returningPatientName = pRecord.name;
-    }
-  } catch {}
-
-  // 3. Check for active upcoming appointment for this patient
-  const now = new Date();
-  const { data: upcomingAppt } = await sb
-    .from("appointments")
-    .select("id, scheduled_at, patient_name, status, doctor_id, problem")
-    .eq("clinic_id", clinic.id)
-    .eq("patient_phone", patientPhone)
-    .gte("scheduled_at", new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
-    .neq("status", "cancelled")
-    .order("scheduled_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const returningPatientName: string | null = (patientRes as any)?.data?.name || null;
+  const upcomingAppt = (apptRes as any)?.data || null;
 
   const activeApptDoctor = upcomingAppt?.doctor_id
     ? allDoctors.find((d) => d.id === upcomingAppt.doctor_id)?.name || "Doctor"
@@ -979,6 +976,75 @@ Aapke dwara bataye gaye lakshan gambhir medical emergency ho sakte hain.
     query: incomingText,
     historyText,
   });
+
+  // ─── TIER 0 FAST-TRACK: 1c. INSTANT GREETINGS & RECEPTION (<5ms) ───
+  const isGreetingQuery =
+    /^(hi|hello|hey|namaste|namaskar|hlo|helo|halo|pranam|ram ram|radhe radhe|assalam|salaam|good\s*(morning|afternoon|evening)|shuru\s*karein|help|start)\b/i.test(lowerText) &&
+    !/(book|appointment|slot|kal|aaj|\d{1,2}\s*(am|pm|baje)|pain|dard|fever|daant|teeth|skin|eyes|cough|cold)/i.test(lowerText);
+
+  if (isGreetingQuery) {
+    const greetingName = returningPatientName || senderName ? ` ${returningPatientName || senderName} ji` : "";
+    let apptNotice = "";
+    if (upcomingAppt && currentApptDate && currentApptTime) {
+      apptNotice = `\n\n📌 *Aapka Appointment Status:*
+Aapka appointment *${activeApptDoctor}* ke saath *${currentApptDate} ko ${currentApptTime} IST* scheduled hai.`;
+    }
+
+    const reply = `🙏 *Namaste${greetingName}! Welcome to ${clinic.clinic_name}.*
+
+Main clinic ka AI Virtual Receptionist hoon. Main aapki kaise madad kar sakta hoon?${apptNotice}
+
+Aap humse pooch sakte hain:
+1️⃣ *Appointment Booking* (e.g. "Kal subah 11 baje doctor se milna hai")
+2️⃣ *Doctor & Timings* (e.g. "Doctor ki fees aur OPD timings kya hai?")
+3️⃣ *Clinic Location* (e.g. "Clinic kahan par hai?")
+
+Direct online slot chunne ke liye:
+👉 ${bookingLink}`;
+
+    return {
+      reply,
+      action: "inquiry",
+      ragCitations: [],
+      memoryState: {
+        patientName: returningPatientName || senderName || null,
+        turnCount: (sessionMemory.turnCount || 0) + 1,
+      },
+    };
+  }
+
+  // ─── TIER 0 FAST-TRACK: 1d. APPOINTMENT STATUS & CONFIRMATION (<5ms) ───
+  const isApptStatusQuery =
+    /(mera appointment|check appointment|appointment status|kab aana hai|mera slot|appointment kab hai|appointment details)/i.test(lowerText) &&
+    !/(cancel|radd|badalna|reschedule)/i.test(lowerText);
+
+  if (isApptStatusQuery) {
+    if (upcomingAppt && currentApptDate && currentApptTime) {
+      return {
+        reply: `✅ *Aapka Appointment Confirmed Hai!*
+
+🏥 *Clinic:* ${clinic.clinic_name}
+👨‍⚕️ *Doctor:* ${activeApptDoctor}
+📅 *Date:* ${currentApptDate}
+⏰ *Time:* ${currentApptTime} IST
+${upcomingAppt.problem ? `🩺 *Reason:* ${upcomingAppt.problem}\n` : ""}
+📍 *Address:* ${clinic.public_address || clinic.address || "Clinic reception"}
+
+Kripya appointment time se 10 minute pehle clinic pahuchein. Kisi badlav ya query ke liye humein message karein.`,
+        action: "inquiry",
+      };
+    } else {
+      return {
+        reply: `ℹ️ *Koi Active Appointment Nahi Mila*
+
+Aapke mobile number par abhi koi active appointment scheduled nahi hai.
+
+Naya appointment book karne ke liye apna preferred time reply karein (e.g. "Kal shaam 5 baje book karein"), ya direct online book karein:
+👉 ${bookingLink}`,
+        action: "inquiry",
+      };
+    }
+  }
 
   // ─── TIER 0 FAST-TRACK: 2. LOCATION & MAP DIRECTIONS (<15ms) ───
   const isLocationQuery =

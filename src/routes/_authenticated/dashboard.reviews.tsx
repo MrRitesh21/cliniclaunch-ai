@@ -300,7 +300,7 @@ export function ReviewsPage() {
       } catch (err) {
         const msg = (err as Error)?.message || "";
         console.warn("[GMB] Could not fetch profiles notice:", msg);
-        if (msg.includes("Unauthorized")) {
+        if (msg.toLowerCase().includes("unauthorized") || msg.toLowerCase().includes("session")) {
           // If transitioning session, retry once or gracefully fall back to local business options
           console.info("[GMB] Auth session transitioning, allowing user selection");
         } else {
@@ -487,10 +487,12 @@ export function ReviewsPage() {
         },
       });
 
-      if (res?.slug) {
-        setCustomSlug(res.slug);
-      } else if (cleanBizSlug) {
-        setCustomSlug(cleanBizSlug);
+      const resolvedSlug = res?.slug || cleanBizSlug;
+      if (resolvedSlug) {
+        setCustomSlug(resolvedSlug);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("clinicx_active_clinic_slug", resolvedSlug);
+        }
       }
 
       setPlaceId(target.placeId);
@@ -532,6 +534,9 @@ export function ReviewsPage() {
       });
       if (res?.slug) {
         setCustomSlug(res.slug);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("clinicx_active_clinic_slug", res.slug);
+        }
         toast.success(`Smart Review Link updated: /r/${res.slug}`);
         setShowEditSlugModal(false);
       }

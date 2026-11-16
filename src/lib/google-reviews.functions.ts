@@ -366,7 +366,6 @@ export const requestAiReviewReply = createServerFn({ method: "POST" })
   });
 
 export const fetchGoogleProfiles = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .validator((i: unknown) =>
     z
       .object({
@@ -378,7 +377,8 @@ export const fetchGoogleProfiles = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     try {
-      const userId = getAuthUserId(context);
+      const ctx = context as { userId?: string } | undefined;
+      const userId = ctx?.userId;
       if (userId) {
         await ownedClinic(data.clinic_id, userId);
       }
