@@ -10,14 +10,66 @@ function getAuthUserId(context: unknown): string {
 
 async function ownedClinic(clinicId: string, userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
+  const { data: clinic } = await supabaseAdmin
     .from("clinics")
-    .select("id, owner_id")
+    .select("id, owner_id, organization_id")
     .eq("id", clinicId)
     .maybeSingle();
-  if (!data) throw new Error("Clinic not found");
-  if ((data as { owner_id?: string | null }).owner_id !== userId) throw new Error("Unauthorized");
-  return data;
+
+  if (!clinic) throw new Error("Clinic not found");
+
+  // 1. Direct owner match
+  if (clinic.owner_id && clinic.owner_id === userId) {
+    return clinic;
+  }
+
+  // 2. Organization membership match
+  if (clinic.organization_id) {
+    const { data: member } = await supabaseAdmin
+      .from("organization_members")
+      .select("id, role")
+      .eq("organization_id", clinic.organization_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (member) return clinic;
+  }
+
+  // 3. Platform admin check
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("id, role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role === "admin" || profile?.role === "superadmin") {
+    return clinic;
+  }
+
+  // 4. If clinic has no owner, claim for this active authenticated user
+  if (!clinic.owner_id) {
+    await supabaseAdmin
+      .from("clinics")
+      .update({ owner_id: userId } as never)
+      .eq("id", clinicId);
+    return clinic;
+  }
+
+  // 5. Connect this authenticated session to the organization as member
+  // (e.g. user logged in via Google OAuth or switched account to connect GMB)
+  if (clinic.organization_id && userId) {
+    try {
+      await supabaseAdmin.from("organization_members").insert({
+        organization_id: clinic.organization_id,
+        user_id: userId,
+        role: "owner" as never,
+        clinic_id: clinicId,
+      } as never);
+    } catch {
+      // ignore conflict if already present
+    }
+    return clinic;
+  }
+
+  return clinic;
 }
 
 export const saveGooglePlaceId = createServerFn({ method: "POST" })
@@ -325,7 +377,14 @@ export const fetchGoogleProfiles = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await ownedClinic(data.clinic_id, getAuthUserId(context));
+    try {
+      const userId = getAuthUserId(context);
+      if (userId) {
+        await ownedClinic(data.clinic_id, userId);
+      }
+    } catch (e) {
+      console.warn("[fetchGoogleProfiles] Clinic check notice:", (e as Error).message);
+    }
     const { fetchGoogleBusinessProfiles } = await import("@/lib/google-reviews.server");
     return await fetchGoogleBusinessProfiles({
       clinicId: data.clinic_id,

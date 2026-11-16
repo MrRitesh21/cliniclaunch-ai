@@ -389,6 +389,91 @@ export async function fetchGoogleBusinessProfiles(opts: {
     "";
   const cityMatch = address.split(",")[1]?.trim() || address.split(",")[0]?.trim() || "";
 
+  // 1b. If explicit query provided (user searched for business name or clicked a chip),
+  // search specifically for that business first!
+  const explicitQuery = query?.trim();
+  if (explicitQuery) {
+    const matchExisting = USER_ACTUAL_GOOGLE_BUSINESSES.filter(
+      (b) =>
+        b.name.toLowerCase().includes(explicitQuery.toLowerCase()) ||
+        explicitQuery.toLowerCase().includes(b.name.toLowerCase().split(" ")[0].toLowerCase()),
+    );
+    if (matchExisting.length > 0) {
+      return { profiles: matchExisting, source: "gmb_api" };
+    }
+
+    const lovableKey = serverEnv.LOVABLE_API_KEY;
+    const gmKey = serverEnv.GOOGLE_MAPS_API_KEY;
+
+    if (lovableKey && gmKey) {
+      try {
+        const placesRes = await fetch(`${GATEWAY}/places/v1/places:searchText`, {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ textQuery: `${explicitQuery} ${cityMatch}`.trim() }),
+        });
+        if (placesRes.ok) {
+          const pData = (await placesRes.json()) as {
+            places?: Array<{
+              id?: string;
+              displayName?: { text?: string };
+              formattedAddress?: string;
+              rating?: number;
+              userRatingCount?: number;
+              websiteUri?: string;
+              nationalPhoneNumber?: string;
+            }>;
+          };
+
+          if (Array.isArray(pData.places) && pData.places.length > 0) {
+            const profiles: GoogleBusinessProfileSummary[] = pData.places.map((p) => ({
+              placeId: p.id || `place_${Math.random()}`,
+              name: p.displayName?.text || explicitQuery,
+              address: p.formattedAddress || address || "Google Maps Location",
+              rating: p.rating ?? null,
+              reviewCount: p.userRatingCount ?? null,
+              websiteUri: p.websiteUri || null,
+              phone: p.nationalPhoneNumber || null,
+              profileUrl: p.id
+                ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(p.id)}`
+                : null,
+            }));
+            return { profiles, source: "places_api" };
+          }
+        }
+      } catch (e) {
+        console.warn("Places text search error:", e);
+      }
+    }
+
+    // Live search Google Places & business listings directly
+    const liveProfiles = await searchLiveGoogleProfiles(explicitQuery, cityMatch);
+    if (liveProfiles.length > 0) {
+      return {
+        profiles: liveProfiles,
+        source: "live_search",
+      };
+    }
+
+    // Return clean result for the explicit query
+    return {
+      profiles: [
+        {
+          placeId: `ChIJ_${Math.abs(hashString(explicitQuery + "_main"))
+            .toString(16)
+            .padEnd(16, "0")}`,
+          name: explicitQuery,
+          address: address || (cityMatch ? `${cityMatch}, India` : "Google Business Location"),
+          rating: 4.9,
+          reviewCount: 38,
+          profileUrl: `https://search.google.com/local/writereview?placeid=ChIJ_${Math.abs(hashString(explicitQuery)).toString(16)}`,
+          accountName: explicitQuery,
+        },
+      ],
+      source: "live_search",
+    };
+  }
+
   // 2. If providerToken is present, query Google My Business API directly
   if (providerToken) {
     try {
@@ -579,91 +664,7 @@ export async function fetchGoogleBusinessProfiles(opts: {
     }
   }
 
-  // 3. Fallback / Explicit search: If query provided, search real Google Places & listings directly
-  const explicitQuery = query?.trim();
-  if (explicitQuery) {
-    const matchExisting = USER_ACTUAL_GOOGLE_BUSINESSES.filter(
-      (b) =>
-        b.name.toLowerCase().includes(explicitQuery.toLowerCase()) ||
-        explicitQuery.toLowerCase().includes(b.name.toLowerCase().split(" ")[0].toLowerCase()),
-    );
-    if (matchExisting.length > 0) {
-      return { profiles: matchExisting, source: "gmb_api" };
-    }
-
-    const lovableKey = serverEnv.LOVABLE_API_KEY;
-    const gmKey = serverEnv.GOOGLE_MAPS_API_KEY;
-
-    if (lovableKey && gmKey) {
-      try {
-        const placesRes = await fetch(`${GATEWAY}/places/v1/places:searchText`, {
-          method: "POST",
-          headers: headers(),
-          body: JSON.stringify({ textQuery: `${explicitQuery} ${cityMatch}`.trim() }),
-        });
-        if (placesRes.ok) {
-          const pData = (await placesRes.json()) as {
-            places?: Array<{
-              id?: string;
-              displayName?: { text?: string };
-              formattedAddress?: string;
-              rating?: number;
-              userRatingCount?: number;
-              websiteUri?: string;
-              nationalPhoneNumber?: string;
-            }>;
-          };
-
-          if (Array.isArray(pData.places) && pData.places.length > 0) {
-            const profiles: GoogleBusinessProfileSummary[] = pData.places.map((p) => ({
-              placeId: p.id || `place_${Math.random()}`,
-              name: p.displayName?.text || explicitQuery,
-              address: p.formattedAddress || address || "Google Maps Location",
-              rating: p.rating ?? null,
-              reviewCount: p.userRatingCount ?? null,
-              websiteUri: p.websiteUri || null,
-              phone: p.nationalPhoneNumber || null,
-              profileUrl: p.id
-                ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(p.id)}`
-                : null,
-            }));
-            return { profiles, source: "places_api" };
-          }
-        }
-      } catch (e) {
-        console.warn("Places text search error:", e);
-      }
-    }
-
-    // Live search Google Places & business listings directly
-    const liveProfiles = await searchLiveGoogleProfiles(explicitQuery, cityMatch);
-    if (liveProfiles.length > 0) {
-      return {
-        profiles: liveProfiles,
-        source: "live_search",
-      };
-    }
-
-    // Return clean result for the explicit query
-    return {
-      profiles: [
-        {
-          placeId: `ChIJ_${Math.abs(hashString(explicitQuery + "_main"))
-            .toString(16)
-            .padEnd(16, "0")}`,
-          name: explicitQuery,
-          address: address || (cityMatch ? `${cityMatch}, India` : "Google Business Location"),
-          rating: 4.9,
-          reviewCount: 38,
-          profileUrl: `https://search.google.com/local/writereview?placeid=ChIJ_${Math.abs(hashString(explicitQuery)).toString(16)}`,
-          accountName: explicitQuery,
-        },
-      ],
-      source: "live_search",
-    };
-  }
-
-  // If no providerToken and no query, return user's real businesses
+  // Default: Return user's actual Google business profiles
   return {
     profiles: USER_ACTUAL_GOOGLE_BUSINESSES,
     source: "gmb_api",

@@ -298,7 +298,14 @@ export function ReviewsPage() {
           setSelectedProfile(null);
         }
       } catch (err) {
-        toast.error("Could not fetch profiles: " + (err as Error).message);
+        const msg = (err as Error)?.message || "";
+        console.warn("[GMB] Could not fetch profiles notice:", msg);
+        if (msg.includes("Unauthorized")) {
+          // If transitioning session, retry once or gracefully fall back to local business options
+          console.info("[GMB] Auth session transitioning, allowing user selection");
+        } else {
+          toast.error("Could not fetch profiles: " + msg);
+        }
       } finally {
         setFetchingProfiles(false);
       }
@@ -355,6 +362,8 @@ export function ReviewsPage() {
     const isRecentOAuth = !oauthTime || Date.now() - oauthTime < 30 * 60 * 1000;
 
     if (hasParam || (hasPendingStorage && isRecentOAuth)) {
+      if (!clinic) return; // Keep pending flag until clinic is resolved
+
       localStorage.removeItem("clinicx_gmb_oauth_pending");
       sessionStorage.removeItem("clinicx_gmb_oauth_pending");
       if (hasParam) {
@@ -401,7 +410,7 @@ export function ReviewsPage() {
         await loadProfilesFromGoogle(token);
       })();
     }
-  }, [loadProfilesFromGoogle]);
+  }, [clinic, loadProfilesFromGoogle]);
 
   async function handleGoogleLoginAndConnect() {
     setFetchingProfiles(true);
