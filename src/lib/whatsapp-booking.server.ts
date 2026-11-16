@@ -788,39 +788,45 @@ export async function processWhatsAppMessage(params: {
   // 1. Parallelize initial lookups: conversation logs, doctors, patient profile, and upcoming appointment
   const now = new Date();
   const [logsRes, doctorsRes, patientRes, apptRes] = await Promise.all([
-    sb
-      .from("whatsapp_logs")
-      .select("template_key, message, created_at")
-      .eq("organization_id", clinic.organization_id)
-      .eq("patient_phone", patientPhone)
-      .order("created_at", { ascending: false })
-      .limit(6),
-    sb
-      .from("doctors")
-      .select("id, name, specialization, qualification, consultation_fee, experience_years, bio, working_hours, is_active")
-      .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
-      .neq("is_active", false)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true }),
-    sb
-      .from("patients")
-      .select("name")
-      .eq("clinic_id", clinic.id)
-      .eq("phone", patientPhone)
-      .limit(1)
-      .maybeSingle()
-      .catch(() => ({ data: null })),
-    sb
-      .from("appointments")
-      .select("id, scheduled_at, patient_name, status, doctor_id, problem")
-      .eq("clinic_id", clinic.id)
-      .eq("patient_phone", patientPhone)
-      .gte("scheduled_at", new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
-      .neq("status", "cancelled")
-      .order("scheduled_at", { ascending: true })
-      .limit(1)
-      .maybeSingle()
-      .catch(() => ({ data: null })),
+    Promise.resolve(
+      sb
+        .from("whatsapp_logs")
+        .select("template_key, message, created_at")
+        .eq("organization_id", clinic.organization_id)
+        .eq("patient_phone", patientPhone)
+        .order("created_at", { ascending: false })
+        .limit(6),
+    ).catch(() => ({ data: null, error: null })),
+    Promise.resolve(
+      sb
+        .from("doctors")
+        .select("id, name, specialization, qualification, consultation_fee, experience_years, bio, working_hours, is_active")
+        .or(`organization_id.eq.${clinic.organization_id},clinic_id.eq.${clinic.id}`)
+        .neq("is_active", false)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ).catch(() => ({ data: null, error: null })),
+    Promise.resolve(
+      sb
+        .from("patients")
+        .select("name")
+        .eq("clinic_id", clinic.id)
+        .eq("phone", patientPhone)
+        .limit(1)
+        .maybeSingle(),
+    ).catch(() => ({ data: null, error: null })),
+    Promise.resolve(
+      sb
+        .from("appointments")
+        .select("id, scheduled_at, patient_name, status, doctor_id, problem")
+        .eq("clinic_id", clinic.id)
+        .eq("patient_phone", patientPhone)
+        .gte("scheduled_at", new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
+        .neq("status", "cancelled")
+        .order("scheduled_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ).catch(() => ({ data: null, error: null })),
   ]);
 
   const logsList = (logsRes.data || []).reverse();
