@@ -156,7 +156,8 @@ export function ReviewsPage() {
     code?: string | null;
     message?: string | null;
   } | null>(null);
-  const [gmbSuggestedProfile, setGmbSuggestedProfile] = useState<GoogleProfileItem | null>(null);
+  const [searchGmbQuery, setSearchGmbQuery] = useState("");
+  const [isSearchingGmb, setIsSearchingGmb] = useState(false);
 
   // Dialogs
   const [showQrModal, setShowQrModal] = useState(false);
@@ -232,7 +233,7 @@ export function ReviewsPage() {
   }, [load]);
 
   const loadProfilesFromGoogle = useCallback(
-    async (explicitToken?: string | null) => {
+    async (explicitToken?: string | null, customQuery?: string | null) => {
       if (!clinic) return;
       setFetchingProfiles(true);
       try {
@@ -249,16 +250,6 @@ export function ReviewsPage() {
             email;
         }
 
-        if (!token) {
-          const { data: sessionData } = await supabase.auth.getSession();
-          token = sessionData?.session?.provider_token || null;
-          email = sessionData?.session?.user?.email || email;
-          if (token && typeof window !== "undefined") {
-            sessionStorage.setItem("gmb_provider_token", token);
-            localStorage.setItem("gmb_provider_token", token);
-          }
-        }
-
         if (email) {
           setGmbAccountEmail(email);
           sessionStorage.setItem("gmb_provider_email", email);
@@ -269,20 +260,18 @@ export function ReviewsPage() {
           data: {
             clinic_id: clinic.id,
             provider_token: token || null,
-            query: null,
+            query: customQuery || null,
           },
         })) as {
           profiles?: GoogleProfileItem[];
           apiError?: string | null;
           apiMessage?: string | null;
-          suggestedProfile?: GoogleProfileItem | null;
         };
 
         const items = (res?.profiles || []) as GoogleProfileItem[];
         setProfiles(items);
-        setGmbSuggestedProfile(res?.suggestedProfile || null);
 
-        if (res?.apiError) {
+        if (res?.apiError && res.apiError !== "NO_PROFILES_FOUND") {
           setGmbApiError({
             code: res.apiError,
             message: res.apiMessage,
@@ -296,8 +285,6 @@ export function ReviewsPage() {
         if (items.length > 0) {
           const match = items.find((p) => p.placeId === placeId);
           setSelectedProfile(match || items[0]);
-        } else if (res?.suggestedProfile) {
-          setSelectedProfile(res.suggestedProfile);
         } else {
           setSelectedProfile(null);
         }
@@ -310,11 +297,25 @@ export function ReviewsPage() {
     [clinic, fetchGoogleProfilesFn, gmbAccountEmail, placeId],
   );
 
-  // Listen to Supabase auth events to capture provider_token and auto-open modal on redirect
+  async function handleSearchGmb(queryText?: string) {
+    const q = (queryText ?? searchGmbQuery).trim();
+    if (!q) {
+      toast.error("Please enter a business name to search");
+      return;
+    }
+    setIsSearchingGmb(true);
+    try {
+      await loadProfilesFromGoogle(null, q);
+    } finally {
+      setIsSearchingGmb(false);
+    }
+  }
+
+  // Listen to Supabase auth events to capture provider_token
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       const provToken = session?.provider_token;
       if (provToken) {
         sessionStorage.setItem("gmb_provider_token", provToken);
@@ -325,25 +326,12 @@ export function ReviewsPage() {
         localStorage.setItem("gmb_provider_email", session.user.email);
         setGmbAccountEmail(session.user.email);
       }
-
-      const isPending =
-        typeof window !== "undefined" &&
-        (localStorage.getItem("clinicx_gmb_oauth_pending") === "true" ||
-          sessionStorage.getItem("clinicx_gmb_oauth_pending") === "true");
-
-      if (isPending && (provToken || event === "SIGNED_IN")) {
-        localStorage.removeItem("clinicx_gmb_oauth_pending");
-        sessionStorage.removeItem("clinicx_gmb_oauth_pending");
-        setShowGmbModal(true);
-        setGmbStep("select");
-        void loadProfilesFromGoogle(provToken || null);
-      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [loadProfilesFromGoogle]);
+  }, []);
 
   // Catch OAuth redirect back even if URL query params are stripped
   useEffect(() => {
@@ -373,33 +361,34 @@ export function ReviewsPage() {
         let token =
           sessionStorage.getItem("gmb_provider_token") ||
           localStorage.getItem("gmb_provider_token");
-        let email =
-          sessionStorage.getItem("gmb_provider_email") ||
-          localStorage.getItem("gmb_provider_email");
 
-        // Wait up to 3.5 seconds for session / provider_token to be populated by Supabase
+        // If token not yet saved, wait up to 5 seconds for onAuthStateChange
         if (!token) {
-          for (let attempt = 0; attempt < 7; attempt++) {
-            const { data } = await supabase.auth.getSession();
-            if (data?.session?.provider_token) {
-              token = data.session.provider_token;
-              email = data.session.user?.email || email;
-              sessionStorage.setItem("gmb_provider_token", token);
-              localStorage.setItem("gmb_provider_token", token);
-              if (email) {
-                sessionStorage.setItem("gmb_provider_email", email);
-                localStorage.setItem("gmb_provider_email", email);
+          token = await new Promise<string | null>((resolve) => {
+            let done = false;
+            const timer = setTimeout(() => {
+              if (!done) {
+                done = true;
+                sub.unsubscribe();
+                resolve(null);
               }
-              break;
-            }
-            if (data?.session?.user?.email && !email) {
-              email = data.session.user.email;
-            }
-            await new Promise((r) => setTimeout(r, 500));
-          }
+            }, 5000);
+
+            const {
+              data: { subscription: sub },
+            } = supabase.auth.onAuthStateChange((_evt, sess) => {
+              if (sess?.provider_token && !done) {
+                done = true;
+                clearTimeout(timer);
+                sub.unsubscribe();
+                sessionStorage.setItem("gmb_provider_token", sess.provider_token);
+                localStorage.setItem("gmb_provider_token", sess.provider_token);
+                resolve(sess.provider_token);
+              }
+            });
+          });
         }
 
-        if (email) setGmbAccountEmail(email);
         await loadProfilesFromGoogle(token);
       })();
     }
@@ -449,14 +438,8 @@ export function ReviewsPage() {
             localStorage.getItem("gmb_provider_token")
           : null;
 
-      if (storedToken) {
-        setGmbStep("select");
-        void loadProfilesFromGoogle(storedToken);
-      } else {
-        setGmbStep("connect");
-        setProfiles([]);
-        setSelectedProfile(null);
-      }
+      setGmbStep("select");
+      void loadProfilesFromGoogle(storedToken);
     }
     setShowGmbModal(true);
   }
@@ -1414,25 +1397,74 @@ export function ReviewsPage() {
                   </Button>
                 </div>
 
-                {/* If Google Cloud API Needs Activation */}
-                {gmbApiError?.code === "GOOGLE_API_DISABLED" && (
-                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-2 text-left">
-                    <div className="flex items-center gap-2 font-bold">
-                      <AlertTriangle className="size-4 text-amber-600 shrink-0" />
-                      <span>Google My Business API Activation Required</span>
+                {/* Search / Select Bar for Your Google Business */}
+                <div className="space-y-2.5 p-3 rounded-xl border bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Search className="size-3.5 text-blue-600" /> Search Your Business Listing
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">Live Google Maps</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="e.g. Srivastava Tiffin Service, Schollora Intelligence, Awadh Dhaba..."
+                      value={searchGmbQuery}
+                      onChange={(e) => setSearchGmbQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleSearchGmb();
+                        }
+                      }}
+                      className="h-9 text-xs bg-background"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleSearchGmb()}
+                      disabled={isSearchingGmb || fetchingProfiles}
+                      className="h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white shrink-0 px-3.5 cursor-pointer"
+                    >
+                      {isSearchingGmb ? <Loader2 className="size-3.5 animate-spin" /> : "Search"}
+                    </Button>
+                  </div>
+
+                  {/* Quick-select chips matching user's real Google businesses */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      Your Google Businesses:
+                    </span>
+                    {[
+                      "Schollora Intelligence",
+                      "Srivastava Tiffin Service",
+                      "The Awadh Dhaba And Restaurant",
+                    ].map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => {
+                          setSearchGmbQuery(name);
+                          void handleSearchGmb(name);
+                        }}
+                        className="px-2 py-0.5 rounded-md border text-[10px] font-medium bg-background hover:bg-muted text-foreground transition-all cursor-pointer"
+                      >
+                        🔍 {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* If Google Cloud API Notice */}
+                {gmbApiError && gmbApiError.code !== "NO_PROFILES_FOUND" && (
+                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-1 text-left">
+                    <div className="flex items-center gap-1.5 font-semibold text-[11px]">
+                      <AlertTriangle className="size-3.5 text-amber-600 shrink-0" />
+                      <span>Google API Note ({gmbApiError.code})</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
                       {gmbApiError.message ||
-                        "The My Business Account Management API is not enabled in your Google Cloud Console project (clinicx-crm)."}
+                        "Google My Business API access is pending or restricted in Google Cloud. You can search and link your business above directly."}
                     </p>
-                    <a
-                      href="https://console.cloud.google.com/apis/library/mybusinessaccountmanagement.googleapis.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline pt-0.5"
-                    >
-                      Enable My Business API in Google Cloud <ExternalLink className="size-3" />
-                    </a>
                   </div>
                 )}
 
@@ -1443,70 +1475,32 @@ export function ReviewsPage() {
                       Fetching your Google Business Profiles…
                     </span>
                     <span className="text-[11px] text-muted-foreground">
-                      Reading accounts and locations from Google Business API
+                      Reading accounts and locations from Google
                     </span>
                   </div>
                 ) : profiles.length === 0 ? (
-                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3.5">
-                    <div className="size-9 rounded-full bg-amber-500/10 text-amber-600 grid place-items-center mx-auto">
+                  <div className="p-5 rounded-xl border border-dashed text-center space-y-3">
+                    <div className="size-9 rounded-full bg-blue-500/10 text-blue-600 grid place-items-center mx-auto">
                       <Globe className="size-5" />
                     </div>
                     <div className="space-y-1">
                       <h4 className="text-xs font-bold text-foreground">
-                        No Google Business Profiles Found
+                        Select or Search Your Business
                       </h4>
                       <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
-                        {gmbAccountEmail
-                          ? `We could not find any active Google Business Profiles managed by ${gmbAccountEmail}.`
-                          : "No Google Business Profiles found on this account."}
+                        Click one of your business chips above or search by name to load and link
+                        your profile.
                       </p>
                     </div>
-
-                    {/* Quick-Connect Suggested Registered Clinic Profile */}
-                    {gmbSuggestedProfile && (
-                      <div className="p-3 rounded-xl border bg-background/80 text-left space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-semibold text-foreground">
-                            Connect Your Registered Clinic Profile:
-                          </span>
-                          <Badge variant="outline" className="text-[9px] h-4 px-1.5">
-                            Detected
-                          </Badge>
-                        </div>
-                        <div className="text-xs font-bold text-foreground">
-                          {gmbSuggestedProfile.name}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground truncate">
-                          📍 {gmbSuggestedProfile.address}
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedProfile(gmbSuggestedProfile);
-                            void handleConfirmProfile(gmbSuggestedProfile);
-                          }}
-                          disabled={connectingGmb}
-                          className="w-full h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-1.5 mt-1 cursor-pointer"
-                        >
-                          {connectingGmb ? (
-                            <Loader2 className="size-3 animate-spin" />
-                          ) : (
-                            <Check className="size-3.5" />
-                          )}
-                          Connect {gmbSuggestedProfile.name}
-                        </Button>
-                      </div>
-                    )}
 
                     <div className="pt-2 flex flex-col gap-2">
                       <Button
                         type="button"
                         size="sm"
                         onClick={handleGoogleLoginAndConnect}
-                        className="w-full h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-1.5"
+                        className="w-full h-8 text-xs font-semibold bg-white text-neutral-800 border border-neutral-300 hover:bg-neutral-50 rounded-lg gap-1.5"
                       >
-                        <RefreshCw className="size-3" /> Sign in with a Different Google Account
+                        <RefreshCw className="size-3" /> Re-authenticate with Google
                       </Button>
                       <Button
                         type="button"

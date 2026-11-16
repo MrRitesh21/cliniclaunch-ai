@@ -66,6 +66,7 @@ export const COMPANY = {
   legalName: "DigiWil Technologies (ClinicX)",
   address: "Lucknow, Uttar Pradesh 226021, India",
   email: "clinicx@digiwil.com",
+  supportEmail: "digiwil.in@gmail.com",
   phone: "+91 96283 54559",
   gst: "09AANFD1234F1Z5",
   jurisdiction: "India",
