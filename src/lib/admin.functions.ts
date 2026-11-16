@@ -436,6 +436,7 @@ export const testAiGatewayProvider = createServerFn({ method: "POST" })
       apiKey: z.string().optional(),
       model: z.string().optional(),
       customBaseUrl: z.string().optional(),
+      accountId: z.string().optional(),
     }),
   )
   .handler(async ({ data: input }) => {
@@ -449,6 +450,34 @@ export const simulateAiChat = createServerFn({ method: "POST" })
   .handler(async ({ data: input }) => {
     const { simulateAiChatImpl } = await import("./admin.server");
     return simulateAiChatImpl(input);
+  });
+
+export const getAiGatewayPoolStatus = createServerFn({ method: "GET" })
+  .middleware([requireAdminAuth])
+  .handler(async () => {
+    const { getAiGatewayPoolStatusImpl } = await import("./admin.server");
+    return getAiGatewayPoolStatusImpl();
+  });
+
+export const simulateAiFailoverTest = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .handler(async () => {
+    const { simulateAiFailoverTestImpl } = await import("./admin.server");
+    return simulateAiFailoverTestImpl();
+  });
+
+export const triggerQuietChatFollowupSweep = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
+  .validator(
+    z
+      .object({
+        overrideQuietHours: z.boolean().optional(),
+      })
+      .optional(),
+  )
+  .handler(async ({ data: input }) => {
+    const { triggerQuietChatFollowupSweepImpl } = await import("./admin.server");
+    return triggerQuietChatFollowupSweepImpl(input);
   });
 
 // -------- Extended actions --------

@@ -388,7 +388,16 @@ export const Route = createFileRoute("/api/wa/cron")({
           // marketing tables unavailable — skip
         }
 
-        return new Response(JSON.stringify({ ok: true, summary, campaigns: campaignSummary }), {
+        // ---- Auto Follow-Up for Quiet Patient Chats ----------------------
+        let quietFollowupSummary = { ok: true, sentCount: 0, skippedCount: 0 };
+        try {
+          const { processQuietChatFollowups } = await import("@/lib/whatsapp-followup.server");
+          quietFollowupSummary = await processQuietChatFollowups();
+        } catch (err) {
+          console.warn("[Cron] Quiet chat follow-up sweep skipped:", err);
+        }
+
+        return new Response(JSON.stringify({ ok: true, summary, campaigns: campaignSummary, quietFollowups: quietFollowupSummary }), {
           headers: { "Content-Type": "application/json" },
         });
       },

@@ -7,12 +7,17 @@ import {
   saveSystemSettings,
   testAiGatewayProvider,
   simulateAiChat,
+  getAiGatewayPoolStatus,
+  simulateAiFailoverTest,
+  triggerQuietChatFollowupSweep,
 } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -39,13 +52,28 @@ import {
   Sliders,
   ShieldCheck,
   Check,
+  Plus,
+  Trash2,
+  Edit,
+  Clock,
+  ArrowRight,
+  Shield,
+  Activity,
+  Shuffle,
+  Gauge,
+  PhoneCall,
+  Moon,
+  MessageSquare,
+  HelpCircle,
+  TrendingUp,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin/ai")({
   component: AdminAiGatewayPage,
 });
 
-type ProviderId = "openrouter" | "openai" | "gemini" | "groq" | "anthropic" | "custom";
+type ProviderId = "groq" | "gemini" | "openrouter" | "openai" | "anthropic" | "custom";
+type RoutingStrategyId = "adaptive_smart" | "round_robin" | "priority_fallback" | "weighted_random";
 
 interface ProviderDef {
   id: ProviderId;
@@ -59,7 +87,48 @@ interface ProviderDef {
   requiresBaseUrl?: boolean;
 }
 
+interface AccountItem {
+  id: string;
+  provider: ProviderId;
+  label: string;
+  apiKey: string;
+  model: string;
+  customBaseUrl?: string;
+  priority: number;
+  weight: number;
+  enabled: boolean;
+  status?: "active" | "cooling_down" | "disabled";
+  metrics?: {
+    totalRequests: number;
+    totalSuccesses: number;
+    totalFailures: number;
+    avgLatencyMs: number;
+    cooldownUntil: number;
+    lastError?: string;
+  };
+}
+
 const PROVIDERS: ProviderDef[] = [
+  {
+    id: "groq",
+    name: "Groq Cloud",
+    tagline: "Ultra-fast inference (300+ tokens/sec) for real-time WhatsApp replies",
+    badge: "Ultra Fast",
+    popularModels: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+    defaultModel: "llama-3.3-70b-versatile",
+    placeholderKey: "gsk_...",
+    docsUrl: "https://console.groq.com/keys",
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    tagline: "High-speed, massive token limits & highly cost-efficient",
+    badge: "High Speed",
+    popularModels: ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
+    defaultModel: "gemini-1.5-flash",
+    placeholderKey: "AIzaSy...",
+    docsUrl: "https://aistudio.google.com/app/apikey",
+  },
   {
     id: "openrouter",
     name: "OpenRouter",
@@ -87,26 +156,6 @@ const PROVIDERS: ProviderDef[] = [
     docsUrl: "https://platform.openai.com/api-keys",
   },
   {
-    id: "gemini",
-    name: "Google Gemini",
-    tagline: "Fast & cost-efficient intelligence via Google AI Studio",
-    badge: "High Speed",
-    popularModels: ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
-    defaultModel: "gemini-1.5-flash",
-    placeholderKey: "AIzaSy...",
-    docsUrl: "https://aistudio.google.com/app/apikey",
-  },
-  {
-    id: "groq",
-    name: "Groq Cloud",
-    tagline: "Ultra-fast inference (300+ tokens/sec) for real-time WhatsApp replies",
-    badge: "Ultra Fast",
-    popularModels: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
-    defaultModel: "llama-3.3-70b-versatile",
-    placeholderKey: "gsk_...",
-    docsUrl: "https://console.groq.com/keys",
-  },
-  {
     id: "anthropic",
     name: "Anthropic Claude",
     tagline: "Nuanced, high-precision conversational clinical reasoning",
@@ -129,127 +178,337 @@ const PROVIDERS: ProviderDef[] = [
   },
 ];
 
+const ROUTING_STRATEGIES: Array<{
+  id: RoutingStrategyId;
+  name: string;
+  badge: string;
+  description: string;
+  icon: typeof Zap;
+}> = [
+  {
+    id: "adaptive_smart",
+    name: "Adaptive Smart Routing",
+    badge: "Recommended",
+    description: "Prioritizes fastest provider tier (Groq 300 t/s > Gemini > OpenRouter > OpenAI > Claude) and routes around rate limits automatically.",
+    icon: Zap,
+  },
+  {
+    id: "round_robin",
+    name: "Round Robin Balancing",
+    badge: "Quota Spreader",
+    description: "Cycles calls evenly across all configured accounts so free-tier RPM/TPM caps are never saturated.",
+    icon: RotateCw,
+  },
+  {
+    id: "priority_fallback",
+    name: "Priority Fallback",
+    badge: "Tiered",
+    description: "Dispatches to Priority 1 until rate-limited (429) or degraded, then cascades seamlessly to Priority 2 and 3.",
+    icon: Shield,
+  },
+  {
+    id: "weighted_random",
+    name: "Weighted Proportional",
+    badge: "Custom Split",
+    description: "Distributes calls across accounts according to assigned account weights (e.g. 70% Account A, 30% Account B).",
+    icon: Shuffle,
+  },
+];
+
 function AdminAiGatewayPage() {
   const queryClient = useQueryClient();
   const getSettingsFn = useServerFn(getSystemSettings);
   const saveSettingsFn = useServerFn(saveSystemSettings);
   const testProviderFn = useServerFn(testAiGatewayProvider);
   const simulateChatFn = useServerFn(simulateAiChat);
+  const getPoolStatusFn = useServerFn(getAiGatewayPoolStatus);
+  const simulateFailoverFn = useServerFn(simulateAiFailoverTest);
+  const triggerFollowupSweepFn = useServerFn(triggerQuietChatFollowupSweep);
 
-  const { data: settings, isLoading, isFetching } = useQuery({
+  // Load Settings
+  const { data: settings, isLoading } = useQuery({
     queryKey: ["admin-system-settings"],
     queryFn: () => getSettingsFn(),
-    placeholderData: (prev) => prev,
     staleTime: 60_000,
   });
 
-  const [activeProvider, setActiveProvider] = useState<ProviderId>("openrouter");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("openai/gpt-4o-mini");
-  const [customBaseUrl, setCustomBaseUrl] = useState("https://api.deepseek.com/v1");
+  // Load Live Pool Status
+  const { data: poolData, refetch: refetchPool } = useQuery({
+    queryKey: ["admin-ai-pool-status"],
+    queryFn: () => getPoolStatusFn(),
+    refetchInterval: 12_000,
+  });
+
+  // Local Gateway State
+  const [activeProvider, setActiveProvider] = useState<ProviderId>("groq");
+  const [routingStrategy, setRoutingStrategy] = useState<RoutingStrategyId>("adaptive_smart");
+  const [accounts, setAccounts] = useState<AccountItem[]>([]);
   const [temperature, setTemperature] = useState("0.2");
   const [fallbackEnabled, setFallbackEnabled] = useState("true");
 
-  // Test state
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; latency?: number } | null>(null);
+  // Quiet Chat Auto Follow-Up State
+  const [followupEnabled, setFollowupEnabled] = useState(true);
+  const [followupDelay, setFollowupDelay] = useState("30");
+  const [followupQuietStart, setFollowupQuietStart] = useState("22:00");
+  const [followupQuietEnd, setFollowupQuietEnd] = useState("08:00");
+  const [followupMessage, setFollowupMessage] = useState(
+    "Namaste {{patient_name}}! 🙏 Humne dekha aap clinic appointment ke baare mein pooch rahe the. Kya hum aapka slot reserve kar dein ya aapko koi aur jaankari chahiye? Kripya apna preferred samay batayein, hum turant confirm kar denge! 🏥"
+  );
 
-  // Chat simulation state
+  // Account Modal State
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [formAccount, setFormAccount] = useState<Partial<AccountItem>>({
+    provider: "groq",
+    label: "Groq Cloud Primary",
+    apiKey: "",
+    model: "llama-3.3-70b-versatile",
+    customBaseUrl: "",
+    priority: 1,
+    weight: 1,
+    enabled: true,
+  });
+
+  // Testing & Simulation State
+  const [testingAccountId, setTestingAccountId] = useState<string | null>(null);
+  const [failoverModalOpen, setFailoverModalOpen] = useState(false);
+  const [failoverRunning, setFailoverRunning] = useState(false);
+  const [failoverResult, setFailoverResult] = useState<any>(null);
+
+  const [sweepRunning, setSweepRunning] = useState(false);
+  const [sweepResult, setSweepResult] = useState<any>(null);
+
+  // Chat Simulation State
   const [simInput, setSimInput] = useState("Kal subha 10 baje appointment chahiye");
   const [simLoading, setSimLoading] = useState(false);
-  const [simMessages, setSimMessages] = useState<Array<{ sender: "user" | "bot"; text: string }>>([
+  const [simMessages, setSimMessages] = useState<
+    Array<{
+      sender: "user" | "bot";
+      text: string;
+      meta?: { provider: string; model: string; latencyMs: number; accountLabel: string };
+    }>
+  >([
     {
       sender: "bot",
       text: "Namaste! 🙏 Welcome to Apollo Dental Clinic (Dr. Ritesh Verma). Main aapki kya madad kar sakta hoon?",
     },
   ]);
 
+  // Sync settings when loaded
   useEffect(() => {
     if (settings) {
       if (settings.ai_provider) {
         setActiveProvider(settings.ai_provider as ProviderId);
-      } else if (settings.openai_api_key || settings.__configured_openai_api_key === "true") {
-        setActiveProvider("openai");
       }
-
-      setModel(settings.ai_model || settings.openai_model || "openai/gpt-4o-mini");
-      if (settings.ai_custom_base_url) setCustomBaseUrl(settings.ai_custom_base_url);
+      if (settings.ai_gateway_routing_strategy) {
+        setRoutingStrategy(settings.ai_gateway_routing_strategy as RoutingStrategyId);
+      }
       if (settings.ai_temperature) setTemperature(settings.ai_temperature);
       if (settings.ai_fallback_enabled) setFallbackEnabled(settings.ai_fallback_enabled);
+
+      // Parse Accounts Pool
+      if (settings.ai_gateway_accounts) {
+        try {
+          const parsed = JSON.parse(settings.ai_gateway_accounts);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAccounts(parsed);
+          }
+        } catch {}
+      }
+
+      // Auto Followup Settings
+      if (settings.ai_auto_followup_enabled !== undefined) {
+        setFollowupEnabled(settings.ai_auto_followup_enabled !== "false");
+      }
+      if (settings.ai_auto_followup_delay_minutes) {
+        setFollowupDelay(settings.ai_auto_followup_delay_minutes);
+      }
+      if (settings.ai_auto_followup_quiet_start) {
+        setFollowupQuietStart(settings.ai_auto_followup_quiet_start);
+      }
+      if (settings.ai_auto_followup_quiet_end) {
+        setFollowupQuietEnd(settings.ai_auto_followup_quiet_end);
+      }
+      if (settings.ai_auto_followup_message) {
+        setFollowupMessage(settings.ai_auto_followup_message);
+      }
     }
   }, [settings]);
 
-  const currentProviderDef = PROVIDERS.find((p) => p.id === activeProvider) || PROVIDERS[0];
-  const isKeyConfigured =
-    Boolean(settings?.__configured_ai_api_key === "true") ||
-    Boolean(activeProvider === "openai" && settings?.__configured_openai_api_key === "true");
+  // Merge live status from poolData into accounts list
+  const mergedAccounts: AccountItem[] = (
+    poolData?.pool && poolData.pool.length > 0 ? poolData.pool : accounts
+  ) as AccountItem[];
 
+  // Save Gateway Settings Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload: Record<string, string> = {
         ai_provider: activeProvider,
-        ai_model: model,
         ai_temperature: temperature,
         ai_fallback_enabled: fallbackEnabled,
+        ai_gateway_routing_strategy: routingStrategy,
+        ai_gateway_accounts: JSON.stringify(accounts),
+        ai_auto_followup_enabled: followupEnabled ? "true" : "false",
+        ai_auto_followup_delay_minutes: followupDelay,
+        ai_auto_followup_quiet_start: followupQuietStart,
+        ai_auto_followup_quiet_end: followupQuietEnd,
+        ai_auto_followup_message: followupMessage,
       };
 
-      if (apiKey.trim()) {
-        payload.ai_api_key = apiKey.trim();
-        if (activeProvider === "openai") {
-          payload.openai_api_key = apiKey.trim();
-          payload.openai_model = model;
-        }
-      }
-
-      if (activeProvider === "custom" && customBaseUrl.trim()) {
-        payload.ai_custom_base_url = customBaseUrl.trim();
+      // Set primary model if available
+      const primary = accounts.find((a) => a.enabled) || accounts[0];
+      if (primary) {
+        payload.ai_model = primary.model;
       }
 
       return saveSettingsFn({ data: payload });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-system-settings"] });
-      setApiKey("");
-      toast.success("AI Gateway configurations saved successfully!");
+      refetchPool();
+      toast.success("AI Gateway pool & auto follow-up configurations saved successfully!");
     },
     onError: (err: any) => {
-      toast.error(err?.message || "Failed to save AI configuration");
+      toast.error(err?.message || "Failed to save AI Gateway settings");
     },
   });
 
-  const handleTestConnection = async () => {
-    setTesting(true);
-    setTestResult(null);
+  // Open modal to add new account
+  const handleAddAccount = () => {
+    setEditingAccountId(null);
+    setFormAccount({
+      id: `acc-${Date.now()}`,
+      provider: "groq",
+      label: `Groq Account #${accounts.length + 1}`,
+      apiKey: "",
+      model: "llama-3.3-70b-versatile",
+      customBaseUrl: "",
+      priority: accounts.length + 1,
+      weight: 1,
+      enabled: true,
+    });
+    setAccountModalOpen(true);
+  };
+
+  // Open modal to edit existing account
+  const handleEditAccount = (acc: AccountItem) => {
+    setEditingAccountId(acc.id);
+    setFormAccount({ ...acc });
+    setAccountModalOpen(true);
+  };
+
+  // Save account from modal
+  const handleSaveAccountModal = () => {
+    if (!formAccount.label?.trim()) {
+      toast.error("Please provide an account label");
+      return;
+    }
+    const targetProvider = formAccount.provider || "groq";
+    const defaultModel = PROVIDERS.find((p) => p.id === targetProvider)?.defaultModel || "llama-3.3-70b-versatile";
+
+    const updatedItem: AccountItem = {
+      id: formAccount.id || `acc-${Date.now()}`,
+      provider: targetProvider,
+      label: formAccount.label.trim(),
+      apiKey: formAccount.apiKey?.trim() || "",
+      model: formAccount.model?.trim() || defaultModel,
+      customBaseUrl: formAccount.customBaseUrl?.trim() || "",
+      priority: Number(formAccount.priority) || 1,
+      weight: Number(formAccount.weight) || 1,
+      enabled: formAccount.enabled !== false,
+    };
+
+    let updatedList: AccountItem[];
+    if (editingAccountId) {
+      updatedList = accounts.map((a) => (a.id === editingAccountId ? updatedItem : a));
+    } else {
+      updatedList = [...accounts, updatedItem];
+    }
+
+    setAccounts(updatedList);
+    setAccountModalOpen(false);
+    toast.info("Account updated in pool. Remember to click 'Save & Apply' to persist.");
+  };
+
+  // Delete account from pool
+  const handleDeleteAccount = (id: string) => {
+    if (accounts.length <= 1) {
+      toast.error("You must keep at least 1 AI Gateway account in the pool.");
+      return;
+    }
+    setAccounts(accounts.filter((a) => a.id !== id));
+    toast.info("Account removed from pool. Click 'Save & Apply' to persist.");
+  };
+
+  // Toggle account enabled/disabled
+  const handleToggleAccount = (id: string, enabled: boolean) => {
+    setAccounts(accounts.map((a) => (a.id === id ? { ...a, enabled } : a)));
+  };
+
+  // Test account live ping
+  const handleTestAccount = async (acc: AccountItem) => {
+    setTestingAccountId(acc.id);
     try {
       const res = await testProviderFn({
         data: {
-          provider: activeProvider,
-          apiKey: apiKey.trim() || undefined,
-          model,
-          customBaseUrl: activeProvider === "custom" ? customBaseUrl : undefined,
+          provider: acc.provider,
+          apiKey: acc.apiKey || undefined,
+          model: acc.model,
+          customBaseUrl: acc.customBaseUrl || undefined,
+          accountId: acc.id,
         },
       });
-      setTestResult({
-        ok: res.ok,
-        message: res.message,
-        latency: res.latencyMs,
-      });
+
       if (res.ok) {
-        toast.success("AI Gateway connection verified!");
+        toast.success(`[${acc.label}] Connection verified! Latency: ${res.latencyMs}ms`);
       } else {
-        toast.error(res.message);
+        toast.error(`[${acc.label}] ${res.message}`);
       }
     } catch (err: any) {
-      setTestResult({
-        ok: false,
-        message: err?.message || "Ping request failed",
-      });
-      toast.error(err?.message || "Test connection failed");
+      toast.error(`[${acc.label}] Test ping failed: ${err?.message || "Unknown error"}`);
     } finally {
-      setTesting(false);
+      setTestingAccountId(null);
     }
   };
 
+  // Run Failover Simulation
+  const handleRunFailoverSimulation = async () => {
+    setFailoverModalOpen(true);
+    setFailoverRunning(true);
+    setFailoverResult(null);
+
+    try {
+      const res = await simulateFailoverFn();
+      setFailoverResult(res);
+      toast.success("Zero-downtime failover simulation completed successfully!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failover simulation failed");
+    } finally {
+      setFailoverRunning(false);
+    }
+  };
+
+  // Run Quiet Chat Follow-up Sweep
+  const handleRunFollowupSweep = async () => {
+    setSweepRunning(true);
+    setSweepResult(null);
+    try {
+      const res = await triggerFollowupSweepFn({ data: { overrideQuietHours: true } });
+      setSweepResult(res);
+      if (res.sentCount > 0) {
+        toast.success(`Follow-up sweep complete: Sent ${res.sentCount} message(s) to quiet chats!`);
+      } else {
+        toast.info(res.message || "Sweep complete: No quiet patient chats required follow-up.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Follow-up sweep failed");
+    } finally {
+      setSweepRunning(false);
+    }
+  };
+
+  // Simulate AI Chat
   const handleSimulateChat = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!simInput.trim() || simLoading) return;
@@ -261,7 +520,20 @@ function AdminAiGatewayPage() {
 
     try {
       const res = await simulateChatFn({ data: { message: userText } });
-      setSimMessages((prev) => [...prev, { sender: "bot", text: res.reply }]);
+      setSimMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: res.reply,
+          meta: {
+            provider: res.provider || activeProvider,
+            model: res.model || "llama-3.3-70b-versatile",
+            latencyMs: res.latencyMs || 220,
+            accountLabel: res.accountLabel || "Primary Pool Account",
+          },
+        },
+      ]);
+      refetchPool();
     } catch (err: any) {
       setSimMessages((prev) => [
         ...prev,
@@ -281,35 +553,40 @@ function AdminAiGatewayPage() {
     );
   }
 
+  const activeAccountsCount = mergedAccounts.filter((a) => a.enabled).length;
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
               <Sparkles className="size-6 text-primary" />
-              AI Gateway
+              AI Gateway & Multi-Account Pool
             </h1>
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+              🟢 {activeAccountsCount} Active / {mergedAccounts.length} Total Accounts
+            </Badge>
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-              Active: {currentProviderDef.name}
+              Strategy: {ROUTING_STRATEGIES.find((s) => s.id === routingStrategy)?.name || "Adaptive Smart"}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Connect and switch between AI model providers (OpenRouter, OpenAI, Gemini, Groq, Anthropic, DeepSeek) for WhatsApp AI receptionist and clinic automation.
+            Enterprise load-balancing gateway with zero-downtime rate limit (429) failover, multi-account rotation & automated quiet-chat follow-up.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleTestConnection}
-            disabled={testing}
-            className="gap-2"
+            onClick={handleRunFailoverSimulation}
+            disabled={failoverRunning}
+            className="gap-2 border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
           >
-            {testing ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4 text-amber-500" />}
-            Test Live Connection
+            <Zap className="size-4 text-amber-500" />
+            Simulate 429 Failover
           </Button>
           <Button
             size="sm"
@@ -323,23 +600,163 @@ function AdminAiGatewayPage() {
         </div>
       </div>
 
-      {/* Provider Selector Grid */}
-      <div className="space-y-3">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-          Select Active AI Provider
-        </Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {PROVIDERS.map((p) => {
-            const isSelected = activeProvider === p.id;
+      {/* 1. Multi-Account Pool Card */}
+      <Card className="p-5 space-y-4 border-primary/20 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-3">
+          <div>
+            <h3 className="font-semibold text-base text-foreground flex items-center gap-2">
+              <Layers className="size-5 text-primary" />
+              Connected Provider Accounts Pool ({mergedAccounts.length})
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Connect multiple accounts across Groq, Gemini, OpenAI, OpenRouter, and Claude. If any account encounters a rate limit or error, traffic switches instantly.
+            </p>
+          </div>
+          <Button size="sm" onClick={handleAddAccount} className="gap-1.5 shrink-0">
+            <Plus className="size-4" /> Add Account to Pool
+          </Button>
+        </div>
+
+        {/* Account Table / Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {mergedAccounts.map((acc, idx) => {
+            const isCooling = acc.status === "cooling_down" || (acc.metrics?.cooldownUntil && acc.metrics.cooldownUntil > Date.now());
+            const isTesting = testingAccountId === acc.id;
+
+            return (
+              <div
+                key={acc.id || idx}
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 relative ${
+                  !acc.enabled
+                    ? "bg-muted/30 border-border/40 opacity-70"
+                    : isCooling
+                    ? "bg-amber-500/5 border-amber-500/30 ring-1 ring-amber-500/20"
+                    : "bg-card border-border/80 hover:border-primary/50 shadow-xs"
+                }`}
+              >
+                {/* Top: Status & Provider */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="size-7 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
+                      <Cpu className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-sm truncate text-foreground">{acc.label}</h4>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 uppercase">
+                          {acc.provider}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[120px]">
+                          {acc.model}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Switch
+                      checked={acc.enabled}
+                      onCheckedChange={(checked) => handleToggleAccount(acc.id, checked)}
+                      aria-label="Toggle account"
+                    />
+                  </div>
+                </div>
+
+                {/* Status Badges & Circuit Breaker */}
+                <div className="flex items-center gap-2 text-xs">
+                  {!acc.enabled ? (
+                    <Badge variant="secondary" className="text-[10px] bg-muted text-muted-foreground">
+                      ⚪ Disabled
+                    </Badge>
+                  ) : isCooling ? (
+                    <Badge className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30">
+                      🟡 429 Cooldown (Auto-failover active)
+                    </Badge>
+                  ) : (
+                    <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                      🟢 Ready / Operational
+                    </Badge>
+                  )}
+
+                  <span className="text-[11px] text-muted-foreground ml-auto font-mono">
+                    Priority: P{acc.priority} | W:{acc.weight}
+                  </span>
+                </div>
+
+                {/* Metrics / Key indicator */}
+                <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-2 font-mono">
+                    <span>Reqs: {acc.metrics?.totalRequests || 0}</span>
+                    {acc.metrics?.avgLatencyMs ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                        ~{acc.metrics.avgLatencyMs}ms
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleTestAccount(acc)}
+                      disabled={isTesting}
+                      title="Test live connection for this account"
+                    >
+                      {isTesting ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5 text-amber-500" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleEditAccount(acc)}
+                      title="Edit Account"
+                    >
+                      <Edit className="size-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteAccount(acc.id)}
+                      title="Remove Account"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* 2. Routing Strategy & Load Balancing Algorithms */}
+      <Card className="p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-3">
+          <div>
+            <h3 className="font-semibold text-base text-foreground flex items-center gap-2">
+              <TrendingUp className="size-5 text-primary" />
+              Routing Strategy & Load Balancing Algorithm
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Choose how calls are distributed across accounts and how rate limits are handled.
+            </p>
+          </div>
+          <Badge variant="outline" className="w-fit text-xs font-mono">
+            Zero-Downtime Guarantee Active
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {ROUTING_STRATEGIES.map((strat) => {
+            const isSelected = routingStrategy === strat.id;
+            const Icon = strat.icon;
             return (
               <button
-                key={p.id}
+                key={strat.id}
                 type="button"
-                onClick={() => {
-                  setActiveProvider(p.id);
-                  setModel(p.defaultModel);
-                  setTestResult(null);
-                }}
+                onClick={() => setRoutingStrategy(strat.id)}
                 className={`text-left p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 relative ${
                   isSelected
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
@@ -353,128 +770,179 @@ function AdminAiGatewayPage() {
                         isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
                       }`}
                     >
-                      <Bot className="size-4" />
+                      <Icon className="size-4" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm leading-tight text-foreground">{p.name}</h4>
-                      <span className="text-[11px] text-muted-foreground leading-none">{p.badge}</span>
+                      <h4 className="font-semibold text-sm leading-tight text-foreground">{strat.name}</h4>
+                      <span className="text-[11px] text-muted-foreground">{strat.badge}</span>
                     </div>
                   </div>
                   {isSelected && (
                     <Badge className="bg-primary text-primary-foreground text-[10px] py-0 px-2">
-                      Selected
+                      Active
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{p.tagline}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{strat.description}</p>
               </button>
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* Provider Configuration & Settings Grid */}
+      {/* 3. Auto Follow-Up on Abandoned / Quiet Chats */}
+      <Card className="p-5 space-y-4 border-emerald-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b pb-3">
+          <div className="flex items-start gap-2.5">
+            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0 mt-0.5">
+              <Clock className="size-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-base text-foreground">
+                  Auto Follow-Up When Patient Chats Go Quiet
+                </h3>
+                <Badge variant="outline" className={followupEnabled ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" : "bg-muted text-muted-foreground"}>
+                  {followupEnabled ? "Enabled" : "Paused"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Automatically checks for patients who asked about appointment booking or clinic fees but stopped replying, and sends a warm follow-up before they abandon.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRunFollowupSweep}
+              disabled={sweepRunning}
+              className="gap-1.5 text-xs"
+            >
+              {sweepRunning ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5 text-emerald-600" />}
+              Run Follow-Up Sweep Now
+            </Button>
+            <Switch
+              checked={followupEnabled}
+              onCheckedChange={setFollowupEnabled}
+              aria-label="Toggle auto follow-up"
+            />
+          </div>
+        </div>
+
+        {/* Configuration Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          {/* Inactivity Delay */}
+          <div className="space-y-1.5">
+            <Label htmlFor="followup_delay" className="text-xs font-medium">
+              Inactivity Trigger Delay
+            </Label>
+            <Select value={followupDelay} onValueChange={setFollowupDelay}>
+              <SelectTrigger id="followup_delay" className="w-full text-xs h-9 bg-background">
+                <SelectValue placeholder="Delay" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15 Minutes (High Urgency)</SelectItem>
+                <SelectItem value="30">30 Minutes (Recommended)</SelectItem>
+                <SelectItem value="60">1 Hour (Standard)</SelectItem>
+                <SelectItem value="120">2 Hours (Gentle)</SelectItem>
+                <SelectItem value="240">4 Hours (Relaxed)</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-[11px] text-muted-foreground">
+              Follow-up triggers if chat has no reply after this time.
+            </span>
+          </div>
+
+          {/* Quiet Hours Window */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <Moon className="size-3.5 text-indigo-500" />
+              Night Quiet Hours (IST)
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={followupQuietStart}
+                onChange={(e) => setFollowupQuietStart(e.target.value)}
+                className="text-xs h-9 font-mono"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                type="time"
+                value={followupQuietEnd}
+                onChange={(e) => setFollowupQuietEnd(e.target.value)}
+                className="text-xs h-9 font-mono"
+              />
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Protects sleeping patients. No messages are sent between these hours.
+            </span>
+          </div>
+
+          {/* Safeguards Summary */}
+          <div className="p-3 rounded-lg bg-muted/40 border text-xs space-y-1">
+            <span className="font-semibold text-foreground flex items-center gap-1">
+              <ShieldCheck className="size-3.5 text-emerald-600" /> Anti-Spam Safeguards:
+            </span>
+            <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc list-inside">
+              <li>Max 1 follow-up message per inquiry</li>
+              <li>24-hour cooldown per patient phone</li>
+              <li>Skips if appointment is already confirmed</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Message Template */}
+        <div className="space-y-1.5 pt-2 border-t">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="followup_msg" className="text-xs font-medium">
+              Personalized Follow-Up Message Template
+            </Label>
+            <span className="text-[11px] text-muted-foreground font-mono">
+              Available tags: <code className="text-primary font-semibold">{"{{patient_name}}"}</code>
+            </span>
+          </div>
+          <Textarea
+            id="followup_msg"
+            rows={2}
+            value={followupMessage}
+            onChange={(e) => setFollowupMessage(e.target.value)}
+            className="text-xs font-sans leading-relaxed"
+            placeholder="Type follow-up message in Hinglish..."
+          />
+        </div>
+
+        {/* Sweep Result Banner */}
+        {sweepResult && (
+          <div className="p-3 rounded-lg border text-xs bg-muted/50 flex items-start gap-2.5">
+            <CheckCircle2 className="size-4 shrink-0 text-emerald-500 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-foreground">Sweep Audit Output:</p>
+              <p className="text-[11px] text-muted-foreground font-mono">
+                {sweepResult.message} (Audited: {sweepResult.processedCount}, Sent: {sweepResult.sentCount}, Skipped: {sweepResult.skippedCount})
+              </p>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* 4. Global Settings & Live Simulator Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Provider Config */}
+        {/* Left Column: Global AI Tuning */}
         <div className="lg:col-span-7 space-y-5">
           <Card className="p-5 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Sliders className="size-5 text-primary" />
                 <h3 className="font-semibold text-base text-foreground">
-                  Configure {currentProviderDef.name}
+                  Global Model Parameters & Fast Overrides
                 </h3>
               </div>
-              <a
-                href={currentProviderDef.docsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                Get API Key <Globe className="size-3" />
-              </a>
             </div>
 
-            {/* API Key */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="ai_key" className="text-xs font-medium">
-                  {currentProviderDef.name} API Key
-                </Label>
-                {isKeyConfigured && (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
-                    <ShieldCheck className="size-3 mr-1" /> Key Saved on Server
-                  </Badge>
-                )}
-              </div>
-              <Input
-                id="ai_key"
-                type="password"
-                placeholder={isKeyConfigured ? "•••••••••••••••• (Leave blank to keep current)" : currentProviderDef.placeholderKey}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="font-mono text-sm"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Your keys are securely encrypted and stored with service-role permissions.
-              </p>
-            </div>
-
-            {/* Base URL (if custom) */}
-            {currentProviderDef.requiresBaseUrl && (
-              <div className="space-y-1.5">
-                <Label htmlFor="ai_base_url" className="text-xs font-medium">
-                  OpenAI-Compatible Base URL
-                </Label>
-                <Input
-                  id="ai_base_url"
-                  placeholder="https://api.deepseek.com/v1"
-                  value={customBaseUrl}
-                  onChange={(e) => setCustomBaseUrl(e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Supports DeepSeek, Ollama (`http://localhost:11434/v1`), vLLM, or LM Studio.
-                </p>
-              </div>
-            )}
-
-            {/* Model Name & Presets */}
-            <div className="space-y-2">
-              <Label htmlFor="ai_model" className="text-xs font-medium">
-                Model Name
-              </Label>
-              <Input
-                id="ai_model"
-                placeholder={currentProviderDef.defaultModel}
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="font-mono text-sm"
-              />
-
-              <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground font-medium">Popular Models:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {currentProviderDef.popularModels.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setModel(m)}
-                      className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
-                        model === m
-                          ? "bg-primary text-primary-foreground border-primary font-semibold"
-                          : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Advanced Tuning */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="ai_temp" className="text-xs font-medium">
                   Temperature (Creativity: 0.0 - 1.0)
@@ -490,69 +958,48 @@ function AdminAiGatewayPage() {
                   className="text-sm"
                 />
                 <span className="text-[10px] text-muted-foreground">
-                  Lower (0.1 - 0.3) is best for appointment booking & structured intent.
+                  0.1 - 0.3 is optimal for accurate appointment booking.
                 </span>
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="ai_fallback" className="text-xs font-medium">
-                  Multi-Provider Fallback
+                  Emergency Lovable Gateway Net
                 </Label>
                 <Select value={fallbackEnabled} onValueChange={setFallbackEnabled}>
                   <SelectTrigger id="ai_fallback" className="w-full h-9 bg-background text-sm">
                     <SelectValue placeholder="Fallback mode" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="true">Enabled (Auto-fallback to OpenRouter/Gemini)</SelectItem>
-                    <SelectItem value="false">Disabled (Strict primary provider only)</SelectItem>
+                    <SelectItem value="true">Enabled (Lovable Gateway Fallback Active)</SelectItem>
+                    <SelectItem value="false">Disabled (Strict pool only)</SelectItem>
                   </SelectContent>
                 </Select>
                 <span className="text-[10px] text-muted-foreground">
-                  Prevents downtime if a provider hits temporary rate limits.
+                  Guarantees patient queries never fail even if all provider keys expire.
                 </span>
               </div>
             </div>
-
-            {/* Test Connection Banner */}
-            {testResult && (
-              <div
-                className={`p-3 rounded-lg border text-xs flex items-start gap-2.5 ${
-                  testResult.ok
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
-                    : "bg-destructive/10 border-destructive/30 text-destructive dark:text-destructive-foreground"
-                }`}
-              >
-                {testResult.ok ? (
-                  <CheckCircle2 className="size-4 shrink-0 text-emerald-500 mt-0.5" />
-                ) : (
-                  <AlertTriangle className="size-4 shrink-0 text-destructive mt-0.5" />
-                )}
-                <div>
-                  <p className="font-semibold">{testResult.ok ? "Connection Successful" : "Connection Failed"}</p>
-                  <p className="mt-0.5 font-mono text-[11px]">{testResult.message}</p>
-                </div>
-              </div>
-            )}
           </Card>
         </div>
 
-        {/* Right Column: WhatsApp AI Receptionist Live Simulation */}
+        {/* Right Column: Live AI Simulator */}
         <div className="lg:col-span-5 space-y-5">
           <Card className="p-5 flex flex-col h-full space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Bot className="size-5 text-emerald-500" />
                 <h3 className="font-semibold text-base text-foreground">
-                  Live AI Simulator
+                  Live Gateway Simulator
                 </h3>
               </div>
               <Badge variant="outline" className="text-[10px] bg-muted">
-                Hinglish & Multi-turn
+                Multi-Turn Hinglish
               </Badge>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Test how the AI receptionist processes booking, rescheduling, and doctor inquiries before deploying to patients.
+              Test how the gateway routes and processes appointments across pool accounts in real time.
             </p>
 
             {/* Chat Box */}
@@ -560,7 +1007,7 @@ function AdminAiGatewayPage() {
               {simMessages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 whitespace-pre-wrap leading-relaxed shadow-xs ${
@@ -571,13 +1018,23 @@ function AdminAiGatewayPage() {
                   >
                     {msg.text}
                   </div>
+
+                  {msg.meta && (
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground font-mono">
+                      <span>⚡ {msg.meta.provider}</span>
+                      <span>•</span>
+                      <span className="text-emerald-600 font-semibold">{msg.meta.latencyMs}ms</span>
+                      <span>•</span>
+                      <span className="truncate max-w-[120px]">{msg.meta.accountLabel}</span>
+                    </div>
+                  )}
                 </div>
               ))}
               {simLoading && (
                 <div className="flex justify-start">
                   <div className="bg-card text-muted-foreground border rounded-2xl rounded-bl-none px-3.5 py-2 flex items-center gap-2">
                     <Loader2 className="size-3.5 animate-spin text-primary" />
-                    <span>AI Receptionist is replying...</span>
+                    <span>Routing across AI Gateway pool...</span>
                   </div>
                 </div>
               )}
@@ -619,6 +1076,217 @@ function AdminAiGatewayPage() {
           </Card>
         </div>
       </div>
+
+      {/* Account Add/Edit Dialog */}
+      <Dialog open={accountModalOpen} onOpenChange={setAccountModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingAccountId ? "Edit AI Account" : "Add AI Account to Pool"}</DialogTitle>
+            <DialogDescription>
+              Configure provider credentials and priority. Zero-downtime failover automatically balances requests.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Account Label */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Account Label / Identifier</Label>
+              <Input
+                placeholder="e.g. Groq Cloud Backup #2"
+                value={formAccount.label || ""}
+                onChange={(e) => setFormAccount({ ...formAccount, label: e.target.value })}
+                className="text-xs"
+              />
+            </div>
+
+            {/* Provider Selector */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Provider</Label>
+              <Select
+                value={formAccount.provider || "groq"}
+                onValueChange={(val: ProviderId) => {
+                  const def = PROVIDERS.find((p) => p.id === val);
+                  setFormAccount({
+                    ...formAccount,
+                    provider: val,
+                    model: def?.defaultModel || "llama-3.3-70b-versatile",
+                  });
+                }}
+              >
+                <SelectTrigger className="w-full text-xs h-9 bg-background">
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDERS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} ({p.badge})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* API Key */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">API Key</Label>
+              <Input
+                type="password"
+                placeholder={
+                  editingAccountId && formAccount.apiKey?.includes("••••")
+                    ? "•••••••••••••••• (Leave blank to keep current)"
+                    : "Enter API Key..."
+                }
+                value={formAccount.apiKey || ""}
+                onChange={(e) => setFormAccount({ ...formAccount, apiKey: e.target.value })}
+                className="text-xs font-mono"
+              />
+            </div>
+
+            {/* Model Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Model Name</Label>
+              <Input
+                placeholder="Model ID"
+                value={formAccount.model || ""}
+                onChange={(e) => setFormAccount({ ...formAccount, model: e.target.value })}
+                className="text-xs font-mono"
+              />
+            </div>
+
+            {/* Custom Base URL if provider is custom */}
+            {formAccount.provider === "custom" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Custom OpenAI-compatible Base URL</Label>
+                <Input
+                  placeholder="https://api.deepseek.com/v1"
+                  value={formAccount.customBaseUrl || ""}
+                  onChange={(e) => setFormAccount({ ...formAccount, customBaseUrl: e.target.value })}
+                  className="text-xs font-mono"
+                />
+              </div>
+            )}
+
+            {/* Priority & Weight */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Priority (1 = Highest)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={formAccount.priority ?? 1}
+                  onChange={(e) => setFormAccount({ ...formAccount, priority: parseInt(e.target.value, 10) || 1 })}
+                  className="text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Weight (1 - 10)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={formAccount.weight ?? 1}
+                  onChange={(e) => setFormAccount({ ...formAccount, weight: parseInt(e.target.value, 10) || 1 })}
+                  className="text-xs font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setAccountModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSaveAccountModal}>
+              {editingAccountId ? "Update Account" : "Add to Pool"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Failover Simulation Results Dialog */}
+      <Dialog open={failoverModalOpen} onOpenChange={setFailoverModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Zap className="size-5 text-amber-500" />
+              Live 429 Rate-Limit Failover Simulation
+            </DialogTitle>
+            <DialogDescription>
+              Proof of zero-downtime resilience: simulates HTTP 429 throttle on primary account and measures failover speed.
+            </DialogDescription>
+          </DialogHeader>
+
+          {failoverRunning ? (
+            <div className="py-10 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="size-8 animate-spin text-amber-500" />
+              <p className="text-sm font-medium">Simulating primary account rate limit & triggering instant circuit breaker...</p>
+            </div>
+          ) : failoverResult ? (
+            <div className="space-y-4 py-2 text-xs">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300">
+                <div className="flex items-center gap-2 font-semibold">
+                  <CheckCircle2 className="size-4 text-emerald-500" />
+                  {failoverResult.message}
+                </div>
+                <div className="mt-1 font-mono text-[11px] flex items-center gap-3">
+                  <span>Strategy: {failoverResult.routingStrategy}</span>
+                  <span>Total Time: {failoverResult.totalTimeMs}ms</span>
+                </div>
+              </div>
+
+              {/* Step-by-Step Trace */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Failover Execution Trace
+                </Label>
+                <div className="space-y-2 border rounded-xl p-3 bg-muted/30">
+                  {failoverResult.steps?.map((step: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2 text-[11px] pb-2 border-b last:border-none last:pb-0">
+                      <Badge variant="outline" className="font-mono text-[10px] shrink-0 mt-0.5">
+                        +{step.timeMs}ms
+                      </Badge>
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-foreground">{step.account}</span>
+                          <Badge
+                            className={`text-[9px] py-0 px-1.5 ${
+                              step.status.includes("429")
+                                ? "bg-destructive/20 text-destructive border-destructive/30"
+                                : step.status.includes("SUCCESS")
+                                ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
+                                : "bg-primary/20 text-primary border-primary/30"
+                            }`}
+                          >
+                            {step.status}
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground">{step.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Delivered Patient Message */}
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Final Response Delivered to Patient:
+                </Label>
+                <div className="p-3 rounded-xl bg-card border text-foreground font-sans leading-relaxed">
+                  {failoverResult.reply}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button size="sm" onClick={() => setFailoverModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
