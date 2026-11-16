@@ -22,6 +22,7 @@ import {
   checkGuardrails,
   getSessionMemory,
   updateSessionMemory,
+  clearSessionMemory,
   type RagCitation,
   type SessionMemory,
 } from "./whatsapp-rag.server";
@@ -415,6 +416,70 @@ export function cleanPatientName(candidate?: string | null, senderName?: string 
   return "Patient";
 }
 
+export interface AdditionalOrFamilyInfo {
+  isAdditionalOrFamily: boolean;
+  relationType: string | null;
+  isFamily: boolean;
+  isExplicitAdditional: boolean;
+  suggestedName: string | null;
+}
+
+/**
+ * Detects whether patient is booking for another person (family member, sister, child, etc.)
+ * or requesting an additional / separate appointment slot.
+ * Ensures the system never accidentally overwrites the patient's existing appointment!
+ */
+export function detectAdditionalOrFamilyBooking(
+  text: string,
+  senderName?: string | null,
+  returningPatientName?: string | null,
+): AdditionalOrFamilyInfo {
+  const lower = text.toLowerCase();
+
+  const relations: Array<{ re: RegExp; type: string }> = [
+    { re: /\b(sister|sis|behan|behen|didi|chhoti didi|badi didi)\b/i, type: "Sister" },
+    { re: /\b(brother|bro|bhai|bhaiya|chhota bhai|bada bhai)\b/i, type: "Brother" },
+    { re: /\b(mother|mummy|mata|mataji|maa|mom)\b/i, type: "Mother" },
+    { re: /\b(father|papa|pitaji|dad)\b/i, type: "Father" },
+    { re: /\b(wife|patni|biwi|mrs)\b/i, type: "Wife" },
+    { re: /\b(husband|pati|mr)\b/i, type: "Husband" },
+    { re: /\b(child|bacha|baccha|bachhe|bachho|bachhi|kid|baby|beta|beti|son|daughter)\b/i, type: "Child" },
+    { re: /\b(friend|dost|colleague|relative|rishtedar)\b/i, type: "Friend" },
+  ];
+
+  let relationType: string | null = null;
+  for (const r of relations) {
+    if (r.re.test(lower)) {
+      relationType = r.type;
+      break;
+    }
+  }
+
+  const isFamily = Boolean(
+    relationType ||
+    /\b(for my|kisi aur|doosre ke liye|dusre ke liye|unke liye|iske liye|inke liye)\b/i.test(lower)
+  );
+
+  const isExplicitAdditional =
+    /\b(ek\s*(aur|or|a[p]+ointment|slot)?\s*(aur|or|bhi|a[p]+ointment|book)|another|second|dusra|dusri|doosra|doosri|one\s*more|bhi\s*book|bhi\s*a[p]+ointment|also\s*book|also\s*a[p]+ointment|naya\s*a[p]+ointment|new\s*a[p]+ointment|alag\s*a[p]+ointment|separate\s*a[p]+ointment)\b/i.test(lower);
+
+  const isAdditionalOrFamily = isFamily || isExplicitAdditional;
+
+  let suggestedName: string | null = null;
+  if (relationType) {
+    const parentName = returningPatientName || senderName;
+    suggestedName = parentName ? `${parentName}'s ${relationType}` : relationType;
+  }
+
+  return {
+    isAdditionalOrFamily,
+    relationType,
+    isFamily,
+    isExplicitAdditional,
+    suggestedName,
+  };
+}
+
 /**
  * Match doctor by exact name or symptom / medical specialty keywords
  */
@@ -491,16 +556,26 @@ function extractBookingDetailsRuleBased(
     };
   }
 
-  // 2. Doctor switch check (e.g. "heart related problem hai to jo dil ke doctor ho unse book kar do")
+  // 2. Doctor switch check (ONLY if explicitly switching their own active appointment)
+  const familyInfo = detectAdditionalOrFamilyBooking(text, senderName);
   const matchedDoc = findMatchingDoctor(text, doctors);
+  const hasExplicitSwitchVerb =
+    /(doctor badal|dr badal|doctor change|dr change|switch doctor|transfer|unko nahi|inko nahi|doosre doctor|dusre doctor|change doctor)/i.test(text) ||
+    (/(badal do|change kar do|shift kar do)/i.test(text) && /(doctor|dr|specialist|unse|inse)/i.test(text));
+
   const isDoctorSwitch = Boolean(
     matchedDoc &&
     hasExistingAppt &&
-    /(dil|heart|doctor|dr|specialist|unse|inko|badal|change|shift)/i.test(text),
+    !familyInfo.isAdditionalOrFamily &&
+    hasExplicitSwitchVerb
   );
 
   // 3. Reschedule / Time Change check
-  const isReschedule = /(time change|change time|reschedule|badal|dusre time|shift|dusra slot|time badalna|subah kar|shaam kar|aaj nahi kal)/i.test(text);
+  const isReschedule = Boolean(
+    hasExistingAppt &&
+    !familyInfo.isAdditionalOrFamily &&
+    /(time change|change time|reschedule|timing badal|samay badal|dusre time|time shift|dusra slot|time badalna)/i.test(text)
+  );
 
   // 4. Greeting check (e.g. "hey", "hi", "hello", "namaste", "pranam")
   const isGreeting = /^(hey|hi|hello|namaste|pranam|namaskar|salaam|good morning|good evening|ha|haan|ok|hlo)\b/i.test(text) && text.split(/\s+/).length <= 3;
@@ -556,19 +631,21 @@ function extractBookingDetailsRuleBased(
 
   // 7. Name extraction (sanitized to completely avoid "ka naam")
   let rawName: string | null = null;
-  const nameMatch = text.match(/(?:naam|name is|patient name|patient|for)\s+([a-zA-Z\s]{3,25})/i);
+  const nameMatch = text.match(/(?:naam|name is|patient name|unka naam|marij ka naam)\s+([a-zA-Z\s]{3,25})/i);
   if (nameMatch) {
     rawName = nameMatch[1].trim();
+  } else if (familyInfo.isFamily && familyInfo.suggestedName) {
+    rawName = familyInfo.suggestedName;
   }
-  const patientName = cleanPatientName(rawName, senderName);
+  const patientName = cleanPatientName(rawName, familyInfo.isFamily ? familyInfo.suggestedName : senderName);
 
   // 8. Problem extraction
   let problem = matchedDoc ? `${matchedDoc.doctor.specialization} Consultation` : "General Consultation";
-  const problemMatch = text.match(/(?:for|problem|reason|takleef|bimari)\s+([a-zA-Z\s]{3,35})/i);
+  const problemMatch = text.match(/(?:for|problem|reason|takleef|bimari|concern)\s+([a-zA-Z\s]{3,35})/i);
   if (problemMatch) {
     problem = problemMatch[1].trim();
-  } else if (/(fever|bukhar|cough|cold|headache|pain|teeth|skin|stomach|throat|dard|chot|heart|dil)/i.test(text)) {
-    const kwMatch = text.match(/(fever|bukhar|cough|cold|headache|pain|teeth|skin|stomach|throat|dard|chot|heart|dil)/i);
+  } else if (/(fever|bukhar|cough|cold|headache|pain|teeth|skin|stomach|throat|dard|chot|heart|dil|ear|hearing|rash|rashes|allergy)/i.test(text)) {
+    const kwMatch = text.match(/(fever|bukhar|cough|cold|headache|pain|teeth|skin|stomach|throat|dard|chot|heart|dil|ear|hearing|rash|rashes|allergy)/i);
     if (kwMatch) problem = kwMatch[1];
   }
 
@@ -578,7 +655,7 @@ function extractBookingDetailsRuleBased(
   let intent: "book" | "reschedule" | "cancel" | "change_doctor" | "inquire" | "greeting" = "inquire";
   if (isDoctorSwitch) intent = "change_doctor";
   else if (isReschedule) intent = "reschedule";
-  else if (readyToBook || hasBookingKeyword) intent = "book";
+  else if (readyToBook || hasBookingKeyword || familyInfo.isAdditionalOrFamily) intent = "book";
   else if (isGreeting) intent = "greeting";
 
   return {
@@ -686,26 +763,37 @@ CRITICAL CONVERSATIONAL GUIDELINES FOR "suggested_reply":
    - Match symptoms or patient requests to the right specialist from the catalog:
      * Heart / Dil / Chest Pain / BP -> Cardiologist
      * Teeth / Daant -> Dentist
-     * Skin / Twacha -> Dermatologist
+     * Skin / Twacha / Rash -> Dermatologist
      * Child / Baccha -> Pediatrician
+     * Ear / Kaan / Hearing -> ENT / Speech & Hearing
      * Fever / Bukhar / General -> General Physician
    - When a match is found, populate "doctor_id" and "doctor_name".
-3. SPECIALIST CHANGE ON ACTIVE APPOINTMENT:
-   - If patient already has an active appointment and asks to see a specific specialist, set "intent": "change_doctor".
-4. RESCHEDULING / TIME CHANGE:
-   - If patient wants to change time/date, set "intent": "reschedule" and extract the new date and time.
-5. BOOKING SLOTS & DETAILS:
+3. FAMILY MEMBERS & ADDITIONAL APPOINTMENT BOOKINGS (STRICT RULE):
+   - Patients very frequently book for family members (e.g. "meri sister ke liye", "bhai ke liye", "mummy ke liye", "wife/child ke liye", "for my friend") or want an additional slot ("ek aur appointment", "another slot", "also book", "bhi book kar do").
+   - This is ALWAYS a NEW booking: "intent": "book"!
+   - NEVER classify this as "change_doctor" or "reschedule"!
+   - Set "patient_name" to the family member or relation (e.g. "Sister", "Priya", "Mother") and extract their specific problem.
+   - NEVER overwrite or modify the patient's existing appointment!
+4. SPECIALIST / DOCTOR SWITCH ON ACTIVE APPOINTMENT:
+   - Set "intent": "change_doctor" ONLY AND EXCLUSIVELY when the patient explicitly asks to change/switch their OWN current appointment (e.g. "doctor badal do", "Dr. Aanya nahi Dr. Durgesh ko dikhana hai", "transfer my appointment").
+   - NEVER set "change_doctor" if the user mentions another person ("sister", "bhai"), says "ek aur", or asks about other bookings.
+5. APPOINTMENT INQUIRY & STATUS ("mene ek appointment book kiya tha" / "apointment details batao"):
+   - If the patient inquires about their appointments or says "mene ek appointment aur book kiya tha ear me pain hai", set "intent": "inquire".
+   - State their confirmed appointment politely, and if they need a slot for their other problem (like ear pain), ask if you should book a new separate slot for them! NEVER overwrite anything!
+6. RESCHEDULING / TIME CHANGE:
+   - If patient wants to change time/date of their own appointment, set "intent": "reschedule" and extract the new date and time.
+7. BOOKING SLOTS & DETAILS:
    - Extract patient_name (NEVER use "ka naam", "patient", or symptom words as name), date (YYYY-MM-DD), time (HH:MM 24hr), and problem.
    - Set ready_to_book: true ONLY when both date AND time are clear.
-6. 2 SHIFTS & AFTERNOON BREAK:
+8. 2 SHIFTS & AFTERNOON BREAK:
    - Respect doctors' morning and evening shifts and afternoon break. Never offer or book slots when the clinic/doctor is closed.
-7. ACCURATE CLINIC FACTS:
+9. ACCURATE CLINIC FACTS:
    - Quote exact consultation fees and timings strictly from the verified doctor catalog above. Never invent prices.
-8. EMERGENCY SAFETY TRIAGE:
+10. EMERGENCY SAFETY TRIAGE:
    - If patient reports acute emergency (unconsciousness, heart attack symptoms, heavy bleeding), set intent: "emergency" and advise immediate hospital/108 ambulance care.
-9. NO DRUG PRESCRIPTIONS:
+11. NO DRUG PRESCRIPTIONS:
    - Never prescribe medications or suggest drug dosages over WhatsApp. Advise consulting the doctor.
-10. ALWAYS POPULATE "suggested_reply":
+12. ALWAYS POPULATE "suggested_reply":
    - Write the exact warm, helpful message that a real human receptionist at the front desk would send right now!
 
 CRITICAL JSON SCHEMA:
@@ -819,11 +907,10 @@ export async function processWhatsAppMessage(params: {
         .select("id, scheduled_at, patient_name, status, doctor_id, problem")
         .eq("clinic_id", clinic.id)
         .eq("patient_phone", patientPhone)
-        .gte("scheduled_at", new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString())
+        .gte("scheduled_at", new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString())
         .neq("status", "cancelled")
         .order("scheduled_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+        .limit(5),
     ).catch(() => ({ data: null, error: null })),
   ]);
 
@@ -886,7 +973,10 @@ export async function processWhatsAppMessage(params: {
   const clinicFaqs = extractClinicFaqs(clinic);
 
   const returningPatientName: string | null = (patientRes as any)?.data?.name || null;
-  const upcomingAppt = (apptRes as any)?.data || null;
+  const allUpcomingAppts: any[] = Array.isArray((apptRes as any)?.data)
+    ? (apptRes as any).data
+    : (apptRes as any)?.data ? [(apptRes as any).data] : [];
+  const upcomingAppt = allUpcomingAppts[0] || null;
 
   const activeApptDoctor = upcomingAppt?.doctor_id
     ? allDoctors.find((d) => d.id === upcomingAppt.doctor_id)?.name || "Doctor"
@@ -910,6 +1000,11 @@ export async function processWhatsAppMessage(params: {
 
   const trimmedText = incomingText.trim();
   const lowerText = trimmedText.toLowerCase();
+
+  // Detect family members, relations, or explicit additional appointment intents
+  const familyInfo = detectAdditionalOrFamilyBooking(incomingText, senderName, returningPatientName);
+  const mentionsOtherBooking =
+    /(or book kiya tha|aur book kiya tha|dusra bhi tha|ek aur kiya tha|pehle se kiya tha|ek apointment or)/i.test(lowerText);
 
   // ─── TIER 0 FAST-TRACK: 1. EMERGENCY RED-FLAG TRIAGE (<10ms) ───
   if (detectEmergency(lowerText)) {
@@ -1010,17 +1105,56 @@ Aapki kya madad kar sakta hoon — kya aapko doctor se appointment lena hai ya t
 
   // ─── TIER 0 FAST-TRACK: 1d. APPOINTMENT STATUS & CONFIRMATION (<5ms) ───
   const isApptStatusQuery =
-    /(mera appointment|check appointment|appointment status|kab aana hai|mera slot|appointment kab hai|appointment details)/i.test(lowerText) &&
+    /(mera appointment|check appointment|appointment status|kab aana hai|mera slot|appointment kab hai|appointment details|apointment details|kitne appointment|dusra appointment|doosra appointment|or book kiya tha|aur book kiya tha)/i.test(lowerText) &&
     !/(cancel|radd|badalna|reschedule)/i.test(lowerText);
 
-  if (isApptStatusQuery) {
-    if (upcomingAppt && currentApptDate && currentApptTime) {
+  if (isApptStatusQuery || (mentionsOtherBooking && !/(kal|aaj|\d{1,2}\s*(am|pm|baje))/i.test(lowerText))) {
+    if (allUpcomingAppts.length > 1) {
+      const apptsListText = allUpcomingAppts
+        .map((a, i) => {
+          const doc = allDoctors.find((d) => d.id === a.doctor_id)?.name || primaryDoc.name;
+          const dStr = new Date(a.scheduled_at).toLocaleDateString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          });
+          const tStr = new Date(a.scheduled_at).toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          const pName = cleanPatientName(a.patient_name, senderName);
+          const prob = a.problem ? `\n   🩺 Concern: ${a.problem}` : "";
+          return `${i + 1}. *${doc}* ke saath — ${dStr} ko ${tStr} IST\n   👤 Patient: ${pName}${prob}`;
+        })
+        .join("\n\n");
+
+      return {
+        reply: `Haanji! Aapke number par ${allUpcomingAppts.length} active appointments confirmed hain: ✅\n\n${apptsListText}\n\n📍 *Clinic Address:* ${clinic.public_address || clinic.address || "Main Clinic"}\n\nKripya scheduled time se 10 minute pehle clinic pahuchein. Agar inme se kisi me badlav karna ho ya naya slot book karna ho toh batayein!`,
+        action: "inquiry",
+      };
+    } else if (upcomingAppt && currentApptDate && currentApptTime) {
+      if (mentionsOtherBooking) {
+        return {
+          reply: `Ji, hamare record mein abhi aapka yeh appointment confirmed hai:
+👨‍⚕️ *Doctor:* ${activeApptDoctor}
+📅 *Date:* ${currentApptDate}
+⏰ *Time:* ${currentApptTime} IST
+👤 *Patient:* ${cleanPatientName(upcomingAppt.patient_name, senderName)}
+${upcomingAppt.problem ? `🩺 *Takleef:* ${upcomingAppt.problem}\n` : ""}
+Agar aapka ear pain ya kisi aur takleef ke liye appointment create nahi ho paya tha, toh kripya din aur preferred samay (e.g. *Kal subah 10:30 baje*) batayein — main turant unke liye separate slot book kar deta hoon!`,
+          action: "ask_details",
+        };
+      }
+
       return {
         reply: `Haanji, aapka appointment already confirmed hai! ✅
 
 👨‍⚕️ *Doctor:* ${activeApptDoctor}
 📅 *Date:* ${currentApptDate}
 ⏰ *Time:* ${currentApptTime} IST
+👤 *Patient:* ${cleanPatientName(upcomingAppt.patient_name, senderName)}
 ${upcomingAppt.problem ? `🩺 *Takleef:* ${upcomingAppt.problem}\n` : ""}📍 *Clinic Address:* ${clinic.public_address || clinic.address || "Reception"}
 
 Aap scheduled time se 10 minute pehle clinic pahunch jaiyega. Agar time badalna ya cancel karna ho toh bas yahan bata dijiyega.`,
@@ -1224,8 +1358,12 @@ Agar dobara doctor se milna ho ya appointment schedule karna ho, toh bas yahan e
       historyText,
       senderName,
       returningPatientName,
-      hasExistingAppt: Boolean(upcomingAppt),
-      activeApptDetails: upcomingAppt ? `${currentApptDate} at ${currentApptTime} with ${activeApptDoctor}` : null,
+      hasExistingAppt: Boolean(upcomingAppt && !familyInfo.isAdditionalOrFamily),
+      activeApptDetails: upcomingAppt
+        ? familyInfo.isAdditionalOrFamily
+          ? `Patient has an active appointment on ${currentApptDate} at ${currentApptTime}, but the current message is to book an ADDITIONAL/FAMILY appointment. Do NOT switch or overwrite!`
+          : `${currentApptDate} at ${currentApptTime} with ${activeApptDoctor}`
+        : null,
       aiPersona: customAiPersona,
       systemInstructions: customSystemInstructions,
       ragContext,
@@ -1241,20 +1379,27 @@ Agar dobara doctor se milna ho ya appointment schedule karna ho, toh bas yahan e
       senderName,
       patientHistoryOnly,
       allDoctors,
-      Boolean(upcomingAppt),
+      Boolean(upcomingAppt && !familyInfo.isAdditionalOrFamily),
     );
   }
 
   // Multi-turn context continuity: backfill unstated slots from active session memory
-  if (!intent.doctorName && !intent.doctorId && sessionMemory.preferredDoctorName) {
-    intent.doctorName = sessionMemory.preferredDoctorName;
-    intent.doctorId = sessionMemory.preferredDoctorId;
-  }
-  if (!intent.patientName && sessionMemory.patientName) {
-    intent.patientName = sessionMemory.patientName;
-  }
-  if (!intent.dateStr && sessionMemory.targetDateStr) {
-    intent.dateStr = sessionMemory.targetDateStr;
+  if (familyInfo.isAdditionalOrFamily) {
+    // When booking for another person or additional slot, NEVER backfill previous patient's details!
+    if (familyInfo.suggestedName && !intent.patientName) {
+      intent.patientName = familyInfo.suggestedName;
+    }
+  } else {
+    if (!intent.doctorName && !intent.doctorId && sessionMemory.preferredDoctorName) {
+      intent.doctorName = sessionMemory.preferredDoctorName;
+      intent.doctorId = sessionMemory.preferredDoctorId;
+    }
+    if (!intent.patientName && sessionMemory.patientName) {
+      intent.patientName = sessionMemory.patientName;
+    }
+    if (!intent.dateStr && sessionMemory.targetDateStr) {
+      intent.dateStr = sessionMemory.targetDateStr;
+    }
   }
 
   // Resolve Doctor from incoming text or intent
@@ -1268,12 +1413,12 @@ Agar dobara doctor se milna ho ya appointment schedule karna ho, toh bas yahan e
 
   // Update session memory with resolved slots & intent
   const currentMemState = updateSessionMemory(clinic.id, patientPhone, {
-    patientName: intent.patientName || sessionMemory.patientName || returningPatientName || senderName,
-    preferredDoctorId: matchedDoc?.id || sessionMemory.preferredDoctorId,
-    preferredDoctorName: matchedDoc?.name || sessionMemory.preferredDoctorName,
-    targetDateStr: intent.dateStr || sessionMemory.targetDateStr,
-    targetTimeStr: intent.timeStr || sessionMemory.targetTimeStr,
-    problem: intent.problem || sessionMemory.problem,
+    patientName: intent.patientName || (familyInfo.isAdditionalOrFamily ? (familyInfo.suggestedName || null) : (sessionMemory.patientName || returningPatientName || senderName)),
+    preferredDoctorId: matchedDoc?.id || (familyInfo.isAdditionalOrFamily ? null : sessionMemory.preferredDoctorId),
+    preferredDoctorName: matchedDoc?.name || (familyInfo.isAdditionalOrFamily ? null : sessionMemory.preferredDoctorName),
+    targetDateStr: intent.dateStr || (familyInfo.isAdditionalOrFamily ? null : sessionMemory.targetDateStr),
+    targetTimeStr: intent.timeStr || (familyInfo.isAdditionalOrFamily ? null : sessionMemory.targetTimeStr),
+    problem: intent.problem || (familyInfo.isAdditionalOrFamily ? null : sessionMemory.problem),
     pendingIntent: intent.intent,
   });
 
@@ -1286,15 +1431,20 @@ Agar dobara doctor se milna ho ya appointment schedule karna ho, toh bas yahan e
     turnCount: currentMemState.turnCount,
   };
 
-  // 7. SPECIALIST / DOCTOR SWITCH ON ACTIVE APPOINTMENT (Fixes Screenshot 1)
-  // When a patient with an existing slot texts: "Heart related problem hai to jo dil ke doctor ho unse book kar do"
+  // 7. SPECIALIST / DOCTOR SWITCH ON ACTIVE APPOINTMENT
+  // Strictly requires: active appointment exists, doctor is matched and DIFFERENT,
+  // user explicitly requests switch, and is NOT booking for family or an additional appointment!
+  const hasExplicitSwitchVerb =
+    /(doctor badal|dr badal|doctor change|dr change|switch doctor|transfer|unko nahi|inko nahi|doosre doctor|dusre doctor|change doctor)/i.test(lowerText) ||
+    (/(badal do|change kar do|shift kar do)/i.test(lowerText) && /(doctor|dr|specialist|unse|inse)/i.test(lowerText));
+
   const isDoctorSwitchRequested = Boolean(
     upcomingAppt &&
     matchedDoc &&
-    (
-      intent.intent === "change_doctor" ||
-      /(dil|heart|doctor|dr|specialist|unse|inko|badal|change|shift)/i.test(lowerText)
-    ),
+    !familyInfo.isAdditionalOrFamily &&
+    !mentionsOtherBooking &&
+    (intent.intent === "change_doctor" || hasExplicitSwitchVerb) &&
+    matchedDoc.id !== upcomingAppt.doctor_id
   );
 
   if (isDoctorSwitchRequested && upcomingAppt && matchedDoc) {
@@ -1358,9 +1508,15 @@ Kripya scheduled time se 10 minute pehle clinic pahuchein.`,
   }
 
   // 8. RESCHEDULE INTENT: Patient wants to change their appointment time
-  const isRescheduleRequested =
-    intent.intent === "reschedule" ||
-    /(time change|change time|reschedule|badal do|dusre time|shift|dusra slot|time badalna)/i.test(incomingText);
+  const isRescheduleRequested = Boolean(
+    upcomingAppt &&
+    !familyInfo.isAdditionalOrFamily &&
+    !mentionsOtherBooking &&
+    (
+      intent.intent === "reschedule" ||
+      /(time change|change time|reschedule|timing badal|samay badal|dusre time|time shift|dusra slot|time badalna)/i.test(lowerText)
+    )
+  );
 
   if (isRescheduleRequested && upcomingAppt) {
     if (intent.dateStr && intent.timeStr) {
@@ -1504,15 +1660,26 @@ Kripya clinic working hours mein se koi doosra samay batayein ya online live slo
         .neq("status", "cancelled")
         .maybeSingle();
 
-      const patientNameFinal = cleanPatientName(intent.patientName, returningPatientName || senderName);
+      const defaultPatientName = familyInfo.isFamily && familyInfo.suggestedName
+        ? familyInfo.suggestedName
+        : (returningPatientName || senderName);
+      const patientNameFinal = cleanPatientName(intent.patientName, defaultPatientName);
       const problemFinal = intent.problem || (matchedDoc ? `${matchedDoc.specialization} Consultation` : "General Consultation");
 
-      if (existingAppt) {
+      if (existingAppt && !familyInfo.isAdditionalOrFamily) {
+        const existingNameClean = (existingAppt.patient_name || "").toLowerCase().trim();
+        const incomingNameClean = patientNameFinal.toLowerCase().trim();
+        const isSamePatient = !incomingNameClean || existingNameClean === incomingNameClean || incomingNameClean === "patient";
+
         const existingTime = new Date(existingAppt.scheduled_at || Date.now()).getTime();
         const diffMinutes = Math.abs(scheduledAt.getTime() - existingTime) / (60 * 1000);
 
-        // If time is different by > 15 mins -> reschedule time
-        if (diffMinutes > 15) {
+        // ONLY update existing appointment if user explicitly asked to reschedule/change time
+        const isExplicitReschedule =
+          intent.intent === "reschedule" ||
+          /(time change|change time|reschedule|timing badal|samay badal|dusre time|time shift|dusra slot|time badalna)/i.test(incomingText);
+
+        if (isSamePatient && isExplicitReschedule) {
           await sb
             .from("appointments")
             .update({
@@ -1543,16 +1710,8 @@ Agar dobara koi badlav karna ho toh yahan message karein.`,
           };
         }
 
-        // If user explicitly asked for a different doctor on the same day/slot
-        if (assignedDoc.id !== existingAppt.doctor_id) {
-          await sb
-            .from("appointments")
-            .update({
-              doctor_id: assignedDoc.id,
-              problem: problemFinal,
-            })
-            .eq("id", existingAppt.id);
-
+        // If same patient, same doctor, within 15 minutes -> prevent double booking
+        if (isSamePatient && diffMinutes <= 15 && assignedDoc.id === existingAppt.doctor_id) {
           const timeFormatted = new Date(existingAppt.scheduled_at || Date.now()).toLocaleTimeString("en-IN", {
             timeZone: "Asia/Kolkata",
             hour: "numeric",
@@ -1560,36 +1719,14 @@ Agar dobara koi badlav karna ho toh yahan message karein.`,
           });
 
           return {
-            reply: `✅ Aapka appointment *${assignedDoc.name} (${assignedDoc.specialization})* ke sath update kar diya gaya hai!
+            reply: `ℹ️ Aapka appointment already is date ko *${timeFormatted}* baje scheduled hai.
 
-🏥 *Clinic:* ${clinic.clinic_name}
-👨‍⚕️ *Doctor:* ${assignedDoc.name} (${assignedDoc.specialization})
-💰 *Consultation Fee:* ₹${assignedDoc.fee}
-⏰ *Time:* ${timeFormatted}
-📍 *Address:* ${clinic.public_address || clinic.address || "Main Clinic"}
-
-Kripya scheduled time se 10 minute pehle clinic pahuchein.`,
-            action: "rescheduled",
+• Samay badalne ke liye batayein: *"Time change to 11 am"*
+• Kisi aur patient ke liye naya appointment book karne ke liye unka naam batayein (e.g. *"Meri sister ke liye"*).`,
+            action: "already_booked",
             appointmentId: existingAppt.id,
           };
         }
-
-        const timeFormatted = new Date(existingAppt.scheduled_at || Date.now()).toLocaleTimeString("en-IN", {
-          timeZone: "Asia/Kolkata",
-          hour: "numeric",
-          minute: "2-digit",
-        });
-
-        return {
-          reply: `ℹ️ Aapka appointment already is date ko *${timeFormatted}* baje scheduled hai.
-
-• Samay badalne ke liye batayein: *"Time change to 11 am"*
-• Doctor badalne ke liye batayein: *"Dr. Durgesh se book kar do"*
-• Cancel karne ke liye reply karein: *"Cancel"*
-• Kisi aur patient ke liye book karna hai, toh unka naam batayein.`,
-          action: "already_booked",
-          appointmentId: existingAppt.id,
-        };
       }
 
       // Check slot conflict, auto-adjust if slot capacity reached
@@ -1722,6 +1859,9 @@ ${tokenNumber ? `🎫 *Token Number:* #${tokenNumber}\n` : ""}📍 *Address:* ${
 
 Aapka appointment successfully book ho gaya hai. Kripya scheduled time se 10 minute pehle clinic pahuchein.
 Reschedule ya cancel karne ke liye yahan message karein.`;
+
+      // Reset active slots in session memory so next booking starts fresh
+      clearSessionMemory(clinic.id, patientPhone);
 
       return {
         reply: confirmationReply,

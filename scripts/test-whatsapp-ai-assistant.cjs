@@ -14,6 +14,7 @@ test('whatsapp-booking.server.ts contains all required enterprise AI capabilitie
   assert.ok(code.includes('extractClinicFaqs'), 'Must extract clinic FAQs');
   assert.ok(code.includes('validateSlotAgainstShifts'), 'Must validate slots against doctor shifts');
   assert.ok(code.includes('cleanPatientName'), 'Must sanitize patient names');
+  assert.ok(code.includes('detectAdditionalOrFamilyBooking'), 'Must have family member and additional appointment detector');
   assert.ok(code.includes('returningPatientName'), 'Must look up returning patient to personalize greeting');
   assert.ok(code.includes('emergency_triage_alert'), 'Must alert clinic on medical emergency');
   assert.ok(code.includes('Google Maps'), 'Must provide directions / map link on location queries');
@@ -272,4 +273,106 @@ test('Multi-Doctor Symptom & Specialty Matching', () => {
 
   const childMatch = findMatchingDoctor("Chhote bacche ko bukhar hai", mockDoctors);
   assert.equal(childMatch.doctor.name, "Dr. Rajesh Gupta");
+});
+
+function detectAdditionalOrFamilyBooking(text, senderName, returningPatientName) {
+  const lower = text.toLowerCase();
+
+  const relations = [
+    { re: /\b(sister|sis|behan|behen|didi|chhoti didi|badi didi)\b/i, type: "Sister" },
+    { re: /\b(brother|bro|bhai|bhaiya|chhota bhai|bada bhai)\b/i, type: "Brother" },
+    { re: /\b(mother|mummy|mata|mataji|maa|mom)\b/i, type: "Mother" },
+    { re: /\b(father|papa|pitaji|dad)\b/i, type: "Father" },
+    { re: /\b(wife|patni|biwi|mrs)\b/i, type: "Wife" },
+    { re: /\b(husband|pati|mr)\b/i, type: "Husband" },
+    { re: /\b(child|bacha|baccha|bachhe|bachho|bachhi|kid|baby|beta|beti|son|daughter)\b/i, type: "Child" },
+    { re: /\b(friend|dost|colleague|relative|rishtedar)\b/i, type: "Friend" },
+  ];
+
+  let relationType = null;
+  for (const r of relations) {
+    if (r.re.test(lower)) {
+      relationType = r.type;
+      break;
+    }
+  }
+
+  const isFamily = Boolean(
+    relationType ||
+    /\b(for my|kisi aur|doosre ke liye|dusre ke liye|unke liye|iske liye|inke liye)\b/i.test(lower)
+  );
+
+  const isExplicitAdditional =
+    /\b(ek\s*(aur|or|a[p]+ointment|slot)?\s*(aur|or|bhi|a[p]+ointment|book)|another|second|dusra|dusri|doosra|doosri|one\s*more|bhi\s*book|bhi\s*a[p]+ointment|also\s*book|also\s*a[p]+ointment|naya\s*a[p]+ointment|new\s*a[p]+ointment|alag\s*a[p]+ointment|separate\s*a[p]+ointment)\b/i.test(lower);
+
+  const isAdditionalOrFamily = isFamily || isExplicitAdditional;
+
+  let suggestedName = null;
+  if (relationType) {
+    const parentName = returningPatientName || senderName;
+    suggestedName = parentName ? `${parentName}'s ${relationType}` : relationType;
+  }
+
+  return {
+    isAdditionalOrFamily,
+    relationType,
+    isFamily,
+    isExplicitAdditional,
+    suggestedName,
+  };
+}
+
+test('Family & Additional Booking Detection (Fixes Overwriting Sister/Second Appointment)', () => {
+  // Scenario 1: Booking for sister when user already booked ear pain
+  const sisterRes = detectAdditionalOrFamilyBooking("meri sister ke liye bhi book kar do skin rash hai", "Ritesh");
+  assert.equal(sisterRes.isAdditionalOrFamily, true);
+  assert.equal(sisterRes.relationType, "Sister");
+  assert.equal(sisterRes.isFamily, true);
+  assert.equal(sisterRes.suggestedName, "Ritesh's Sister");
+
+  // Scenario 2: User says they booked another appointment
+  const additionalRes = detectAdditionalOrFamilyBooking("mene ek apointment or book kiya tha ear me pain hai", "Ritesh");
+  assert.equal(additionalRes.isAdditionalOrFamily, true);
+  assert.equal(additionalRes.isExplicitAdditional, true);
+
+  // Scenario 3: Booking for brother
+  const brotherRes = detectAdditionalOrFamilyBooking("chhota bhai ke liye Dr. Durgesh se appointment chahiye", "Ritesh");
+  assert.equal(brotherRes.isAdditionalOrFamily, true);
+  assert.equal(brotherRes.relationType, "Brother");
+
+  // Scenario 4: Genuine doctor switch (NOT family or additional)
+  const switchRes = detectAdditionalOrFamilyBooking("doctor badal do Dr. Sharma ko dikhana hai", "Ritesh");
+  assert.equal(switchRes.isAdditionalOrFamily, false);
+});
+
+test('Doctor Switch Isolation: Never switches on family or additional bookings', () => {
+  const upcomingAppt = { id: 'appt-1', doctor_id: 'doc-1', patient_name: 'Ritesh' };
+  const matchedDoc = { id: 'doc-2', name: 'Dr. Aanya Patel' };
+
+  function checkDoctorSwitch(text, hasExistingAppt) {
+    const familyInfo = detectAdditionalOrFamilyBooking(text, 'Ritesh');
+    const lower = text.toLowerCase();
+    const mentionsOtherBooking = /(or book kiya tha|aur book kiya tha|dusra bhi tha|ek aur kiya tha|pehle se kiya tha|ek apointment or)/i.test(lower);
+    const hasExplicitSwitchVerb =
+      /(doctor badal|dr badal|doctor change|dr change|switch doctor|transfer|unko nahi|inko nahi|doosre doctor|dusre doctor|change doctor)/i.test(lower) ||
+      (/(badal do|change kar do|shift kar do)/i.test(lower) && /(doctor|dr|specialist|unse|inse)/i.test(lower));
+
+    return Boolean(
+      hasExistingAppt &&
+      matchedDoc &&
+      !familyInfo.isAdditionalOrFamily &&
+      !mentionsOtherBooking &&
+      hasExplicitSwitchVerb &&
+      matchedDoc.id !== upcomingAppt.doctor_id
+    );
+  }
+
+  // Sister booking should NEVER switch existing appointment
+  assert.equal(checkDoctorSwitch("meri sister ke liye Dr. Aanya se book kar do", true), false);
+
+  // "Mene ek apointment or book kiya tha ear me pain hai" should NEVER switch existing appointment
+  assert.equal(checkDoctorSwitch("mene ek apointment or book kiya tha ear me pain hai", true), false);
+
+  // Explicit switch SHOULD switch
+  assert.equal(checkDoctorSwitch("doctor badal do Dr. Aanya se milna hai", true), true);
 });
