@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/gmb")({
 function GmbRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
-    navigate({ to: "/dashboard/reviews" });
+    navigate({ to: "/dashboard/reviews", search: {} as any });
   }, [navigate]);
 
   return (

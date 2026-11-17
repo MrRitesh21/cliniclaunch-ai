@@ -30,6 +30,7 @@ import {
   Share2,
   AlertTriangle,
   Edit3,
+  Settings,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { AppGuard } from "@/components/app/AppGuard";
@@ -1103,9 +1104,9 @@ export function ReviewsPage() {
           onDisconnectGoogle={handleDisconnectGoogleProfile}
           onNavigateTab={(tab) => setActiveTab(tab as any)}
           stats={{
-            rating: stats.avgRating,
+            rating: Number(stats.avg) || 0,
             reviewCount: stats.total,
-            replyRate: stats.replyRate,
+            replyRate: stats.responseRate,
             monthlyImpressions: 2480,
             postsCount: 12,
           }}
