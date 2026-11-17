@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,21 +15,37 @@ import {
   ShieldCheck,
   Star,
   CheckCircle2,
-  PhoneCall,
+  Clock,
   Loader2,
+  Send,
+  Eye,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { sendTestWhatsapp } from "@/lib/baileys.functions";
+import { sendPatientReviewRequest, listReviewRequests } from "@/lib/gbp.functions";
 
 interface GmbGetReviewsTabProps {
+  clinicId: string;
   clinicName?: string | null;
   doctorName?: string | null;
   shareUrl: string;
   onOpenQrModal: () => void;
 }
 
+interface ReviewRequestItem {
+  id: string;
+  patient_name: string;
+  phone: string;
+  channel: string;
+  status: string;
+  sent_at: string;
+  reminder_count: number;
+  click_count: number;
+}
+
 export function GmbGetReviewsTab({
+  clinicId,
   clinicName,
   doctorName,
   shareUrl,
@@ -40,8 +56,11 @@ export function GmbGetReviewsTab({
   const [sendingWa, setSendingWa] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedSms, setCopiedSms] = useState(false);
+  const [requestsList, setRequestsList] = useState<ReviewRequestItem[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
-  const sendWaFn = useServerFn(sendTestWhatsapp);
+  const sendRequestFn = useServerFn(sendPatientReviewRequest);
+  const listRequestsFn = useServerFn(listReviewRequests);
 
   const clinic = clinicName || "Clinic";
   const doc = doctorName || "Doctor";
@@ -49,6 +68,22 @@ export function GmbGetReviewsTab({
   const waMessageTemplate = `Hello ${patientName.trim() || "[Patient Name]"}, thank you for visiting ${clinic}! Dr. ${doc} and our team hope you had a great experience. Could you please take 30 seconds to share your review on Google? It helps other patients find reliable care:\n👉 ${shareUrl}`;
 
   const smsTemplate = `Hi ${patientName.trim() || "there"}, thank you for choosing ${clinic}. Please rate your visit with Dr. ${doc}: ${shareUrl}`;
+
+  const loadRequests = async () => {
+    setLoadingRequests(true);
+    try {
+      const rows = await listRequestsFn({ data: { clinic_id: clinicId } });
+      setRequestsList((rows as unknown as ReviewRequestItem[]) || []);
+    } catch {
+      // defaults to empty
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadRequests();
+  }, [clinicId]);
 
   async function handleSendWhatsApp(e: React.FormEvent) {
     e.preventDefault();
@@ -60,21 +95,28 @@ export function GmbGetReviewsTab({
 
     setSendingWa(true);
     try {
-      const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-      await sendWaFn({
+      const res = await sendRequestFn({
         data: {
-          phone: fullPhone,
-          message: waMessageTemplate,
+          clinic_id: clinicId,
+          patient_name: patientName.trim() || "Patient",
+          phone: cleanPhone,
         },
       });
-      toast.success(`Review link sent via WhatsApp to ${cleanPhone}`);
+
+      if (res?.sentViaBridge) {
+        toast.success(`Review link sent via WhatsApp to ${cleanPhone}`);
+      } else {
+        window.open(res.waDirectUrl, "_blank");
+        toast.info("Opened WhatsApp Web to deliver review message!");
+      }
+
       setPatientPhone("");
       setPatientName("");
-    } catch {
-      // Direct WhatsApp Web Fallback
+      void loadRequests();
+    } catch (err) {
       const waUrl = `https://wa.me/${cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone}?text=${encodeURIComponent(waMessageTemplate)}`;
       window.open(waUrl, "_blank");
-      toast.info("Opened WhatsApp Web to deliver review message!");
+      toast.info("Opened WhatsApp to deliver review invite.");
     } finally {
       setSendingWa(false);
     }
@@ -113,8 +155,7 @@ export function GmbGetReviewsTab({
           </div>
           <h3 className="text-xs font-bold text-foreground">WhatsApp Automated Dispatch</h3>
           <p className="text-[11px] text-muted-foreground">
-            Send a 1-tap review invite to patients directly on WhatsApp after their clinic
-            consultation.
+            Send a 1-tap review invite to patients directly on WhatsApp after their clinic consultation.
           </p>
         </Card>
 
@@ -133,12 +174,11 @@ export function GmbGetReviewsTab({
           </div>
           <h3 className="text-xs font-bold text-foreground">Reception Standee QR</h3>
           <p className="text-[11px] text-muted-foreground">
-            Patients scan while waiting or paying billing. Instant deep-link directly to Google Maps
-            5-star form.
+            Patients scan while waiting or paying billing. Instant deep-link directly to Google Maps 5-star form.
           </p>
         </Card>
 
-        {/* Channel 3: Smart Funnel */}
+        {/* Channel 3: Google Anti-Gating Compliance */}
         <Card className="p-4 border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600">
@@ -148,13 +188,12 @@ export function GmbGetReviewsTab({
               variant="outline"
               className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/20"
             >
-              Reputation Guard
+              100% Policy Compliant
             </Badge>
           </div>
-          <h3 className="text-xs font-bold text-foreground">Smart Review Funnel</h3>
+          <h3 className="text-xs font-bold text-foreground">Anti-Gating Standard</h3>
           <p className="text-[11px] text-muted-foreground">
-            4-5 star reviews go directly to Google Maps; 1-3 star feedback stays internal for clinic
-            resolution.
+            Direct unhindered review links without selective filtering. Fully respects Google Business Profile guidelines.
           </p>
         </Card>
       </div>
@@ -165,11 +204,10 @@ export function GmbGetReviewsTab({
         <Card className="p-5 border shadow-xs space-y-4">
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <MessageSquare className="size-4 text-emerald-600" /> Send Instant WhatsApp Review
-              Invite
+              <MessageSquare className="size-4 text-emerald-600" /> Send WhatsApp Review Invite
             </h3>
             <p className="text-xs text-muted-foreground">
-              Enter patient details to deliver a personalized 1-tap review link.
+              Enter patient details to deliver a personalized review link and schedule an automated follow-up reminder.
             </p>
           </div>
 
@@ -240,7 +278,7 @@ export function GmbGetReviewsTab({
                 onClick={onOpenQrModal}
                 className="h-8 text-xs rounded-lg gap-1.5 shrink-0"
               >
-                <Printer className="size-3.5" /> Full Standee
+                <Printer className="size-3.5" /> Printable Standee
               </Button>
             </div>
 
@@ -251,15 +289,14 @@ export function GmbGetReviewsTab({
               <div className="min-w-0 space-y-1 text-xs">
                 <p className="font-bold text-foreground">Scannable by Any Smartphone</p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Opens directly to Google Maps 5-Star review dialog. No typing required by
-                  patients.
+                  Opens directly to Google Maps review dialog. No typing required by patients.
                 </p>
               </div>
             </div>
 
             {/* Copyable Smart Link */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-foreground">Smart Review URL</label>
+              <label className="text-[11px] font-semibold text-foreground">Direct Review URL</label>
               <div className="flex items-center gap-1.5">
                 <Input
                   readOnly
@@ -283,7 +320,7 @@ export function GmbGetReviewsTab({
             </div>
           </Card>
 
-          {/* SMS / NFC Card Option */}
+          {/* SMS Template */}
           <Card className="p-4 border shadow-xs space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -309,6 +346,69 @@ export function GmbGetReviewsTab({
           </Card>
         </div>
       </div>
+
+      {/* 3. Review Requests Delivery & Click Tracking Log */}
+      <Card className="p-5 border shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Review Requests Sent & Tracking Log</h3>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={loadRequests}
+            disabled={loadingRequests}
+            className="h-7 text-xs gap-1 text-muted-foreground"
+          >
+            <RefreshCw className={`size-3 ${loadingRequests ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {requestsList.length === 0 ? (
+          <div className="text-center py-8 text-xs text-muted-foreground border rounded-lg bg-muted/10">
+            No review requests recorded yet. Send your first review invite using the form above.
+          </div>
+        ) : (
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-muted/40 border-b text-muted-foreground">
+                <tr>
+                  <th className="py-2.5 px-3 font-medium">Patient</th>
+                  <th className="py-2.5 px-3 font-medium">Phone</th>
+                  <th className="py-2.5 px-3 font-medium">Channel</th>
+                  <th className="py-2.5 px-3 font-medium">Sent Date</th>
+                  <th className="py-2.5 px-3 font-medium">Status</th>
+                  <th className="py-2.5 px-3 font-medium">Reminders</th>
+                  <th className="py-2.5 px-3 font-medium text-right">Clicks</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {requestsList.map((req) => (
+                  <tr key={req.id} className="hover:bg-muted/20">
+                    <td className="py-2.5 px-3 font-medium text-foreground">{req.patient_name}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground font-mono">{req.phone}</td>
+                    <td className="py-2.5 px-3 capitalize">{req.channel}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">
+                      {new Date(req.sent_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                        {req.status}
+                      </Badge>
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground">
+                      {req.reminder_count > 0 ? `${req.reminder_count} sent` : "Scheduled (3d)"}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono font-medium">{req.click_count || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

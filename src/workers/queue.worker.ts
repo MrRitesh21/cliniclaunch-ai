@@ -5,7 +5,7 @@
 
 export interface QueueJob<T = unknown> {
   id: string;
-  type: "email" | "whatsapp" | "sms" | "ai" | "pdf" | "report";
+  type: "email" | "whatsapp" | "sms" | "ai" | "pdf" | "report" | "gbp";
   payload: T;
   attempts: number;
   maxAttempts: number;

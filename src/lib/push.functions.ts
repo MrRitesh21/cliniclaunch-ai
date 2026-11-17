@@ -19,10 +19,8 @@ export const DEFAULT_VAPID_PUBLIC_KEY =
 
 /** Public: the browser needs the VAPID public key to subscribe. Safe to expose. */
 export const getPushConfig = createServerFn({ method: "GET" }).handler(async () => {
-  const publicKey =
-    process.env["VAPID_PUBLIC_KEY"]?.trim() || DEFAULT_VAPID_PUBLIC_KEY;
-  const privateKey =
-    process.env["VAPID_PRIVATE_KEY"]?.trim() || "_PldHkiZcxiONkrTFCZieU-bfddu2mjAWQOtR5mDO6c";
+  const publicKey = process.env["VAPID_PUBLIC_KEY"]?.trim() || "";
+  const privateKey = process.env["VAPID_PRIVATE_KEY"]?.trim() || "";
   const configured = Boolean(publicKey && privateKey);
   return { publicKey: configured ? publicKey : "", configured };
 });

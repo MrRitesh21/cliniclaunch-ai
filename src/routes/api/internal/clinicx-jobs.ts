@@ -16,15 +16,25 @@ async function handler({ request }: { request: Request }) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { runTrialEngagementJobs, createTrialEmailSender } =
         await import("@/lib/trial-engagement.server");
-      return runTrialEngagementJobs(
-        supabaseAdmin as unknown as import("@/lib/trial-engagement.server").EngagementTransport,
-        {
-          sendEmail: serverEnv.RESEND_API_KEY
-            ? createTrialEmailSender(serverEnv.RESEND_API_KEY)
-            : null,
-          batchSize: 10,
-        },
-      );
+      const { executeGbpScheduledJobs } = await import("@/lib/gbp.server");
+
+      const [trialResult, gbpResult] = await Promise.allSettled([
+        runTrialEngagementJobs(
+          supabaseAdmin as unknown as import("@/lib/trial-engagement.server").EngagementTransport,
+          {
+            sendEmail: serverEnv.RESEND_API_KEY
+              ? createTrialEmailSender(serverEnv.RESEND_API_KEY)
+              : null,
+            batchSize: 10,
+          },
+        ),
+        executeGbpScheduledJobs(),
+      ]);
+
+      return {
+        trial: trialResult.status === "fulfilled" ? trialResult.value : { error: trialResult.reason },
+        gbp: gbpResult.status === "fulfilled" ? gbpResult.value : { error: gbpResult.reason },
+      };
     },
   });
 }

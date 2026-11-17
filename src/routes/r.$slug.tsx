@@ -21,8 +21,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useServerFn } from "@tanstack/react-start";
 import { getReviewPageContext, submitPublicReview } from "@/lib/clinic.functions";
+import { trackReviewClick } from "@/lib/gbp.functions";
 
 export const Route = createFileRoute("/r/$slug")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    req: typeof search.req === "string" ? search.req : undefined,
+  }),
   component: PublicReviewPage,
   head: () => ({
     meta: [
@@ -124,6 +128,15 @@ function PublicReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const { req } = Route.useSearch();
+  const trackClickFn = useServerFn(trackReviewClick);
+
+  useEffect(() => {
+    if (req) {
+      void trackClickFn({ data: { request_id: req } }).catch(() => {});
+    }
+  }, [req, trackClickFn]);
 
   // Review tone & variation selector
   const [tone, setTone] = useState<ReviewTone>("random");
@@ -264,8 +277,8 @@ function PublicReviewPage() {
       }
     }
 
-    // Direct Google Review Dialog redirect
-    if (googleReviewUrl && rating >= 3) {
+    // Direct Google Review Dialog redirect (Google Anti-Gating Compliant: all patients directed to Google)
+    if (googleReviewUrl) {
       window.open(googleReviewUrl, "_blank");
     }
 
@@ -330,7 +343,7 @@ function PublicReviewPage() {
           </div>
 
           <div className="border-t pt-5 space-y-4">
-            {comment.trim() && isPositive && (
+            {comment.trim() && (
               <div className="rounded-xl border bg-emerald-500/5 border-emerald-500/20 p-4 text-xs space-y-2 text-emerald-900 dark:text-emerald-300 text-left">
                 <div className="flex items-center justify-between font-bold">
                   <span className="flex items-center gap-1.5">

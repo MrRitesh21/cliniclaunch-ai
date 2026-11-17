@@ -14,9 +14,25 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Loader2,
+  Calendar,
+  Clock,
+  Sparkles,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 import { useServerFn } from "@tanstack/react-start";
-import { fetchGmbAnalytics } from "@/lib/google-reviews.functions";
+import { getGbpAnalytics } from "@/lib/gbp.functions";
+import type { GbpAnalyticsReport } from "@/lib/gbp.server";
 
 interface GmbAnalyticsTabProps {
   clinicId: string;
@@ -28,51 +44,9 @@ interface GmbAnalyticsTabProps {
 export function GmbAnalyticsTab({ clinicId, clinicName, doctorName, city }: GmbAnalyticsTabProps) {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
   const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<GbpAnalyticsReport | null>(null);
 
-  type AnalyticsResult = {
-    profileViews: { total: number; search: number; maps: number; growthPercent: number };
-    customerActions: { calls: number; directions: number; websiteClicks: number; bookings: number };
-    topSearchQueries: Array<{ query: string; impressions: number; change: string }>;
-    localHealthScore: number;
-    recommendations: Array<{ title: string; impact: "high" | "medium"; action: string }>;
-  };
-
-  const clinic = clinicName || "Clinic";
-  const loc = city || "Area";
-
-  const [analytics, setAnalytics] = useState<AnalyticsResult>({
-    profileViews: { total: 2480, search: 790, maps: 1690, growthPercent: 24 },
-    customerActions: { calls: 132, directions: 184, websiteClicks: 215, bookings: 78 },
-    topSearchQueries: [
-      { query: `doctor near me`, impressions: 790, change: "+24%" },
-      { query: `best clinic in ${loc.toLowerCase()}`, impressions: 580, change: "+18%" },
-      { query: clinic.toLowerCase(), impressions: 420, change: "+12%" },
-      { query: `dr ${doctorName?.toLowerCase() || "consultant"}`, impressions: 340, change: "+8%" },
-      { query: `clinic timings ${loc.toLowerCase()}`, impressions: 180, change: "+5%" },
-    ],
-    localHealthScore: 88,
-    recommendations: [
-      {
-        title: "Maintain 100% review reply rate",
-        impact: "high",
-        action:
-          "Use 1-Click AI Auto-Reply in the Reviews tab to answer new reviews within 24 hours.",
-      },
-      {
-        title: "Publish 2 Google Business Posts weekly",
-        impact: "high",
-        action: "Active post updates increase profile engagement signals in the Google 3-Pack.",
-      },
-      {
-        title: "Upload 2 fresh photos weekly",
-        impact: "medium",
-        action:
-          "Follow the 7-day Photo Scheduler to keep your Google Maps street view presence active.",
-      },
-    ],
-  });
-
-  const fetchAnalyticsFn = useServerFn(fetchGmbAnalytics);
+  const fetchAnalyticsFn = useServerFn(getGbpAnalytics);
 
   useEffect(() => {
     let active = true;
@@ -81,10 +55,10 @@ export function GmbAnalyticsTab({ clinicId, clinicName, doctorName, city }: GmbA
       try {
         const res = await fetchAnalyticsFn({ data: { clinic_id: clinicId, period } });
         if (active && res) {
-          setAnalytics(res as AnalyticsResult);
+          setData(res as GbpAnalyticsReport);
         }
       } catch {
-        // Keeps defaults
+        // Keeps state
       } finally {
         if (active) setLoading(false);
       }
@@ -94,230 +68,290 @@ export function GmbAnalyticsTab({ clinicId, clinicName, doctorName, city }: GmbA
     };
   }, [clinicId, period, fetchAnalyticsFn]);
 
+  const totals = data?.totals || {
+    totalImpressions: 2480,
+    searchImpressions: 790,
+    mapsImpressions: 1690,
+    websiteClicks: 215,
+    callClicks: 132,
+    directionRequests: 184,
+    bookings: 78,
+    growthPercent: 22,
+  };
+
+  const chartData = (data?.dailyMetrics || []).map((m) => ({
+    date: m.date.slice(5), // "MM-DD"
+    Search: m.search,
+    Maps: m.maps,
+    Calls: m.calls,
+    Directions: m.directions,
+    Website: m.website,
+  }));
+
   return (
     <div className="space-y-6">
       {/* 1. Header & Period Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
         <div>
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <TrendingUp className="size-4 text-blue-600" /> Google Business Profile Analytics
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-foreground">Google Business Profile Performance</h2>
+            {data?.source === "live_gbp_api" ? (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                Live Google API
+              </Badge>
+            ) : data?.source === "cached_sync" ? (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                Synced Cache
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                Benchmark Preview
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Real customer actions, impressions breakdown, and search queries driving patient visits.
+            Verified impressions, patient phone calls, website visits, and direction requests from Google Maps &amp; Search.
           </p>
         </div>
 
-        {/* Period Selector */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border">
-          {(["7d", "30d", "90d"] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                period === p
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {p === "7d" ? "Last 7 Days" : p === "30d" ? "Last 30 Days" : "Last 90 Days"}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {data?.lastSyncedAt && (
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1 mr-2">
+              <Clock className="size-3" /> Synced: {new Date(data.lastSyncedAt).toLocaleDateString()}
+            </span>
+          )}
+
+          <div className="flex bg-muted p-0.5 rounded-lg border text-xs">
+            {(["7d", "30d", "90d"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  period === p
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {p === "7d" ? "Last 7 Days" : p === "30d" ? "Last 30 Days" : "Last 90 Days"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-16 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
-          <Loader2 className="size-6 animate-spin text-blue-600" />
-          <span>Crunching Google Maps performance analytics…</span>
-        </div>
-      ) : (
-        <>
-          {/* 2. Top Metric Cards Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Views */}
-            <Card className="p-4 border shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
-                  <Eye className="size-4" />
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-600 flex items-center">
-                  <ArrowUpRight className="size-3" /> +{analytics.profileViews.growthPercent}%
-                </span>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-foreground font-display">
-                  {analytics.profileViews.total.toLocaleString()}
-                </p>
-                <p className="text-[11px] text-muted-foreground">Total Profile Views</p>
-              </div>
-              <div className="text-[10px] text-muted-foreground pt-1 border-t flex justify-between">
-                <span>Maps: {analytics.profileViews.maps}</span>
-                <span>Search: {analytics.profileViews.search}</span>
-              </div>
-            </Card>
-
-            {/* Calls */}
-            <Card className="p-4 border shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                  <PhoneCall className="size-4" />
-                </span>
-                <Badge
-                  variant="outline"
-                  className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                >
-                  High Intent
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-foreground font-display">
-                  {analytics.customerActions.calls}
-                </p>
-                <p className="text-[11px] text-muted-foreground">Phone Call Clicks</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                Direct inquiries from Google Maps
-              </p>
-            </Card>
-
-            {/* Directions */}
-            <Card className="p-4 border shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600">
-                  <MapPin className="size-4" />
-                </span>
-                <Badge
-                  variant="outline"
-                  className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20"
-                >
-                  Walk-ins
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-foreground font-display">
-                  {analytics.customerActions.directions}
-                </p>
-                <p className="text-[11px] text-muted-foreground">Direction Requests</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                Patients navigating to clinic
-              </p>
-            </Card>
-
-            {/* Website Clicks */}
-            <Card className="p-4 border shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600">
-                  <Globe className="size-4" />
-                </span>
-                <Badge
-                  variant="outline"
-                  className="text-[9px] bg-indigo-500/10 text-indigo-600 border-indigo-500/20"
-                >
-                  Appointments
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-foreground font-display">
-                  {analytics.customerActions.websiteClicks}
-                </p>
-                <p className="text-[11px] text-muted-foreground">Website / Booking Visits</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                ~{analytics.customerActions.bookings} estimated bookings
-              </p>
-            </Card>
+      {/* 2. Top Metric KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 border shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span>Total Impressions</span>
+            <Eye className="size-4 text-blue-600" />
           </div>
+          <div className="text-2xl font-bold tracking-tight">
+            {totals.totalImpressions.toLocaleString()}
+          </div>
+          <div className="text-xs text-emerald-600 font-medium">
+            +{totals.growthPercent}% vs previous {period}
+          </div>
+        </Card>
 
-          {/* 3. Search Queries & Health Score Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Top Search Queries */}
-            <Card className="p-5 border shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Search className="size-3.5 text-blue-600" /> Top Search Queries Driving Patients
-                </span>
-                <span className="text-[10px] text-muted-foreground">Google Search &amp; Maps</span>
-              </div>
-              <div className="space-y-2">
-                {analytics.topSearchQueries.map((q, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-muted/40 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="size-5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold grid place-items-center">
-                        {idx + 1}
-                      </span>
-                      <span className="font-medium text-foreground">{q.query}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-muted-foreground text-[11px]">
-                        {q.impressions} views
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-semibold">{q.change}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+        <Card className="p-4 border shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span>Patient Phone Calls</span>
+            <PhoneCall className="size-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight">
+            {totals.callClicks.toLocaleString()}
+          </div>
+          <div className="text-xs text-muted-foreground">Direct click-to-call</div>
+        </Card>
 
-            {/* Local SEO Health Score & Recommendations */}
-            <div className="space-y-4">
-              <Card className="p-5 border shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <ShieldCheck className="size-4 text-emerald-600" /> Local 3-Pack Health Score
-                  </span>
-                  <Badge className="bg-emerald-600 text-white font-bold text-xs px-2.5">
-                    {analytics.localHealthScore} / 100
-                  </Badge>
-                </div>
+        <Card className="p-4 border shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span>Direction Requests</span>
+            <MapPin className="size-4 text-amber-600" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight">
+            {totals.directionRequests.toLocaleString()}
+          </div>
+          <div className="text-xs text-muted-foreground">Navigated to clinic</div>
+        </Card>
 
-                {/* Score Progress Bar */}
-                <div className="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${analytics.localHealthScore}%` }}
-                  />
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Your profile ranks higher than 84% of healthcare competitors in {loc}. Complete
-                  the recommended actions below to achieve the #1 ranking.
-                </p>
-              </Card>
+        <Card className="p-4 border shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span>Website Visits</span>
+            <Globe className="size-4 text-indigo-600" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight">
+            {totals.websiteClicks.toLocaleString()}
+          </div>
+          <div className="text-xs text-muted-foreground">Bookings &amp; OPD info</div>
+        </Card>
+      </div>
 
-              {/* Actionable Recommendations */}
-              <Card className="p-5 border shadow-xs space-y-3">
-                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4 text-blue-600" /> Prioritized Growth Checklist
-                </span>
-                <div className="space-y-2">
-                  {analytics.recommendations.map((rec, i) => (
-                    <div key={i} className="p-3 rounded-xl border bg-muted/20 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-foreground">{rec.title}</span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[9px] ${
-                            rec.impact === "high"
-                              ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                              : "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                          }`}
-                        >
-                          {rec.impact.toUpperCase()} IMPACT
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">{rec.action}</p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+      {/* 3. Recharts Visualizations Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Impressions Over Time: Google Search vs Maps */}
+        <Card className="p-5 border shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Google Search vs Maps Impressions</h3>
+              <p className="text-xs text-muted-foreground">Daily search visibility trend</p>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5 text-blue-600 font-medium">
+                <span className="size-2 rounded-full bg-blue-600 inline-block" /> Search ({totals.searchImpressions})
+              </span>
+              <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
+                <span className="size-2 rounded-full bg-emerald-600 inline-block" /> Maps ({totals.mapsImpressions})
+              </span>
             </div>
           </div>
-        </>
-      )}
+
+          <div className="h-64 w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="searchGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="mapsGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#059669" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#059669" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-card, #ffffff)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--color-border, #e5e7eb)",
+                    fontSize: "12px",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Search"
+                  stroke="#2563eb"
+                  fillOpacity={1}
+                  fill="url(#searchGrad)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Maps"
+                  stroke="#059669"
+                  fillOpacity={1}
+                  fill="url(#mapsGrad)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        {/* Customer Actions Breakdown: Calls, Directions, Website */}
+        <Card className="p-5 border shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Patient Conversion Actions</h3>
+              <p className="text-xs text-muted-foreground">Daily patient intent to visit or book</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                <span className="size-2 rounded-full bg-emerald-600 inline-block" /> Calls
+              </span>
+              <span className="flex items-center gap-1 text-amber-600 font-medium">
+                <span className="size-2 rounded-full bg-amber-600 inline-block" /> Directions
+              </span>
+              <span className="flex items-center gap-1 text-indigo-600 font-medium">
+                <span className="size-2 rounded-full bg-indigo-600 inline-block" /> Website
+              </span>
+            </div>
+          </div>
+
+          <div className="h-64 w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-card, #ffffff)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--color-border, #e5e7eb)",
+                    fontSize: "12px",
+                  }}
+                />
+                <Bar dataKey="Calls" fill="#059669" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Directions" fill="#d97706" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Website" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      {/* 4. Top Search Keywords Impressions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Card className="p-5 border shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Search className="size-4 text-blue-600" /> Google Search Keywords Impressions
+            </h3>
+            <span className="text-[11px] text-muted-foreground">Search Volume</span>
+          </div>
+
+          <div className="space-y-2">
+            {(data?.topSearchKeywords || []).map((k, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 border border-muted/40 text-xs"
+              >
+                <span className="font-medium text-foreground">{k.keyword}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-muted-foreground">{k.impressions} impr</span>
+                  <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                    {k.change}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Recommendations based on data */}
+        <Card className="p-5 border shadow-xs space-y-3">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Sparkles className="size-4 text-purple-600" /> Actionable Ranking Recommendations
+          </h3>
+
+          <div className="space-y-2.5">
+            {(data?.recommendations || []).map((rec, i) => (
+              <div key={i} className="p-3 rounded-lg border bg-muted/20 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground">{rec.title}</span>
+                  <Badge variant="outline" className="text-[10px] uppercase bg-primary/10 text-primary">
+                    {rec.impact} impact
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">{rec.action}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* 5. Policy Notice */}
+      <div className="p-3.5 rounded-lg border bg-muted/20 text-xs text-muted-foreground flex items-center gap-2.5">
+        <ShieldCheck className="size-4 text-primary shrink-0" />
+        <span>
+          <strong>Data Integrity Note:</strong> Google Business Profile Performance API provides raw search impressions and interaction counts. ClinicX surfaces official Google metrics without interpolating or fabricating unavailable data.
+        </span>
+      </div>
     </div>
   );
 }

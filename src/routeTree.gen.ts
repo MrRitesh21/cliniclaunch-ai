@@ -107,6 +107,7 @@ import { Route as ApiInternalClinicxJobsRouteImport } from './routes/api/interna
 import { Route as ApiPublicClinicDataRouteImport } from './routes/api/public/clinic-data'
 import { Route as ApiPublicClinicGenerateRouteImport } from './routes/api/public/clinic-generate'
 import { Route as ApiPublicClinicThemeRouteImport } from './routes/api/public/clinic-theme'
+import { Route as ApiPublicGoogleOauthCallbackRouteImport } from './routes/api/public/google-oauth-callback'
 import { Route as ApiPublicHealthzRouteImport } from './routes/api/public/healthz'
 import { Route as ApiPublicPushEventRouteImport } from './routes/api.public.push-event'
 import { Route as ApiPublicSubmitBookingRouteImport } from './routes/api/public/submit-booking'
@@ -654,6 +655,12 @@ const ApiPublicClinicThemeRoute = ApiPublicClinicThemeRouteImport.update({
   path: '/api/public/clinic-theme',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGoogleOauthCallbackRoute =
+  ApiPublicGoogleOauthCallbackRouteImport.update({
+    id: '/api/public/google-oauth-callback',
+    path: '/api/public/google-oauth-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHealthzRoute = ApiPublicHealthzRouteImport.update({
   id: '/api/public/healthz',
   path: '/api/public/healthz',
@@ -872,6 +879,7 @@ export interface FileRoutesByFullPath {
   '/api/public/clinic-data': typeof ApiPublicClinicDataRoute
   '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/clinic-theme': typeof ApiPublicClinicThemeRoute
+  '/api/public/google-oauth-callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
@@ -989,6 +997,7 @@ export interface FileRoutesByTo {
   '/api/public/clinic-data': typeof ApiPublicClinicDataRoute
   '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/clinic-theme': typeof ApiPublicClinicThemeRoute
+  '/api/public/google-oauth-callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
@@ -1113,6 +1122,7 @@ export interface FileRoutesById {
   '/api/public/clinic-data': typeof ApiPublicClinicDataRoute
   '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/clinic-theme': typeof ApiPublicClinicThemeRoute
+  '/api/public/google-oauth-callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
   '/api/public/submit-booking': typeof ApiPublicSubmitBookingRoute
@@ -1236,6 +1246,7 @@ export interface FileRouteTypes {
     | '/api/public/clinic-data'
     | '/api/public/clinic-generate'
     | '/api/public/clinic-theme'
+    | '/api/public/google-oauth-callback'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/public/submit-booking'
@@ -1353,6 +1364,7 @@ export interface FileRouteTypes {
     | '/api/public/clinic-data'
     | '/api/public/clinic-generate'
     | '/api/public/clinic-theme'
+    | '/api/public/google-oauth-callback'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/public/submit-booking'
@@ -1476,6 +1488,7 @@ export interface FileRouteTypes {
     | '/api/public/clinic-data'
     | '/api/public/clinic-generate'
     | '/api/public/clinic-theme'
+    | '/api/public/google-oauth-callback'
     | '/api/public/healthz'
     | '/api/public/push-event'
     | '/api/public/submit-booking'
@@ -1549,6 +1562,7 @@ export interface RootRouteChildren {
   ApiPublicClinicDataRoute: typeof ApiPublicClinicDataRoute
   ApiPublicClinicGenerateRoute: typeof ApiPublicClinicGenerateRoute
   ApiPublicClinicThemeRoute: typeof ApiPublicClinicThemeRoute
+  ApiPublicGoogleOauthCallbackRoute: typeof ApiPublicGoogleOauthCallbackRoute
   ApiPublicHealthzRoute: typeof ApiPublicHealthzRoute
   ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
   ApiPublicSubmitBookingRoute: typeof ApiPublicSubmitBookingRoute
@@ -2247,6 +2261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClinicThemeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/google-oauth-callback': {
+      id: '/api/public/google-oauth-callback'
+      path: '/api/public/google-oauth-callback'
+      fullPath: '/api/public/google-oauth-callback'
+      preLoaderRoute: typeof ApiPublicGoogleOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/healthz': {
       id: '/api/public/healthz'
       path: '/api/public/healthz'
@@ -2674,6 +2695,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicClinicDataRoute: ApiPublicClinicDataRoute,
   ApiPublicClinicGenerateRoute: ApiPublicClinicGenerateRoute,
   ApiPublicClinicThemeRoute: ApiPublicClinicThemeRoute,
+  ApiPublicGoogleOauthCallbackRoute: ApiPublicGoogleOauthCallbackRoute,
   ApiPublicHealthzRoute: ApiPublicHealthzRoute,
   ApiPublicPushEventRoute: ApiPublicPushEventRoute,
   ApiPublicSubmitBookingRoute: ApiPublicSubmitBookingRoute,

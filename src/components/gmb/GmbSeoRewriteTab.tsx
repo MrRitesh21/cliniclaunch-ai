@@ -329,6 +329,14 @@ export function GmbSeoRewriteTab({
           </Card>
         </div>
       </div>
+
+      {/* 5. Policy Disclaimer */}
+      <div className="p-3.5 rounded-lg border bg-muted/20 text-xs text-muted-foreground flex items-center gap-2.5">
+        <ShieldCheck className="size-4 text-primary shrink-0" />
+        <span>
+          <strong>Google Ranking Notice:</strong> Local search rankings depend on patient search proximity, relevance, and Google search algorithms. ClinicX optimizes your profile according to official Google Business Profile guidelines; search rankings cannot be artificially guaranteed.
+        </span>
+      </div>
     </div>
   );
 }

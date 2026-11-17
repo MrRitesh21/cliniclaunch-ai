@@ -299,7 +299,7 @@ const NAV_SECTIONS = [
         icon: MessageCircle,
         module: "whatsapp",
       },
-      { to: "/dashboard/reviews", label: "Google Reviews & GMB", icon: Star, module: "reviews" },
+      { to: "/dashboard/reviews", label: "Google Business Profile", icon: Globe, module: "reviews" },
       { to: "/dashboard/loyalty", label: "Loyalty", icon: QrCode, module: "loyalty" },
       { to: "/dashboard/marketing", label: "Marketing", icon: Megaphone, module: "marketing" },
       { to: "/dashboard/seo", label: "SEO & AI Ranking", icon: Search, module: "seo" },

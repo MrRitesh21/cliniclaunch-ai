@@ -20,7 +20,8 @@
     "doctor": "npx react-doctor@latest",
     "live": "node .agent/skills/live-edit/scripts/live.mjs start",
     "check:secret-config": "node --test scripts/test-clinicx-secret-config.cjs",
-    "test:oneclick-setup": "node --test scripts/test-clinicx-oneclick-clinic-setup.cjs"
+    "test:oneclick-setup": "node --test scripts/test-clinicx-oneclick-clinic-setup.cjs",
+    "test:gbp": "node --test scripts/test-clinicx-gbp-integration.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
