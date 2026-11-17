@@ -156,22 +156,69 @@ export async function getGbpReadiness(clinicId: string, userId: string): Promise
   const oauthConfigured = config.isConfigured;
   const placesConfigured = Boolean(config.mapsApiKey || serverEnv.GOOGLE_MAPS_API_KEY);
 
-  // Check stored GBP account
-  const { data: account } = await supabaseAdmin
-    .from("gbp_accounts")
-    .select("id, account_email, status, api_approval_status, token_expires_at, scopes, updated_at")
-    .eq("clinic_id", clinicId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Check stored GBP account (table first, with resilient fallback to clinic.seo_config)
+  let account: any = null;
+  try {
+    const { data: acc } = await supabaseAdmin
+      .from("gbp_accounts")
+      .select("id, account_email, status, api_approval_status, token_expires_at, scopes, updated_at")
+      .eq("clinic_id", clinicId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (acc) account = acc;
+  } catch {
+    // ignore
+  }
+
+  // Fallback to clinic's seo_config if gbp_accounts table is not yet migrated
+  if (!account) {
+    const { data: clinicRow } = await supabaseAdmin
+      .from("clinics")
+      .select("seo_config")
+      .eq("id", clinicId)
+      .maybeSingle();
+
+    const fallbackAccount = (clinicRow?.seo_config as any)?.gbp_account;
+    if (fallbackAccount && fallbackAccount.status === "connected") {
+      account = fallbackAccount;
+    }
+  }
 
   // Check stored GBP location
-  const { data: location } = await supabaseAdmin
-    .from("gbp_locations")
-    .select("id, location_name, place_id, sync_status, last_synced_at")
-    .eq("clinic_id", clinicId)
-    .eq("is_primary", true)
-    .maybeSingle();
+  let location: any = null;
+  try {
+    const { data: loc } = await supabaseAdmin
+      .from("gbp_locations")
+      .select("id, location_name, place_id, sync_status, last_synced_at")
+      .eq("clinic_id", clinicId)
+      .eq("is_primary", true)
+      .maybeSingle();
+    if (loc) location = loc;
+  } catch {
+    // ignore
+  }
+
+  if (!location) {
+    const { data: clinicRow } = await supabaseAdmin
+      .from("clinics")
+      .select("seo_config, google_place_id, clinic_name, google_reviews_synced_at")
+      .eq("id", clinicId)
+      .maybeSingle();
+
+    const fallbackLoc = (clinicRow?.seo_config as any)?.gbp_location;
+    if (fallbackLoc) {
+      location = fallbackLoc;
+    } else if (clinicRow?.google_place_id) {
+      location = {
+        id: `loc-${clinicId}`,
+        location_name: clinicRow.clinic_name || clinic.clinic_name,
+        place_id: clinicRow.google_place_id,
+        sync_status: "synced",
+        last_synced_at: clinicRow.google_reviews_synced_at || null,
+      };
+    }
+  }
 
   const isTokenExpired = Boolean(
     account?.token_expires_at && new Date(account.token_expires_at).getTime() < Date.now(),
@@ -369,14 +416,63 @@ export async function processGoogleOAuthCallback(code: string, stateEncoded: str
     updated_at: new Date().toISOString(),
   };
 
-  const { data: savedAccount, error: accErr } = await supabaseAdmin
-    .from("gbp_accounts")
-    .upsert(accountUpdates as never, { onConflict: "clinic_id" })
-    .select("id")
-    .single();
+  let savedAccount: any = null;
+  try {
+    const { data: sa, error: accErr } = await supabaseAdmin
+      .from("gbp_accounts")
+      .upsert(accountUpdates as never, { onConflict: "clinic_id" })
+      .select("id")
+      .single();
 
-  if (accErr) {
-    console.error("[GBP OAuth] Failed to save gbp_account:", accErr.message);
+    if (!accErr) savedAccount = sa;
+  } catch {
+    // ignore table missing error
+  }
+
+  // Resilient fallback storage: store in clinics.seo_config so connection succeeds
+  // even before the gbp_accounts database table is migrated in Supabase.
+  try {
+    const { data: currentClinic } = await supabaseAdmin
+      .from("clinics")
+      .select("seo_config")
+      .eq("id", clinicId)
+      .maybeSingle();
+
+    const existingSeo = (currentClinic?.seo_config || {}) as Record<string, any>;
+    const gbpAccountRecord = {
+      id: savedAccount?.id || `gbp-${clinicId}`,
+      account_email: email,
+      google_account_name: primaryAccount?.accountName || userName || "Google Business Account",
+      status: "connected",
+      api_approval_status: apiApprovalStatus,
+      token_expires_at: tokenExpiresAt,
+      access_token: tokenData.access_token,
+      refresh_token_encrypted: encryptedRefresh,
+      scopes: tokenData.scope ? tokenData.scope.split(" ") : [],
+      updated_at: new Date().toISOString(),
+    };
+
+    const gbpLocationRecord = primaryAccount ? {
+      id: `loc-${clinicId}`,
+      location_name: primaryAccount.accountName || clinic?.clinic_name,
+      place_id: clinic?.google_place_id || null,
+      sync_status: "synced",
+      last_synced_at: new Date().toISOString(),
+    } : null;
+
+    await supabaseAdmin
+      .from("clinics")
+      .update({
+        seo_config: {
+          ...existingSeo,
+          gbp_account: gbpAccountRecord,
+          ...(gbpLocationRecord ? { gbp_location: gbpLocationRecord } : {}),
+        },
+        google_reviews_synced_at: new Date().toISOString(),
+      } as never)
+      .eq("id", clinicId);
+  } catch (seoErr) {
+    console.error("[GBP OAuth] Failed to save fallback seo_config:", seoErr);
   }
 
   // 6. Fetch and store locations if approved
@@ -462,17 +558,41 @@ export async function disconnectGoogleProfile(clinicId: string, userId: string) 
     .update({ sync_status: "disconnected" } as never)
     .eq("clinic_id", clinicId);
 
-  // 3. Clear clinic place / reviews
-  await supabaseAdmin
-    .from("clinics")
-    .update({
-      google_place_id: null,
-      google_reviews: null,
-      google_rating: null,
-      google_rating_count: null,
-      google_reviews_synced_at: null,
-    } as never)
-    .eq("id", clinicId);
+  // 3. Clear clinic place / reviews and fallback seo_config
+  try {
+    const { data: cData } = await supabaseAdmin
+      .from("clinics")
+      .select("seo_config")
+      .eq("id", clinicId)
+      .maybeSingle();
+
+    const cleanSeo = { ...(cData?.seo_config || {}) };
+    delete cleanSeo.gbp_account;
+    delete cleanSeo.gbp_location;
+
+    await supabaseAdmin
+      .from("clinics")
+      .update({
+        google_place_id: null,
+        google_reviews: null,
+        google_rating: null,
+        google_rating_count: null,
+        google_reviews_synced_at: null,
+        seo_config: cleanSeo,
+      } as never)
+      .eq("id", clinicId);
+  } catch {
+    await supabaseAdmin
+      .from("clinics")
+      .update({
+        google_place_id: null,
+        google_reviews: null,
+        google_rating: null,
+        google_rating_count: null,
+        google_reviews_synced_at: null,
+      } as never)
+      .eq("id", clinicId);
+  }
 
   // 4. Update organization sync status
   if (orgId) {
@@ -502,12 +622,31 @@ export async function disconnectGoogleProfile(clinicId: string, userId: string) 
 // ============================================================================
 
 export async function getValidAccessToken(clinicId: string): Promise<string | null> {
-  const { data: account } = await supabaseAdmin
-    .from("gbp_accounts")
-    .select("id, access_token, refresh_token_encrypted, token_expires_at, status")
-    .eq("clinic_id", clinicId)
-    .eq("status", "connected")
-    .maybeSingle();
+  let account: any = null;
+  try {
+    const { data: acc } = await supabaseAdmin
+      .from("gbp_accounts")
+      .select("id, access_token, refresh_token_encrypted, token_expires_at, status")
+      .eq("clinic_id", clinicId)
+      .eq("status", "connected")
+      .maybeSingle();
+    account = acc;
+  } catch {
+    // ignore
+  }
+
+  // Fallback to clinic's seo_config
+  if (!account) {
+    const { data: cData } = await supabaseAdmin
+      .from("clinics")
+      .select("seo_config")
+      .eq("id", clinicId)
+      .maybeSingle();
+    const fallbackAcc = (cData?.seo_config as any)?.gbp_account;
+    if (fallbackAcc && fallbackAcc.status === "connected") {
+      account = fallbackAcc;
+    }
+  }
 
   if (!account) return null;
 
