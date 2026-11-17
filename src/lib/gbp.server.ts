@@ -20,6 +20,8 @@ import { encryptToken } from "./token-crypto.server";
 import { callAI, safeJson } from "./ai.server";
 import {
   isGoogleOAuthConfigured,
+  getGoogleOAuthConfig,
+  clearGbpConfigCache,
   getGoogleOAuthAuthUrl,
   exchangeGoogleAuthCode,
   refreshGoogleAccessToken,
@@ -150,8 +152,9 @@ export interface GbpReadinessStatus {
 
 export async function getGbpReadiness(clinicId: string, userId: string): Promise<GbpReadinessStatus> {
   const clinic = await assertClinicAccess(clinicId, userId);
-  const oauthConfigured = isGoogleOAuthConfigured();
-  const placesConfigured = Boolean(serverEnv.GOOGLE_MAPS_API_KEY);
+  const config = await getGoogleOAuthConfig();
+  const oauthConfigured = config.isConfigured;
+  const placesConfigured = Boolean(config.mapsApiKey || serverEnv.GOOGLE_MAPS_API_KEY);
 
   // Check stored GBP account
   const { data: account } = await supabaseAdmin
@@ -233,12 +236,66 @@ export async function getGbpReadiness(clinicId: string, userId: string): Promise
 // 4. OAuth Flow & Token Handling
 // ============================================================================
 
-export function generateGoogleOAuthUrl(clinicId: string, userId: string, organizationId?: string | null): string {
+export async function generateGoogleOAuthUrl(
+  clinicId: string,
+  userId: string,
+  organizationId?: string | null,
+): Promise<string | null> {
+  await assertClinicAccess(clinicId, userId);
+  const config = await getGoogleOAuthConfig();
+  if (!config.clientId) {
+    return null;
+  }
   return getGoogleOAuthAuthUrl({
     clinicId,
     userId,
     organizationId,
+    clientId: config.clientId,
+    redirectUri: config.redirectUri,
   });
+}
+
+export async function getGoogleOAuthConfigForClient(clinicId: string, userId: string) {
+  await assertClinicAccess(clinicId, userId);
+  const config = await getGoogleOAuthConfig();
+  return {
+    clientId: config.clientId ? `${config.clientId.slice(0, 10)}...${config.clientId.slice(-12)}` : "",
+    rawClientId: config.clientId || "",
+    hasSecret: Boolean(config.clientSecret),
+    redirectUri: config.redirectUri,
+    hasMapsKey: Boolean(config.mapsApiKey),
+    isConfigured: config.isConfigured,
+  };
+}
+
+export async function saveGoogleOAuthConfig(
+  clinicId: string,
+  userId: string,
+  updates: { clientId: string; clientSecret?: string; mapsApiKey?: string },
+) {
+  await assertClinicAccess(clinicId, userId);
+  const rows: { key: string; value: string; updated_at: string }[] = [];
+  const now = new Date().toISOString();
+
+  if (updates.clientId !== undefined) {
+    rows.push({ key: "google_client_id", value: updates.clientId.trim(), updated_at: now });
+  }
+  if (updates.clientSecret && updates.clientSecret.trim() !== "") {
+    rows.push({ key: "google_client_secret", value: updates.clientSecret.trim(), updated_at: now });
+  }
+  if (updates.mapsApiKey !== undefined) {
+    rows.push({ key: "google_maps_api_key", value: updates.mapsApiKey.trim(), updated_at: now });
+  }
+
+  if (rows.length > 0) {
+    const { error } = await (supabaseAdmin as any).from("system_settings").upsert(rows);
+    if (error) {
+      throw new Error(`Failed to save settings: ${error.message}`);
+    }
+    clearGbpConfigCache();
+  }
+
+  return { success: true };
 }
 
 export async function processGoogleOAuthCallback(code: string, stateEncoded: string) {

@@ -99,6 +99,17 @@ test('GBP OAuth > Generates valid authorization URL with required scopes and off
   assert.equal(decoded.organizationId, '987fcdeb-51a2-43f1-9abc-426614174999');
 });
 
+test('GBP OAuth > Returns null when clientId is missing to prevent Google Error 400 (invalid_request)', () => {
+  function safeBuildOAuthUrl(opts) {
+    if (!opts.clientId || opts.clientId.trim() === '') return null;
+    return buildOAuthUrlTest(opts).url;
+  }
+
+  assert.equal(safeBuildOAuthUrl({ clientId: '', clinicId: '123' }), null);
+  assert.equal(safeBuildOAuthUrl({ clientId: '   ', clinicId: '123' }), null);
+  assert.ok(safeBuildOAuthUrl({ clientId: 'valid-client-id.apps.googleusercontent.com', clinicId: '123' })?.includes('valid-client-id'));
+});
+
 // 3. Review Link Builder & Google Anti-Gating Verification
 function buildReviewLinks(opts) {
   const googleDirect = opts.placeId

@@ -41,8 +41,45 @@ export const getGbpOAuthUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const userId = getAuthUserId(context);
     const { generateGoogleOAuthUrl } = await import("@/lib/gbp.server");
-    const url = generateGoogleOAuthUrl(data.clinic_id, userId, data.organization_id);
+    const url = await generateGoogleOAuthUrl(data.clinic_id, userId, data.organization_id);
     return { url };
+  });
+
+export const getGbpCredentials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const userId = getAuthUserId(context);
+    const { getGoogleOAuthConfigForClient } = await import("@/lib/gbp.server");
+    return await getGoogleOAuthConfigForClient(data.clinic_id, userId);
+  });
+
+export const saveGbpCredentials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().uuid(),
+        google_client_id: z.string().trim(),
+        google_client_secret: z.string().trim().optional(),
+        google_maps_api_key: z.string().trim().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const userId = getAuthUserId(context);
+    const { saveGoogleOAuthConfig } = await import("@/lib/gbp.server");
+    return await saveGoogleOAuthConfig(data.clinic_id, userId, {
+      clientId: data.google_client_id,
+      clientSecret: data.google_client_secret,
+      mapsApiKey: data.google_maps_api_key,
+    });
   });
 
 export const disconnectGbpAccount = createServerFn({ method: "POST" })

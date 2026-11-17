@@ -138,28 +138,123 @@ export interface GbpMediaInput {
   description?: string;
 }
 
+let cachedGbpConfig: {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  mapsApiKey: string;
+  at: number;
+} | null = null;
+
+export function clearGbpConfigCache(): void {
+  cachedGbpConfig = null;
+}
+
+/**
+ * Resolves Google OAuth credentials from server environment variables
+ * with fallback to the database system_settings table.
+ */
+export async function getGoogleOAuthConfig(): Promise<{
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  mapsApiKey: string;
+  isConfigured: boolean;
+}> {
+  const now = Date.now();
+  if (cachedGbpConfig && now - cachedGbpConfig.at < 60_000) {
+    return {
+      ...cachedGbpConfig,
+      isConfigured: Boolean(cachedGbpConfig.clientId && cachedGbpConfig.clientSecret),
+    };
+  }
+
+  // 1. Env vars
+  let clientId = (serverEnv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "").trim();
+  let clientSecret = (serverEnv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || "").trim();
+  let redirectUri = (serverEnv.GOOGLE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI || "").trim();
+  let mapsApiKey = (serverEnv.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "").trim();
+
+  // 2. Fallback to system_settings in database
+  if (!clientId || !clientSecret || !mapsApiKey) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: rows } = await supabaseAdmin
+        .from("system_settings" as any)
+        .select("key, value")
+        .in("key", [
+          "google_client_id",
+          "google_client_secret",
+          "google_redirect_uri",
+          "google_maps_api_key",
+        ]);
+
+      if (rows && Array.isArray(rows)) {
+        for (const r of rows) {
+          if (r.key === "google_client_id" && !clientId && r.value) clientId = String(r.value).trim();
+          if (r.key === "google_client_secret" && !clientSecret && r.value) clientSecret = String(r.value).trim();
+          if (r.key === "google_redirect_uri" && !redirectUri && r.value) redirectUri = String(r.value).trim();
+          if (r.key === "google_maps_api_key" && !mapsApiKey && r.value) mapsApiKey = String(r.value).trim();
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const appBase = serverEnv.APP_URL || "https://clinicx.digiwil.com";
+  if (!redirectUri) {
+    redirectUri = `${appBase}/api/public/google-oauth-callback`;
+  }
+
+  cachedGbpConfig = {
+    clientId,
+    clientSecret,
+    redirectUri,
+    mapsApiKey,
+    at: now,
+  };
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+    mapsApiKey,
+    isConfigured: Boolean(clientId && clientSecret),
+  };
+}
+
 /**
  * Returns whether Google OAuth client credentials are configured.
  */
 export function isGoogleOAuthConfigured(): boolean {
-  return Boolean(serverEnv.GOOGLE_CLIENT_ID && serverEnv.GOOGLE_CLIENT_SECRET);
+  if (serverEnv.GOOGLE_CLIENT_ID && serverEnv.GOOGLE_CLIENT_SECRET) return true;
+  if (cachedGbpConfig?.clientId && cachedGbpConfig?.clientSecret) return true;
+  return false;
 }
 
 /**
  * Generates the Google OAuth 2.0 authorization URL.
+ * Returns null if client_id is missing to prevent Google Error 400 (invalid_request).
  */
 export function getGoogleOAuthAuthUrl(opts: {
   clinicId: string;
   organizationId?: string | null;
   userId?: string | null;
   redirectUri?: string;
-}): string {
-  const clientId = serverEnv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
+  clientId?: string;
+}): string | null {
+  const clientId = (opts.clientId || serverEnv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "").trim();
+  if (!clientId) {
+    return null;
+  }
+
+  const appBase = serverEnv.APP_URL || "https://clinicx.digiwil.com";
   const baseRedirect =
     opts.redirectUri ||
     serverEnv.GOOGLE_REDIRECT_URI ||
     process.env.GOOGLE_REDIRECT_URI ||
-    `${serverEnv.APP_URL || "http://localhost:5173"}/api/auth/google/callback`;
+    `${appBase}/api/public/google-oauth-callback`;
 
   const statePayload = JSON.stringify({
     clinicId: opts.clinicId,
@@ -191,13 +286,10 @@ export async function exchangeGoogleAuthCode(
   code: string,
   redirectUri?: string,
 ): Promise<GbpTokenResponse> {
-  const clientId = serverEnv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = serverEnv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-  const baseRedirect =
-    redirectUri ||
-    serverEnv.GOOGLE_REDIRECT_URI ||
-    process.env.GOOGLE_REDIRECT_URI ||
-    `${serverEnv.APP_URL || "http://localhost:5173"}/api/auth/google/callback`;
+  const config = await getGoogleOAuthConfig();
+  const clientId = config.clientId;
+  const clientSecret = config.clientSecret;
+  const baseRedirect = redirectUri || config.redirectUri;
 
   if (!clientId || !clientSecret) {
     throw new Error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing from server configuration");
@@ -234,8 +326,9 @@ export async function refreshGoogleAccessToken(
     throw new Error("Could not decrypt Google refresh token");
   }
 
-  const clientId = serverEnv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = serverEnv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+  const config = await getGoogleOAuthConfig();
+  const clientId = config.clientId;
+  const clientSecret = config.clientSecret;
 
   if (!clientId || !clientSecret) {
     throw new Error("Google OAuth credentials missing");

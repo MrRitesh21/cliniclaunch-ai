@@ -243,10 +243,18 @@ export function ReviewsPage() {
       if (res?.url) {
         window.location.href = res.url;
       } else {
-        setShowGmbModal(true);
+        toast.info(
+          "Google OAuth Client ID is not configured yet. Configure credentials in Settings or connect via Place ID search.",
+          { duration: 6000 },
+        );
+        openGmbModal();
       }
-    } catch {
-      setShowGmbModal(true);
+    } catch (err) {
+      toast.info(
+        "Google OAuth configuration needed. Opening Google Business location selector.",
+        { duration: 5000 },
+      );
+      openGmbModal();
     }
   }
 
