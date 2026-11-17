@@ -478,17 +478,16 @@ export function ReviewsPage() {
     await handleConnectGoogleOAuth();
   }
 
-  function openGmbModal() {
-    if (isGmbConnected) {
-      setGmbStep("connected");
-    } else {
+  function openGmbModal(step?: "connected" | "select") {
+    const targetStep = step || (isGmbConnected ? "connected" : "select");
+    setGmbStep(targetStep);
+    if (targetStep === "select") {
       const storedToken =
         typeof window !== "undefined"
           ? sessionStorage.getItem("gmb_provider_token") ||
             localStorage.getItem("gmb_provider_token")
           : null;
 
-      setGmbStep("select");
       void loadProfilesFromGoogle(storedToken);
     }
     setShowGmbModal(true);
@@ -535,8 +534,9 @@ export function ReviewsPage() {
       setGmbStep("connected");
       toast.success(`Google Business connected & review link matched: ${target.name}`);
 
-      // Auto sync reviews
+      // Auto sync reviews and refresh readiness state
       void syncFn({ data: { clinic_id: clinic.id } }).catch(() => {});
+      void loadReadiness().catch(() => {});
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -1057,6 +1057,7 @@ export function ReviewsPage() {
           onRefreshReadiness={loadReadiness}
           onConnectGoogle={handleConnectGoogleOAuth}
           onDisconnectGoogle={handleDisconnectGoogleProfile}
+          onManageLocation={() => openGmbModal("select")}
           onNavigateTab={(tab) => setActiveTab(tab as any)}
           stats={{
             rating: Number(stats.avg) || 0,
@@ -1578,7 +1579,7 @@ export function ReviewsPage() {
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
                     <Input
-                      placeholder="e.g. Srivastava Tiffin Service, Schollora Intelligence, Awadh Dhaba..."
+                      placeholder={clinic?.clinic_name ? `e.g. ${clinic.clinic_name}...` : "e.g. Ear to Brain Speech & Hearing Clinic..."}
                       value={searchGmbQuery}
                       onChange={(e) => setSearchGmbQuery(e.target.value)}
                       onKeyDown={(e) => {
@@ -1600,28 +1601,29 @@ export function ReviewsPage() {
                     </Button>
                   </div>
 
-                  {/* Quick-select chips matching user's real Google businesses */}
+                  {/* Quick-select chips matching user's clinic and doctor */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-w-0">
                     <span className="text-[10px] font-medium text-muted-foreground shrink-0">
-                      Your Businesses:
+                      Suggested:
                     </span>
                     {[
-                      "Schollora Intelligence",
-                      "Srivastava Tiffin Service",
-                      "The Awadh Dhaba And Restaurant",
-                    ].map((name) => (
-                      <button
-                        key={name}
-                        type="button"
-                        onClick={() => {
-                          setSearchGmbQuery(name);
-                          void handleSearchGmb(name);
-                        }}
-                        className="px-2 py-0.5 rounded-md border text-[10px] font-medium bg-background hover:bg-muted text-foreground transition-all cursor-pointer max-w-[200px] truncate"
-                      >
-                        🔍 {name}
-                      </button>
-                    ))}
+                      clinic?.clinic_name,
+                      clinic?.doctor_name ? `Dr. ${clinic.doctor_name}` : null,
+                    ]
+                      .filter(Boolean)
+                      .map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => {
+                            setSearchGmbQuery(name!);
+                            void handleSearchGmb(name!);
+                          }}
+                          className="px-2 py-0.5 rounded-md border text-[10px] font-medium bg-background hover:bg-muted text-foreground transition-all cursor-pointer max-w-[220px] truncate"
+                        >
+                          📍 {name}
+                        </button>
+                      ))}
                   </div>
                 </div>
 

@@ -654,37 +654,66 @@ export async function getValidAccessToken(clinicId: string): Promise<string | nu
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0;
 
   // If token is still valid for > 5 minutes, return it
-  if (account.access_token && expiresAt > now + 300_000) {
+  if (account.access_token && (!expiresAt || expiresAt > now + 300_000)) {
     return account.access_token;
   }
 
-  // Otherwise, refresh token
-  if (!account.refresh_token_encrypted) return null;
+  // Otherwise, if no refresh token, return current access token if present
+  if (!account.refresh_token_encrypted) {
+    return account.access_token || null;
+  }
 
   try {
     const refreshed = await refreshGoogleAccessToken(account.refresh_token_encrypted);
     const newExpiresAt = new Date(Date.now() + refreshed.expiresIn * 1000).toISOString();
 
-    await supabaseAdmin
-      .from("gbp_accounts")
-      .update({
-        access_token: refreshed.accessToken,
-        token_expires_at: newExpiresAt,
-        updated_at: new Date().toISOString(),
-      } as never)
-      .eq("id", account.id);
+    // 1. Try updating gbp_accounts table
+    try {
+      if (account.id) {
+        await supabaseAdmin
+          .from("gbp_accounts")
+          .update({
+            access_token: refreshed.accessToken,
+            token_expires_at: newExpiresAt,
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq("id", account.id);
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Also update clinic's seo_config->'gbp_account'
+    try {
+      const { data: cData } = await supabaseAdmin
+        .from("clinics")
+        .select("seo_config")
+        .eq("id", clinicId)
+        .maybeSingle();
+      const existingSeo = (cData?.seo_config as Record<string, unknown>) || {};
+      const existingAcc = (existingSeo.gbp_account as Record<string, unknown>) || {};
+      await supabaseAdmin
+        .from("clinics")
+        .update({
+          seo_config: {
+            ...existingSeo,
+            gbp_account: {
+              ...existingAcc,
+              access_token: refreshed.accessToken,
+              token_expires_at: newExpiresAt,
+              updated_at: new Date().toISOString(),
+            },
+          },
+        } as never)
+        .eq("id", clinicId);
+    } catch (e) {
+      console.warn("[GBP] seo_config token refresh sync notice:", (e as Error).message);
+    }
 
     return refreshed.accessToken;
   } catch (err) {
     console.error("[GBP Auth] Token refresh failed:", (err as Error).message);
-    await supabaseAdmin
-      .from("gbp_accounts")
-      .update({
-        status: "expired",
-        last_error: (err as Error).message,
-      } as never)
-      .eq("id", account.id);
-    return null;
+    return account.access_token || null;
   }
 }
 

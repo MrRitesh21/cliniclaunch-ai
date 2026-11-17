@@ -144,10 +144,22 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date().toISOString();
 
+    const { data: cData } = await supabaseAdmin
+      .from("clinics")
+      .select("id, clinic_name, seo_config")
+      .eq("id", data.clinic_id)
+      .maybeSingle();
+
+    const resolvedBizName =
+      data.business_name && !data.business_name.toLowerCase().startsWith("google business")
+        ? data.business_name
+        : cData?.clinic_name || "Clinic";
+
     const clinicUpdates: Record<string, unknown> = {
       google_place_id: data.place_id || null,
+      google_reviews_synced_at: now,
     };
-    if (data.business_name) {
+    if (data.business_name && !data.business_name.toLowerCase().startsWith("google business")) {
       clinicUpdates.clinic_name = data.business_name;
     }
     if (data.custom_slug) {
@@ -161,14 +173,53 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
       }
     }
 
+    const existingSeo = (cData?.seo_config as Record<string, unknown>) || {};
+    const existingAccount = (existingSeo.gbp_account as Record<string, unknown>) || {};
+
+    const updatedSeoConfig = {
+      ...existingSeo,
+      gbp_account: {
+        ...existingAccount,
+        status: "connected",
+        account_email: data.account_email || existingAccount.account_email || null,
+        updated_at: now,
+      },
+      gbp_location: {
+        id: `loc-${data.clinic_id}`,
+        location_name: resolvedBizName,
+        place_id: data.place_id || null,
+        sync_status: "synced",
+        last_synced_at: now,
+      },
+    };
+
+    clinicUpdates.seo_config = updatedSeoConfig;
+
     await supabaseAdmin
       .from("clinics")
       .update(clinicUpdates as never)
       .eq("id", data.clinic_id);
 
+    try {
+      await supabaseAdmin.from("gbp_locations").upsert(
+        {
+          clinic_id: data.clinic_id,
+          location_name: resolvedBizName,
+          place_id: data.place_id || null,
+          is_primary: true,
+          sync_status: "synced",
+          last_synced_at: now,
+          updated_at: now,
+        } as never,
+        { onConflict: "clinic_id,place_id" },
+      );
+    } catch {
+      // ignore if gbp_locations table is not yet migrated
+    }
+
     if (data.organization_id) {
       const orgUpdates: Record<string, unknown> = {
-        google_business_name: data.business_name || null,
+        google_business_name: resolvedBizName,
         google_business_profile_url: data.profile_url || null,
         google_place_id: data.place_id || null,
         google_sync_status: "connected",

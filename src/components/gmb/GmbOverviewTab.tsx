@@ -32,6 +32,7 @@ interface GmbOverviewTabProps {
   onRefreshReadiness: () => void;
   onConnectGoogle: () => void;
   onDisconnectGoogle: () => void;
+  onManageLocation?: () => void;
   onNavigateTab: (tab: string) => void;
   stats: {
     rating: number;
@@ -49,6 +50,7 @@ export function GmbOverviewTab({
   onRefreshReadiness,
   onConnectGoogle,
   onDisconnectGoogle,
+  onManageLocation,
   onNavigateTab,
   stats,
 }: GmbOverviewTabProps) {
@@ -144,6 +146,90 @@ export function GmbOverviewTab({
           </div>
         )}
       </Card>
+
+      {/* 1b. Linked Google Business Location Card */}
+      {readiness?.primaryLocation ? (
+        <Card className="p-4 border-emerald-500/30 bg-emerald-500/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
+                  <CheckCircle2 className="size-3 text-emerald-600" /> Linked Business Profile
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-semibold"
+                >
+                  Active Location
+                </Badge>
+              </div>
+              <h3 className="font-bold text-base text-foreground">
+                {readiness.primaryLocation.name}
+              </h3>
+              {readiness.primaryLocation.placeId && (
+                <p className="text-xs font-mono text-muted-foreground truncate">
+                  Place ID: {readiness.primaryLocation.placeId}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {onManageLocation && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onManageLocation}
+                  className="text-xs font-medium gap-1.5 h-8 cursor-pointer"
+                >
+                  <RefreshCw className="size-3" /> Switch / Manage Profile
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={onRefreshReadiness}
+                disabled={loadingReadiness}
+                className="text-xs font-semibold gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+              >
+                <CheckCircle2 className="size-3" /> Verified & Synced
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-4 border-dashed border-primary/40 bg-primary/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                  <AlertTriangle className="size-3 text-amber-600" /> Action Required
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30 font-medium"
+                >
+                  Location Not Selected
+                </Badge>
+              </div>
+              <h3 className="font-bold text-sm text-foreground">
+                Select Your Google Business Profile Location
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Link your clinic's Google Business Profile to enable automatic review sync, AI local SEO, and photo scheduling.
+              </p>
+            </div>
+
+            {onManageLocation && (
+              <Button
+                size="sm"
+                onClick={onManageLocation}
+                className="text-xs font-semibold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 cursor-pointer"
+              >
+                <Globe className="size-3.5" /> Select Business Profile
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* 2. Top Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
