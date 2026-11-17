@@ -138,6 +138,9 @@ export interface GbpMediaInput {
   description?: string;
 }
 
+export const DEFAULT_PLATFORM_GOOGLE_REDIRECT_URI =
+  "https://clinicx.digiwil.com/api/public/google-oauth-callback";
+
 let cachedGbpConfig: {
   clientId: string;
   clientSecret: string;
@@ -152,7 +155,7 @@ export function clearGbpConfigCache(): void {
 
 /**
  * Resolves Google OAuth credentials from server environment variables
- * with fallback to the database system_settings table.
+ * with fallback to the database system_settings table configured by the Super Admin.
  */
 export async function getGoogleOAuthConfig(): Promise<{
   clientId: string;
@@ -175,7 +178,7 @@ export async function getGoogleOAuthConfig(): Promise<{
   let redirectUri = (serverEnv.GOOGLE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI || "").trim();
   let mapsApiKey = (serverEnv.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "").trim();
 
-  // 2. Fallback to system_settings in database
+  // 2. Fallback to system_settings in database (managed by Super Admin dashboard)
   if (!clientId || !clientSecret || !mapsApiKey) {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

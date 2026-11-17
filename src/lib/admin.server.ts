@@ -1721,6 +1721,10 @@ export async function getSystemSettingsImpl() {
     razorpay_webhook_secret: "",
     openai_api_key: "",
     openai_model: "gpt-4o-mini",
+    google_client_id: "",
+    google_client_secret: "",
+    google_redirect_uri: "https://clinicx.digiwil.com/api/public/google-oauth-callback",
+    google_maps_api_key: "",
   };
 
   (data ?? []).forEach((row: any) => {
@@ -1817,6 +1821,11 @@ export async function saveSystemSettingsImpl(input: any) {
 
   const { clearAiGatewayCache } = await import("./ai.server");
   clearAiGatewayCache();
+
+  try {
+    const { clearGbpConfigCache } = await import("@/lib/gbp-client.server");
+    clearGbpConfigCache();
+  } catch {}
 
   await createAuditLog(supabaseAdmin, admin.id, "system_settings_updated", "system", "settings", {
     keys: Object.keys(input),
@@ -2004,7 +2013,7 @@ export async function deletePlanImpl(input: any) {
 // Integration Test Connections
 // -------------------------------------------------------------
 export async function testIntegrationImpl(input: {
-  provider: "wati" | "razorpay" | "openai";
+  provider: "wati" | "razorpay" | "openai" | "google_oauth";
   settings: Record<string, string>;
 }) {
   const admin = await getVerifiedAdmin();
@@ -2014,7 +2023,14 @@ export async function testIntegrationImpl(input: {
   const settings = { ...input.settings };
 
   try {
-    const secretKey = provider === "wati" ? "wati_api_key" : provider === "razorpay" ? "razorpay_key_secret" : "openai_api_key";
+    const secretKey =
+      provider === "wati"
+        ? "wati_api_key"
+        : provider === "razorpay"
+          ? "razorpay_key_secret"
+          : provider === "openai"
+            ? "openai_api_key"
+            : "google_client_secret";
     // Browser reads intentionally contain blank private fields. Resolve saved
     // credentials only on the server, under verified super-admin authority.
     if (!settings[secretKey]?.trim()) {
@@ -2022,6 +2038,16 @@ export async function testIntegrationImpl(input: {
       const { data, error } = await supabaseAdmin.from("system_settings").select("key,value").in("key", [secretKey]);
       if (error) throw new Error("Stored integration credentials unavailable");
       settings[secretKey] = data?.find(row => row.key === secretKey)?.value || "";
+    }
+    if (provider === "google_oauth") {
+      const clientId = settings.google_client_id?.trim();
+      const clientSecret = settings.google_client_secret?.trim();
+      if (!clientId) throw new Error("Google Client ID is required. Please enter your Google OAuth Client ID.");
+      if (!clientId.includes(".apps.googleusercontent.com")) {
+        throw new Error("Invalid Google Client ID format (must end with .apps.googleusercontent.com)");
+      }
+      if (!clientSecret) throw new Error("Google Client Secret is required. Please enter your Client Secret.");
+      return { ok: true, message: `Google OAuth credentials verified for Client ID: ${clientId.slice(0, 15)}...` };
     }
     if (provider === "wati") {
       const base = (settings.wati_base_url || "").replace(/\/$/, "");

@@ -110,6 +110,18 @@ test('GBP OAuth > Returns null when clientId is missing to prevent Google Error 
   assert.ok(safeBuildOAuthUrl({ clientId: 'valid-client-id.apps.googleusercontent.com', clinicId: '123' })?.includes('valid-client-id'));
 });
 
+test('GBP OAuth > Uses platform default credentials for 1-click doctor connection without manual setup', () => {
+  const PLATFORM_ID = 'test-platform-client-id.apps.googleusercontent.com';
+  const { url } = buildOAuthUrlTest({
+    clientId: PLATFORM_ID,
+    redirectUri: 'https://clinicx.digiwil.com/api/public/google-oauth-callback',
+    clinicId: 'test-clinic-id',
+  });
+  const parsed = new URL(url);
+  assert.equal(parsed.searchParams.get('client_id'), PLATFORM_ID);
+  assert.equal(parsed.searchParams.get('redirect_uri'), 'https://clinicx.digiwil.com/api/public/google-oauth-callback');
+});
+
 // 3. Review Link Builder & Google Anti-Gating Verification
 function buildReviewLinks(opts) {
   const googleDirect = opts.placeId

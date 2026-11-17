@@ -121,26 +121,13 @@ export function GmbOverviewTab({
                 Disconnect
               </Button>
             ) : (
-              <div className="flex items-center gap-2">
-                {!readiness?.oauthClientConfigured && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onNavigateTab("settings")}
-                    className="gap-1.5 text-xs text-amber-700 bg-amber-500/10 border-amber-300 hover:bg-amber-500/20"
-                  >
-                    <Settings className="size-3.5" />
-                    Configure OAuth
-                  </Button>
-                )}
-                <Button
-                  onClick={onConnectGoogle}
-                  className="gap-1.5 bg-primary hover:bg-primary/90 font-semibold"
-                >
-                  <Globe className="size-4" />
-                  Connect Google Profile
-                </Button>
-              </div>
+              <Button
+                onClick={onConnectGoogle}
+                className="gap-1.5 bg-primary hover:bg-primary/90 font-semibold"
+              >
+                <Globe className="size-4" />
+                Connect Google Profile
+              </Button>
             )}
           </div>
         </div>

@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Settings2, Key, MessageSquare, ShieldAlert, PlugZap } from "lucide-react";
+import { Loader2, Settings2, Key, MessageSquare, ShieldAlert, PlugZap, Globe, Copy } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin/settings/system")({
   component: SystemSettingsPage,
@@ -54,7 +54,7 @@ function SystemSettingsPage() {
 
   const testFn = useServerFn(testIntegration);
   const [testing, setTesting] = useState<string | null>(null);
-  const runTest = async (provider: "wati" | "razorpay" | "openai") => {
+  const runTest = async (provider: "wati" | "razorpay" | "openai" | "google_oauth") => {
     setTesting(provider);
     try {
       const res = await testFn({ data: { provider, settings: form } });
@@ -305,6 +305,81 @@ function SystemSettingsPage() {
                     <PlugZap className="size-3.5 mr-1.5" />
                   )}
                   Test OpenAI
+                </Button>
+              </div>
+            </div>
+
+            {/* Google Business Profile & OAuth 2.0 (Platform-Wide) */}
+            <div className="space-y-3 pt-3 border-t">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Globe className="size-3.5 text-blue-600" /> Google Business Profile & OAuth 2.0
+              </span>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Platform-wide Google Cloud credentials. All clinics and doctors can connect their Google Business Profile in 1-click without creating Google Cloud developer accounts.
+              </p>
+              <div>
+                <Label htmlFor="google_client_id">Google OAuth Client ID</Label>
+                <Input
+                  id="google_client_id"
+                  className="font-mono text-xs"
+                  placeholder="e.g. 123456789012-abcdef.apps.googleusercontent.com"
+                  value={form.google_client_id || ""}
+                  onChange={(e) => handleChange("google_client_id", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="google_client_secret">Google OAuth Client Secret</Label>
+                <Input
+                  id="google_client_secret"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={settings?.__configured_google_client_secret === "true" ? "Configured — leave blank to keep" : "Enter Google Client Secret"}
+                  value={form.google_client_secret || ""}
+                  onChange={(e) => handleChange("google_client_secret", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="google_maps_api_key">Google Maps / Places API Key (Optional)</Label>
+                <Input
+                  id="google_maps_api_key"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={settings?.__configured_google_maps_api_key === "true" ? "Configured — leave blank to keep" : "AIzaSy..."}
+                  value={form.google_maps_api_key || ""}
+                  onChange={(e) => handleChange("google_maps_api_key", e.target.value)}
+                />
+              </div>
+              <div className="p-2.5 rounded-lg border bg-muted/40 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground">Authorized Redirect URI (for Google Cloud Console):</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText("https://clinicx.digiwil.com/api/public/google-oauth-callback");
+                      toast.success("Redirect URI copied to clipboard");
+                    }}
+                    className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                  >
+                    <Copy className="size-3" /> Copy URI
+                  </button>
+                </div>
+                <code className="block p-1.5 bg-background rounded text-[11px] font-mono select-all">
+                  https://clinicx.digiwil.com/api/public/google-oauth-callback
+                </code>
+              </div>
+              <div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={testing === "google_oauth"}
+                  onClick={() => runTest("google_oauth")}
+                >
+                  {testing === "google_oauth" ? (
+                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                  ) : (
+                    <PlugZap className="size-3.5 mr-1.5" />
+                  )}
+                  Test Google OAuth Config
                 </Button>
               </div>
             </div>

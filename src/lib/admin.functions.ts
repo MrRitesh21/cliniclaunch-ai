@@ -419,7 +419,7 @@ export const testIntegration = createServerFn({ method: "POST" })
   .middleware([requireAdminAuth])
   .validator(
     z.object({
-      provider: z.enum(["wati", "razorpay", "openai"]),
+      provider: z.enum(["wati", "razorpay", "openai", "google_oauth"]),
       settings: z.record(z.string(), z.string()),
     }),
   )

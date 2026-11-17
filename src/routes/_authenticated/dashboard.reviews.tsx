@@ -232,7 +232,11 @@ export function ReviewsPage() {
   }, [loadReadiness]);
 
   async function handleConnectGoogleOAuth() {
-    if (!clinic?.id) return;
+    if (!clinic?.id) {
+      toast.error("Please select a clinic first");
+      return;
+    }
+    setFetchingProfiles(true);
     try {
       const res = await getOAuthUrlFn({
         data: {
@@ -243,18 +247,18 @@ export function ReviewsPage() {
       if (res?.url) {
         window.location.href = res.url;
       } else {
-        toast.info(
-          "Google OAuth Client ID is not configured yet. Configure credentials in Settings or connect via Place ID search.",
+        toast.error(
+          "Google OAuth is not configured yet. Please configure credentials in Super Admin Settings.",
           { duration: 6000 },
         );
-        openGmbModal();
       }
     } catch (err) {
-      toast.info(
-        "Google OAuth configuration needed. Opening Google Business location selector.",
+      toast.error(
+        "Could not initiate Google connection: " + ((err as Error)?.message || "Unknown error"),
         { duration: 5000 },
       );
-      openGmbModal();
+    } finally {
+      setFetchingProfiles(false);
     }
   }
 
@@ -434,101 +438,44 @@ export function ReviewsPage() {
     };
   }, []);
 
-  // Catch OAuth redirect back even if URL query params are stripped
+  // Catch OAuth redirect back from Google OAuth callback
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
-    const hasParam = url.searchParams.get("google_connect") === "1";
-    const hasPendingStorage =
-      localStorage.getItem("clinicx_gmb_oauth_pending") === "true" ||
-      sessionStorage.getItem("clinicx_gmb_oauth_pending") === "true";
+    const googleConnect = url.searchParams.get("google_connect");
+    const errorParam = url.searchParams.get("error");
+    const emailParam = url.searchParams.get("email");
 
-    const oauthTime = Number(localStorage.getItem("clinicx_gmb_oauth_time") || "0");
-    const isRecentOAuth = !oauthTime || Date.now() - oauthTime < 30 * 60 * 1000;
+    if (googleConnect) {
+      url.searchParams.delete("google_connect");
+      if (errorParam) url.searchParams.delete("error");
+      if (emailParam) url.searchParams.delete("email");
+      url.searchParams.delete("status");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
 
-    if (hasParam || (hasPendingStorage && isRecentOAuth)) {
-      if (!clinic) return; // Keep pending flag until clinic is resolved
-
-      localStorage.removeItem("clinicx_gmb_oauth_pending");
-      sessionStorage.removeItem("clinicx_gmb_oauth_pending");
-      if (hasParam) {
-        url.searchParams.delete("google_connect");
-        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      if (googleConnect === "success") {
+        toast.success(
+          emailParam
+            ? `Google Account (${decodeURIComponent(emailParam)}) connected successfully!`
+            : "Google Business Profile connected successfully!",
+          { duration: 6000 },
+        );
+        setShowGmbModal(false);
+        void loadReadiness();
+      } else if (googleConnect === "error") {
+        toast.error(
+          "Google connection error: " + (errorParam ? decodeURIComponent(errorParam) : "Authorization was denied"),
+          { duration: 7000 },
+        );
+      } else if (googleConnect === "1") {
+        setShowGmbModal(false);
+        void loadReadiness();
       }
-
-      setShowGmbModal(true);
-      setGmbStep("select");
-
-      void (async () => {
-        setFetchingProfiles(true);
-        let token =
-          sessionStorage.getItem("gmb_provider_token") ||
-          localStorage.getItem("gmb_provider_token");
-
-        // If token not yet saved, wait up to 5 seconds for onAuthStateChange
-        if (!token) {
-          token = await new Promise<string | null>((resolve) => {
-            let done = false;
-            const timer = setTimeout(() => {
-              if (!done) {
-                done = true;
-                sub.unsubscribe();
-                resolve(null);
-              }
-            }, 5000);
-
-            const {
-              data: { subscription: sub },
-            } = supabase.auth.onAuthStateChange((_evt, sess) => {
-              if (sess?.provider_token && !done) {
-                done = true;
-                clearTimeout(timer);
-                sub.unsubscribe();
-                sessionStorage.setItem("gmb_provider_token", sess.provider_token);
-                localStorage.setItem("gmb_provider_token", sess.provider_token);
-                resolve(sess.provider_token);
-              }
-            });
-          });
-        }
-
-        await loadProfilesFromGoogle(token);
-      })();
     }
-  }, [clinic, loadProfilesFromGoogle]);
+  }, [loadReadiness]);
 
   async function handleGoogleLoginAndConnect() {
-    setFetchingProfiles(true);
-    try {
-      localStorage.setItem("clinicx_gmb_oauth_pending", "true");
-      sessionStorage.setItem("clinicx_gmb_oauth_pending", "true");
-      localStorage.setItem("clinicx_gmb_oauth_time", String(Date.now()));
-
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const { data: oauthData, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          skipBrowserRedirect: true,
-          scopes: "https://www.googleapis.com/auth/business.manage email profile",
-          redirectTo: `${origin}/dashboard/reviews?google_connect=1`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent select_account",
-          },
-        },
-      });
-
-      if (error || !oauthData?.url) {
-        toast.error("Google sign-in error: " + (error?.message || "Could not start Google login"));
-        setFetchingProfiles(false);
-        return;
-      }
-
-      window.location.assign(oauthData.url);
-    } catch (err) {
-      toast.error("Google login failed: " + (err as Error).message);
-      setFetchingProfiles(false);
-    }
+    await handleConnectGoogleOAuth();
   }
 
   function openGmbModal() {
