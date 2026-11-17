@@ -66,6 +66,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   UserPlus,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicClinicUrl } from "@/lib/publicClinicUrl";

@@ -81,6 +81,7 @@ import { Route as AuthenticatedDashboardBillingRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardConsultRouteImport } from './routes/_authenticated/dashboard.consult'
 import { Route as AuthenticatedDashboardDoctorsRouteImport } from './routes/_authenticated/dashboard.doctors'
 import { Route as AuthenticatedDashboardFinanceRouteImport } from './routes/_authenticated/dashboard.finance'
+import { Route as AuthenticatedDashboardGmbRouteImport } from './routes/_authenticated/dashboard.gmb'
 import { Route as AuthenticatedDashboardInventoryRouteImport } from './routes/_authenticated/dashboard.inventory'
 import { Route as AuthenticatedDashboardLabRouteImport } from './routes/_authenticated/dashboard.lab'
 import { Route as AuthenticatedDashboardLeadsRouteImport } from './routes/_authenticated/dashboard.leads'
@@ -503,6 +504,12 @@ const AuthenticatedDashboardFinanceRoute =
     path: '/finance',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardGmbRoute =
+  AuthenticatedDashboardGmbRouteImport.update({
+    id: '/gmb',
+    path: '/gmb',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardInventoryRoute =
   AuthenticatedDashboardInventoryRouteImport.update({
     id: '/inventory',
@@ -853,6 +860,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/consult': typeof AuthenticatedDashboardConsultRoute
   '/dashboard/doctors': typeof AuthenticatedDashboardDoctorsRoute
   '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
+  '/dashboard/gmb': typeof AuthenticatedDashboardGmbRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/lab': typeof AuthenticatedDashboardLabRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
@@ -972,6 +980,7 @@ export interface FileRoutesByTo {
   '/dashboard/consult': typeof AuthenticatedDashboardConsultRoute
   '/dashboard/doctors': typeof AuthenticatedDashboardDoctorsRoute
   '/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
+  '/dashboard/gmb': typeof AuthenticatedDashboardGmbRoute
   '/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/dashboard/lab': typeof AuthenticatedDashboardLabRoute
   '/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
@@ -1096,6 +1105,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/consult': typeof AuthenticatedDashboardConsultRoute
   '/_authenticated/dashboard/doctors': typeof AuthenticatedDashboardDoctorsRoute
   '/_authenticated/dashboard/finance': typeof AuthenticatedDashboardFinanceRoute
+  '/_authenticated/dashboard/gmb': typeof AuthenticatedDashboardGmbRoute
   '/_authenticated/dashboard/inventory': typeof AuthenticatedDashboardInventoryRoute
   '/_authenticated/dashboard/lab': typeof AuthenticatedDashboardLabRoute
   '/_authenticated/dashboard/leads': typeof AuthenticatedDashboardLeadsRoute
@@ -1220,6 +1230,7 @@ export interface FileRouteTypes {
     | '/dashboard/consult'
     | '/dashboard/doctors'
     | '/dashboard/finance'
+    | '/dashboard/gmb'
     | '/dashboard/inventory'
     | '/dashboard/lab'
     | '/dashboard/leads'
@@ -1339,6 +1350,7 @@ export interface FileRouteTypes {
     | '/dashboard/consult'
     | '/dashboard/doctors'
     | '/dashboard/finance'
+    | '/dashboard/gmb'
     | '/dashboard/inventory'
     | '/dashboard/lab'
     | '/dashboard/leads'
@@ -1462,6 +1474,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/consult'
     | '/_authenticated/dashboard/doctors'
     | '/_authenticated/dashboard/finance'
+    | '/_authenticated/dashboard/gmb'
     | '/_authenticated/dashboard/inventory'
     | '/_authenticated/dashboard/lab'
     | '/_authenticated/dashboard/leads'
@@ -2079,6 +2092,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardFinanceRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/gmb': {
+      id: '/_authenticated/dashboard/gmb'
+      path: '/gmb'
+      fullPath: '/dashboard/gmb'
+      preLoaderRoute: typeof AuthenticatedDashboardGmbRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/inventory': {
       id: '/_authenticated/dashboard/inventory'
       path: '/inventory'
@@ -2532,6 +2552,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardConsultRoute: typeof AuthenticatedDashboardConsultRoute
   AuthenticatedDashboardDoctorsRoute: typeof AuthenticatedDashboardDoctorsRoute
   AuthenticatedDashboardFinanceRoute: typeof AuthenticatedDashboardFinanceRoute
+  AuthenticatedDashboardGmbRoute: typeof AuthenticatedDashboardGmbRoute
   AuthenticatedDashboardInventoryRoute: typeof AuthenticatedDashboardInventoryRoute
   AuthenticatedDashboardLabRoute: typeof AuthenticatedDashboardLabRoute
   AuthenticatedDashboardLeadsRoute: typeof AuthenticatedDashboardLeadsRoute
@@ -2568,6 +2589,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardConsultRoute: AuthenticatedDashboardConsultRoute,
     AuthenticatedDashboardDoctorsRoute: AuthenticatedDashboardDoctorsRoute,
     AuthenticatedDashboardFinanceRoute: AuthenticatedDashboardFinanceRoute,
+    AuthenticatedDashboardGmbRoute: AuthenticatedDashboardGmbRoute,
     AuthenticatedDashboardInventoryRoute: AuthenticatedDashboardInventoryRoute,
     AuthenticatedDashboardLabRoute: AuthenticatedDashboardLabRoute,
     AuthenticatedDashboardLeadsRoute: AuthenticatedDashboardLeadsRoute,
