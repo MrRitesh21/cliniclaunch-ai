@@ -44,6 +44,7 @@ import {
   CheckCircle2,
   Activity,
   Award,
+  Loader2,
 } from "lucide-react";
 import { uploadClinicMedia } from "@/lib/upload";
 
@@ -493,6 +494,11 @@ function DoctorsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [signatureUploading, setSignatureUploading] = useState(false);
 
+  // Delete with confirmation input modal state
+  const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deletingDoctor, setDeletingDoctor] = useState(false);
+
   const selfDoctor: Doctor = useMemo(() => {
     const rawSched = (clinic as any)?.working_hours;
     const sched = normalizeSchedule(rawSched);
@@ -524,11 +530,10 @@ function DoctorsPage() {
   const isDoctorOwner = useCallback((d: Doctor | null | undefined) => {
     if (!d) return false;
     if (d.id === "self_owner") return true;
-    if (clinic?.owner_id && d.user_id && d.user_id === clinic.owner_id) return true;
     const ownerClean = (clinic?.doctor_name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim();
     const dClean = (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim();
     return Boolean(ownerClean && dClean && ownerClean === dClean);
-  }, [clinic?.owner_id, clinic?.doctor_name]);
+  }, [clinic?.doctor_name]);
 
   const load = useCallback(async () => {
     if (!clinic?.organization_id) return;
@@ -806,18 +811,46 @@ function DoctorsPage() {
     load();
   }
 
-  async function remove(d: Doctor) {
-    if (d.id === "self_owner" || isDoctorOwner(d)) {
-      return toast.error("Cannot delete primary clinic owner doctor. You can edit their profile instead.");
+  function openDeleteConfirm(d: Doctor) {
+    setDoctorToDelete(d);
+    setDeleteConfirmInput("");
+  }
+
+  async function handleConfirmDeleteDoctor() {
+    if (!doctorToDelete) return;
+    const expectedName = doctorToDelete.name.trim();
+    const input = deleteConfirmInput.trim();
+    if (input !== expectedName && input.toUpperCase() !== "DELETE") {
+      return toast.error(`Please type "${expectedName}" or "DELETE" to confirm.`);
     }
-    if (!confirm(`Remove ${d.name} from clinic doctors list?`)) return;
-    const { error } = await supabase.from("doctors").delete().eq("id", d.id);
-    if (error) return toast.error(error.message);
-    toast.success("Doctor removed");
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("clinicx_staff_changed"));
+
+    setDeletingDoctor(true);
+    try {
+      if (doctorToDelete.id && doctorToDelete.id !== "self_owner") {
+        const { error } = await supabase.from("doctors").delete().eq("id", doctorToDelete.id);
+        if (error) throw error;
+      } else {
+        // Clear doctor_name from clinics table if it was the fallback primary
+        if (clinic?.id) {
+          const { error } = await supabase.from("clinics").update({ doctor_name: "" }).eq("id", clinic.id);
+          if (error) throw error;
+        }
+      }
+
+      toast.success(`${doctorToDelete.name} has been removed.`);
+      setDoctorToDelete(null);
+      setDeleteConfirmInput("");
+      setOpen(false);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("clinicx_staff_changed"));
+      }
+      await load();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete doctor");
+    } finally {
+      setDeletingDoctor(false);
     }
-    load();
   }
 
   // Helper to copy Monday's hours to all active weekdays
@@ -1106,13 +1139,13 @@ function DoctorsPage() {
                     {isOnLeave ? "On Leave" : "Leave"}
                   </Button>
 
-                  {!isSelf && (
+                  {(rows.length > 1 || !isSelf) && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl"
-                      onClick={() => remove(d)}
-                      title="Remove doctor"
+                      className="h-8 w-8 p-0 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                      onClick={() => openDeleteConfirm(d)}
+                      title={`Delete ${d.name}`}
                     >
                       <Trash2 className="size-3.5" />
                     </Button>
@@ -1740,9 +1773,23 @@ function DoctorsPage() {
           </Tabs>
 
           <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t">
-            <span className="text-[11px] text-muted-foreground order-2 sm:order-1">
-              Changes apply immediately to online patient slots &amp; clinic queue tokens.
-            </span>
+            <div className="flex items-center gap-2 order-2 sm:order-1 w-full sm:w-auto justify-between sm:justify-start">
+              {editing && (rows.length > 1 || !isDoctorOwner(editing)) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openDeleteConfirm(editing)}
+                  className="h-9 px-3 text-xs text-destructive hover:bg-destructive/10 rounded-xl gap-1.5"
+                >
+                  <Trash2 className="size-3.5" />
+                  <span>Delete Doctor</span>
+                </Button>
+              )}
+              <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                Changes apply immediately to online patient slots &amp; clinic queue tokens.
+              </span>
+            </div>
             <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto">
               <Button
                 variant="outline"
@@ -1760,6 +1807,92 @@ function DoctorsPage() {
                 {saving ? "Saving…" : editing ? "Save Changes" : "Add Doctor"}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Doctor Confirmation Dialog with Input */}
+      <Dialog
+        open={Boolean(doctorToDelete)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !deletingDoctor) {
+            setDoctorToDelete(null);
+            setDeleteConfirmInput("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md p-5 sm:p-6 rounded-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="flex items-center gap-2.5 text-destructive">
+              <div className="p-2 rounded-xl bg-destructive/10">
+                <AlertTriangle className="size-5 text-destructive" />
+              </div>
+              <DialogTitle className="text-lg font-bold">Delete Doctor Profile</DialogTitle>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to permanently delete <b className="text-foreground">{doctorToDelete?.name}</b>?
+              This will remove their OPD schedule, consultation slots, and digital signature from your clinic.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-2">
+            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 text-xs text-destructive space-y-1">
+              <p className="font-semibold flex items-center gap-1.5">
+                <AlertTriangle className="size-3.5 shrink-0" />
+                This action cannot be undone.
+              </p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Past appointments and clinical records remain in database history, but no new patient appointments can be booked for this doctor.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                To confirm deletion, please type{" "}
+                <code className="font-bold text-destructive bg-muted px-1.5 py-0.5 rounded select-all font-mono">
+                  {doctorToDelete?.name || "DELETE"}
+                </code>{" "}
+                (or <code className="font-bold font-mono">DELETE</code>) below:
+              </Label>
+              <Input
+                placeholder={`Type "${doctorToDelete?.name || "DELETE"}" to confirm`}
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                className="text-xs h-9 rounded-xl font-medium"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDoctorToDelete(null);
+                setDeleteConfirmInput("");
+              }}
+              disabled={deletingDoctor}
+              className="rounded-xl text-xs h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmDeleteDoctor}
+              disabled={
+                deletingDoctor ||
+                (deleteConfirmInput.trim() !== doctorToDelete?.name?.trim() &&
+                  deleteConfirmInput.trim().toUpperCase() !== "DELETE")
+              }
+              className="rounded-xl text-xs h-9 gap-1.5 font-semibold"
+            >
+              {deletingDoctor ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+              <span>Confirm &amp; Delete Doctor</span>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
