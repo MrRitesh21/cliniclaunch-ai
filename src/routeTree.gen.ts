@@ -127,6 +127,7 @@ import { Route as AdminAdminSettingsSystemRouteImport } from './routes/_admin/ad
 import { Route as AdminAdminSettingsUsersRouteImport } from './routes/_admin/admin.settings.users'
 import { Route as AuthenticatedDashboardPatientsIndexRouteImport } from './routes/_authenticated/dashboard.patients.index'
 import { Route as AuthenticatedDashboardPatientsPatientIdRouteImport } from './routes/_authenticated/dashboard.patients.$patientId'
+import { Route as ApiAuthMetaCallbackRouteImport } from './routes/api.auth.meta.callback'
 import { Route as ApiPublicHooksRazorpayRouteImport } from './routes/api/public/hooks/razorpay'
 import { Route as ApiPublicHooksSeoAutopilotRouteImport } from './routes/api/public/hooks/seo-autopilot'
 import { Route as ApiPublicHooksWhatsappRouteImport } from './routes/api/public/hooks/whatsapp'
@@ -762,6 +763,11 @@ const AuthenticatedDashboardPatientsPatientIdRoute =
     path: '/$patientId',
     getParentRoute: () => AuthenticatedDashboardPatientsRoute,
   } as any)
+const ApiAuthMetaCallbackRoute = ApiAuthMetaCallbackRouteImport.update({
+  id: '/api/auth/meta/callback',
+  path: '/api/auth/meta/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRazorpayRoute = ApiPublicHooksRazorpayRouteImport.update({
   id: '/api/public/hooks/razorpay',
   path: '/api/public/hooks/razorpay',
@@ -906,6 +912,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings/system': typeof AdminAdminSettingsSystemRoute
   '/admin/settings/users': typeof AdminAdminSettingsUsersRoute
   '/dashboard/patients/$patientId': typeof AuthenticatedDashboardPatientsPatientIdRoute
+  '/api/auth/meta/callback': typeof ApiAuthMetaCallbackRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
@@ -1025,6 +1032,7 @@ export interface FileRoutesByTo {
   '/admin/settings/system': typeof AdminAdminSettingsSystemRoute
   '/admin/settings/users': typeof AdminAdminSettingsUsersRoute
   '/dashboard/patients/$patientId': typeof AuthenticatedDashboardPatientsPatientIdRoute
+  '/api/auth/meta/callback': typeof ApiAuthMetaCallbackRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
@@ -1151,6 +1159,7 @@ export interface FileRoutesById {
   '/_admin/admin/settings/system': typeof AdminAdminSettingsSystemRoute
   '/_admin/admin/settings/users': typeof AdminAdminSettingsUsersRoute
   '/_authenticated/dashboard/patients/$patientId': typeof AuthenticatedDashboardPatientsPatientIdRoute
+  '/api/auth/meta/callback': typeof ApiAuthMetaCallbackRoute
   '/api/public/hooks/razorpay': typeof ApiPublicHooksRazorpayRoute
   '/api/public/hooks/seo-autopilot': typeof ApiPublicHooksSeoAutopilotRoute
   '/api/public/hooks/whatsapp': typeof ApiPublicHooksWhatsappRoute
@@ -1276,6 +1285,7 @@ export interface FileRouteTypes {
     | '/admin/settings/system'
     | '/admin/settings/users'
     | '/dashboard/patients/$patientId'
+    | '/api/auth/meta/callback'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
@@ -1395,6 +1405,7 @@ export interface FileRouteTypes {
     | '/admin/settings/system'
     | '/admin/settings/users'
     | '/dashboard/patients/$patientId'
+    | '/api/auth/meta/callback'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
@@ -1520,6 +1531,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/settings/system'
     | '/_admin/admin/settings/users'
     | '/_authenticated/dashboard/patients/$patientId'
+    | '/api/auth/meta/callback'
     | '/api/public/hooks/razorpay'
     | '/api/public/hooks/seo-autopilot'
     | '/api/public/hooks/whatsapp'
@@ -1580,6 +1592,7 @@ export interface RootRouteChildren {
   ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
   ApiPublicSubmitBookingRoute: typeof ApiPublicSubmitBookingRoute
   ApiWaCronRoute: typeof ApiWaCronRoute
+  ApiAuthMetaCallbackRoute: typeof ApiAuthMetaCallbackRoute
   ApiPublicHooksRazorpayRoute: typeof ApiPublicHooksRazorpayRoute
   ApiPublicHooksSeoAutopilotRoute: typeof ApiPublicHooksSeoAutopilotRoute
   ApiPublicHooksWhatsappRoute: typeof ApiPublicHooksWhatsappRoute
@@ -2414,6 +2427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardPatientsPatientIdRouteImport
       parentRoute: typeof AuthenticatedDashboardPatientsRoute
     }
+    '/api/auth/meta/callback': {
+      id: '/api/auth/meta/callback'
+      path: '/api/auth/meta/callback'
+      fullPath: '/api/auth/meta/callback'
+      preLoaderRoute: typeof ApiAuthMetaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/razorpay': {
       id: '/api/public/hooks/razorpay'
       path: '/api/public/hooks/razorpay'
@@ -2722,6 +2742,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPushEventRoute: ApiPublicPushEventRoute,
   ApiPublicSubmitBookingRoute: ApiPublicSubmitBookingRoute,
   ApiWaCronRoute: ApiWaCronRoute,
+  ApiAuthMetaCallbackRoute: ApiAuthMetaCallbackRoute,
   ApiPublicHooksRazorpayRoute: ApiPublicHooksRazorpayRoute,
   ApiPublicHooksSeoAutopilotRoute: ApiPublicHooksSeoAutopilotRoute,
   ApiPublicHooksWhatsappRoute: ApiPublicHooksWhatsappRoute,

@@ -465,3 +465,63 @@ export const clearAiSessionMemoryFn = createServerFn({ method: "POST" })
     clearSessionMemory(clinic.id, phone);
     return { success: true };
   });
+
+/**
+ * Configure Meta WhatsApp Cloud API credentials directly for Coexistence Mode.
+ */
+export const saveMetaCredentialsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    z.object({
+      phoneNumberId: z.string().min(1, "Phone Number ID is required"),
+      accessToken: z.string().min(1, "Access Token is required"),
+      wabaId: z.string().optional(),
+      phoneNumber: z.string().optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { saveMetaConfigForClinic } = await import("./meta-whatsapp.server");
+    const res = await saveMetaConfigForClinic(clinic.id, {
+      wabaId: data.wabaId || "",
+      phoneNumberId: data.phoneNumberId.trim(),
+      accessToken: data.accessToken.trim(),
+      phoneNumber: data.phoneNumber?.trim(),
+      coexistenceMode: true,
+    });
+    if (!res.ok) throw new Error(res.error || "Failed to save Meta WhatsApp credentials");
+    return { success: true, coexistenceMode: true };
+  });
+
+/**
+ * Get Meta Cloud API connection status and Coexistence Mode indicators.
+ */
+export const getMetaConnectionStatusFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { getMetaConfigForClinic } = await import("./meta-whatsapp.server");
+    const metaConfig = await getMetaConfigForClinic(clinic.id);
+    const isMeta = Boolean(metaConfig?.phoneNumberId && metaConfig?.accessToken);
+    return {
+      isMetaConnected: isMeta,
+      coexistenceMode: isMeta ? metaConfig?.coexistenceMode ?? true : false,
+      phoneNumberId: isMeta ? metaConfig?.phoneNumberId : null,
+      wabaId: isMeta ? metaConfig?.wabaId : null,
+      phoneNumber: isMeta ? metaConfig?.phoneNumber || clinic.wa_phone : clinic.wa_phone,
+      clinicWaStatus: clinic.wa_status,
+      clinicId: clinic.id,
+    };
+  });
+
+/**
+ * Disconnect Meta Cloud API for current clinic.
+ */
+export const disconnectMetaConnectionFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { disconnectMetaClinic } = await import("./meta-whatsapp.server");
+    await disconnectMetaClinic(clinic.id);
+    return { success: true };
+  });

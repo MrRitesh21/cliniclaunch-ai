@@ -12,6 +12,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { baileysSend } from "./baileys.server";
+import { getMetaConfigForClinic, metaWhatsAppSend } from "./meta-whatsapp.server";
 
 export interface QuietFollowupSettings {
   enabled: boolean;
@@ -200,6 +201,18 @@ export async function processQuietChatFollowups(opts?: {
       continue;
     }
 
+    // Coexistence Mode Check: Skip if doctor/staff manually replied on their WhatsApp Business phone app
+    const hasDoctorHumanReply = logs.some(
+      (l) =>
+        (l.template_key === "doctor_manual_reply_coexistence" || l.template_key === "doctor_manual_reply") &&
+        now - new Date(l.created_at).getTime() < 12 * 60 * 60 * 1000
+    );
+    if (hasDoctorHumanReply) {
+      skippedCount++;
+      reasons.push({ phone, reason: "Doctor/staff already handled chat on phone (Coexistence Mode)" });
+      continue;
+    }
+
     // Check if appointment is already confirmed or created after this chat
     const { data: activeAppt } = await sb
       .from("appointments")
@@ -244,21 +257,47 @@ export async function processQuietChatFollowups(opts?: {
       continue;
     }
 
-    // Generate personalized follow-up message
+    // Generate personalized & multilingual follow-up message matching customer's language
     const patientName = latestLog.patient_name || "Patient";
     const greetingName = patientName && patientName !== "Patient" ? `${patientName} ji` : "ji";
-    const message = settings.messageTemplate
+    const lastPatientText = (patientMessages[0] || "").toLowerCase();
+
+    let message = settings.messageTemplate
       .replace(/\{\{patient_name\}\}/g, greetingName)
       .replace(/\{\{clinic_name\}\}/g, clinic.clinic_name || "Clinic")
       .replace(/\{\{doctor_name\}\}/g, clinic.doctor_name || "Doctor");
 
-    // Dispatch WhatsApp follow-up via Baileys
-    const sessionId = clinic.wa_session_id || `clinic-${clinic.id}`;
-    let sendResult = await baileysSend(sessionId, phone, message);
+    // Dynamic multilingual follow-up
+    if (/[\u0980-\u09FF]/.test(lastPatientText)) {
+      message = `নমস্কার ${greetingName}! 🙏 ${clinic.clinic_name}-এ ডাক্তারের অ্যাপয়েন্টমেন্ট সম্পর্কে আপনি জানতে চেয়েছিলেন। আমরা কি আপনার জন্য একটি উপযুক্ত স্লট বুক করে দেব? অনুগ্রহ করে আপনার সুবিধাজনক সময় জানান! 🏥`;
+    } else if (/[\u0900-\u097F]/.test(lastPatientText)) {
+      message = `नमस्ते ${greetingName}! 🙏 ${clinic.clinic_name} में डॉक्टर परामर्श के बारे में आप जानकारी ले रहे थे। क्या हम आपके लिए एक समय स्लॉट सुरक्षित कर दें? कृपया अपना पसंदीदा दिन और समय बताएं! 🏥`;
+    } else if (
+      /^[a-zA-Z0-9\s.,?!'"@#-]+$/.test(lastPatientText) &&
+      /\b(hello|hi|appointment|doctor|fee|time|cost|available|book)\b/i.test(lastPatientText)
+    ) {
+      message = `Hello ${patientName && patientName !== "Patient" ? patientName : "there"}! We noticed you were inquiring about an appointment at ${clinic.clinic_name}. Would you like us to reserve a convenient consultation slot for you? Please let us know your preferred day/time! 🏥`;
+    }
 
-    if (!sendResult.ok && sessionId !== "default") {
-      const defRetry = await baileysSend("user-default", phone, message);
-      if (defRetry.ok) sendResult = defRetry;
+    // Dispatch WhatsApp follow-up via Meta Cloud API or Baileys
+    let sendResult: { ok: boolean; error?: string } = { ok: false };
+    const metaConfig = await getMetaConfigForClinic(clinic.id);
+
+    if (metaConfig?.phoneNumberId && metaConfig?.accessToken) {
+      sendResult = await metaWhatsAppSend({
+        phoneNumberId: metaConfig.phoneNumberId,
+        accessToken: metaConfig.accessToken,
+        to: phone,
+        text: message,
+      });
+    } else {
+      const sessionId = clinic.wa_session_id || `clinic-${clinic.id}`;
+      sendResult = await baileysSend(sessionId, phone, message);
+
+      if (!sendResult.ok && sessionId !== "default") {
+        const defRetry = await baileysSend("user-default", phone, message);
+        if (defRetry.ok) sendResult = defRetry;
+      }
     }
 
     // Log the follow-up attempt

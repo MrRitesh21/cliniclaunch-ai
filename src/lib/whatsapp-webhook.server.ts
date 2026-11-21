@@ -3,6 +3,11 @@ import { baileysSend, clinicSessionId } from "@/lib/baileys.server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { serverEnv } from "@/lib/env.server";
 import { processWhatsAppMessage } from "@/lib/whatsapp-booking.server";
+import {
+  getMetaConfigForClinic,
+  metaWhatsAppSend,
+  findClinicByMetaPhoneId,
+} from "@/lib/meta-whatsapp.server";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (val: unknown): val is string => typeof val === "string" && UUID_REGEX.test(val);
@@ -12,7 +17,12 @@ export function verifyBridgeSignature(rawBody: string, signature: string | null)
   if (!signature) {
     return true;
   }
-  const secrets = [serverEnv.WHATSAPP_BRIDGE_SECRET, "clinicx-secret-key"].filter(Boolean) as string[];
+  const secrets = [
+    serverEnv.WHATSAPP_BRIDGE_SECRET,
+    process.env.META_APP_SECRET,
+    process.env.FACEBOOK_APP_SECRET,
+    "clinicx-secret-key",
+  ].filter(Boolean) as string[];
   if (secrets.length === 0) return true;
   const provided = signature.replace(/^sha256=/, "").trim();
   for (const secret of secrets) {
@@ -33,6 +43,199 @@ async function logBestEffort(query: PromiseLike<unknown>) {
   } catch (e) {
     console.error("[WhatsApp Webhook] log write failed:", e);
   }
+}
+
+/**
+ * Meta WhatsApp Cloud API & Coexistence Mode Webhook Event Handler.
+ * Supports:
+ * - Coexistence Mode: captures message_echoes when clinic owner/doctor replies via WhatsApp Business mobile app
+ * - Incoming patient questions, symptom triage, doctor matching, and appointment booking
+ * - Sends automated replies via Meta Cloud API v21.0
+ */
+async function handleMetaCloudWebhookPayload(body: any, sb: any): Promise<Response> {
+  const entries = body?.entry || [];
+  let processedCount = 0;
+
+  for (const entry of entries) {
+    const changes = entry?.changes || [];
+    for (const change of changes) {
+      const field = change?.field;
+      const val = change?.value;
+      if (!val) continue;
+
+      const phoneNumberId = val?.metadata?.phone_number_id;
+      const displayPhone = val?.metadata?.display_phone_number;
+
+      // ─── 1. COEXISTENCE MODE: Message Echoes (Doctor/Staff replied on phone app) ───
+      if (field === "message_echoes" || val?.message_echo) {
+        const echo = val?.message_echo || val;
+        const toPatient = echo?.to;
+        const echoText = echo?.text?.body || "";
+
+        if (toPatient && echoText) {
+          console.log(`[Coexistence Mode Echo] Doctor replied to ${toPatient} on WhatsApp Business mobile phone: "${echoText}"`);
+
+          let clinicId = phoneNumberId ? await findClinicByMetaPhoneId(phoneNumberId) : null;
+          let orgId: string | null = null;
+          if (clinicId) {
+            const { data: c } = await sb.from("clinics").select("organization_id").eq("id", clinicId).maybeSingle();
+            orgId = c?.organization_id || null;
+          }
+
+          const formattedPatient = toPatient.startsWith("+") ? toPatient : `+${toPatient}`;
+          if (orgId) {
+            await logBestEffort(
+              sb.from("whatsapp_logs").insert({
+                organization_id: orgId,
+                patient_phone: formattedPatient,
+                template_key: "doctor_manual_reply_coexistence",
+                automation_key: "doctor_manual_reply_coexistence",
+                message: echoText,
+                status: "sent_from_mobile_app",
+                sent_at: new Date().toISOString(),
+              }),
+            );
+          }
+        }
+        processedCount++;
+        continue;
+      }
+
+      // ─── 2. INCOMING PATIENT MESSAGES (4 Core Receptionist Features) ───
+      if (field === "messages" && Array.isArray(val?.messages)) {
+        const contacts = val?.contacts || [];
+        for (const msg of val.messages) {
+          if (msg.type !== "text" && msg.type !== "interactive") continue;
+
+          const text =
+            msg.text?.body ||
+            msg.interactive?.button_reply?.title ||
+            msg.interactive?.list_reply?.title ||
+            "";
+          if (!text.trim()) continue;
+
+          const rawFrom = msg.from;
+          const contactName =
+            contacts.find((c: any) => c.wa_id === rawFrom)?.profile?.name ||
+            contacts[0]?.profile?.name ||
+            null;
+
+          const formattedPhone = rawFrom.startsWith("+") ? rawFrom : `+${rawFrom}`;
+
+          // Resolve clinic
+          let clinic: any = null;
+          if (phoneNumberId) {
+            const mappedClinicId = await findClinicByMetaPhoneId(phoneNumberId);
+            if (mappedClinicId) {
+              const { data } = await sb.from("clinics").select("*").eq("id", mappedClinicId).maybeSingle();
+              clinic = data;
+            }
+          }
+
+          if (!clinic && displayPhone) {
+            const cleanDisplay = displayPhone.replace(/[^\d]/g, "").slice(-10);
+            const { data } = await sb
+              .from("clinics")
+              .select("*")
+              .ilike("wa_phone", `%${cleanDisplay}%`)
+              .limit(1)
+              .maybeSingle();
+            clinic = data;
+          }
+
+          if (!clinic) {
+            const { data: firstClinic } = await sb
+              .from("clinics")
+              .select("*")
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            clinic = firstClinic;
+          }
+
+          if (!clinic) {
+            console.warn(`[Meta Webhook] Unmapped message from ${rawFrom} on phone_number_id ${phoneNumberId}`);
+            continue;
+          }
+
+          // Log incoming message
+          await logBestEffort(
+            sb.from("whatsapp_logs").insert({
+              organization_id: clinic.organization_id,
+              patient_name: contactName || null,
+              patient_phone: formattedPhone,
+              template_key: "incoming_patient_msg",
+              automation_key: "incoming_patient_msg",
+              message: text,
+              status: "received",
+              sent_at: new Date().toISOString(),
+            }),
+          );
+
+          // Check if AI Receptionist is enabled
+          const isAiEnabled = (clinic.working_hours as any)?.ai_receptionist_enabled !== false;
+          if (!isAiEnabled) {
+            console.log(`[Meta Webhook] AI Receptionist is paused for clinic ${clinic.clinic_name}`);
+            continue;
+          }
+
+          // Process AI Receptionist with:
+          // 1. Answer questions & nurture leads
+          // 2. Suggest available slots & confirm bookings
+          // 3. Auto follow-up awareness
+          // 4. Multilingual in customer's language
+          const bookingResult = await processWhatsAppMessage({
+            clinic,
+            patientPhone: formattedPhone,
+            senderName: contactName,
+            incomingText: text,
+          });
+
+          // Send reply via Meta Cloud API
+          const metaConfig = await getMetaConfigForClinic(clinic.id);
+          const activePhoneId = metaConfig?.phoneNumberId || phoneNumberId;
+          const activeToken =
+            metaConfig?.accessToken ||
+            process.env.META_WHATSAPP_TOKEN ||
+            process.env.WHATSAPP_CLOUD_API_TOKEN;
+
+          let sendResult: { ok: boolean; error?: string } = { ok: false };
+          if (activePhoneId && activeToken) {
+            sendResult = await metaWhatsAppSend({
+              phoneNumberId: activePhoneId,
+              accessToken: activeToken,
+              to: formattedPhone,
+              text: bookingResult.reply,
+            });
+          } else {
+            console.error(`[Meta Webhook] Missing credentials for clinic ${clinic.id}`);
+          }
+
+          // Log outgoing AI reply
+          await logBestEffort(
+            sb.from("whatsapp_logs").insert({
+              organization_id: clinic.organization_id,
+              appointment_id: bookingResult.appointmentId || null,
+              patient_name: contactName || null,
+              patient_phone: formattedPhone,
+              template_key:
+                bookingResult.action === "booked" ? "whatsapp_booking_confirmed" : "ai_auto_reply",
+              automation_key:
+                bookingResult.action === "booked" ? "whatsapp_booking_confirmed" : "ai_auto_reply",
+              message: bookingResult.reply,
+              status: sendResult.ok ? "sent" : "failed",
+              error: sendResult.error || null,
+              sent_at: sendResult.ok ? new Date().toISOString() : null,
+            }),
+          );
+
+          processedCount++;
+        }
+      }
+    }
+  }
+
+  return Response.json({ ok: true, handled: "meta_cloud_webhook", processedCount });
 }
 
 export async function handleWhatsAppIncomingRequest(
@@ -56,6 +259,11 @@ export async function handleWhatsAppIncomingRequest(
     }
 
     const sb = supabaseAdmin;
+
+    // ─── META CLOUD API & COEXISTENCE MODE WEBHOOK EVENT ───
+    if (body?.object === "whatsapp_business_account" || Array.isArray(body?.entry)) {
+      return handleMetaCloudWebhookPayload(body, sb);
+    }
 
     // ─── AUTH CLOUD BACKUP EVENT (Bridge -> Supabase) ───
     if (body?.event === "auth_backup") {
@@ -484,17 +692,27 @@ export async function handleWhatsAppIncomingRequest(
       // LID format mismatches, and timeouts on Render/Vercel.
       sendResult = { ok: true, error: undefined };
     } else {
-      // Out-of-band trigger (e.g. admin simulator or direct test) -> send via configured BAILEYS_URL
-      sendResult = await baileysSend(replySessionId, formattedPhone, bookingResult.reply);
+      const metaConfig = await getMetaConfigForClinic(clinic.id);
+      if (metaConfig?.phoneNumberId && metaConfig?.accessToken) {
+        sendResult = await metaWhatsAppSend({
+          phoneNumberId: metaConfig.phoneNumberId,
+          accessToken: metaConfig.accessToken,
+          to: formattedPhone,
+          text: bookingResult.reply,
+        });
+      } else {
+        // Out-of-band trigger (e.g. admin simulator or direct test) -> send via configured BAILEYS_URL
+        sendResult = await baileysSend(replySessionId, formattedPhone, bookingResult.reply);
 
-      // Fallback if primary session send failed
-      if (!sendResult.ok && clinic.wa_session_id && clinic.wa_session_id !== replySessionId) {
-        const retryRes = await baileysSend(clinic.wa_session_id, formattedPhone, bookingResult.reply);
-        if (retryRes.ok) sendResult = retryRes;
-      }
-      if (!sendResult.ok && replySessionId !== "default" && replySessionId !== "user-default") {
-        const defRetry = await baileysSend("user-default", formattedPhone, bookingResult.reply);
-        if (defRetry.ok) sendResult = defRetry;
+        // Fallback if primary session send failed
+        if (!sendResult.ok && clinic.wa_session_id && clinic.wa_session_id !== replySessionId) {
+          const retryRes = await baileysSend(clinic.wa_session_id, formattedPhone, bookingResult.reply);
+          if (retryRes.ok) sendResult = retryRes;
+        }
+        if (!sendResult.ok && replySessionId !== "default" && replySessionId !== "user-default") {
+          const defRetry = await baileysSend("user-default", formattedPhone, bookingResult.reply);
+          if (defRetry.ok) sendResult = defRetry;
+        }
       }
     }
 

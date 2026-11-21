@@ -15,10 +15,24 @@ import {
   QrCode,
   Copy,
   Check,
+  ShieldCheck,
+  Sparkles,
+  Bot,
+  Globe,
+  CalendarCheck,
+  PhoneCall,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getWhatsappPairingCode } from "@/lib/baileys.functions";
+import {
+  saveMetaCredentialsFn,
+  getMetaConnectionStatusFn,
+  disconnectMetaConnectionFn,
+} from "@/lib/whatsapp-receptionist.functions";
 
 type Status = {
   ready: boolean;
@@ -43,29 +57,76 @@ export function WhatsappConnectCard({
   disconnect,
 }: Props) {
   const fetchPairingCodeFn = useServerFn(getWhatsappPairingCode);
+  const saveMetaFn = useServerFn(saveMetaCredentialsFn);
+  const getMetaStatusFn = useServerFn(getMetaConnectionStatusFn);
+  const disconnectMetaFn = useServerFn(disconnectMetaConnectionFn);
+
   const [status, setStatus] = useState<Status>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [pairingMode, setPairingMode] = useState<"qr" | "code">("qr");
+  const [pairingMode, setPairingMode] = useState<"meta" | "qr" | "code">("meta");
   const [phoneInput, setPhoneInput] = useState("");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Meta Coexistence Mode States
+  const [metaStatus, setMetaStatus] = useState<{
+    isMetaConnected: boolean;
+    coexistenceMode: boolean;
+    phoneNumberId: string | null;
+    wabaId: string | null;
+    phoneNumber: string | null;
+    clinicId?: string;
+  } | null>(null);
+
+  const [showDirectMetaForm, setShowDirectMetaForm] = useState(false);
+  const [directPhoneId, setDirectPhoneId] = useState("");
+  const [directAccessToken, setDirectAccessToken] = useState("");
+  const [directWabaId, setDirectWabaId] = useState("");
+  const [directPhoneNumber, setDirectPhoneNumber] = useState("");
+  const [savingDirectMeta, setSavingDirectMeta] = useState(false);
+
   const refresh = useCallback(async () => {
     try {
-      const r = await getStatus();
+      const [r, meta] = await Promise.all([
+        getStatus(),
+        getMetaStatusFn().catch(() => null),
+      ]);
       setStatus(r.status);
       setIsReconnecting(Boolean((r as any)?.isReconnecting));
+      if (meta) {
+        setMetaStatus(meta);
+        if (meta.isMetaConnected) {
+          setPairingMode("meta");
+        }
+      }
     } catch {
       /* ignore */
     } finally {
       setLoading(false);
     }
-  }, [getStatus]);
+  }, [getStatus, getMetaStatusFn]);
 
   useEffect(() => {
     refresh();
+  }, [refresh]);
+
+  // Check URL params for Meta Connect callback notifications
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("meta_connect") === "success") {
+      toast.success("WhatsApp Business connected in Coexistence Mode! 🎉");
+      refresh();
+      // Clean query params
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    } else if (params.get("meta_connect") === "error") {
+      toast.error(`Meta Connection Failed: ${params.get("error") || "Unknown error"}`);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
   }, [refresh]);
 
   // Poll while pending, has QR, or reconnecting during deploy
@@ -126,6 +187,57 @@ export function WhatsappConnectCard({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleLaunchMetaOAuth() {
+    const metaAppId = "2115406659069224"; // App ID from Meta Developer Console
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://clinicx.digiwil.com";
+    const redirectUri = `${origin}/api/auth/meta/callback`;
+    const state = metaStatus?.clinicId || "default";
+
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+      redirectUri,
+    )}&state=${encodeURIComponent(state)}&scope=whatsapp_business_management,whatsapp_business_messaging&response_type=code`;
+
+    window.location.href = oauthUrl;
+  }
+
+  async function handleSaveDirectMeta() {
+    if (!directPhoneId.trim() || !directAccessToken.trim()) {
+      return toast.error("Phone Number ID and Access Token are required");
+    }
+    setSavingDirectMeta(true);
+    try {
+      await saveMetaFn({
+        data: {
+          phoneNumberId: directPhoneId.trim(),
+          accessToken: directAccessToken.trim(),
+          wabaId: directWabaId.trim() || undefined,
+          phoneNumber: directPhoneNumber.trim() || undefined,
+        },
+      });
+      toast.success("Meta WhatsApp configured in Coexistence Mode! 🚀");
+      setShowDirectMetaForm(false);
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save Meta WhatsApp credentials");
+    } finally {
+      setSavingDirectMeta(false);
+    }
+  }
+
+  async function handleDisconnectMeta() {
+    setBusy(true);
+    try {
+      await disconnectMetaFn();
+      setMetaStatus(null);
+      toast.success("Meta WhatsApp disconnected");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to disconnect Meta WhatsApp");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDisconnect() {
     setBusy(true);
     try {
@@ -138,7 +250,8 @@ export function WhatsappConnectCard({
     }
   }
 
-  const connected = !!status?.ready;
+  const isMetaConnected = Boolean(metaStatus?.isMetaConnected);
+  const connected = isMetaConnected || !!status?.ready;
 
   return (
     <Card className="p-6 space-y-5">
@@ -150,7 +263,12 @@ export function WhatsappConnectCard({
           </h2>
           {description && <p className="text-muted-foreground text-sm mt-1">{description}</p>}
         </div>
-        {connected ? (
+        {isMetaConnected ? (
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 px-3 py-1 font-semibold flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            Meta Coexistence Mode: Active
+          </Badge>
+        ) : connected ? (
           <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 px-3 py-1 font-semibold">
             <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Connected
           </Badge>
@@ -177,6 +295,83 @@ export function WhatsappConnectCard({
         <div className="py-10 text-center text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…
         </div>
+      ) : isMetaConnected ? (
+        /* META CLOUD API COEXISTENCE MODE ACTIVE CARD */
+        <div className="space-y-4">
+          <div className="border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-2xl p-5 space-y-4 shadow-xs">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-base text-foreground">
+                    Official WhatsApp Cloud API
+                  </span>
+                  <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5">
+                    Coexistence Mode
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Phone: {metaStatus?.phoneNumber || status?.clientInfo?.phone || "Connected"} | Phone ID: {metaStatus?.phoneNumberId}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDisconnectMeta}
+                disabled={busy}
+                className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs"
+              >
+                <Power className="h-3.5 w-3.5 mr-1.5" /> Disconnect Meta API
+              </Button>
+            </div>
+
+            {/* Coexistence highlights */}
+            <div className="p-3 bg-background/80 rounded-xl border border-emerald-500/20 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
+                <Smartphone className="size-4 text-emerald-600" />
+                <span>Your WhatsApp Business Mobile Phone App is Fully Active!</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                Doctor and front-desk staff can continue using WhatsApp Business on their phone as normal (chats, voice calls, photos).
+                When a doctor replies from the phone, the AI receptionist detects human intervention and avoids duplicate replies.
+              </p>
+            </div>
+
+            {/* 4 Core Features Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-background border text-xs">
+                <Bot className="size-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground">1. Answer Questions & Nurture Leads</p>
+                  <p className="text-muted-foreground text-[11px]">Responds to FAQs, doctor qualifications, fee, clinic location, and converts inquiries to bookings.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-background border text-xs">
+                <CalendarCheck className="size-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground">2. Suggest Slots & Confirm Bookings</p>
+                  <p className="text-muted-foreground text-[11px]">Calculates real available slots based on doctor shift timings, issues token numbers & confirms slots.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-background border text-xs">
+                <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground">3. Auto Follow-Up on Quiet Chats</p>
+                  <p className="text-muted-foreground text-[11px]">Politely re-engages patients who went quiet mid-inquiry. Respects quiet hours & cooldowns.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-background border text-xs">
+                <Globe className="size-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground">4. Multilingual in Customer's Language</p>
+                  <p className="text-muted-foreground text-[11px]">Speaks Hindi, Hinglish, Bengali, Marathi, Gujarati, Tamil, Telugu, English fluently.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : connected ? (
         <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border bg-muted/30 p-4">
           <div>
@@ -199,7 +394,17 @@ export function WhatsappConnectCard({
       ) : (
         <div className="space-y-4">
           {/* Method Selector Tabs */}
-          <div className="flex gap-2 p-1 bg-muted/50 rounded-xl w-fit">
+          <div className="flex gap-2 p-1 bg-muted/50 rounded-xl w-fit flex-wrap">
+            <button
+              onClick={() => setPairingMode("meta")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                pairingMode === "meta"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ShieldCheck className="size-3.5" /> Meta Coexistence (Recommended)
+            </button>
             <button
               onClick={() => setPairingMode("qr")}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -221,6 +426,138 @@ export function WhatsappConnectCard({
               <KeyRound className="size-3.5" /> Link with Phone Code
             </button>
           </div>
+
+          {/* MODE: META COEXISTENCE (RECOMMENDED) */}
+          {pairingMode === "meta" && (
+            <div className="border border-primary/20 bg-primary/5 rounded-2xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-foreground">
+                      Official Meta WhatsApp Cloud API — Coexistence Mode
+                    </h3>
+                    <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                      Dual Sync Active
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground max-w-xl">
+                    Connect your existing WhatsApp Business number directly. <b>Keep using WhatsApp Business on your phone as usual</b> — your personal chat history and calls remain untouched, while the 24/7 AI Receptionist handles inquiries and bookings!
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleLaunchMetaOAuth}
+                  className="rounded-xl font-semibold text-xs h-10 px-5 gap-2 shrink-0 bg-[#1877F2] hover:bg-[#166fe5] text-white shadow-sm"
+                >
+                  <ExternalLink className="size-4" />
+                  Connect with Meta
+                </Button>
+              </div>
+
+              {/* 4 Feature Checklist Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-card border text-xs">
+                  <Bot className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-foreground">1. Answer questions & nurture leads</p>
+                    <p className="text-muted-foreground text-[11px]">Instant answers for fees, doctor timings, treatments with polite lead conversion.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-card border text-xs">
+                  <CalendarCheck className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-foreground">2. Suggest available slots & confirm bookings</p>
+                    <p className="text-muted-foreground text-[11px]">Intelligently suggests open times, asks details & saves confirmed appointment with token.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-card border text-xs">
+                  <Sparkles className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-foreground">3. Auto follow-up when chats go quiet</p>
+                    <p className="text-muted-foreground text-[11px]">Warm follow-ups for abandoned patient inquiries without spamming (respects quiet hours).</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-card border text-xs">
+                  <Globe className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-foreground">4. Multilingual in customer's language</p>
+                    <p className="text-muted-foreground text-[11px]">Communicates naturally in Hindi, Hinglish, Bengali, Marathi, Gujarati, English, etc.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Direct Meta Configuration Accordion */}
+              <div className="pt-2 border-t border-primary/10">
+                <button
+                  type="button"
+                  onClick={() => setShowDirectMetaForm((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+                >
+                  {showDirectMetaForm ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                  <span>Or enter Meta App Credentials directly (Phone ID & Token)</span>
+                </button>
+
+                {showDirectMetaForm && (
+                  <div className="mt-4 p-4 rounded-xl bg-card border space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Meta Phone Number ID *</Label>
+                        <Input
+                          placeholder="e.g. 109283746592834"
+                          value={directPhoneId}
+                          onChange={(e) => setDirectPhoneId(e.target.value)}
+                          className="text-xs font-mono rounded-xl h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Phone Number (with country code)</Label>
+                        <Input
+                          placeholder="e.g. +91 98765 43210"
+                          value={directPhoneNumber}
+                          onChange={(e) => setDirectPhoneNumber(e.target.value)}
+                          className="text-xs font-mono rounded-xl h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Label className="text-xs font-semibold">Meta System User / Permanent Access Token *</Label>
+                        <Input
+                          type="password"
+                          placeholder="EAAG..."
+                          value={directAccessToken}
+                          onChange={(e) => setDirectAccessToken(e.target.value)}
+                          className="text-xs font-mono rounded-xl h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Label className="text-xs font-semibold">WhatsApp Business Account ID (WABA ID)</Label>
+                        <Input
+                          placeholder="e.g. 129384756102938"
+                          value={directWabaId}
+                          onChange={(e) => setDirectWabaId(e.target.value)}
+                          className="text-xs font-mono rounded-xl h-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveDirectMeta}
+                        disabled={savingDirectMeta || !directPhoneId.trim() || !directAccessToken.trim()}
+                        className="rounded-xl text-xs gap-1.5 h-9"
+                      >
+                        {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                        <span>Save & Activate Coexistence Mode</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* MODE 1: QR CODE */}
           {pairingMode === "qr" && (
