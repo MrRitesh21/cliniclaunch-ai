@@ -17,6 +17,7 @@ export const Route = createFileRoute("/api/public/whatsapp/incoming")({
             process.env.META_WEBHOOK_VERIFY_TOKEN,
             process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
             "clinicx_meta_verify_token",
+            "clinicx_wa_meta_2025",
             "clinicx-secret-key",
           ].filter(Boolean);
 

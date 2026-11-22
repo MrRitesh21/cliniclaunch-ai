@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
       GET: async ({ request }: { request: Request }) => {
         const url = new URL(request.url);
         const code = url.searchParams.get("code");
-        const state = url.searchParams.get("state"); // clinic_id
+        const stateRaw = url.searchParams.get("state"); // clinic_id or base64 JSON
         const error = url.searchParams.get("error");
         const errorDescription = url.searchParams.get("error_description");
 
@@ -55,11 +55,39 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
           });
         }
 
+        let targetClinicId: string | null = null;
+        let stateAppId: string | null = null;
+
+        if (stateRaw) {
+          try {
+            // Check base64 JSON first
+            const decoded = atob(stateRaw);
+            const parsed = JSON.parse(decoded);
+            if (parsed && typeof parsed === "object") {
+              targetClinicId = parsed.clinicId || null;
+              stateAppId = parsed.appId || null;
+            }
+          } catch {
+            try {
+              // Check direct JSON
+              const parsed = JSON.parse(stateRaw);
+              if (parsed && typeof parsed === "object") {
+                targetClinicId = parsed.clinicId || null;
+                stateAppId = parsed.appId || null;
+              }
+            } catch {
+              // Direct string fallback
+              targetClinicId = stateRaw;
+            }
+          }
+        }
+
         try {
           const redirectUri = getCanonicalMetaRedirectUri(request, url);
           const exchangeResult = await exchangeMetaOAuthCode({
             code,
             redirectUri,
+            appId: stateAppId || undefined,
           });
 
           if (!exchangeResult.ok || !exchangeResult.accessToken || !exchangeResult.phoneNumberId) {
@@ -67,7 +95,6 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
           }
 
           // Resolve target clinic
-          let targetClinicId = state;
           if (!targetClinicId || targetClinicId === "default") {
             const { data: firstClinic } = await supabaseAdmin
               .from("clinics")

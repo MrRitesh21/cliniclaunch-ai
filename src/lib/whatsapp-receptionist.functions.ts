@@ -494,14 +494,17 @@ export const saveMetaCredentialsFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Get Meta Cloud API connection status and Coexistence Mode indicators.
+ * Get Meta Cloud API connection status, Coexistence Mode indicators, and OAuth App Config.
  */
 export const getMetaConnectionStatusFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
-    const { getMetaConfigForClinic } = await import("./meta-whatsapp.server");
-    const metaConfig = await getMetaConfigForClinic(clinic.id);
+    const { getMetaConfigForClinic, getMetaAppCredentials } = await import("./meta-whatsapp.server");
+    const [metaConfig, appCreds] = await Promise.all([
+      getMetaConfigForClinic(clinic.id),
+      getMetaAppCredentials(),
+    ]);
     const isMeta = Boolean(metaConfig?.phoneNumberId && metaConfig?.accessToken);
     return {
       isMetaConnected: isMeta,
@@ -509,9 +512,35 @@ export const getMetaConnectionStatusFn = createServerFn({ method: "GET" })
       phoneNumberId: isMeta ? metaConfig?.phoneNumberId : null,
       wabaId: isMeta ? metaConfig?.wabaId : null,
       phoneNumber: isMeta ? metaConfig?.phoneNumber || clinic.wa_phone : clinic.wa_phone,
+      businessName: isMeta ? metaConfig?.businessName : null,
       clinicWaStatus: clinic.wa_status,
       clinicId: clinic.id,
+      metaAppConfig: {
+        appId: appCreds.appId || "2115406659069224",
+        isConfigured: appCreds.isConfigured,
+        hasSecret: Boolean(appCreds.appSecret),
+      },
     };
+  });
+
+/**
+ * Configure Meta OAuth App credentials (App ID & Secret) in system_settings.
+ */
+export const saveMetaOAuthAppConfigFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => {
+    return z
+      .object({
+        appId: z.string().min(1, "Meta App ID is required"),
+        appSecret: z.string().min(1, "Meta App Secret is required"),
+      })
+      .parse(d);
+  })
+  .handler(async ({ data }) => {
+    const { saveMetaAppCredentials } = await import("./meta-whatsapp.server");
+    const res = await saveMetaAppCredentials(data.appId, data.appSecret);
+    if (!res.ok) throw new Error(res.error || "Failed to save Meta App credentials");
+    return { success: true };
   });
 
 /**

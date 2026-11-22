@@ -32,6 +32,7 @@ import {
   saveMetaCredentialsFn,
   getMetaConnectionStatusFn,
   disconnectMetaConnectionFn,
+  saveMetaOAuthAppConfigFn,
 } from "@/lib/whatsapp-receptionist.functions";
 
 type Status = {
@@ -60,6 +61,7 @@ export function WhatsappConnectCard({
   const saveMetaFn = useServerFn(saveMetaCredentialsFn);
   const getMetaStatusFn = useServerFn(getMetaConnectionStatusFn);
   const disconnectMetaFn = useServerFn(disconnectMetaConnectionFn);
+  const saveMetaAppConfigFn = useServerFn(saveMetaOAuthAppConfigFn);
 
   const [status, setStatus] = useState<Status>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -77,7 +79,13 @@ export function WhatsappConnectCard({
     phoneNumberId: string | null;
     wabaId: string | null;
     phoneNumber: string | null;
+    businessName?: string | null;
     clinicId?: string;
+    metaAppConfig?: {
+      appId: string;
+      isConfigured: boolean;
+      hasSecret: boolean;
+    };
   } | null>(null);
 
   const [showDirectMetaForm, setShowDirectMetaForm] = useState(false);
@@ -86,6 +94,12 @@ export function WhatsappConnectCard({
   const [directWabaId, setDirectWabaId] = useState("");
   const [directPhoneNumber, setDirectPhoneNumber] = useState("");
   const [savingDirectMeta, setSavingDirectMeta] = useState(false);
+
+  // Meta OAuth App Config state (App ID & Secret)
+  const [showAppConfig, setShowAppConfig] = useState(false);
+  const [appIdInput, setAppIdInput] = useState("");
+  const [appSecretInput, setAppSecretInput] = useState("");
+  const [savingAppConfig, setSavingAppConfig] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -97,6 +111,9 @@ export function WhatsappConnectCard({
       setIsReconnecting(Boolean((r as any)?.isReconnecting));
       if (meta) {
         setMetaStatus(meta);
+        if (meta.metaAppConfig?.appId) {
+          setAppIdInput((prev) => prev || meta.metaAppConfig?.appId || "");
+        }
         if (meta.isMetaConnected) {
           setPairingMode("meta");
         }
@@ -187,14 +204,50 @@ export function WhatsappConnectCard({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleSaveAppConfig() {
+    if (!appIdInput.trim() || !appSecretInput.trim()) {
+      return toast.error("Both Meta App ID and Meta App Secret are required");
+    }
+    setSavingAppConfig(true);
+    try {
+      await saveMetaAppConfigFn({
+        data: {
+          appId: appIdInput.trim(),
+          appSecret: appSecretInput.trim(),
+        },
+      });
+      toast.success("Meta App ID & Secret saved successfully!");
+      setShowAppConfig(false);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save Meta App credentials");
+    } finally {
+      setSavingAppConfig(false);
+    }
+  }
+
   async function handleLaunchMetaOAuth() {
-    const metaAppId = "2115406659069224"; // App ID from Meta Developer Console
+    const activeAppId = metaStatus?.metaAppConfig?.appId || appIdInput.trim() || "2115406659069224";
+    const hasSecret = metaStatus?.metaAppConfig?.hasSecret;
+
+    if (!hasSecret && !appSecretInput.trim()) {
+      setShowAppConfig(true);
+      toast.info("Please enter and save your Meta App Secret before launching Meta OAuth.");
+      return;
+    }
+
     const isProd = typeof window !== "undefined" && window.location.hostname.includes("digiwil.com");
     const origin = isProd ? "https://clinicx.digiwil.com" : (typeof window !== "undefined" ? window.location.origin : "https://clinicx.digiwil.com");
     const redirectUri = `${origin}/api/auth/meta/callback`;
-    const state = metaStatus?.clinicId || "default";
+    
+    // Pass clinicId and appId in base64 encoded state
+    const statePayload = {
+      clinicId: metaStatus?.clinicId || "default",
+      appId: activeAppId,
+    };
+    const state = btoa(JSON.stringify(statePayload));
 
-    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${metaAppId}&redirect_uri=${encodeURIComponent(
+    const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${activeAppId}&redirect_uri=${encodeURIComponent(
       redirectUri,
     )}&state=${encodeURIComponent(state)}&scope=whatsapp_business_management,whatsapp_business_messaging&response_type=code`;
 
@@ -444,16 +497,86 @@ export function WhatsappConnectCard({
                   <p className="text-xs text-muted-foreground max-w-xl">
                     Connect your existing WhatsApp Business number directly. <b>Keep using WhatsApp Business on your phone as usual</b> — your personal chat history and calls remain untouched, while the 24/7 AI Receptionist handles inquiries and bookings!
                   </p>
+                  {metaStatus?.metaAppConfig && (
+                    <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
+                      <span>App ID: <code className="font-mono font-semibold text-foreground">{metaStatus.metaAppConfig.appId}</code></span>
+                      <span>•</span>
+                      <span className={metaStatus.metaAppConfig.hasSecret ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
+                        {metaStatus.metaAppConfig.hasSecret ? "✓ Secret Configured" : "⚠ Secret Missing (Required for 1-Click OAuth)"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAppConfig((v) => !v)}
+                        className="text-primary hover:underline ml-1 font-semibold"
+                      >
+                        {showAppConfig ? "Close App Settings" : "Configure App ID & Secret"}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <Button
-                  onClick={handleLaunchMetaOAuth}
-                  className="rounded-xl font-semibold text-xs h-10 px-5 gap-2 shrink-0 bg-[#1877F2] hover:bg-[#166fe5] text-white shadow-sm"
-                >
-                  <ExternalLink className="size-4" />
-                  Connect with Meta
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    onClick={handleLaunchMetaOAuth}
+                    className="rounded-xl font-semibold text-xs h-10 px-5 gap-2 bg-[#1877F2] hover:bg-[#166fe5] text-white shadow-sm"
+                  >
+                    <ExternalLink className="size-4" />
+                    Connect with Meta
+                  </Button>
+                </div>
               </div>
+
+              {/* Meta OAuth App Config Box (shown when secret missing or user clicked configure) */}
+              {showAppConfig && (
+                <div className="p-4 rounded-xl bg-card border border-primary/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-xs text-foreground">Meta App OAuth Credentials</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Found under <b>Meta Developer Console &rarr; App Settings &rarr; Basic</b>. Ensure the App Secret belongs to this exact App ID.
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px]">Saved to Secure Store</Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">Meta App ID *</Label>
+                      <Input
+                        placeholder="e.g. 2115406659069224 or 1450666523321279"
+                        value={appIdInput}
+                        onChange={(e) => setAppIdInput(e.target.value)}
+                        className="text-xs font-mono rounded-lg h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">Meta App Secret *</Label>
+                      <Input
+                        type="password"
+                        placeholder="Paste App Secret here"
+                        value={appSecretInput}
+                        onChange={(e) => setAppSecretInput(e.target.value)}
+                        className="text-xs font-mono rounded-lg h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                    <span className="text-[11px] text-muted-foreground">
+                      Valid OAuth Redirect URI: <code className="font-mono text-primary text-[10px]">https://clinicx.digiwil.com/api/auth/meta/callback</code>
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveAppConfig}
+                      disabled={savingAppConfig || !appIdInput.trim() || !appSecretInput.trim()}
+                      className="rounded-lg text-xs h-8 px-4 gap-1.5"
+                    >
+                      {savingAppConfig ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                      <span>Save App Credentials</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* 4 Feature Checklist Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -553,6 +676,50 @@ export function WhatsappConnectCard({
                         {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
                         <span>Save & Activate Coexistence Mode</span>
                       </Button>
+                    </div>
+
+                    {/* Meta Webhooks Quick Reference */}
+                    <div className="mt-4 p-3.5 rounded-xl bg-muted/40 border text-xs space-y-2">
+                      <p className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                        <Globe className="size-3.5 text-primary" /> Meta Webhook Configuration (for Step 2 in Meta Console)
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        <div className="p-2 rounded-lg bg-background border flex items-center justify-between">
+                          <div>
+                            <span className="text-muted-foreground block text-[10px]">Callback URL</span>
+                            <code className="font-mono text-foreground select-all text-[11px]">https://clinicx.digiwil.com/api/public/hooks/whatsapp</code>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              navigator.clipboard.writeText("https://clinicx.digiwil.com/api/public/hooks/whatsapp");
+                              toast.success("Callback URL copied!");
+                            }}
+                          >
+                            <Copy className="size-3" />
+                          </Button>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-background border flex items-center justify-between">
+                          <div>
+                            <span className="text-muted-foreground block text-[10px]">Verify Token</span>
+                            <code className="font-mono text-foreground select-all text-[11px]">clinicx_wa_meta_2025</code>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              navigator.clipboard.writeText("clinicx_wa_meta_2025");
+                              toast.success("Verify Token copied!");
+                            }}
+                          >
+                            <Copy className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -44,6 +44,88 @@ export function formatMetaPhone(phone: string): string {
 }
 
 /**
+ * Retrieve server-wide Meta App Credentials (App ID and App Secret).
+ * Checked in order:
+ * 1. Environment variables (META_APP_ID, META_APP_SECRET, FACEBOOK_APP_ID, FACEBOOK_APP_SECRET)
+ * 2. Database system_settings table (meta_app_id, meta_app_secret)
+ */
+export async function getMetaAppCredentials(): Promise<{
+  appId: string | null;
+  appSecret: string | null;
+  isConfigured: boolean;
+}> {
+  let appId = process.env.META_APP_ID || process.env.FACEBOOK_APP_ID || null;
+  let appSecret = process.env.META_APP_SECRET || process.env.FACEBOOK_APP_SECRET || null;
+
+  if (!appId || !appSecret) {
+    try {
+      const { data: rows } = await supabaseAdmin
+        .from("system_settings" as any)
+        .select("key, value")
+        .in("key", ["meta_app_id", "meta_app_secret"]);
+
+      if (rows && Array.isArray(rows)) {
+        for (const row of rows) {
+          if (row.key === "meta_app_id" && !appId && row.value) {
+            appId = typeof row.value === "string" ? row.value.trim() : String(row.value).trim();
+          }
+          if (row.key === "meta_app_secret" && !appSecret && row.value) {
+            appSecret = typeof row.value === "string" ? row.value.trim() : String(row.value).trim();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[Meta WhatsApp] Error fetching app credentials from system_settings:", err);
+    }
+  }
+
+  // Fallback default App ID if none configured
+  if (!appId) {
+    appId = "2115406659069224";
+  }
+
+  return {
+    appId,
+    appSecret,
+    isConfigured: Boolean(appId && appSecret),
+  };
+}
+
+/**
+ * Persist Meta App ID and App Secret to database system_settings table.
+ */
+export async function saveMetaAppCredentials(
+  appId: string,
+  appSecret: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const sb = supabaseAdmin;
+    const now = new Date().toISOString();
+    const rows = [
+      {
+        key: "meta_app_id",
+        value: appId.trim(),
+        description: "Meta App ID for WhatsApp Cloud API OAuth",
+        updated_at: now,
+      },
+      {
+        key: "meta_app_secret",
+        value: appSecret.trim(),
+        description: "Meta App Secret for WhatsApp Cloud API OAuth",
+        updated_at: now,
+      },
+    ];
+
+    const { error } = await sb.from("system_settings" as any).upsert(rows, { onConflict: "key" });
+    if (error) throw error;
+    return { ok: true };
+  } catch (err: any) {
+    console.error("[Meta WhatsApp] Error saving app credentials to system_settings:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Retrieve saved Meta Cloud API credentials for a given clinic.
  */
 export async function getMetaConfigForClinic(clinicId: string): Promise<MetaClinicConfig | null> {
@@ -100,6 +182,40 @@ export async function saveMetaConfigForClinic(
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const sb = supabaseAdmin;
+
+    // Auto-fetch verified phone number and business name if missing
+    if (config.phoneNumberId && config.accessToken && (!config.phoneNumber || !config.businessName)) {
+      try {
+        const phoneInfoRes = await fetch(
+          `${GRAPH_BASE_URL}/${config.phoneNumberId}?fields=display_phone_number,verified_name`,
+          { headers: { Authorization: `Bearer ${config.accessToken}` } },
+        );
+        if (phoneInfoRes.ok) {
+          const info = await phoneInfoRes.json();
+          if (info?.display_phone_number && !config.phoneNumber) {
+            config.phoneNumber = info.display_phone_number;
+          }
+          if (info?.verified_name && !config.businessName) {
+            config.businessName = info.verified_name;
+          }
+        }
+      } catch (err) {
+        console.warn("[Meta WhatsApp] Auto-query phone info notice:", err);
+      }
+    }
+
+    // Auto-subscribe WABA to Webhooks if WABA ID is available
+    if (config.wabaId && config.accessToken) {
+      try {
+        await fetch(`${GRAPH_BASE_URL}/${config.wabaId}/subscribed_apps`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${config.accessToken}` },
+        });
+      } catch (subErr) {
+        console.warn(`[Meta WhatsApp] Auto-subscribe WABA ${config.wabaId} webhook notice:`, subErr);
+      }
+    }
+
     const payload = {
       ...config,
       connectedAt: config.connectedAt || new Date().toISOString(),
@@ -280,57 +396,46 @@ export async function exchangeMetaOAuthCode(params: {
   businessName?: string;
   error?: string;
 }> {
-  const appId = params.appId || process.env.META_APP_ID || process.env.FACEBOOK_APP_ID;
-  const appSecret = params.appSecret || process.env.META_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
+  const creds = await getMetaAppCredentials();
+  const appId = params.appId || creds.appId;
+  const appSecret = params.appSecret || creds.appSecret;
 
   if (!appId || !appSecret) {
-    return { ok: false, error: "Meta App ID or App Secret is not configured in server environment" };
+    return {
+      ok: false,
+      error: "Meta App ID or App Secret is not configured. Please enter your Meta App credentials in WhatsApp Settings or server environment.",
+    };
   }
 
   try {
     // 1. Exchange authorization code for User Access Token
-    // Support prioritized candidate redirect URIs to handle reverse proxy / HTTPS scheme rewrites
-    const candidateUris = Array.from(
-      new Set([
-        params.redirectUri,
-        "https://clinicx.digiwil.com/api/auth/meta/callback",
-        params.redirectUri.replace(/^http:/, "https:"),
-        params.redirectUri.replace(/\/$/, ""),
-        `${params.redirectUri}/`,
-        "https://clinicx.digiwil.com/api/auth/meta/callback/",
-      ]),
-    ).filter(Boolean);
+    // Send exact canonical redirect URI directly to prevent burning single-use authorization code
+    const tokenUrl = new URL(`${GRAPH_BASE_URL}/oauth/access_token`);
+    tokenUrl.searchParams.set("client_id", appId);
+    tokenUrl.searchParams.set("client_secret", appSecret);
+    tokenUrl.searchParams.set("redirect_uri", params.redirectUri);
+    tokenUrl.searchParams.set("code", params.code);
 
-    let accessToken: string | null = null;
-    let lastError: string | null = null;
+    const tokenRes = await fetch(tokenUrl.toString(), { method: "GET" });
+    const tokenData = await tokenRes.json();
 
-    for (const testUri of candidateUris) {
-      const tokenUrl = new URL(`${GRAPH_BASE_URL}/oauth/access_token`);
-      tokenUrl.searchParams.set("client_id", appId);
-      tokenUrl.searchParams.set("client_secret", appSecret);
-      tokenUrl.searchParams.set("redirect_uri", testUri);
-      tokenUrl.searchParams.set("code", params.code);
+    if (!tokenRes.ok || !tokenData?.access_token) {
+      const errMsg = tokenData?.error?.message || "Failed to exchange authorization code with Meta";
+      console.error("[Meta OAuth Token Exchange Error]", tokenData?.error);
 
-      const tokenRes = await fetch(tokenUrl.toString(), { method: "GET" });
-      const tokenData = await tokenRes.json();
-
-      if (tokenRes.ok && tokenData?.access_token) {
-        accessToken = tokenData.access_token;
-        break;
+      if (
+        errMsg.toLowerCase().includes("verification code") ||
+        errMsg.toLowerCase().includes("redirect_uri")
+      ) {
+        return {
+          ok: false,
+          error: `Error validating verification code: Meta App Secret may not match App ID (${appId}), or '${params.redirectUri}' is not listed in Valid OAuth Redirect URIs under Meta App > Facebook Login for Business > Settings.`,
+        };
       }
-
-      lastError = tokenData?.error?.message || "Failed to exchange authorization code with Meta";
-      if (!lastError?.includes("redirect_uri")) {
-        break;
-      }
+      return { ok: false, error: errMsg };
     }
 
-    if (!accessToken) {
-      return {
-        ok: false,
-        error: lastError || "Failed to exchange authorization code with Meta",
-      };
-    }
+    const accessToken = tokenData.access_token;
 
     // 2. Inspect token to retrieve Granular Scopes & WABA ID
     const debugUrl = new URL(`${GRAPH_BASE_URL}/debug_token`);
