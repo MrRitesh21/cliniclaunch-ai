@@ -313,10 +313,10 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     // Local explicit read contract until generated Supabase types include this migration.
     aliasPromise,
     getClinicSubscription({ data: { organizationId: orgId } }).catch((err) => {
-      console.warn("[useOrganization] getClinicSubscription fallback:", err);
+      console.debug("[useOrganization] getClinicSubscription local fallback:", err?.message || err);
       return {
         organization_id: orgId,
-        role: (membership.data[0]?.role as any) || "owner",
+        role: (membership?.data?.[0]?.role as any) || "owner",
         server_now: new Date().toISOString(),
         effective_state: "active" as const,
         can_read: true,
@@ -324,13 +324,13 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
         can_export: true,
         subscription: {
           id: null,
-          plan_id: "starter",
+          plan_id: "growth",
           status: "active",
           billing_cycle: "monthly",
           trial_started_at: null,
           trial_ends_at: null,
           grace_ends_at: null,
-          current_period_end: null,
+          current_period_end: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
           cancel_at_period_end: false,
           access_source: "fallback",
         },
@@ -338,7 +338,8 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
         features: [
           "appointments", "queue", "patients", "records", "crm", "emr",
           "doctors", "visits", "prescriptions", "consult", "billing", "website",
-          "qr_checkin", "whatsapp"
+          "website_builder", "qr_checkin", "qr_appointment", "whatsapp",
+          "loyalty", "reviews", "analytics", "seo", "marketing", "attendance"
         ],
         limits: {
           patients: 5000,
@@ -352,7 +353,7 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
           prescriptions: 0, invoices: 0, invoiced_inr: 0, collected_inr: 0,
           currency: "INR" as const, window: "all_time" as const, features_used: []
         },
-        recommendation: { plan_id: "starter", advisory: true as const, basis: {} },
+        recommendation: { plan_id: "growth", advisory: true as const, basis: {} },
         configuration_requires_reconciliation: false,
       };
     }),

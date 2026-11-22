@@ -160,8 +160,14 @@ export function usePushNotifications() {
                 },
               }).catch((e) => console.warn("[Push] Auto-sync subscription notice:", e));
             }
-          } catch (autoErr) {
-            console.warn("[Push] Auto-subscription sync notice:", autoErr);
+          } catch (autoErr: any) {
+            const isPushRegistrationErr =
+              autoErr?.name === "AbortError" ||
+              autoErr?.message?.includes("Registration failed") ||
+              autoErr?.message?.includes("push service error");
+            if (!isPushRegistrationErr) {
+              console.warn("[Push] Auto-subscription sync notice:", autoErr?.message || autoErr);
+            }
           }
         }
       }
