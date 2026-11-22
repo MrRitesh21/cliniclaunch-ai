@@ -33,6 +33,7 @@ import {
   getMetaConnectionStatusFn,
   disconnectMetaConnectionFn,
   saveMetaOAuthAppConfigFn,
+  autoDetectMetaPhoneNumbersFn,
 } from "@/lib/whatsapp-receptionist.functions";
 
 type Status = {
@@ -62,11 +63,13 @@ export function WhatsappConnectCard({
   const getMetaStatusFn = useServerFn(getMetaConnectionStatusFn);
   const disconnectMetaFn = useServerFn(disconnectMetaConnectionFn);
   const saveMetaAppConfigFn = useServerFn(saveMetaOAuthAppConfigFn);
+  const autoDetectMetaFn = useServerFn(autoDetectMetaPhoneNumbersFn);
 
   const [status, setStatus] = useState<Status>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [autoDetecting, setAutoDetecting] = useState(false);
   const [pairingMode, setPairingMode] = useState<"meta" | "qr" | "code">("meta");
   const [phoneInput, setPhoneInput] = useState("");
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -234,6 +237,24 @@ export function WhatsappConnectCard({
     }
   }
 
+  async function handleAutoDetect() {
+    setAutoDetecting(true);
+    try {
+      const res = await autoDetectMetaFn();
+      if (res?.ok && res?.autoConnected) {
+        toast.success(`WhatsApp Phone (${res.phoneNumber || res.connectedPhoneId}) Auto-Connected! 🎉`);
+        setShowNeedPhoneIdPrompt(false);
+        refresh();
+      } else {
+        toast.info(res?.message || "Could not auto-detect phone number. Please enter Phone Number ID manually.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Auto-detect failed. Please enter your Phone Number ID.");
+    } finally {
+      setAutoDetecting(false);
+    }
+  }
+
   async function handleLaunchMetaOAuth() {
     const activeAppId = metaStatus?.metaAppConfig?.appId || appIdInput.trim() || "2115406659069224";
     const hasSecret = metaStatus?.metaAppConfig?.hasSecret;
@@ -255,9 +276,10 @@ export function WhatsappConnectCard({
     };
     const state = btoa(JSON.stringify(statePayload));
 
+    // Request full WhatsApp and Business management permissions
     const oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${activeAppId}&redirect_uri=${encodeURIComponent(
       redirectUri,
-    )}&state=${encodeURIComponent(state)}&scope=whatsapp_business_management,whatsapp_business_messaging&response_type=code`;
+    )}&state=${encodeURIComponent(state)}&scope=whatsapp_business_management,whatsapp_business_messaging,business_management&response_type=code`;
 
     window.location.href = oauthUrl;
   }
@@ -593,15 +615,27 @@ export function WhatsappConnectCard({
               {/* Highlighted Prompt if Token is Authorized but Phone Number ID is needed */}
               {(metaStatus?.hasPendingToken || showNeedPhoneIdPrompt) && !metaStatus?.isMetaConnected && (
                 <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 space-y-3 animate-in fade-in">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-                    <p className="font-bold text-xs text-foreground">
-                      Meta OAuth Authorized! Confirm Phone Number ID
-                    </p>
-                    <Badge className="bg-emerald-600 text-white text-[10px]">Access Token Ready</Badge>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                      <p className="font-bold text-xs text-foreground">
+                        Meta OAuth Authorized! Confirm Phone Number ID
+                      </p>
+                      <Badge className="bg-emerald-600 text-white text-[10px]">Access Token Ready</Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleAutoDetect}
+                      disabled={autoDetecting}
+                      className="rounded-lg text-xs h-7 px-3 gap-1.5 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 bg-background/50 font-medium"
+                    >
+                      {autoDetecting ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />}
+                      <span>{autoDetecting ? "Detecting..." : "Auto-Detect My Number"}</span>
+                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Your Meta access token is securely saved. Please enter your WhatsApp <b>Phone Number ID</b> from your Meta Developer Console (WhatsApp &rarr; API Setup) to complete activation.
+                    Your Meta access token is securely saved. Click <b>Auto-Detect My Number</b>, or paste your WhatsApp <b>Phone Number ID</b> from your Meta Developer Console.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
                     <Input
@@ -620,6 +654,17 @@ export function WhatsappConnectCard({
                       {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
                       <span>Activate WhatsApp</span>
                     </Button>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
+                    <span>Where to find this?</span>
+                    <a
+                      href={`https://developers.facebook.com/apps/${metaStatus?.metaAppConfig?.appId || "1450666523321279"}/whatsapp-business/wa-dev-console/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-semibold inline-flex items-center gap-1"
+                    >
+                      Open WhatsApp &rarr; API Setup in Meta Console <ExternalLink className="size-3" />
+                    </a>
                   </div>
                 </div>
               )}

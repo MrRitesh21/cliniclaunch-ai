@@ -384,6 +384,256 @@ export async function metaWhatsAppSend(params: {
  * Exchange OAuth Authorization Code for Permanent Access Token and WABA details.
  * Used when the user completes Meta Embedded Signup or OAuth redirect.
  */
+/**
+ * Discover WABAs and Phone Numbers across all Meta Graph API endpoints.
+ */
+export async function discoverMetaPhoneNumbers(
+  accessToken: string,
+  appId?: string,
+  appSecret?: string,
+): Promise<{
+  phones: Array<{
+    id: string;
+    display_phone_number: string;
+    verified_name: string;
+    wabaId: string;
+  }>;
+  wabaIds: string[];
+}> {
+  const creds = await getMetaAppCredentials();
+  const effectiveAppId = appId || creds.appId || "1450666523321279";
+  const effectiveAppSecret = appSecret || creds.appSecret || "";
+
+  const discoveredWabaIds = new Set<string>();
+  const discoveredPhones: Array<{
+    id: string;
+    display_phone_number: string;
+    verified_name: string;
+    wabaId: string;
+  }> = [];
+
+  const addPhone = (p: any, wid: string, fallbackName = "") => {
+    if (!p?.id) return;
+    const phoneIdStr = String(p.id).trim();
+    if (discoveredPhones.some((existing) => existing.id === phoneIdStr)) return;
+    discoveredPhones.push({
+      id: phoneIdStr,
+      display_phone_number: p.display_phone_number || "",
+      verified_name: p.verified_name || fallbackName,
+      wabaId: wid,
+    });
+  };
+
+  // 1. Inspect token via debug_token
+  if (effectiveAppId && effectiveAppSecret) {
+    try {
+      const debugUrl = new URL(`${GRAPH_BASE_URL}/debug_token`);
+      debugUrl.searchParams.set("input_token", accessToken);
+      debugUrl.searchParams.set("access_token", `${effectiveAppId}|${effectiveAppSecret}`);
+
+      const debugRes = await fetch(debugUrl.toString(), { method: "GET" });
+      const debugData = await debugRes.json();
+
+      for (const scope of debugData?.data?.granular_scopes || []) {
+        if (
+          scope.scope === "whatsapp_business_management" ||
+          scope.scope === "whatsapp_business_messaging"
+        ) {
+          for (const tid of scope.target_ids || []) {
+            if (tid) discoveredWabaIds.add(String(tid).trim());
+          }
+        }
+      }
+    } catch (debugErr) {
+      console.warn("[Meta Discovery] debug_token notice:", debugErr);
+    }
+  }
+
+  // 2. Query /me/whatsapp_business_accounts
+  try {
+    const wabaRes = await fetch(
+      `${GRAPH_BASE_URL}/me/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (wabaRes.ok) {
+      const wabaData = await wabaRes.json();
+      for (const waba of wabaData?.data || []) {
+        if (waba.id) discoveredWabaIds.add(String(waba.id).trim());
+        for (const p of waba.phone_numbers?.data || []) {
+          addPhone(p, String(waba.id), waba.name);
+        }
+      }
+    }
+  } catch (wabaErr) {
+    console.warn("[Meta Discovery] /me/whatsapp_business_accounts notice:", wabaErr);
+  }
+
+  // 3. Query /me/businesses (both owned and client WhatsApp business accounts)
+  try {
+    const bizRes = await fetch(
+      `${GRAPH_BASE_URL}/me/businesses?fields=id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}},client_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}},whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (bizRes.ok) {
+      const bizData = await bizRes.json();
+      for (const biz of bizData?.data || []) {
+        const allWabas = [
+          ...(biz.owned_whatsapp_business_accounts?.data || []),
+          ...(biz.client_whatsapp_business_accounts?.data || []),
+          ...(biz.whatsapp_business_accounts?.data || []),
+        ];
+        for (const waba of allWabas) {
+          if (waba.id) discoveredWabaIds.add(String(waba.id).trim());
+          for (const p of waba.phone_numbers?.data || []) {
+            addPhone(p, String(waba.id), waba.name || biz.name);
+          }
+        }
+      }
+    }
+  } catch (bizErr) {
+    console.warn("[Meta Discovery] /me/businesses notice:", bizErr);
+  }
+
+  // 4. Query known business IDs (e.g. from developer setup 1332506134478471)
+  const candidateBizIds = ["1332506134478471"];
+  for (const bId of candidateBizIds) {
+    try {
+      const bizDirectRes = await fetch(
+        `${GRAPH_BASE_URL}/${bId}/owned_whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      if (bizDirectRes.ok) {
+        const bData = await bizDirectRes.json();
+        for (const waba of bData?.data || []) {
+          if (waba.id) discoveredWabaIds.add(String(waba.id).trim());
+          for (const p of waba.phone_numbers?.data || []) {
+            addPhone(p, String(waba.id), waba.name);
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      const bizClientRes = await fetch(
+        `${GRAPH_BASE_URL}/${bId}/client_whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      if (bizClientRes.ok) {
+        const bData = await bizClientRes.json();
+        for (const waba of bData?.data || []) {
+          if (waba.id) discoveredWabaIds.add(String(waba.id).trim());
+          for (const p of waba.phone_numbers?.data || []) {
+            addPhone(p, String(waba.id), waba.name);
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 4b. Query known business IDs & App with App Access Token (handles developer-mode apps)
+  if (effectiveAppId && effectiveAppSecret) {
+    const appToken = `${effectiveAppId}|${effectiveAppSecret}`;
+    for (const bId of candidateBizIds) {
+      try {
+        const appBizRes = await fetch(
+          `${GRAPH_BASE_URL}/${bId}/owned_whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}`,
+          { headers: { Authorization: `Bearer ${appToken}` } },
+        );
+        if (appBizRes.ok) {
+          const bData = await appBizRes.json();
+          for (const waba of bData?.data || []) {
+            if (waba.id) discoveredWabaIds.add(String(waba.id).trim());
+            for (const p of waba.phone_numbers?.data || []) {
+              addPhone(p, String(waba.id), waba.name);
+            }
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    try {
+      const appWabaRes = await fetch(
+        `${GRAPH_BASE_URL}/${effectiveAppId}/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}`,
+        { headers: { Authorization: `Bearer ${appToken}` } },
+      );
+      if (appWabaRes.ok) {
+        const aData = await appWabaRes.json();
+        for (const waba of aData?.data || []) {
+          if (waba.id) discoveredWabaIds.add(String(waba.id).trim());
+          for (const p of waba.phone_numbers?.data || []) {
+            addPhone(p, String(waba.id), waba.name);
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 5. Query /phone_numbers edge on all discovered WABA IDs
+  for (const wid of Array.from(discoveredWabaIds)) {
+    if (discoveredPhones.some((p) => p.wabaId === wid)) continue;
+    try {
+      const phoneRes = await fetch(
+        `${GRAPH_BASE_URL}/${wid}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      if (phoneRes.ok) {
+        const phoneData = await phoneRes.json();
+        for (const p of phoneData?.data || []) {
+          addPhone(p, wid);
+        }
+      }
+    } catch (phoneErr) {
+      console.warn(`[Meta Discovery] WABA ${wid}/phone_numbers notice:`, phoneErr);
+    }
+
+    if (!discoveredPhones.some((p) => p.wabaId === wid) && effectiveAppId && effectiveAppSecret) {
+      try {
+        const appPhoneRes = await fetch(
+          `${GRAPH_BASE_URL}/${wid}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`,
+          { headers: { Authorization: `Bearer ${effectiveAppId}|${effectiveAppSecret}` } },
+        );
+        if (appPhoneRes.ok) {
+          const phoneData = await appPhoneRes.json();
+          for (const p of phoneData?.data || []) {
+            addPhone(p, wid);
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  // 6. Auto-subscribe all discovered WABAs to Webhook
+  for (const wid of Array.from(discoveredWabaIds)) {
+    try {
+      await fetch(`${GRAPH_BASE_URL}/${wid}/subscribed_apps`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return {
+    phones: discoveredPhones,
+    wabaIds: Array.from(discoveredWabaIds),
+  };
+}
+
+/**
+ * Exchange OAuth Authorization Code for Permanent Access Token and WABA details.
+ * Used when the user completes Meta Embedded Signup or OAuth redirect.
+ */
 export async function exchangeMetaOAuthCode(params: {
   code: string;
   redirectUri: string;
@@ -440,164 +690,10 @@ export async function exchangeMetaOAuthCode(params: {
     const accessToken = tokenData.access_token;
 
     // 2. Discover WABAs and Phone Numbers across all Meta Graph API endpoints
-    const discoveredWabaIds = new Set<string>();
-    const discoveredPhones: Array<{
-      id: string;
-      display_phone_number: string;
-      verified_name: string;
-      wabaId: string;
-    }> = [];
+    const discovery = await discoverMetaPhoneNumbers(accessToken, appId, appSecret);
 
-    // 2a. Inspect token to retrieve Granular Scopes & WABA ID
-    try {
-      const debugUrl = new URL(`${GRAPH_BASE_URL}/debug_token`);
-      debugUrl.searchParams.set("input_token", accessToken);
-      debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
-
-      const debugRes = await fetch(debugUrl.toString(), { method: "GET" });
-      const debugData = await debugRes.json();
-
-      const granularScopes = debugData?.data?.granular_scopes || [];
-      for (const scope of granularScopes) {
-        if (
-          scope.scope === "whatsapp_business_management" ||
-          scope.scope === "whatsapp_business_messaging"
-        ) {
-          for (const tid of scope.target_ids || []) {
-            if (tid) discoveredWabaIds.add(String(tid));
-          }
-        }
-      }
-    } catch (debugErr) {
-      console.warn("[Meta WhatsApp] debug_token inspection notice:", debugErr);
-    }
-
-    // 2b. Query user's WhatsApp Business Accounts (/me/whatsapp_business_accounts)
-    try {
-      const wabaRes = await fetch(
-        `${GRAPH_BASE_URL}/me/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
-      if (wabaRes.ok) {
-        const wabaData = await wabaRes.json();
-        for (const waba of wabaData?.data || []) {
-          if (waba.id) discoveredWabaIds.add(String(waba.id));
-          for (const p of waba.phone_numbers?.data || []) {
-            if (p.id) {
-              discoveredPhones.push({
-                id: String(p.id),
-                display_phone_number: p.display_phone_number || "",
-                verified_name: p.verified_name || waba.name || "",
-                wabaId: String(waba.id),
-              });
-            }
-          }
-        }
-      }
-    } catch (wabaErr) {
-      console.warn("[Meta WhatsApp] /me/whatsapp_business_accounts notice:", wabaErr);
-    }
-
-    // 2c. Query user's Business Managers (/me/businesses)
-    try {
-      const bizRes = await fetch(
-        `${GRAPH_BASE_URL}/me/businesses?fields=id,name,whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}},client_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
-      if (bizRes.ok) {
-        const bizData = await bizRes.json();
-        for (const biz of bizData?.data || []) {
-          const allWabas = [
-            ...(biz.whatsapp_business_accounts?.data || []),
-            ...(biz.client_whatsapp_business_accounts?.data || []),
-          ];
-          for (const waba of allWabas) {
-            if (waba.id) discoveredWabaIds.add(String(waba.id));
-            for (const p of waba.phone_numbers?.data || []) {
-              if (p.id) {
-                discoveredPhones.push({
-                  id: String(p.id),
-                  display_phone_number: p.display_phone_number || "",
-                  verified_name: p.verified_name || waba.name || biz.name || "",
-                  wabaId: String(waba.id),
-                });
-              }
-            }
-          }
-        }
-      }
-    } catch (bizErr) {
-      console.warn("[Meta WhatsApp] /me/businesses notice:", bizErr);
-    }
-
-    // 2d. For any discovered WABAs without phones yet, query each WABA's /phone_numbers edge
-    for (const wid of Array.from(discoveredWabaIds)) {
-      if (discoveredPhones.some((p) => p.wabaId === wid)) continue;
-      try {
-        const phoneRes = await fetch(
-          `${GRAPH_BASE_URL}/${wid}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`,
-          { headers: { Authorization: `Bearer ${accessToken}` } },
-        );
-        if (phoneRes.ok) {
-          const phoneData = await phoneRes.json();
-          for (const p of phoneData?.data || []) {
-            if (p.id) {
-              discoveredPhones.push({
-                id: String(p.id),
-                display_phone_number: p.display_phone_number || "",
-                verified_name: p.verified_name || "",
-                wabaId: wid,
-              });
-            }
-          }
-        }
-      } catch (phoneErr) {
-        console.warn(`[Meta WhatsApp] WABA ${wid}/phone_numbers notice:`, phoneErr);
-      }
-    }
-
-    // 2e. Query App-level WhatsApp Business Accounts (handles sandbox/developer test numbers)
-    if (discoveredPhones.length === 0) {
-      try {
-        const appWabaRes = await fetch(
-          `${GRAPH_BASE_URL}/${appId}/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}`,
-          { headers: { Authorization: `Bearer ${appId}|${appSecret}` } },
-        );
-        if (appWabaRes.ok) {
-          const appWabaData = await appWabaRes.json();
-          for (const waba of appWabaData?.data || []) {
-            if (waba.id) discoveredWabaIds.add(String(waba.id));
-            for (const p of waba.phone_numbers?.data || []) {
-              if (p.id) {
-                discoveredPhones.push({
-                  id: String(p.id),
-                  display_phone_number: p.display_phone_number || "",
-                  verified_name: p.verified_name || waba.name || "",
-                  wabaId: String(waba.id),
-                });
-              }
-            }
-          }
-        }
-      } catch (appErr) {
-        console.warn("[Meta WhatsApp] App WABA check notice:", appErr);
-      }
-    }
-
-    // 3. Auto-subscribe all discovered WABAs to Webhook
-    for (const wid of Array.from(discoveredWabaIds)) {
-      try {
-        await fetch(`${GRAPH_BASE_URL}/${wid}/subscribed_apps`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-      } catch (subErr) {
-        console.warn(`[Meta WhatsApp] Auto-subscribe WABA ${wid} notice:`, subErr);
-      }
-    }
-
-    const firstPhone = discoveredPhones[0];
-    const wabaId = firstPhone?.wabaId || Array.from(discoveredWabaIds)[0] || "";
+    const firstPhone = discovery.phones[0];
+    const wabaId = firstPhone?.wabaId || discovery.wabaIds[0] || "";
     const phoneNumberId = firstPhone?.id || "";
     const phoneNumber = firstPhone?.display_phone_number || "";
     const businessName = firstPhone?.verified_name || "";

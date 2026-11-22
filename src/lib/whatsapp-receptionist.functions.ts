@@ -511,8 +511,40 @@ export const getMetaConnectionStatusFn = createServerFn({ method: "GET" })
       getMetaConfigForClinic(clinic.id),
       getMetaAppCredentials(),
     ]);
-    const isMeta = Boolean(metaConfig?.phoneNumberId && metaConfig?.accessToken);
-    const hasPendingToken = Boolean(metaConfig?.accessToken && !metaConfig?.phoneNumberId);
+    let isMeta = Boolean(metaConfig?.phoneNumberId && metaConfig?.accessToken);
+    let hasPendingToken = Boolean(metaConfig?.accessToken && !metaConfig?.phoneNumberId);
+
+    // Auto-detect phone number ID if token is authorized but phone ID is missing
+    if (hasPendingToken && metaConfig?.accessToken) {
+      try {
+        const { discoverMetaPhoneNumbers, saveMetaConfigForClinic } = await import("./meta-whatsapp.server");
+        const discovery = await discoverMetaPhoneNumbers(
+          metaConfig.accessToken,
+          appCreds.appId,
+          appCreds.appSecret
+        );
+        if (discovery.phones.length > 0) {
+          const firstPhone = discovery.phones[0];
+          await saveMetaConfigForClinic(clinic.id, {
+            ...metaConfig,
+            phoneNumberId: firstPhone.id,
+            wabaId: firstPhone.wabaId || metaConfig.wabaId || "",
+            phoneNumber: firstPhone.display_phone_number || metaConfig.phoneNumber || "",
+            businessName: firstPhone.verified_name || metaConfig.businessName || "",
+            coexistenceMode: true,
+          });
+          metaConfig.phoneNumberId = firstPhone.id;
+          metaConfig.phoneNumber = firstPhone.display_phone_number || metaConfig.phoneNumber;
+          metaConfig.wabaId = firstPhone.wabaId || metaConfig.wabaId;
+          metaConfig.businessName = firstPhone.verified_name || metaConfig.businessName;
+          isMeta = true;
+          hasPendingToken = false;
+        }
+      } catch (autoErr) {
+        console.warn("[getMetaConnectionStatusFn] Auto-detect notice:", autoErr);
+      }
+    }
+
     return {
       isMetaConnected: isMeta,
       hasPendingToken,
@@ -528,6 +560,58 @@ export const getMetaConnectionStatusFn = createServerFn({ method: "GET" })
         isConfigured: appCreds.isConfigured,
         hasSecret: Boolean(appCreds.appSecret),
       },
+    };
+  });
+
+/**
+ * Auto-detect WhatsApp Phone Number ID from Meta Graph API using stored access token and app credentials.
+ */
+export const autoDetectMetaPhoneNumbersFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { getMetaConfigForClinic, getMetaAppCredentials, discoverMetaPhoneNumbers, saveMetaConfigForClinic } = await import("./meta-whatsapp.server");
+    const [metaConfig, appCreds] = await Promise.all([
+      getMetaConfigForClinic(clinic.id),
+      getMetaAppCredentials(),
+    ]);
+
+    if (!metaConfig?.accessToken) {
+      throw new Error("No Meta Access Token found. Please click 'Connect with Meta' first.");
+    }
+
+    const discovery = await discoverMetaPhoneNumbers(
+      metaConfig.accessToken,
+      appCreds.appId,
+      appCreds.appSecret
+    );
+
+    if (discovery.phones.length > 0) {
+      const firstPhone = discovery.phones[0];
+      await saveMetaConfigForClinic(clinic.id, {
+        ...metaConfig,
+        phoneNumberId: firstPhone.id,
+        wabaId: firstPhone.wabaId || metaConfig.wabaId || "",
+        phoneNumber: firstPhone.display_phone_number || metaConfig.phoneNumber || "",
+        businessName: firstPhone.verified_name || metaConfig.businessName || "",
+        coexistenceMode: true,
+      });
+
+      return {
+        ok: true,
+        autoConnected: true,
+        connectedPhoneId: firstPhone.id,
+        phoneNumber: firstPhone.display_phone_number,
+        businessName: firstPhone.verified_name,
+        phones: discovery.phones,
+      };
+    }
+
+    return {
+      ok: false,
+      autoConnected: false,
+      wabaIds: discovery.wabaIds,
+      message: "No registered WhatsApp phone number found automatically on Meta. You can find your Phone Number ID in Meta Developer Console > WhatsApp > API Setup (or Step 1. Try it out / Step 2. Production Setup).",
     };
   });
 

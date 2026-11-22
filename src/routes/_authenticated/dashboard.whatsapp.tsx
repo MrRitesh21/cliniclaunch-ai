@@ -72,6 +72,7 @@ import {
 import {
   getMetaConnectionStatusFn,
   saveMetaCredentialsFn,
+  autoDetectMetaPhoneNumbersFn,
 } from "@/lib/whatsapp-receptionist.functions";
 import { AppGuard } from "@/components/app/AppGuard";
 
@@ -198,10 +199,12 @@ function WhatsAppPage() {
   // Meta OAuth & Connection States
   const getMetaStatusFn = useServerFn(getMetaConnectionStatusFn);
   const saveMetaCredsFn = useServerFn(saveMetaCredentialsFn);
+  const autoDetectMetaFn = useServerFn(autoDetectMetaPhoneNumbersFn);
   const [metaStatus, setMetaStatus] = useState<any>(null);
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [modalPhoneId, setModalPhoneId] = useState("");
   const [savingPhoneId, setSavingPhoneId] = useState(false);
+  const [autoDetectingModal, setAutoDetectingModal] = useState(false);
 
   // Check URL params on load
   useEffect(() => {
@@ -234,6 +237,28 @@ function WhatsAppPage() {
   useEffect(() => {
     loadMetaStatus();
   }, [loadMetaStatus]);
+
+  async function handleAutoDetectInModal() {
+    setAutoDetectingModal(true);
+    try {
+      const res = await autoDetectMetaFn();
+      if (res?.ok && res?.autoConnected) {
+        toast.success(`WhatsApp Phone (${res.phoneNumber || res.connectedPhoneId}) Auto-Connected! 🎉`);
+        setPhoneModalOpen(false);
+        setModalPhoneId("");
+        await loadMetaStatus();
+        if (typeof window !== "undefined") {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      } else {
+        toast.info(res?.message || "Could not auto-detect phone number. Please enter Phone Number ID manually.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Auto-detection failed");
+    } finally {
+      setAutoDetectingModal(false);
+    }
+  }
 
   async function handleSavePhoneIdFromModal() {
     if (!modalPhoneId.trim()) {
@@ -925,12 +950,24 @@ function WhatsAppPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
-              <p className="font-semibold flex items-center gap-1.5">
-                <CheckCircle2 className="size-3.5 text-emerald-600" /> Meta OAuth Authorized Successfully!
-              </p>
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-900 dark:text-emerald-200 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-emerald-600" /> Meta OAuth Authorized Successfully!
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAutoDetectInModal}
+                  disabled={autoDetectingModal}
+                  className="rounded-lg text-xs h-7 px-3 gap-1.5 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 bg-background/50 font-medium"
+                >
+                  {autoDetectingModal ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />}
+                  <span>{autoDetectingModal ? "Detecting..." : "Auto-Detect My Number"}</span>
+                </Button>
+              </div>
               <p className="text-muted-foreground text-[11px]">
-                Your Access Token is securely saved. Enter your <b>Phone Number ID</b> to activate your 24/7 AI Receptionist.
+                Your Access Token is securely saved. Click <b>Auto-Detect My Number</b>, or paste your <b>Phone Number ID</b> to complete activation.
               </p>
             </div>
 
@@ -944,12 +981,12 @@ function WhatsAppPage() {
                 autoFocus
               />
               <p className="text-[11px] text-muted-foreground flex items-center justify-between pt-0.5">
-                <span>Found in Meta Console &rarr; WhatsApp &rarr; API Setup</span>
+                <span>WhatsApp &rarr; API Setup &rarr; Phone number ID</span>
                 <a
-                  href="https://developers.facebook.com/apps"
+                  href={`https://developers.facebook.com/apps/${metaStatus?.metaAppConfig?.appId || "1450666523321279"}/whatsapp-business/wa-dev-console/`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline flex items-center gap-1 font-medium"
+                  className="text-primary hover:underline flex items-center gap-1 font-semibold"
                 >
                   Open Meta Console <ExternalLink className="size-3" />
                 </a>
