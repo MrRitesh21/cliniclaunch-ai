@@ -90,8 +90,8 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
             appId: stateAppId || undefined,
           });
 
-          if (!exchangeResult.ok || !exchangeResult.accessToken || !exchangeResult.phoneNumberId) {
-            throw new Error(exchangeResult.error || "Could not retrieve WhatsApp Phone Number ID from Meta");
+          if (!exchangeResult.ok || !exchangeResult.accessToken) {
+            throw new Error(exchangeResult.error || "Could not retrieve access token from Meta");
           }
 
           // Resolve target clinic
@@ -108,11 +108,23 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
           if (targetClinicId) {
             await saveMetaConfigForClinic(targetClinicId, {
               wabaId: exchangeResult.wabaId || "",
-              phoneNumberId: exchangeResult.phoneNumberId,
+              phoneNumberId: exchangeResult.phoneNumberId || "",
               accessToken: exchangeResult.accessToken,
               phoneNumber: exchangeResult.phoneNumber,
               businessName: exchangeResult.businessName,
               coexistenceMode: true,
+            });
+          }
+
+          // If phone number ID was not discovered automatically, prompt the user for Phone Number ID
+          if (!exchangeResult.phoneNumberId) {
+            const wabaParam = exchangeResult.wabaId ? `&waba_id=${encodeURIComponent(exchangeResult.wabaId)}` : "";
+            const nameParam = exchangeResult.businessName ? `&business_name=${encodeURIComponent(exchangeResult.businessName)}` : "";
+            return new Response(null, {
+              status: 302,
+              headers: {
+                Location: `${redirectBase}?meta_connect=need_phone_id${wabaParam}${nameParam}`,
+              },
             });
           }
 

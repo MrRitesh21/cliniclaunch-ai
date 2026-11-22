@@ -76,6 +76,7 @@ export function WhatsappConnectCard({
   const [metaStatus, setMetaStatus] = useState<{
     isMetaConnected: boolean;
     coexistenceMode: boolean;
+    hasPendingToken?: boolean;
     phoneNumberId: string | null;
     wabaId: string | null;
     phoneNumber: string | null;
@@ -89,6 +90,7 @@ export function WhatsappConnectCard({
   } | null>(null);
 
   const [showDirectMetaForm, setShowDirectMetaForm] = useState(false);
+  const [showNeedPhoneIdPrompt, setShowNeedPhoneIdPrompt] = useState(false);
   const [directPhoneId, setDirectPhoneId] = useState("");
   const [directAccessToken, setDirectAccessToken] = useState("");
   const [directWabaId, setDirectWabaId] = useState("");
@@ -136,15 +138,21 @@ export function WhatsappConnectCard({
     if (params.get("meta_connect") === "success") {
       toast.success("WhatsApp Business connected in Coexistence Mode! 🎉");
       refresh();
-      // Clean query params
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("meta_connect") === "need_phone_id") {
+      toast.info("Meta authorized! Please enter your Phone Number ID to complete setup.");
+      setShowNeedPhoneIdPrompt(true);
+      setShowDirectMetaForm(true);
+      if (params.get("waba_id") && !directWabaId) {
+        setDirectWabaId(params.get("waba_id") || "");
+      }
+      refresh();
+      window.history.replaceState({}, "", window.location.pathname);
     } else if (params.get("meta_connect") === "error") {
       toast.error(`Meta Connection Failed: ${params.get("error") || "Unknown error"}`);
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [refresh]);
+  }, [refresh, directWabaId]);
 
   // Poll while pending, has QR, or reconnecting during deploy
   useEffect(() => {
@@ -255,21 +263,25 @@ export function WhatsappConnectCard({
   }
 
   async function handleSaveDirectMeta() {
-    if (!directPhoneId.trim() || !directAccessToken.trim()) {
-      return toast.error("Phone Number ID and Access Token are required");
+    if (!directPhoneId.trim()) {
+      return toast.error("Phone Number ID is required");
+    }
+    if (!directAccessToken.trim() && !metaStatus?.hasPendingToken) {
+      return toast.error("Access Token is required (or click Connect with Meta first)");
     }
     setSavingDirectMeta(true);
     try {
       await saveMetaFn({
         data: {
           phoneNumberId: directPhoneId.trim(),
-          accessToken: directAccessToken.trim(),
+          accessToken: directAccessToken.trim() || undefined,
           wabaId: directWabaId.trim() || undefined,
           phoneNumber: directPhoneNumber.trim() || undefined,
         },
       });
       toast.success("Meta WhatsApp configured in Coexistence Mode! 🚀");
       setShowDirectMetaForm(false);
+      setShowNeedPhoneIdPrompt(false);
       refresh();
     } catch (e: any) {
       toast.error(e.message || "Failed to save Meta WhatsApp credentials");
@@ -573,6 +585,40 @@ export function WhatsappConnectCard({
                     >
                       {savingAppConfig ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
                       <span>Save App Credentials</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Highlighted Prompt if Token is Authorized but Phone Number ID is needed */}
+              {(metaStatus?.hasPendingToken || showNeedPhoneIdPrompt) && !metaStatus?.isMetaConnected && (
+                <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 space-y-3 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    <p className="font-bold text-xs text-foreground">
+                      Meta OAuth Authorized! Confirm Phone Number ID
+                    </p>
+                    <Badge className="bg-emerald-600 text-white text-[10px]">Access Token Ready</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your Meta access token is securely saved. Please enter your WhatsApp <b>Phone Number ID</b> from your Meta Developer Console (WhatsApp &rarr; API Setup) to complete activation.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
+                    <Input
+                      placeholder="e.g. 109283746592834"
+                      value={directPhoneId}
+                      onChange={(e) => setDirectPhoneId(e.target.value)}
+                      className="text-xs font-mono rounded-lg h-9 bg-background"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveDirectMeta}
+                      disabled={savingDirectMeta || !directPhoneId.trim()}
+                      className="rounded-lg text-xs h-9 px-4 gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    >
+                      {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                      <span>Activate WhatsApp</span>
                     </Button>
                   </div>
                 </div>

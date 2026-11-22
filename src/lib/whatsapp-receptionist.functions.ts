@@ -474,19 +474,25 @@ export const saveMetaCredentialsFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
       phoneNumberId: z.string().min(1, "Phone Number ID is required"),
-      accessToken: z.string().min(1, "Access Token is required"),
+      accessToken: z.string().optional(),
       wabaId: z.string().optional(),
       phoneNumber: z.string().optional(),
     }),
   )
   .handler(async ({ context, data }) => {
     const clinic = await getMyManagedClinic(context.supabase, context.userId);
-    const { saveMetaConfigForClinic } = await import("./meta-whatsapp.server");
+    const { saveMetaConfigForClinic, getMetaConfigForClinic } = await import("./meta-whatsapp.server");
+    const existing = await getMetaConfigForClinic(clinic.id);
+    const resolvedToken = data.accessToken?.trim() || existing?.accessToken;
+    if (!resolvedToken) {
+      throw new Error("Access Token is required to connect WhatsApp. Please connect via OAuth or provide an Access Token.");
+    }
+
     const res = await saveMetaConfigForClinic(clinic.id, {
-      wabaId: data.wabaId || "",
+      wabaId: data.wabaId || existing?.wabaId || "",
       phoneNumberId: data.phoneNumberId.trim(),
-      accessToken: data.accessToken.trim(),
-      phoneNumber: data.phoneNumber?.trim(),
+      accessToken: resolvedToken,
+      phoneNumber: data.phoneNumber?.trim() || existing?.phoneNumber,
       coexistenceMode: true,
     });
     if (!res.ok) throw new Error(res.error || "Failed to save Meta WhatsApp credentials");
@@ -506,11 +512,13 @@ export const getMetaConnectionStatusFn = createServerFn({ method: "GET" })
       getMetaAppCredentials(),
     ]);
     const isMeta = Boolean(metaConfig?.phoneNumberId && metaConfig?.accessToken);
+    const hasPendingToken = Boolean(metaConfig?.accessToken && !metaConfig?.phoneNumberId);
     return {
       isMetaConnected: isMeta,
+      hasPendingToken,
       coexistenceMode: isMeta ? metaConfig?.coexistenceMode ?? true : false,
       phoneNumberId: isMeta ? metaConfig?.phoneNumberId : null,
-      wabaId: isMeta ? metaConfig?.wabaId : null,
+      wabaId: isMeta ? metaConfig?.wabaId : metaConfig?.wabaId || null,
       phoneNumber: isMeta ? metaConfig?.phoneNumber || clinic.wa_phone : clinic.wa_phone,
       businessName: isMeta ? metaConfig?.businessName : null,
       clinicWaStatus: clinic.wa_status,

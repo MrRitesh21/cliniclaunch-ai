@@ -234,27 +234,29 @@ export async function saveMetaConfigForClinic(
     );
     if (setErr) throw setErr;
 
-    // 2. Also map by Phone Number ID for fast incoming webhook routing
-    await sb.from("system_settings" as any).upsert(
-      {
-        key: `wa_meta_phone_map_${config.phoneNumberId}`,
-        value: clinicId,
-        description: `Maps Meta Phone Number ID ${config.phoneNumberId} to Clinic ID ${clinicId}`,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "key" },
-    );
+    // 2. Also map by Phone Number ID for fast incoming webhook routing (if phone number ID exists)
+    if (config.phoneNumberId) {
+      await sb.from("system_settings" as any).upsert(
+        {
+          key: `wa_meta_phone_map_${config.phoneNumberId}`,
+          value: clinicId,
+          description: `Maps Meta Phone Number ID ${config.phoneNumberId} to Clinic ID ${clinicId}`,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
 
-    // 3. Update clinic table wa_status
-    await sb
-      .from("clinics")
-      .update({
-        wa_status: "ready",
-        wa_session_id: `meta-${config.phoneNumberId}`,
-        wa_phone: config.phoneNumber || null,
-        wa_connected_at: new Date().toISOString(),
-      })
-      .eq("id", clinicId);
+      // 3. Update clinic table wa_status
+      await sb
+        .from("clinics")
+        .update({
+          wa_status: "ready",
+          wa_session_id: `meta-${config.phoneNumberId}`,
+          wa_phone: config.phoneNumber || null,
+          wa_connected_at: new Date().toISOString(),
+        })
+        .eq("id", clinicId);
+    }
 
     return { ok: true };
   } catch (err: any) {
@@ -437,70 +439,168 @@ export async function exchangeMetaOAuthCode(params: {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Inspect token to retrieve Granular Scopes & WABA ID
-    const debugUrl = new URL(`${GRAPH_BASE_URL}/debug_token`);
-    debugUrl.searchParams.set("input_token", accessToken);
-    debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
+    // 2. Discover WABAs and Phone Numbers across all Meta Graph API endpoints
+    const discoveredWabaIds = new Set<string>();
+    const discoveredPhones: Array<{
+      id: string;
+      display_phone_number: string;
+      verified_name: string;
+      wabaId: string;
+    }> = [];
 
-    const debugRes = await fetch(debugUrl.toString(), { method: "GET" });
-    const debugData = await debugRes.json();
+    // 2a. Inspect token to retrieve Granular Scopes & WABA ID
+    try {
+      const debugUrl = new URL(`${GRAPH_BASE_URL}/debug_token`);
+      debugUrl.searchParams.set("input_token", accessToken);
+      debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
 
-    let wabaId = "";
-    const granularScopes = debugData?.data?.granular_scopes || [];
-    for (const scope of granularScopes) {
-      if (
-        scope.scope === "whatsapp_business_management" ||
-        scope.scope === "whatsapp_business_messaging"
-      ) {
-        if (scope.target_ids && scope.target_ids.length > 0) {
-          wabaId = scope.target_ids[0];
-          break;
+      const debugRes = await fetch(debugUrl.toString(), { method: "GET" });
+      const debugData = await debugRes.json();
+
+      const granularScopes = debugData?.data?.granular_scopes || [];
+      for (const scope of granularScopes) {
+        if (
+          scope.scope === "whatsapp_business_management" ||
+          scope.scope === "whatsapp_business_messaging"
+        ) {
+          for (const tid of scope.target_ids || []) {
+            if (tid) discoveredWabaIds.add(String(tid));
+          }
         }
       }
+    } catch (debugErr) {
+      console.warn("[Meta WhatsApp] debug_token inspection notice:", debugErr);
     }
 
-    // 3. If WABA ID not in granular scopes, query user's business accounts
-    if (!wabaId) {
-      const accountsRes = await fetch(
-        `${GRAPH_BASE_URL}/me?fields=id,name,accounts{id,name,whatsapp_business_accounts{id,name}}`,
+    // 2b. Query user's WhatsApp Business Accounts (/me/whatsapp_business_accounts)
+    try {
+      const wabaRes = await fetch(
+        `${GRAPH_BASE_URL}/me/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
-      const accountsData = await accountsRes.json();
-      const wabas =
-        accountsData?.accounts?.data?.[0]?.whatsapp_business_accounts?.data || [];
-      if (wabas.length > 0) {
-        wabaId = wabas[0].id;
+      if (wabaRes.ok) {
+        const wabaData = await wabaRes.json();
+        for (const waba of wabaData?.data || []) {
+          if (waba.id) discoveredWabaIds.add(String(waba.id));
+          for (const p of waba.phone_numbers?.data || []) {
+            if (p.id) {
+              discoveredPhones.push({
+                id: String(p.id),
+                display_phone_number: p.display_phone_number || "",
+                verified_name: p.verified_name || waba.name || "",
+                wabaId: String(waba.id),
+              });
+            }
+          }
+        }
       }
+    } catch (wabaErr) {
+      console.warn("[Meta WhatsApp] /me/whatsapp_business_accounts notice:", wabaErr);
     }
 
-    let phoneNumberId = "";
-    let phoneNumber = "";
-    let businessName = "";
-
-    // 4. Fetch phone numbers associated with the WABA
-    if (wabaId) {
-      const phoneRes = await fetch(
-        `${GRAPH_BASE_URL}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`,
+    // 2c. Query user's Business Managers (/me/businesses)
+    try {
+      const bizRes = await fetch(
+        `${GRAPH_BASE_URL}/me/businesses?fields=id,name,whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}},client_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}}`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
-      const phoneData = await phoneRes.json();
-      const phoneList = phoneData?.data || [];
-      if (phoneList.length > 0) {
-        phoneNumberId = phoneList[0].id;
-        phoneNumber = phoneList[0].display_phone_number;
-        businessName = phoneList[0].verified_name;
+      if (bizRes.ok) {
+        const bizData = await bizRes.json();
+        for (const biz of bizData?.data || []) {
+          const allWabas = [
+            ...(biz.whatsapp_business_accounts?.data || []),
+            ...(biz.client_whatsapp_business_accounts?.data || []),
+          ];
+          for (const waba of allWabas) {
+            if (waba.id) discoveredWabaIds.add(String(waba.id));
+            for (const p of waba.phone_numbers?.data || []) {
+              if (p.id) {
+                discoveredPhones.push({
+                  id: String(p.id),
+                  display_phone_number: p.display_phone_number || "",
+                  verified_name: p.verified_name || waba.name || biz.name || "",
+                  wabaId: String(waba.id),
+                });
+              }
+            }
+          }
+        }
       }
+    } catch (bizErr) {
+      console.warn("[Meta WhatsApp] /me/businesses notice:", bizErr);
+    }
 
-      // 5. Automatically subscribe this WABA to our app's Webhooks
+    // 2d. For any discovered WABAs without phones yet, query each WABA's /phone_numbers edge
+    for (const wid of Array.from(discoveredWabaIds)) {
+      if (discoveredPhones.some((p) => p.wabaId === wid)) continue;
       try {
-        await fetch(`${GRAPH_BASE_URL}/${wabaId}/subscribed_apps`, {
+        const phoneRes = await fetch(
+          `${GRAPH_BASE_URL}/${wid}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`,
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        );
+        if (phoneRes.ok) {
+          const phoneData = await phoneRes.json();
+          for (const p of phoneData?.data || []) {
+            if (p.id) {
+              discoveredPhones.push({
+                id: String(p.id),
+                display_phone_number: p.display_phone_number || "",
+                verified_name: p.verified_name || "",
+                wabaId: wid,
+              });
+            }
+          }
+        }
+      } catch (phoneErr) {
+        console.warn(`[Meta WhatsApp] WABA ${wid}/phone_numbers notice:`, phoneErr);
+      }
+    }
+
+    // 2e. Query App-level WhatsApp Business Accounts (handles sandbox/developer test numbers)
+    if (discoveredPhones.length === 0) {
+      try {
+        const appWabaRes = await fetch(
+          `${GRAPH_BASE_URL}/${appId}/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}`,
+          { headers: { Authorization: `Bearer ${appId}|${appSecret}` } },
+        );
+        if (appWabaRes.ok) {
+          const appWabaData = await appWabaRes.json();
+          for (const waba of appWabaData?.data || []) {
+            if (waba.id) discoveredWabaIds.add(String(waba.id));
+            for (const p of waba.phone_numbers?.data || []) {
+              if (p.id) {
+                discoveredPhones.push({
+                  id: String(p.id),
+                  display_phone_number: p.display_phone_number || "",
+                  verified_name: p.verified_name || waba.name || "",
+                  wabaId: String(waba.id),
+                });
+              }
+            }
+          }
+        }
+      } catch (appErr) {
+        console.warn("[Meta WhatsApp] App WABA check notice:", appErr);
+      }
+    }
+
+    // 3. Auto-subscribe all discovered WABAs to Webhook
+    for (const wid of Array.from(discoveredWabaIds)) {
+      try {
+        await fetch(`${GRAPH_BASE_URL}/${wid}/subscribed_apps`, {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
         });
       } catch (subErr) {
-        console.warn(`[Meta WhatsApp] Auto-subscribe WABA ${wabaId} webhook notice:`, subErr);
+        console.warn(`[Meta WhatsApp] Auto-subscribe WABA ${wid} notice:`, subErr);
       }
     }
+
+    const firstPhone = discoveredPhones[0];
+    const wabaId = firstPhone?.wabaId || Array.from(discoveredWabaIds)[0] || "";
+    const phoneNumberId = firstPhone?.id || "";
+    const phoneNumber = firstPhone?.display_phone_number || "";
+    const businessName = firstPhone?.verified_name || "";
 
     return {
       ok: true,
