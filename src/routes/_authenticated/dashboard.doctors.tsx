@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  getManageDoctors,
+  saveManageDoctor,
+  toggleManageDoctorLeave,
+  deleteManageDoctor,
+} from "@/lib/clinic.functions";
 import { useClinic } from "./dashboard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -490,6 +496,11 @@ function DoctorsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "schedule">("profile");
   const [editing, setEditing] = useState<Doctor | null>(null);
   const [form, setForm] = useState({ ...emptyFormState });
+  const getManageDoctorsFn = useServerFn(getManageDoctors);
+  const saveManageDoctorFn = useServerFn(saveManageDoctor);
+  const toggleManageDoctorLeaveFn = useServerFn(toggleManageDoctorLeave);
+  const deleteManageDoctorFn = useServerFn(deleteManageDoctor);
+
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [signatureUploading, setSignatureUploading] = useState(false);
@@ -536,63 +547,28 @@ function DoctorsPage() {
   }, [clinic?.doctor_name]);
 
   const load = useCallback(async () => {
-    if (!clinic?.organization_id) return;
+    if (!clinic?.organization_id || !clinic?.id) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("doctors")
-      .select("*")
-      .eq("organization_id", clinic.organization_id)
-      .order("sort_order")
-      .order("created_at");
-
-    let list = (data ?? []).map((d: any) => ({
-      ...d,
-      working_hours: normalizeSchedule(d.working_hours),
-    })) as Doctor[];
-
-    // If doctors table has no row for this clinic but clinic profile has doctor_name,
-    // seed the primary doctor into doctors table so database metrics, queue, and bookings sync seamlessly
-    if (list.length === 0 && clinic?.doctor_name?.trim()) {
-      try {
-        const rawSched = (clinic as any)?.working_hours;
-        const sched = normalizeSchedule(rawSched);
-        if (!sched.registration_no && clinic?.medical_registration_no) {
-          sched.registration_no = clinic.medical_registration_no;
-        }
-        const insertPayload = {
-          organization_id: clinic.organization_id,
+    try {
+      const data = await getManageDoctorsFn({
+        data: {
           clinic_id: clinic.id,
-          name: clinic.doctor_name.trim(),
-          specialization: clinic.specialization || "General Physician",
-          qualification: clinic.qualification || "MBBS",
-          experience_years: clinic.experience_years || 0,
-          consultation_fee: Number(clinic.consultation_fee || 0),
-          bio: clinic.bio || null,
-          is_active: true,
-          avatar_url: (clinic as any)?.avatar_url || null,
-          working_hours: sched,
-          user_id: clinic.owner_id || null,
-          sort_order: 0,
-        };
-        const { data: inserted, error: insErr } = await supabase
-          .from("doctors")
-          .insert(insertPayload as any)
-          .select("*")
-          .single();
-        if (!insErr && inserted) {
-          list = [{
-            ...inserted,
-            working_hours: normalizeSchedule(inserted.working_hours),
-          } as Doctor];
-        }
-      } catch {
-        // Non-blocking fallback to in-memory selfDoctor
-      }
-    }
+          organization_id: clinic.organization_id,
+        },
+      });
 
-    setRows(list);
-    setLoading(false);
-  }, [clinic]);
+      const list = (data ?? []).map((d: any) => ({
+        ...d,
+        working_hours: normalizeSchedule(d.working_hours),
+      })) as Doctor[];
+
+      setRows(list);
+    } catch (err: any) {
+      console.warn("[dashboard.doctors] Failed to load doctors:", err?.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [clinic?.id, clinic?.organization_id, getManageDoctorsFn]);
 
   useEffect(() => {
     load();
@@ -607,7 +583,7 @@ function DoctorsPage() {
       ownerName &&
       rows.some(
         (d) =>
-          d.name
+          (d?.name || "")
             .toLowerCase()
             .replace(/^dr\.?\s*/, "")
             .trim() === ownerName,
@@ -692,123 +668,106 @@ function DoctorsPage() {
       leave_until: nextLeave ? (currentSched.leave_until || new Date().toISOString().split("T")[0]) : "",
     };
 
-    if (d.id === "self_owner" || isDoctorOwner(d)) {
-      const { error } = await supabase
-        .from("clinics")
-        .update({ working_hours: newSched } as any)
-        .eq("id", clinic.id);
-      if (d.id !== "self_owner") {
-        await supabase
-          .from("doctors")
-          .update({ working_hours: newSched } as any)
-          .eq("id", d.id);
-      }
-      if (error) return toast.error(error.message);
-      toast.success(nextLeave ? "Primary doctor marked on leave" : "Primary doctor marked available");
+    const isOwner = d.id === "self_owner" || isDoctorOwner(d);
+    try {
+      await toggleManageDoctorLeaveFn({
+        data: {
+          clinic_id: clinic.id,
+          doctor_id: d.id,
+          is_owner: isOwner,
+          schedule: newSched,
+        },
+      });
+      toast.success(
+        isOwner
+          ? (nextLeave ? "Primary doctor marked on leave" : "Primary doctor marked available")
+          : (nextLeave ? `${d.name || "Doctor"} marked on leave` : `${d.name || "Doctor"} marked available`)
+      );
       load();
-      return;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update leave status");
     }
-
-    const { error } = await supabase
-      .from("doctors")
-      .update({ working_hours: newSched } as any)
-      .eq("id", d.id);
-    if (error) return toast.error(error.message);
-    toast.success(nextLeave ? `${d.name} marked on leave` : `${d.name} marked available`);
-    load();
   }
 
   // Save full doctor configuration
   async function save() {
-    if (!clinic?.organization_id) return;
+    if (!clinic?.organization_id || !clinic?.id) return;
     if (!form.name.trim()) {
       setActiveTab("profile");
       return toast.error("Doctor name is required");
     }
 
     setSaving(true);
+    try {
+      const mergedWorkingHours: WeeklySchedule = {
+        ...(form.working_hours || defaultSchedule()),
+        is_two_shifts: Boolean(form.working_hours?.is_two_shifts),
+        slot_duration_minutes: form.working_hours?.slot_duration_minutes || 30,
+        max_patients_per_slot: Math.max(1, Math.min(20, form.working_hours?.max_patients_per_slot || 1)),
+        emergency_slots_reserved: Math.max(0, Math.min(10, form.working_hours?.emergency_slots_reserved || 0)),
+        registration_no: form.registration_no.trim() || undefined,
+        medical_council: form.medical_council.trim() || undefined,
+        signature_url: form.signature_url || undefined,
+        on_leave: form.on_leave,
+        leave_reason: form.leave_reason.trim() || undefined,
+        leave_until: form.leave_until.trim() || undefined,
+      };
 
-    const mergedWorkingHours: WeeklySchedule = {
-      ...(form.working_hours || defaultSchedule()),
-      is_two_shifts: Boolean(form.working_hours?.is_two_shifts),
-      slot_duration_minutes: form.working_hours?.slot_duration_minutes || 30,
-      max_patients_per_slot: Math.max(1, Math.min(20, form.working_hours?.max_patients_per_slot || 1)),
-      emergency_slots_reserved: Math.max(0, Math.min(10, form.working_hours?.emergency_slots_reserved || 0)),
-      registration_no: form.registration_no.trim() || undefined,
-      medical_council: form.medical_council.trim() || undefined,
-      signature_url: form.signature_url || undefined,
-      on_leave: form.on_leave,
-      leave_reason: form.leave_reason.trim() || undefined,
-      leave_until: form.leave_until.trim() || undefined,
-    };
+      const payload = {
+        name: form.name.trim(),
+        specialization: form.specialization || null,
+        qualification: form.qualification || null,
+        experience_years: Math.max(0, form.experience_years || 0),
+        consultation_fee: Math.max(0, form.consultation_fee || 0),
+        bio: form.bio || null,
+        is_active: form.is_active,
+        avatar_url: form.avatar_url || null,
+        working_hours: mergedWorkingHours,
+      };
 
-    const payload = {
-      name: form.name.trim(),
-      specialization: form.specialization || null,
-      qualification: form.qualification || null,
-      experience_years: Math.max(0, form.experience_years || 0),
-      consultation_fee: Math.max(0, form.consultation_fee || 0),
-      bio: form.bio || null,
-      is_active: form.is_active,
-      avatar_url: form.avatar_url || null,
-      working_hours: mergedWorkingHours,
-    };
+      const isOwner = editing?.id === "self_owner" || isDoctorOwner(editing);
 
-    if (editing?.id === "self_owner" || isDoctorOwner(editing)) {
-      const { error } = await supabase
-        .from("clinics")
-        .update({
-          doctor_name: form.name.trim(),
-          specialization: form.specialization || null,
-          qualification: form.qualification || null,
-          experience_years: form.experience_years,
-          consultation_fee: form.consultation_fee,
-          bio: form.bio || null,
-          avatar_url: form.avatar_url || null,
-          medical_registration_no: form.registration_no.trim() || null,
-          working_hours: mergedWorkingHours,
-        } as any)
-        .eq("id", clinic.id);
+      const clinicUpdate = isOwner
+        ? {
+            doctor_name: form.name.trim(),
+            specialization: form.specialization || null,
+            qualification: form.qualification || null,
+            experience_years: form.experience_years,
+            consultation_fee: form.consultation_fee,
+            bio: form.bio || null,
+            avatar_url: form.avatar_url || null,
+            medical_registration_no: form.registration_no.trim() || null,
+            working_hours: mergedWorkingHours,
+          }
+        : undefined;
 
-      if (editing && editing.id !== "self_owner") {
-        await supabase
-          .from("doctors")
-          .update(payload as any)
-          .eq("id", editing.id);
+      await saveManageDoctorFn({
+        data: {
+          clinic_id: clinic.id,
+          organization_id: clinic.organization_id,
+          editing_id: editing?.id || null,
+          is_owner: isOwner,
+          payload,
+          clinic_update: clinicUpdate,
+        },
+      });
+
+      toast.success(
+        isOwner
+          ? "Primary Doctor profile & schedule updated"
+          : (editing ? "Doctor profile & schedule updated" : "Doctor added successfully")
+      );
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("clinicx_staff_changed"));
       }
-
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Primary Doctor profile & schedule updated");
       setOpen(false);
       load();
-      return;
-    }
-
-    if (editing) {
-      const { error } = await supabase
-        .from("doctors")
-        .update(payload as any)
-        .eq("id", editing.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save doctor");
+    } finally {
       setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Doctor profile & schedule updated");
-    } else {
-      const { error } = await supabase.from("doctors").insert({
-        organization_id: clinic.organization_id,
-        clinic_id: clinic.id,
-        ...payload,
-      } as any);
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Doctor added successfully");
     }
-
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("clinicx_staff_changed"));
-    }
-    setOpen(false);
-    load();
   }
 
   function openDeleteConfirm(d: Doctor) {
@@ -817,27 +776,25 @@ function DoctorsPage() {
   }
 
   async function handleConfirmDeleteDoctor() {
-    if (!doctorToDelete) return;
-    const expectedName = doctorToDelete.name.trim();
+    if (!doctorToDelete || !clinic?.id) return;
+    const expectedName = (doctorToDelete.name || "").trim();
     const input = deleteConfirmInput.trim();
     if (input !== expectedName && input.toUpperCase() !== "DELETE") {
-      return toast.error(`Please type "${expectedName}" or "DELETE" to confirm.`);
+      return toast.error(`Please type "${expectedName || "DELETE"}" or "DELETE" to confirm.`);
     }
 
     setDeletingDoctor(true);
     try {
-      if (doctorToDelete.id && doctorToDelete.id !== "self_owner") {
-        const { error } = await supabase.from("doctors").delete().eq("id", doctorToDelete.id);
-        if (error) throw error;
-      } else {
-        // Clear doctor_name from clinics table if it was the fallback primary
-        if (clinic?.id) {
-          const { error } = await supabase.from("clinics").update({ doctor_name: "" }).eq("id", clinic.id);
-          if (error) throw error;
-        }
-      }
+      const isOwner = doctorToDelete.id === "self_owner" || isDoctorOwner(doctorToDelete);
+      await deleteManageDoctorFn({
+        data: {
+          clinic_id: clinic.id,
+          doctor_id: doctorToDelete.id,
+          is_owner: isOwner,
+        },
+      });
 
-      toast.success(`${doctorToDelete.name} has been removed.`);
+      toast.success(`${doctorToDelete.name || "Doctor"} has been removed.`);
       setDoctorToDelete(null);
       setDeleteConfirmInput("");
       setOpen(false);

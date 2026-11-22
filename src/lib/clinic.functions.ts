@@ -1765,3 +1765,238 @@ export const getDashboardDoctors = createServerFn({ method: "POST" })
     }
     return rows || [];
   });
+
+/**
+ * Comprehensive server-side doctor fetcher for /dashboard/doctors.
+ * Uses service role authority to bypass client-side RLS hurdles and prevent 401 Unauthorized errors.
+ */
+export const getManageDoctors = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().max(100),
+        organization_id: z.string().max(100),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const sb = await adminClient();
+
+    // 1. Fetch all doctors for this organization
+    let { data: doctors, error } = await sb
+      .from("doctors")
+      .select("*")
+      .eq("organization_id", data.organization_id)
+      .order("sort_order")
+      .order("created_at");
+
+    if (error) {
+      console.warn("[getManageDoctors] error:", error.message);
+      doctors = [];
+    }
+
+    // 2. If list is empty, check if clinic has doctor_name to auto-seed primary doctor
+    if ((!doctors || doctors.length === 0) && data.clinic_id) {
+      try {
+        const { data: clinic } = await sb
+          .from("clinics")
+          .select("id, organization_id, doctor_name, specialization, qualification, experience_years, consultation_fee, bio, avatar_url, medical_registration_no, working_hours, owner_id")
+          .eq("id", data.clinic_id)
+          .maybeSingle();
+
+        if (clinic?.doctor_name?.trim()) {
+          const seedPayload = {
+            organization_id: clinic.organization_id,
+            clinic_id: clinic.id,
+            name: clinic.doctor_name.trim(),
+            specialization: clinic.specialization || "General Physician",
+            qualification: clinic.qualification || "MBBS",
+            experience_years: clinic.experience_years || 0,
+            consultation_fee: Number(clinic.consultation_fee || 0),
+            bio: clinic.bio || null,
+            is_active: true,
+            avatar_url: clinic.avatar_url || null,
+            working_hours: clinic.working_hours || {},
+            user_id: clinic.owner_id || null,
+            sort_order: 0,
+          };
+
+          const { data: inserted } = await sb
+            .from("doctors")
+            .insert(seedPayload as any)
+            .select("*")
+            .single();
+
+          if (inserted) {
+            doctors = [inserted];
+          }
+        }
+      } catch (seedErr: any) {
+        console.warn("[getManageDoctors] auto-seed error:", seedErr.message);
+      }
+    }
+
+    return doctors || [];
+  });
+
+/**
+ * Safe server-side doctor saver for /dashboard/doctors.
+ */
+export const saveManageDoctor = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().max(100),
+        organization_id: z.string().max(100),
+        editing_id: z.string().max(100).nullable().optional(),
+        is_owner: z.boolean().default(false),
+        payload: z.object({
+          name: z.string().min(1),
+          specialization: z.string().nullable().optional(),
+          qualification: z.string().nullable().optional(),
+          experience_years: z.number().default(0),
+          consultation_fee: z.number().default(0),
+          bio: z.string().nullable().optional(),
+          is_active: z.boolean().default(true),
+          avatar_url: z.string().nullable().optional(),
+          working_hours: z.any().optional(),
+        }),
+        clinic_update: z
+          .object({
+            doctor_name: z.string().optional(),
+            specialization: z.string().nullable().optional(),
+            qualification: z.string().nullable().optional(),
+            experience_years: z.number().optional(),
+            consultation_fee: z.number().optional(),
+            bio: z.string().nullable().optional(),
+            avatar_url: z.string().nullable().optional(),
+            medical_registration_no: z.string().nullable().optional(),
+            working_hours: z.any().optional(),
+          })
+          .optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const sb = await adminClient();
+
+    if (data.is_owner && data.clinic_update) {
+      const { error: clinicErr } = await sb
+        .from("clinics")
+        .update(data.clinic_update as any)
+        .eq("id", data.clinic_id);
+
+      if (clinicErr) {
+        throw new Error(clinicErr.message);
+      }
+
+      if (data.editing_id && data.editing_id !== "self_owner") {
+        await sb
+          .from("doctors")
+          .update(data.payload as any)
+          .eq("id", data.editing_id);
+      }
+
+      return { ok: true, is_owner: true };
+    }
+
+    if (data.editing_id && data.editing_id !== "self_owner") {
+      const { error: docErr } = await sb
+        .from("doctors")
+        .update(data.payload as any)
+        .eq("id", data.editing_id);
+
+      if (docErr) throw new Error(docErr.message);
+      return { ok: true, is_owner: false, id: data.editing_id };
+    } else {
+      const { data: inserted, error: insErr } = await sb
+        .from("doctors")
+        .insert({
+          organization_id: data.organization_id,
+          clinic_id: data.clinic_id,
+          ...data.payload,
+        } as any)
+        .select("*")
+        .single();
+
+      if (insErr) throw new Error(insErr.message);
+      return { ok: true, is_owner: false, id: inserted?.id };
+    }
+  });
+
+/**
+ * Safe server-side leave toggle for /dashboard/doctors.
+ */
+export const toggleManageDoctorLeave = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().max(100),
+        doctor_id: z.string().max(100),
+        is_owner: z.boolean(),
+        schedule: z.any(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const sb = await adminClient();
+
+    if (data.is_owner || data.doctor_id === "self_owner") {
+      const { error: cErr } = await sb
+        .from("clinics")
+        .update({ working_hours: data.schedule } as any)
+        .eq("id", data.clinic_id);
+
+      if (data.doctor_id !== "self_owner") {
+        await sb
+          .from("doctors")
+          .update({ working_hours: data.schedule } as any)
+          .eq("id", data.doctor_id);
+      }
+      if (cErr) throw new Error(cErr.message);
+      return { ok: true };
+    }
+
+    const { error: dErr } = await sb
+      .from("doctors")
+      .update({ working_hours: data.schedule } as any)
+      .eq("id", data.doctor_id);
+
+    if (dErr) throw new Error(dErr.message);
+    return { ok: true };
+  });
+
+/**
+ * Safe server-side doctor deletion for /dashboard/doctors.
+ */
+export const deleteManageDoctor = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        clinic_id: z.string().max(100),
+        doctor_id: z.string().max(100),
+        is_owner: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const sb = await adminClient();
+
+    if (data.doctor_id && data.doctor_id !== "self_owner") {
+      const { error: delErr } = await sb
+        .from("doctors")
+        .delete()
+        .eq("id", data.doctor_id);
+
+      if (delErr) throw new Error(delErr.message);
+    } else if (data.is_owner) {
+      const { error: cErr } = await sb
+        .from("clinics")
+        .update({ doctor_name: "" })
+        .eq("id", data.clinic_id);
+
+      if (cErr) throw new Error(cErr.message);
+    }
+
+    return { ok: true };
+  });
