@@ -12,6 +12,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SkeletonCards } from "@/components/ui/skeleton-rows";
 import { isValidUuid } from "@/lib/sso-uuid";
+import { setModuleInstallationServerFn } from "@/lib/clinic-settings.functions";
 import {
   Crown,
   Check,
@@ -95,6 +96,17 @@ const MODULE_BENEFITS: Record<
     highlights: string[];
   }
 > = {
+  loyalty: {
+    tagline: "QR-based loyalty stamp cards and tiered rewards to bring patients back.",
+    benefits: [
+      "Digital QR loyalty stamp card that patients scan on every visit.",
+      "Customizable reward tiers (Silver, Gold, Platinum) with automatic points.",
+      "Automated WhatsApp reward balance alerts and celebration messages.",
+      "Increases repeat patient visits by up to 45% without discount wars.",
+    ],
+    roiNote: "Brings 30%+ higher patient retention and repeat treatment revenue.",
+    highlights: ["QR Stamp Cards", "Automated Points", "WhatsApp Alerts", "Tiered Rewards"],
+  },
   attendance: {
     tagline: "A daily attendance register for your clinic team.",
     benefits: [
@@ -461,7 +473,8 @@ function ModulesPage() {
     }
 
     setBusy(m.id);
-    if (installed) {
+
+    try {
       const MODULE_ALIASES: Record<string, string[]> = {
         consultation: ["consult", "video"],
         consult: ["consultation", "video"],
@@ -477,27 +490,93 @@ function ModulesPage() {
         staff: ["staff_management"],
         pharmacy: ["inventory"],
         ai_assistant: ["ai_scribe"],
+        loyalty: ["loyalty_rewards", "patient_loyalty"],
+        loyalty_rewards: ["loyalty", "patient_loyalty"],
+        patient_loyalty: ["loyalty", "loyalty_rewards"],
+        reviews: ["google_reviews", "gmb"],
       };
-      const idsToDelete = [m.id, ...(MODULE_ALIASES[m.id] ?? [])];
-      const { error } = await supabase
-        .from("organization_modules")
-        .delete()
-        .eq("organization_id", org.id)
-        .in("module_id", idsToDelete);
-      if (error) toast.error(error.message);
-      else toast.success(`${m.name} uninstalled`);
-    } else {
-      const { error } = await supabase
-        .from("organization_modules")
-        .upsert(
-          { organization_id: org.id, module_id: m.id },
-          { onConflict: "organization_id,module_id", ignoreDuplicates: true },
+
+      const idsToHandle = [m.id, ...(MODULE_ALIASES[m.id] ?? [])];
+
+      // 1. Sync localStorage immediately for instant offline/SSO feedback
+      try {
+        const storedDisabled = new Set<string>(
+          JSON.parse(localStorage.getItem("clinicx_disabled_modules") || "[]")
         );
-      if (error) toast.error(error.message);
-      else toast.success(`${m.name} installed successfully!`);
+        const storedInstalled = new Set<string>(
+          JSON.parse(localStorage.getItem("clinicx_installed_modules") || "[]")
+        );
+
+        if (installed) {
+          idsToHandle.forEach((id) => {
+            storedDisabled.add(id);
+            storedInstalled.delete(id);
+          });
+        } else {
+          idsToHandle.forEach((id) => {
+            storedDisabled.delete(id);
+            storedInstalled.add(id);
+          });
+        }
+
+        localStorage.setItem(
+          "clinicx_disabled_modules",
+          JSON.stringify(Array.from(storedDisabled))
+        );
+        localStorage.setItem(
+          "clinicx_installed_modules",
+          JSON.stringify(Array.from(storedInstalled))
+        );
+      } catch (localErr) {
+        console.warn("[modules] Failed local storage sync:", localErr);
+      }
+
+      // 2. Call authoritative server function
+      await setModuleInstallationServerFn({
+        data: {
+          organizationId: org.id,
+          moduleId: m.id,
+          installed: !installed,
+        },
+      }).catch(async (serverErr) => {
+        console.warn("[modules] Server fn error, attempting client fallback:", serverErr);
+        if (installed) {
+          await supabase
+            .from("organization_modules")
+            .delete()
+            .eq("organization_id", org.id)
+            .in("module_id", idsToHandle);
+        } else {
+          await supabase
+            .from("organization_modules")
+            .upsert(
+              { organization_id: org.id, module_id: m.id },
+              { onConflict: "organization_id,module_id", ignoreDuplicates: true }
+            );
+        }
+      });
+
+      // 3. Clear cache key and refresh
+      if (typeof window !== "undefined" && user?.id) {
+        try {
+          localStorage.removeItem(`org_snapshot:${user.id}`);
+        } catch {}
+      }
+      await refresh();
+
+      // 4. Close modal and toast
+      setSelectedModule(null);
+      toast.success(
+        installed
+          ? `${m.name} uninstalled successfully`
+          : `${m.name} installed successfully!`
+      );
+    } catch (err: any) {
+      console.error("[modules] Toggle failed:", err);
+      toast.error(err?.message || "Failed to update module installation");
+    } finally {
+      setBusy(null);
     }
-    await refresh();
-    setBusy(null);
   }
 
   const categories = ["All", ...Array.from(new Set(modules.map((m) => m.category)))];
@@ -820,7 +899,14 @@ function ModulesPage() {
                     }
                     className="flex-1 h-9 text-xs font-semibold text-destructive hover:bg-destructive/10"
                   >
-                    Uninstall Module
+                    {busy === selectedModule.id ? (
+                      <>
+                        <Icons.Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                        Uninstalling...
+                      </>
+                    ) : (
+                      "Uninstall Module"
+                    )}
                   </Button>
                 ) : (
                   <Button
@@ -834,9 +920,14 @@ function ModulesPage() {
                     }
                     className="flex-1 h-9 text-xs font-bold bg-primary text-primary-foreground shadow-sm"
                   >
-                    {!installedModuleIds.includes(selectedModule.id) &&
-                    (!allowedModuleIds.has(selectedModule.id) ||
-                      (selectedModule.id === "attendance" && !attendanceAllowed)) ? (
+                    {busy === selectedModule.id ? (
+                      <>
+                        <Icons.Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                        Installing...
+                      </>
+                    ) : !installedModuleIds.includes(selectedModule.id) &&
+                      (!allowedModuleIds.has(selectedModule.id) ||
+                        (selectedModule.id === "attendance" && !attendanceAllowed)) ? (
                       <>
                         <Lock className="size-3.5 mr-1" /> Requires{" "}
                         {selectedModule.min_plan

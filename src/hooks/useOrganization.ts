@@ -107,129 +107,188 @@ let staticDisabledModules: Array<{ id: string }> | null = null;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function fetchSnapshot(userId: string): Promise<Snapshot> {
-  // 1. If an active SSO doctor session is present, construct the local doctor snapshot directly
-  if (typeof window !== "undefined") {
+  const isUuid = UUID_REGEX.test(userId);
+  let membership: any = null;
+
+  // 1. If userId is a valid UUID, attempt to query the authoritative membership in Supabase
+  if (isUuid) {
     try {
-      const rawSso = localStorage.getItem("clinicx_sso_session");
-      if (rawSso) {
-        const sso = JSON.parse(rawSso);
-        const orgId = isValidUuid(sso.organizationId)
-          ? sso.organizationId
-          : emailToDeterministicUuid(`org:${sso.email || "doctor"}`);
-        const coreMods = ["appointments", "consultation", "prescriptions", "whatsapp", "website_builder", "reviews", "analytics", "crm", "qr_appointment", "loyalty"];
-        return {
-          org: {
-            id: orgId,
-            name: sso.name ? `${sso.name}'s Practice` : "Doctor Clinic",
-            slug: sso.clinicSlug || "demo-clinic",
-            business_type: "clinic",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            billing_email: sso.email,
-            primary_color: "#059669",
-            tagline: "Healthcare Practice",
-          } as any,
-          role: "owner" as OrgRole,
-          installedModuleIds: coreMods,
-          planModuleIds: coreMods,
-          unavailableModuleIds: [],
-          subscription: {
-            id: emailToDeterministicUuid(`sub:${sso.email || "doctor"}`),
-            organization_id: orgId,
-            plan_id: "growth",
-            status: "active",
-            billing_cycle: "monthly",
-            trial_started_at: null,
-            trial_ends_at: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as any,
-          entitlement: {
-            organization_id: orgId,
-            role: "owner",
-            server_now: new Date().toISOString(),
-            effective_state: "active",
-            can_read: true,
-            can_write: true,
-            can_export: true,
+      membership = await supabase
+        .from("organization_members")
+        .select("organization_id, role")
+        .eq("user_id", userId)
+        .order("joined_at", { ascending: true })
+        .limit(1);
+    } catch (e) {
+      console.warn("[useOrganization] Failed to fetch organization membership:", e);
+    }
+  }
+
+  let orgId: string | null = membership?.data?.[0]?.organization_id ?? null;
+
+  // 2. If no direct membership row yet, check for clinic cached from active slug or doctor record
+  if (!orgId && typeof window !== "undefined") {
+    try {
+      const activeSlug = localStorage.getItem("clinicx_active_clinic_slug");
+      if (activeSlug) {
+        const cached = readCache<any>(`clinic_slug:${activeSlug}`, 24 * 60 * 60 * 1000);
+        if (cached?.organization_id && isValidUuid(cached.organization_id)) {
+          orgId = cached.organization_id;
+        }
+      }
+      if (!orgId) {
+        const cachedClinic = readCache<any>(`clinic:${userId}`, 24 * 60 * 60 * 1000);
+        if (cachedClinic?.organization_id && isValidUuid(cachedClinic.organization_id)) {
+          orgId = cachedClinic.organization_id;
+        }
+      }
+      if (!orgId) {
+        const rawSso = localStorage.getItem("clinicx_sso_session");
+        if (rawSso) {
+          const sso = JSON.parse(rawSso);
+          if (sso.organizationId && isValidUuid(sso.organizationId)) {
+            orgId = sso.organizationId;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // 3. Fallback to local SSO / demo snapshot ONLY if no database organization could be identified
+  if (!orgId) {
+    if (typeof window !== "undefined") {
+      try {
+        const rawSso = localStorage.getItem("clinicx_sso_session");
+        if (rawSso) {
+          const sso = JSON.parse(rawSso);
+          const fallbackOrgId = isValidUuid(sso.organizationId)
+            ? sso.organizationId
+            : emailToDeterministicUuid(`org:${sso.email || "doctor"}`);
+          const defaultMods = [
+            "appointments",
+            "consultation",
+            "prescriptions",
+            "whatsapp",
+            "website_builder",
+            "reviews",
+            "analytics",
+            "crm",
+            "qr_appointment",
+          ];
+
+          const disabledSet = new Set<string>();
+          const enabledSet = new Set<string>();
+          try {
+            const rawDisabled = localStorage.getItem("clinicx_disabled_modules");
+            if (rawDisabled) JSON.parse(rawDisabled).forEach((id: string) => disabledSet.add(id));
+            const rawEnabled = localStorage.getItem("clinicx_installed_modules");
+            if (rawEnabled) JSON.parse(rawEnabled).forEach((id: string) => enabledSet.add(id));
+          } catch {}
+
+          const effectiveMods = defaultMods
+            .concat(Array.from(enabledSet))
+            .filter((id) => !disabledSet.has(id));
+
+          return {
+            org: {
+              id: fallbackOrgId,
+              name: sso.name ? `${sso.name}'s Practice` : "Doctor Clinic",
+              slug: sso.clinicSlug || "demo-clinic",
+              business_type: "clinic",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              billing_email: sso.email,
+              primary_color: "#059669",
+              tagline: "Healthcare Practice",
+            } as any,
+            role: "owner" as OrgRole,
+            installedModuleIds: effectiveMods,
+            planModuleIds: defaultMods,
+            unavailableModuleIds: Array.from(disabledSet),
             subscription: {
               id: emailToDeterministicUuid(`sub:${sso.email || "doctor"}`),
+              organization_id: fallbackOrgId,
               plan_id: "growth",
               status: "active",
               billing_cycle: "monthly",
               trial_started_at: null,
               trial_ends_at: null,
-              grace_ends_at: null,
-              current_period_end: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-              cancel_at_period_end: false,
-              access_source: "verified_payment",
-            },
-            plan: null,
-            features: [
-              "website_builder",
-              "appointments",
-              "crm",
-              "billing",
-              "prescriptions",
-              "whatsapp",
-              "reviews",
-              "consultation",
-              "analytics",
-            ],
-            limits: {
-              patients: 5000,
-              doctors: 5,
-              staff: 10,
-              appointments: null,
-            },
-            usage: {
-              patients: 0,
-              staff: 0,
-              pending_staff_invites: 0,
-              doctors: 1,
-              appointments: 0,
-              completed_appointments: 0,
-              visits: 0,
-              prescriptions: 0,
-              invoices: 0,
-              invoiced_inr: 0,
-              collected_inr: 0,
-              currency: "INR",
-              window: "all_time",
-              features_used: [],
-            },
-            recommendation: {
-              plan_id: "growth",
-              advisory: true,
-              basis: {},
-            },
-            configuration_requires_reconciliation: false,
-          } as any,
-          authorityUserId: userId,
-          authorityGeneration: 1,
-          authorityError: null,
-          authorityPending: false,
-          authorityScope: `1:${userId}:${orgId}:owner`,
-          isSubscriptionExpired: false,
-        };
-      }
-    } catch {}
-  }
-
-  // 2. Only query Supabase if userId is a valid UUID to prevent 400 Bad Request
-  if (!UUID_REGEX.test(userId)) {
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any,
+            entitlement: {
+              organization_id: fallbackOrgId,
+              role: "owner",
+              server_now: new Date().toISOString(),
+              effective_state: "active",
+              can_read: true,
+              can_write: true,
+              can_export: true,
+              subscription: {
+                id: emailToDeterministicUuid(`sub:${sso.email || "doctor"}`),
+                plan_id: "growth",
+                status: "active",
+                billing_cycle: "monthly",
+                trial_started_at: null,
+                trial_ends_at: null,
+                grace_ends_at: null,
+                current_period_end: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+                cancel_at_period_end: false,
+                access_source: "verified_payment",
+              },
+              plan: null,
+              features: [
+                "website_builder",
+                "appointments",
+                "crm",
+                "billing",
+                "prescriptions",
+                "whatsapp",
+                "reviews",
+                "consultation",
+                "analytics",
+              ],
+              limits: {
+                patients: 5000,
+                doctors: 5,
+                staff: 10,
+                appointments: null,
+              },
+              usage: {
+                patients: 0,
+                staff: 0,
+                pending_staff_invites: 0,
+                doctors: 1,
+                appointments: 0,
+                completed_appointments: 0,
+                visits: 0,
+                prescriptions: 0,
+                invoices: 0,
+                invoiced_inr: 0,
+                collected_inr: 0,
+                currency: "INR",
+                window: "all_time",
+                features_used: [],
+              },
+              recommendation: {
+                plan_id: "growth",
+                advisory: true,
+                basis: {},
+              },
+              configuration_requires_reconciliation: false,
+            } as any,
+            authorityUserId: userId,
+            authorityGeneration: 1,
+            authorityError: null,
+            authorityPending: false,
+            authorityScope: `1:${userId}:${fallbackOrgId}:owner`,
+            isSubscriptionExpired: false,
+          };
+        }
+      } catch {}
+    }
     return EMPTY;
   }
-
-  let membership: any;
-  try {
-    membership = await supabase.from("organization_members").select("organization_id, role").eq("user_id", userId).order("joined_at", { ascending: true }).limit(1);
-  } catch {}
-
-  if (!membership?.data?.length) {
-    return EMPTY;
-  }
-  const orgId = membership.data[0].organization_id;
 
   const aliasPromise = staticAliases
     ? Promise.resolve({ data: staticAliases, error: null })
@@ -327,6 +386,10 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     staff: ["staff_management"],
     pharmacy: ["inventory"],
     ai_assistant: ["ai_scribe"],
+    loyalty: ["loyalty_rewards", "patient_loyalty"],
+    loyalty_rewards: ["loyalty", "patient_loyalty"],
+    patient_loyalty: ["loyalty", "loyalty_rewards"],
+    reviews: ["google_reviews", "gmb"],
   };
 
   // Derive installed module IDs strictly from actual organization_modules records
@@ -351,6 +414,10 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
   }
   for (const id of disabled) {
     installedSet.delete(id);
+    const mapped = MODULE_ALIASES[id];
+    if (mapped) {
+      mapped.forEach(a => installedSet.delete(a));
+    }
   }
 
   // If org has zero records yet (e.g. newly created clinic or legacy unseeded clinic),
@@ -359,7 +426,12 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     ? ["appointments", "crm", "patients", "visits", "records", "queue"]
     : Array.from(installedSet);
 
-  const installedModuleIds = effectiveInstalled.filter(id => allowed.has(id) && !disabled.has(id));
+  const installedModuleIds = effectiveInstalled.filter(id => {
+    if (!allowed.has(id) || disabled.has(id)) return false;
+    const mappedAliases = MODULE_ALIASES[id] ?? [];
+    if (mappedAliases.some(a => disabled.has(a))) return false;
+    return true;
+  });
 
   return {
     org: orgResult.data ?? null, role: authority.role,
