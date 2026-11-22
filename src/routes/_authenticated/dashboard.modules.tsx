@@ -546,6 +546,21 @@ function ModulesPage() {
             .delete()
             .eq("organization_id", org.id)
             .in("module_id", idsToHandle);
+
+          for (const id of idsToHandle) {
+            await (supabase as any)
+              .from("organization_module_overrides")
+              .upsert(
+                {
+                  organization_id: org.id,
+                  module_id: id,
+                  enabled: false,
+                  reason: "User uninstalled module",
+                },
+                { onConflict: "organization_id,module_id" }
+              )
+              .catch(() => {});
+          }
         } else {
           await supabase
             .from("organization_modules")
@@ -553,13 +568,36 @@ function ModulesPage() {
               { organization_id: org.id, module_id: m.id },
               { onConflict: "organization_id,module_id", ignoreDuplicates: true }
             );
+
+          for (const id of idsToHandle) {
+            await (supabase as any)
+              .from("organization_module_overrides")
+              .upsert(
+                {
+                  organization_id: org.id,
+                  module_id: id,
+                  enabled: true,
+                  reason: "User installed module",
+                },
+                { onConflict: "organization_id,module_id" }
+              )
+              .catch(() => {});
+          }
         }
       });
 
-      // 3. Clear cache key and refresh
-      if (typeof window !== "undefined" && user?.id) {
+      // 3. Clear cache keys and refresh
+      if (typeof window !== "undefined") {
         try {
-          localStorage.removeItem(`org_snapshot:${user.id}`);
+          if (user?.id) {
+            localStorage.removeItem(`org_snapshot:${user.id}`);
+          }
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith("org_snapshot:")) {
+              localStorage.removeItem(k);
+            }
+          }
         } catch {}
       }
       await refresh();

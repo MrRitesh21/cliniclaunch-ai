@@ -361,15 +361,6 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
   if (orgResult.error) throw orgResult.error;
   const aliases = (aliasResult.data ?? []) as unknown as Array<{ alias: string; feature: string }>;
   const allowed = new Set([...authority.features, ...aliases.filter(a => authority.features.includes(a.feature)).map(a => a.alias)]);
-  const disabled = new Set<string>(((globalResult.data ?? []) as Array<{ id: string }>).map((m: { id: string }) => m.id));
-  const enabled = new Set<string>();
-  for (const o of (overrideResult.data ?? []) as unknown as Array<{ module_id: string; enabled: boolean }>) {
-    if (o.enabled) enabled.add(o.module_id);
-    else disabled.add(o.module_id);
-  }
-  // A UI override can enable an installation preference, NOT grant a purchased feature.
-  const apply = (ids: string[]) => Array.from(new Set(ids)).filter(id => allowed.has(id) && !disabled.has(id));
-  const installed = (modResult.data ?? []).map(m => m.module_id);
 
   // Bidirectional aliases mapping for all known modules & feature names
   const MODULE_ALIASES: Record<string, string[]> = {
@@ -393,6 +384,35 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     reviews: ["google_reviews", "gmb"],
   };
 
+  const disabled = new Set<string>(((globalResult.data ?? []) as Array<{ id: string }>).map((m: { id: string }) => m.id));
+  const enabled = new Set<string>();
+  for (const o of (overrideResult.data ?? []) as unknown as Array<{ module_id: string; enabled: boolean }>) {
+    if (o.enabled) enabled.add(o.module_id);
+    else disabled.add(o.module_id);
+  }
+
+  // Also include localStorage disabled/installed overrides for immediate client-side consistency
+  if (typeof window !== "undefined") {
+    try {
+      const rawDisabled = localStorage.getItem("clinicx_disabled_modules");
+      if (rawDisabled) {
+        (JSON.parse(rawDisabled) as string[]).forEach((id: string) => {
+          disabled.add(id);
+          const mapped = MODULE_ALIASES[id];
+          if (mapped) mapped.forEach((a) => disabled.add(a));
+        });
+      }
+      const rawEnabled = localStorage.getItem("clinicx_installed_modules");
+      if (rawEnabled) {
+        (JSON.parse(rawEnabled) as string[]).forEach((id: string) => enabled.add(id));
+      }
+    } catch {}
+  }
+
+  // A UI override can enable an installation preference, NOT grant a purchased feature.
+  const apply = (ids: string[]) => Array.from(new Set(ids)).filter(id => allowed.has(id) && !disabled.has(id));
+  const installed = (modResult.data ?? []).map(m => m.module_id);
+
   // Derive installed module IDs strictly from actual organization_modules records
   const installedSet = new Set<string>();
   for (const id of installed) {
@@ -401,12 +421,6 @@ async function fetchSnapshot(userId: string): Promise<Snapshot> {
     if (mapped) {
       mapped.forEach(a => installedSet.add(a));
     }
-  }
-
-  // Also include bidirectional aliases from clinicx_feature_aliases table for installed items
-  for (const a of aliases) {
-    if (installed.includes(a.alias)) installedSet.add(a.feature);
-    if (installed.includes(a.feature)) installedSet.add(a.alias);
   }
 
   // Explicit UI overrides

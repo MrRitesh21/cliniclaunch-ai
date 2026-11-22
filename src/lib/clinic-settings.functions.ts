@@ -102,6 +102,31 @@ export const setModuleInstallationServerFn = createServerFn({ method: "POST" })
   .handler(async ({ data: input, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context as any;
+    const actorUserId = isValidUuid(userId) ? userId : null;
+
+    let targetOrgId = input.organizationId;
+    if (isValidUuid(targetOrgId)) {
+      try {
+        const { data: orgRow } = await (supabaseAdmin as any)
+          .from("organizations")
+          .select("id")
+          .eq("id", targetOrgId)
+          .maybeSingle();
+
+        if (!orgRow) {
+          const { data: clinicRow } = await (supabaseAdmin as any)
+            .from("clinics")
+            .select("organization_id")
+            .eq("id", targetOrgId)
+            .maybeSingle();
+          if (clinicRow?.organization_id) {
+            targetOrgId = clinicRow.organization_id;
+          }
+        }
+      } catch (err) {
+        console.warn("[setModuleInstallationServerFn] targetOrgId lookup warning:", err);
+      }
+    }
 
     const MODULE_ALIASES: Record<string, string[]> = {
       consultation: ["consult", "video"],
@@ -128,60 +153,76 @@ export const setModuleInstallationServerFn = createServerFn({ method: "POST" })
       new Set([input.moduleId, ...(MODULE_ALIASES[input.moduleId] ?? [])])
     );
 
-    if (isValidUuid(input.organizationId)) {
+    if (isValidUuid(targetOrgId)) {
       if (input.installed) {
         // 1. Insert into organization_modules for the main moduleId
-        await (supabaseAdmin as any)
-          .from("organization_modules")
-          .upsert(
-            {
-              organization_id: input.organizationId,
-              module_id: input.moduleId,
-              installed_by: userId || null,
-            },
-            { onConflict: "organization_id,module_id" }
-          );
-
-        // 2. Clear or set enabled: true in organization_module_overrides
-        for (const id of idsToHandle) {
+        try {
           await (supabaseAdmin as any)
-            .from("organization_module_overrides")
+            .from("organization_modules")
             .upsert(
               {
-                organization_id: input.organizationId,
-                module_id: id,
-                enabled: true,
-                reason: "User installed module",
-                updated_by: userId || null,
-                updated_at: new Date().toISOString(),
+                organization_id: targetOrgId,
+                module_id: input.moduleId,
+                installed_by: actorUserId,
               },
               { onConflict: "organization_id,module_id" }
             );
+        } catch (e) {
+          console.warn("[setModuleInstallationServerFn] install insert error:", e);
+        }
+
+        // 2. Clear or set enabled: true in organization_module_overrides
+        for (const id of idsToHandle) {
+          try {
+            await (supabaseAdmin as any)
+              .from("organization_module_overrides")
+              .upsert(
+                {
+                  organization_id: targetOrgId,
+                  module_id: id,
+                  enabled: true,
+                  reason: "User installed module",
+                  updated_by: actorUserId,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "organization_id,module_id" }
+              );
+          } catch (e) {
+            console.warn("[setModuleInstallationServerFn] override install warning:", e);
+          }
         }
       } else {
         // 1. Delete all aliases from organization_modules
-        await (supabaseAdmin as any)
-          .from("organization_modules")
-          .delete()
-          .eq("organization_id", input.organizationId)
-          .in("module_id", idsToHandle);
+        try {
+          await (supabaseAdmin as any)
+            .from("organization_modules")
+            .delete()
+            .eq("organization_id", targetOrgId)
+            .in("module_id", idsToHandle);
+        } catch (e) {
+          console.warn("[setModuleInstallationServerFn] uninstall delete error:", e);
+        }
 
         // 2. Explicitly set enabled: false in organization_module_overrides
         // This ensures useOrganization's override checks remove it from installedSet
         for (const id of idsToHandle) {
-          await (supabaseAdmin as any)
-            .from("organization_module_overrides")
-            .upsert(
-              {
-                organization_id: input.organizationId,
-                module_id: id,
-                enabled: false,
-                reason: "User uninstalled module",
-                updated_by: userId || null,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "organization_id,module_id" }
-            );
+          try {
+            await (supabaseAdmin as any)
+              .from("organization_module_overrides")
+              .upsert(
+                {
+                  organization_id: targetOrgId,
+                  module_id: id,
+                  enabled: false,
+                  reason: "User uninstalled module",
+                  updated_by: actorUserId,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "organization_id,module_id" }
+              );
+          } catch (e) {
+            console.warn("[setModuleInstallationServerFn] override uninstall warning:", e);
+          }
         }
       }
     }
