@@ -2,6 +2,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import { exchangeMetaOAuthCode, saveMetaConfigForClinic } from "@/lib/meta-whatsapp.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+function getCanonicalMetaRedirectUri(request: Request, url: URL): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost || request.headers.get("host") || url.host;
+  const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+
+  if (host.includes("clinicx.digiwil.com") || host.includes("digiwil.com")) {
+    return "https://clinicx.digiwil.com/api/auth/meta/callback";
+  }
+
+  if (host && !host.includes("localhost") && !host.startsWith("127.")) {
+    return `${proto}://${host}/api/auth/meta/callback`;
+  }
+
+  return "https://clinicx.digiwil.com/api/auth/meta/callback";
+}
+
 export const Route = createFileRoute("/api/auth/meta/callback")({
   server: {
     handlers: {
@@ -40,7 +56,7 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
         }
 
         try {
-          const redirectUri = `${url.origin}/api/auth/meta/callback`;
+          const redirectUri = getCanonicalMetaRedirectUri(request, url);
           const exchangeResult = await exchangeMetaOAuthCode({
             code,
             redirectUri,
@@ -109,8 +125,8 @@ export const Route = createFileRoute("/api/auth/meta/callback")({
             );
           }
 
-          const origin = new URL(request.url).origin;
-          const effectiveRedirectUri = redirectUri || `${origin}/api/auth/meta/callback`;
+          const url = new URL(request.url);
+          const effectiveRedirectUri = redirectUri || getCanonicalMetaRedirectUri(request, url);
 
           const exchangeResult = await exchangeMetaOAuthCode({
             code,

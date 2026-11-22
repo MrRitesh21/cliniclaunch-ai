@@ -289,23 +289,48 @@ export async function exchangeMetaOAuthCode(params: {
 
   try {
     // 1. Exchange authorization code for User Access Token
-    const tokenUrl = new URL(`${GRAPH_BASE_URL}/oauth/access_token`);
-    tokenUrl.searchParams.set("client_id", appId);
-    tokenUrl.searchParams.set("client_secret", appSecret);
-    tokenUrl.searchParams.set("redirect_uri", params.redirectUri);
-    tokenUrl.searchParams.set("code", params.code);
+    // Support prioritized candidate redirect URIs to handle reverse proxy / HTTPS scheme rewrites
+    const candidateUris = Array.from(
+      new Set([
+        params.redirectUri,
+        "https://clinicx.digiwil.com/api/auth/meta/callback",
+        params.redirectUri.replace(/^http:/, "https:"),
+        params.redirectUri.replace(/\/$/, ""),
+        `${params.redirectUri}/`,
+        "https://clinicx.digiwil.com/api/auth/meta/callback/",
+      ]),
+    ).filter(Boolean);
 
-    const tokenRes = await fetch(tokenUrl.toString(), { method: "GET" });
-    const tokenData = await tokenRes.json();
+    let accessToken: string | null = null;
+    let lastError: string | null = null;
 
-    if (!tokenRes.ok || !tokenData?.access_token) {
-      return {
-        ok: false,
-        error: tokenData?.error?.message || "Failed to exchange authorization code with Meta",
-      };
+    for (const testUri of candidateUris) {
+      const tokenUrl = new URL(`${GRAPH_BASE_URL}/oauth/access_token`);
+      tokenUrl.searchParams.set("client_id", appId);
+      tokenUrl.searchParams.set("client_secret", appSecret);
+      tokenUrl.searchParams.set("redirect_uri", testUri);
+      tokenUrl.searchParams.set("code", params.code);
+
+      const tokenRes = await fetch(tokenUrl.toString(), { method: "GET" });
+      const tokenData = await tokenRes.json();
+
+      if (tokenRes.ok && tokenData?.access_token) {
+        accessToken = tokenData.access_token;
+        break;
+      }
+
+      lastError = tokenData?.error?.message || "Failed to exchange authorization code with Meta";
+      if (!lastError?.includes("redirect_uri")) {
+        break;
+      }
     }
 
-    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      return {
+        ok: false,
+        error: lastError || "Failed to exchange authorization code with Meta",
+      };
+    }
 
     // 2. Inspect token to retrieve Granular Scopes & WABA ID
     const debugUrl = new URL(`${GRAPH_BASE_URL}/debug_token`);

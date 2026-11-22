@@ -189,7 +189,8 @@ export function WhatsappConnectCard({
 
   async function handleLaunchMetaOAuth() {
     const metaAppId = "2115406659069224"; // App ID from Meta Developer Console
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://clinicx.digiwil.com";
+    const isProd = typeof window !== "undefined" && window.location.hostname.includes("digiwil.com");
+    const origin = isProd ? "https://clinicx.digiwil.com" : (typeof window !== "undefined" ? window.location.origin : "https://clinicx.digiwil.com");
     const redirectUri = `${origin}/api/auth/meta/callback`;
     const state = metaStatus?.clinicId || "default";
 
