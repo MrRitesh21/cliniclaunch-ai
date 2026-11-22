@@ -50,6 +50,7 @@ import {
   Sparkles,
   FileText,
   Bot,
+  ShieldCheck,
 } from "lucide-react";
 import { AiReceptionistTab } from "@/components/whatsapp/AiReceptionistTab";
 import {
@@ -68,6 +69,10 @@ import {
   disconnectMyWhatsapp,
   sendTestWhatsapp,
 } from "@/lib/baileys.functions";
+import {
+  getMetaConnectionStatusFn,
+  saveMetaCredentialsFn,
+} from "@/lib/whatsapp-receptionist.functions";
 import { AppGuard } from "@/components/app/AppGuard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/whatsapp")({
@@ -189,6 +194,71 @@ function WhatsAppPage() {
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Meta OAuth & Connection States
+  const getMetaStatusFn = useServerFn(getMetaConnectionStatusFn);
+  const saveMetaCredsFn = useServerFn(saveMetaCredentialsFn);
+  const [metaStatus, setMetaStatus] = useState<any>(null);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [modalPhoneId, setModalPhoneId] = useState("");
+  const [savingPhoneId, setSavingPhoneId] = useState(false);
+
+  // Check URL params on load
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const metaParam = params.get("meta_connect");
+    const tabParam = params.get("tab");
+
+    if (tabParam === "connect" || metaParam) {
+      setActiveTab("connect");
+    }
+
+    if (metaParam === "need_phone_id") {
+      setPhoneModalOpen(true);
+    }
+  }, []);
+
+  const loadMetaStatus = useCallback(async () => {
+    try {
+      const res = await getMetaStatusFn();
+      setMetaStatus(res);
+      if (res?.hasPendingToken && !res?.isMetaConnected) {
+        setPhoneModalOpen(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [getMetaStatusFn]);
+
+  useEffect(() => {
+    loadMetaStatus();
+  }, [loadMetaStatus]);
+
+  async function handleSavePhoneIdFromModal() {
+    if (!modalPhoneId.trim()) {
+      return toast.error("Please enter a valid Meta WhatsApp Phone Number ID");
+    }
+    setSavingPhoneId(true);
+    try {
+      await saveMetaCredsFn({
+        data: {
+          phoneNumberId: modalPhoneId.trim(),
+        },
+      });
+      toast.success("WhatsApp Business connected in Coexistence Mode! 🎉");
+      setPhoneModalOpen(false);
+      setModalPhoneId("");
+      await loadMetaStatus();
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to activate phone number");
+    } finally {
+      setSavingPhoneId(false);
+    }
+  }
 
   // Test Wizard State
   const [testFor, setTestFor] = useState<TemplateRow | null>(null);
@@ -545,6 +615,33 @@ function WhatsAppPage() {
         />
       </div>
 
+      {/* Alert Banner if Meta Token is saved but Phone Number ID is needed */}
+      {metaStatus?.hasPendingToken && !metaStatus?.isMetaConnected && (
+        <div className="p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-emerald-600 text-white grid place-items-center shrink-0 shadow-xs">
+              <CheckCircle2 className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-sm text-foreground">Meta Authorization Successful — 1 Final Step</p>
+                <Badge className="bg-emerald-600 text-white text-[10px]">Access Token Ready</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Your Meta permissions are approved and stored. Please enter your WhatsApp <b>Phone Number ID</b> to activate 24/7 AI auto-replies.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setPhoneModalOpen(true)}
+            className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-1.5 h-9"
+          >
+            <Sparkles className="size-3.5" />
+            Enter Phone Number ID
+          </Button>
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="receptionist" className="gap-1.5 font-medium">
@@ -813,6 +910,71 @@ function WhatsAppPage() {
                 Done
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Meta Phone Number ID Confirmation Modal */}
+      <Dialog open={phoneModalOpen} onOpenChange={setPhoneModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Sparkles className="size-4 text-emerald-600" />
+              Complete WhatsApp AI Setup
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
+              <p className="font-semibold flex items-center gap-1.5">
+                <CheckCircle2 className="size-3.5 text-emerald-600" /> Meta OAuth Authorized Successfully!
+              </p>
+              <p className="text-muted-foreground text-[11px]">
+                Your Access Token is securely saved. Enter your <b>Phone Number ID</b> to activate your 24/7 AI Receptionist.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Meta Phone Number ID *</Label>
+              <Input
+                placeholder="e.g. 109283746592834"
+                value={modalPhoneId}
+                onChange={(e) => setModalPhoneId(e.target.value)}
+                className="font-mono text-xs rounded-xl h-10"
+                autoFocus
+              />
+              <p className="text-[11px] text-muted-foreground flex items-center justify-between pt-0.5">
+                <span>Found in Meta Console &rarr; WhatsApp &rarr; API Setup</span>
+                <a
+                  href="https://developers.facebook.com/apps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline flex items-center gap-1 font-medium"
+                >
+                  Open Meta Console <ExternalLink className="size-3" />
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPhoneModalOpen(false)}
+              className="rounded-xl text-xs h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSavePhoneIdFromModal}
+              disabled={savingPhoneId || !modalPhoneId.trim()}
+              className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-9"
+            >
+              {savingPhoneId ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+              <span>Activate WhatsApp Assistant</span>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
