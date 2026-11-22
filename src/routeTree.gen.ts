@@ -108,6 +108,7 @@ import { Route as ApiInternalClinicxJobsRouteImport } from './routes/api/interna
 import { Route as ApiPublicClinicDataRouteImport } from './routes/api/public/clinic-data'
 import { Route as ApiPublicClinicGenerateRouteImport } from './routes/api/public/clinic-generate'
 import { Route as ApiPublicClinicThemeRouteImport } from './routes/api/public/clinic-theme'
+import { Route as ApiPublicFixSubscriptionRouteImport } from './routes/api/public/fix-subscription'
 import { Route as ApiPublicGoogleOauthCallbackRouteImport } from './routes/api/public/google-oauth-callback'
 import { Route as ApiPublicHealthzRouteImport } from './routes/api/public/healthz'
 import { Route as ApiPublicPushEventRouteImport } from './routes/api.public.push-event'
@@ -663,6 +664,12 @@ const ApiPublicClinicThemeRoute = ApiPublicClinicThemeRouteImport.update({
   path: '/api/public/clinic-theme',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFixSubscriptionRoute =
+  ApiPublicFixSubscriptionRouteImport.update({
+    id: '/api/public/fix-subscription',
+    path: '/api/public/fix-subscription',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicGoogleOauthCallbackRoute =
   ApiPublicGoogleOauthCallbackRouteImport.update({
     id: '/api/public/google-oauth-callback',
@@ -893,6 +900,7 @@ export interface FileRoutesByFullPath {
   '/api/public/clinic-data': typeof ApiPublicClinicDataRoute
   '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/clinic-theme': typeof ApiPublicClinicThemeRoute
+  '/api/public/fix-subscription': typeof ApiPublicFixSubscriptionRoute
   '/api/public/google-oauth-callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
@@ -1013,6 +1021,7 @@ export interface FileRoutesByTo {
   '/api/public/clinic-data': typeof ApiPublicClinicDataRoute
   '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/clinic-theme': typeof ApiPublicClinicThemeRoute
+  '/api/public/fix-subscription': typeof ApiPublicFixSubscriptionRoute
   '/api/public/google-oauth-callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
@@ -1140,6 +1149,7 @@ export interface FileRoutesById {
   '/api/public/clinic-data': typeof ApiPublicClinicDataRoute
   '/api/public/clinic-generate': typeof ApiPublicClinicGenerateRoute
   '/api/public/clinic-theme': typeof ApiPublicClinicThemeRoute
+  '/api/public/fix-subscription': typeof ApiPublicFixSubscriptionRoute
   '/api/public/google-oauth-callback': typeof ApiPublicGoogleOauthCallbackRoute
   '/api/public/healthz': typeof ApiPublicHealthzRoute
   '/api/public/push-event': typeof ApiPublicPushEventRoute
@@ -1266,6 +1276,7 @@ export interface FileRouteTypes {
     | '/api/public/clinic-data'
     | '/api/public/clinic-generate'
     | '/api/public/clinic-theme'
+    | '/api/public/fix-subscription'
     | '/api/public/google-oauth-callback'
     | '/api/public/healthz'
     | '/api/public/push-event'
@@ -1386,6 +1397,7 @@ export interface FileRouteTypes {
     | '/api/public/clinic-data'
     | '/api/public/clinic-generate'
     | '/api/public/clinic-theme'
+    | '/api/public/fix-subscription'
     | '/api/public/google-oauth-callback'
     | '/api/public/healthz'
     | '/api/public/push-event'
@@ -1512,6 +1524,7 @@ export interface FileRouteTypes {
     | '/api/public/clinic-data'
     | '/api/public/clinic-generate'
     | '/api/public/clinic-theme'
+    | '/api/public/fix-subscription'
     | '/api/public/google-oauth-callback'
     | '/api/public/healthz'
     | '/api/public/push-event'
@@ -1587,6 +1600,7 @@ export interface RootRouteChildren {
   ApiPublicClinicDataRoute: typeof ApiPublicClinicDataRoute
   ApiPublicClinicGenerateRoute: typeof ApiPublicClinicGenerateRoute
   ApiPublicClinicThemeRoute: typeof ApiPublicClinicThemeRoute
+  ApiPublicFixSubscriptionRoute: typeof ApiPublicFixSubscriptionRoute
   ApiPublicGoogleOauthCallbackRoute: typeof ApiPublicGoogleOauthCallbackRoute
   ApiPublicHealthzRoute: typeof ApiPublicHealthzRoute
   ApiPublicPushEventRoute: typeof ApiPublicPushEventRoute
@@ -2294,6 +2308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClinicThemeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/fix-subscription': {
+      id: '/api/public/fix-subscription'
+      path: '/api/public/fix-subscription'
+      fullPath: '/api/public/fix-subscription'
+      preLoaderRoute: typeof ApiPublicFixSubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/google-oauth-callback': {
       id: '/api/public/google-oauth-callback'
       path: '/api/public/google-oauth-callback'
@@ -2737,6 +2758,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicClinicDataRoute: ApiPublicClinicDataRoute,
   ApiPublicClinicGenerateRoute: ApiPublicClinicGenerateRoute,
   ApiPublicClinicThemeRoute: ApiPublicClinicThemeRoute,
+  ApiPublicFixSubscriptionRoute: ApiPublicFixSubscriptionRoute,
   ApiPublicGoogleOauthCallbackRoute: ApiPublicGoogleOauthCallbackRoute,
   ApiPublicHealthzRoute: ApiPublicHealthzRoute,
   ApiPublicPushEventRoute: ApiPublicPushEventRoute,

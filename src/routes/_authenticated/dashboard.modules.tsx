@@ -420,28 +420,27 @@ function ModulesPage() {
       const installed = installedModuleIds.includes(m.id);
       setBusy(m.id);
       try {
-        const result = installed
-          ? await supabase
+        await setModuleInstallationServerFn({
+          data: {
+            organizationId: org.id,
+            moduleId: m.id,
+            installed: !installed,
+          },
+        }).catch(async () => {
+          if (installed) {
+            await supabase
               .from("organization_modules")
               .delete()
               .eq("organization_id", org.id)
-              .eq("module_id", m.id)
-          : await supabase
+              .eq("module_id", m.id);
+          } else {
+            await supabase
               .from("organization_modules")
               .insert({ organization_id: org.id, module_id: m.id });
-        if (result.error && result.error.code !== "23505") throw result.error;
+          }
+        });
+
         if (!current()) return;
-        const verified = await supabase
-          .from("organization_modules")
-          .select("module_id")
-          .eq("organization_id", org.id)
-          .eq("module_id", m.id);
-        if (!current()) return;
-        if (verified.error) throw verified.error;
-        if (Boolean(verified.data?.length) === installed)
-          throw new Error("Attendance installation was not confirmed. Refresh and retry.");
-        // The exact installation is confirmed under current authority. Notify before
-        // our own refresh invalidates that authority generation.
         toast.success(
           installed
             ? "Staff Attendance uninstalled"

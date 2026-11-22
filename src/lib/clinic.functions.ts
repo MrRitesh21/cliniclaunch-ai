@@ -85,13 +85,8 @@ async function scheduleWhatsAppAutomation(opts: {
 }
 
 export async function adminClient() {
-  // Prefer service-role for booking flows; fall back to publishable key client
-  // if the service role key isn't configured in this environment.
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_URL) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return supabaseAdmin;
-  }
-  return serverClient();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 /** Public writes use a service-role client: mirror public authority before any
@@ -1879,6 +1874,13 @@ export const saveManageDoctor = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const sb = await adminClient();
+
+    if (data.organization_id) {
+      const { ensureActiveSubscription } = await import("./subscription-healer.server");
+      await ensureActiveSubscription(data.organization_id).catch((err) => {
+        console.warn("[saveManageDoctor] ensureActiveSubscription warning:", err);
+      });
+    }
 
     if (data.is_owner && data.clinic_update) {
       const { error: clinicErr } = await sb

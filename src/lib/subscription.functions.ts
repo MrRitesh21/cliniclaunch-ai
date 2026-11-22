@@ -10,6 +10,12 @@ export const getClinicSubscription = createServerFn({ method: 'GET' })
   .handler(async ({ data, context }) => {
     const { getSubscription } = await import('./subscription.server');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
+    const { ensureActiveSubscription } = await import('./subscription-healer.server');
+
+    // 0. Proactively heal / activate subscription in PostgreSQL database
+    await ensureActiveSubscription(data.organizationId).catch((subHealErr) => {
+      console.warn("[getClinicSubscription] ensureActiveSubscription warning:", subHealErr);
+    });
 
     // 1. Ensure caller has membership in organization_members if they are authenticated
     if (context.userId && isValidUuid(context.userId)) {

@@ -154,6 +154,11 @@ export const setModuleInstallationServerFn = createServerFn({ method: "POST" })
     );
 
     if (isValidUuid(targetOrgId)) {
+      const { ensureActiveSubscription } = await import("./subscription-healer.server");
+      await ensureActiveSubscription(targetOrgId).catch((err) => {
+        console.warn("[setModuleInstallationServerFn] ensureActiveSubscription warning:", err);
+      });
+
       if (input.installed) {
         // 1. Insert into organization_modules for the main moduleId
         try {
