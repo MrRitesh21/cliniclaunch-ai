@@ -225,6 +225,23 @@ export function WebsiteHeader() {
           </Button>
         </div>
 
+        {/* Live Preview Button */}
+        <a
+          href={publicUrl}
+          target="_blank"
+          rel="noreferrer"
+          title="Open live website in new tab"
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 sm:h-9 px-2 sm:px-3 text-xs font-semibold rounded-xl gap-1.5 border-border/80 text-foreground hover:bg-muted cursor-pointer"
+          >
+            <ExternalLink className="size-3.5 text-muted-foreground shrink-0" />
+            <span className="hidden xl:inline">Preview</span>
+          </Button>
+        </a>
+
         {/* Live Visual Edit Trigger */}
         <Button
           size="sm"

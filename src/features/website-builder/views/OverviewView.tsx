@@ -58,8 +58,8 @@ export function OverviewView() {
       {/* ========================================================= */}
       {/* 1. HERO STUDIO COMMAND CENTER */}
       {/* ========================================================= */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-blue-500/[0.03] shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div className="space-y-2 min-w-0">
+      <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-blue-500/[0.03] shadow-xs space-y-4">
+        <div className="space-y-2.5 min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
             <h2 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight">
               {clinic?.clinic_name || "Clinic Website Studio"}
@@ -109,50 +109,54 @@ export function OverviewView() {
           </div>
         </div>
 
-        {/* Primary Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <a href={publicUrl} target="_blank" rel="noreferrer">
+        {/* Primary Action Buttons Toolbar */}
+        <div className="pt-3.5 border-t border-border/60 flex items-center justify-between flex-wrap gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               size="sm"
-              variant="outline"
-              className="h-9 px-3.5 text-xs font-semibold rounded-xl gap-1.5 border-border/80 hover:bg-muted cursor-pointer"
+              onClick={() => setActiveTab("live-edit")}
+              className="h-9 px-4 text-xs font-bold rounded-xl gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs"
             >
-              <ExternalLink className="size-3.5" />
-              <span>Preview Live Site</span>
+              <MousePointerClick className="size-3.5" />
+              <span>Visual Canvas Editor</span>
             </Button>
-          </a>
 
-          <Button
-            size="sm"
-            onClick={() => setActiveTab("live-edit")}
-            className="h-9 px-3.5 text-xs font-semibold rounded-xl gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs"
-          >
-            <MousePointerClick className="size-3.5" />
-            <span>Visual Canvas Editor</span>
-          </Button>
+            <a href={publicUrl} target="_blank" rel="noreferrer">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 px-3.5 text-xs font-semibold rounded-xl gap-1.5 border-border/80 hover:bg-muted cursor-pointer"
+              >
+                <ExternalLink className="size-3.5" />
+                <span>Preview Live Site</span>
+              </Button>
+            </a>
+          </div>
 
-          <Button
-            size="sm"
-            onClick={() => void togglePublish(!isPublished)}
-            className={`h-9 px-3.5 text-xs font-bold rounded-xl gap-1.5 cursor-pointer shadow-xs ${
-              isPublished
-                ? "border border-border/80 bg-surface hover:bg-muted text-foreground"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
-            }`}
-          >
-            <Rocket className="size-3.5" />
-            <span>{isPublished ? "Unpublish" : "Publish Site"}</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              onClick={() => setIsFloatingAIOpen(true)}
+              variant="outline"
+              className="h-9 px-3.5 text-xs font-semibold rounded-xl gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 cursor-pointer"
+            >
+              <Sparkles className="size-3.5 text-purple-500" />
+              <span>AI Polish</span>
+            </Button>
 
-          <Button
-            size="sm"
-            onClick={() => setIsFloatingAIOpen(true)}
-            variant="outline"
-            className="h-9 px-3 text-xs font-semibold rounded-xl gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 cursor-pointer hidden sm:inline-flex"
-          >
-            <Sparkles className="size-3.5 text-purple-500" />
-            <span>AI Polish</span>
-          </Button>
+            <Button
+              size="sm"
+              onClick={() => void togglePublish(!isPublished)}
+              className={`h-9 px-3.5 text-xs font-bold rounded-xl gap-1.5 cursor-pointer shadow-xs ${
+                isPublished
+                  ? "border border-border/80 bg-surface hover:bg-muted text-foreground"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+              }`}
+            >
+              <Rocket className="size-3.5" />
+              <span>{isPublished ? "Unpublish" : "Publish Site"}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
