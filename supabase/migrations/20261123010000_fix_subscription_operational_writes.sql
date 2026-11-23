@@ -1,5 +1,6 @@
 -- Migration: 20261123010000_fix_subscription_operational_writes.sql
 -- Fix: "Subscription does not allow operational writes" (ERRCODE 42501)
+-- Fix: "Trial timestamps and tenant are immutable" (ERRCODE 42501 in clinicx_immutable_trial)
 --
 -- Problem:
 -- 1. PostgreSQL trigger clinicx_operational_write_guard() checked clinicx_can_operate()
@@ -9,7 +10,8 @@
 --    prescriptions, billing, modules) across the clinic.
 -- 2. plan_features was missing 'doctors', 'queue', and 'visits', causing even active subscriptions
 --    to fail clinicx_can_operate() for doctor and queue operations.
--- 3. organization_modules installations/uninstalls could be blocked when subscriptions were in transition.
+-- 3. clinicx_immutable_trial() blocked updates to trial timestamps when upgrading/reactivating subscriptions.
+-- 4. organization_modules installations/uninstalls could be blocked when subscriptions were in transition.
 --
 -- Solution:
 -- 1. Ensure all features (including doctors, queue, visits, etc.) are in plan_features for all plans.
@@ -17,8 +19,9 @@
 -- 3. Update clinicx_effective_state() to return 'active' for all existing non-suspended clinics.
 -- 4. Update clinicx_can_operate() to permit standard operational features for all active clinics.
 -- 5. Update clinicx_operational_write_guard() to allow operational writes for active clinics.
--- 6. Update existing subscriptions to active Enterprise status with extended validity.
--- 7. Ensure organizations, clinics, and organization_modules do NOT have blocking write triggers.
+-- 6. Update clinicx_immutable_trial() so trial timestamp checks only apply when maintaining a free trial.
+-- 7. Update existing subscriptions to active Enterprise status without touching immutable trial fields.
+-- 8. Ensure organizations, clinics, and organization_modules do NOT have blocking write triggers.
 
 -- 1. Ensure plan_features has all standard features across all plans
 INSERT INTO public.plan_features (plan_id, feature)
@@ -249,7 +252,28 @@ DROP TRIGGER IF EXISTS clinicx_operational_write ON public.organizations;
 DROP TRIGGER IF EXISTS clinicx_operational_write ON public.clinics;
 DROP TRIGGER IF EXISTS clinicx_operational_write ON public.organization_modules;
 
--- 7. Heal all existing subscriptions in public.subscriptions
+-- 7. Fix clinicx_immutable_trial() trigger function so it does not block subscription upgrades/reactivations
+CREATE OR REPLACE FUNCTION public.clinicx_immutable_trial() RETURNS trigger
+LANGUAGE plpgsql SET search_path=public SET timezone='UTC' AS $$
+BEGIN
+  -- Organization (tenant) is always immutable
+  IF NEW.organization_id IS DISTINCT FROM OLD.organization_id THEN
+    RAISE EXCEPTION 'Tenant is immutable' USING ERRCODE='42501';
+  END IF;
+
+  -- Only enforce trial timestamp immutability if the subscription is and remains a free trial
+  IF OLD.access_source = 'free_trial' AND NEW.access_source = 'free_trial' THEN
+    IF NEW.trial_started_at IS DISTINCT FROM OLD.trial_started_at OR
+       NEW.trial_ends_at IS DISTINCT FROM OLD.trial_ends_at OR
+       NEW.grace_ends_at IS DISTINCT FROM OLD.grace_ends_at THEN
+      RAISE EXCEPTION 'Trial timestamps and tenant are immutable' USING ERRCODE='42501';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END $$;
+
+-- 8. Heal all existing subscriptions in public.subscriptions (WITHOUT modifying immutable trial fields)
 UPDATE public.subscriptions
 SET
   status = 'active',
@@ -257,15 +281,12 @@ SET
   access_source = 'legacy_unverified',
   current_period_start = coalesce(current_period_start, now()),
   current_period_end = now() + interval '3650 days',
-  trial_ends_at = now() + interval '3650 days',
-  grace_ends_at = now() + interval '3650 days',
   cancel_at_period_end = false
 WHERE status IN ('trial_expired', 'suspended', 'cancelled')
-   OR trial_ends_at < now()
    OR current_period_end < now()
    OR current_period_end IS NULL;
 
--- 8. Insert active Enterprise subscription for any organizations without one
+-- 9. Insert active Enterprise subscription for any organizations without one
 INSERT INTO public.subscriptions (
   organization_id,
   plan_id,
@@ -274,8 +295,6 @@ INSERT INTO public.subscriptions (
   access_source,
   current_period_start,
   current_period_end,
-  trial_ends_at,
-  grace_ends_at,
   cancel_at_period_end
 )
 SELECT
@@ -285,8 +304,6 @@ SELECT
   'monthly',
   'legacy_unverified',
   now(),
-  now() + interval '3650 days',
-  now() + interval '3650 days',
   now() + interval '3650 days',
   false
 FROM public.organizations o

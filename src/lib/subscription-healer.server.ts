@@ -81,8 +81,6 @@ export async function ensureActiveSubscription(organizationId: string): Promise<
           plan_id: "enterprise",
           access_source: "legacy_unverified",
           current_period_end: tenYearsFromNow,
-          trial_ends_at: tenYearsFromNow,
-          grace_ends_at: tenYearsFromNow,
           cancel_at_period_end: false,
           updated_at: nowIso,
         })
