@@ -139,12 +139,50 @@ export async function getMetaConfigForClinic(clinicId: string): Promise<MetaClin
 
     if (row?.value) {
       const parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
-      if (parsed?.phoneNumberId && parsed?.accessToken) {
+      if (parsed?.accessToken) {
+        let phoneId = parsed.phoneNumberId ? String(parsed.phoneNumberId).trim() : "";
+        let phoneNum = parsed.phoneNumber ? String(parsed.phoneNumber).trim() : "";
+
+        // If phone ID is missing, try to auto-discover from recent whatsapp_logs
+        if (!phoneId) {
+          try {
+            const { data: recentLogs } = await sb
+              .from("whatsapp_logs")
+              .select("metadata")
+              .not("metadata", "is", null)
+              .order("created_at", { ascending: false })
+              .limit(10);
+
+            for (const log of recentLogs || []) {
+              const meta = log?.metadata as any;
+              if (meta?.phone_number_id) {
+                phoneId = String(meta.phone_number_id).trim();
+                if (meta.display_phone && !phoneNum) {
+                  phoneNum = String(meta.display_phone).trim();
+                }
+                // Persist back so future queries don't need discovery
+                await sb.from("system_settings" as any).upsert({
+                  key: `wa_meta_config_${clinicId}`,
+                  value: JSON.stringify({
+                    ...parsed,
+                    phoneNumberId: phoneId,
+                    phoneNumber: phoneNum || parsed.phoneNumber,
+                  }),
+                  updated_at: new Date().toISOString(),
+                });
+                break;
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
         return {
           wabaId: parsed.wabaId || "",
-          phoneNumberId: parsed.phoneNumberId,
+          phoneNumberId: phoneId,
           accessToken: parsed.accessToken,
-          phoneNumber: parsed.phoneNumber,
+          phoneNumber: phoneNum || parsed.phoneNumber,
           coexistenceMode: parsed.coexistenceMode ?? true,
           businessName: parsed.businessName,
           connectedAt: parsed.connectedAt,

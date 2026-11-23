@@ -28,6 +28,7 @@ import {
   getAiReceptionistInfo,
   testAiReceptionistSimulation,
   toggleAiReceptionistStatus,
+  toggleInteractiveButtonsStatus,
   saveAiReceptionistPersona,
   saveAiKnowledgeDoc,
   deleteAiKnowledgeDoc,
@@ -108,6 +109,7 @@ function buildInitialData(clinic: any, cached: any) {
         waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
         isOnline: clinic.wa_status === "ready",
         isAiEnabled: (clinic.working_hours as any)?.ai_receptionist_enabled !== false,
+        interactiveButtonsEnabled: (clinic.working_hours as any)?.interactive_buttons_enabled !== false,
         aiPersona: String((clinic.working_hours as any)?.ai_persona || "WhatsApp AI Assistant"),
         systemInstructions: String((clinic.working_hours as any)?.system_instructions || ""),
       },
@@ -136,6 +138,7 @@ export function AiReceptionistTab({
   const getInfoFn = useServerFn(getAiReceptionistInfo);
   const simulateFn = useServerFn(testAiReceptionistSimulation);
   const toggleFn = useServerFn(toggleAiReceptionistStatus);
+  const toggleButtonsFn = useServerFn(toggleInteractiveButtonsStatus);
   const savePersonaFn = useServerFn(saveAiReceptionistPersona);
   const saveKnowledgeDocFn = useServerFn(saveAiKnowledgeDoc);
   const deleteKnowledgeDocFn = useServerFn(deleteAiKnowledgeDoc);
@@ -156,6 +159,13 @@ export function AiReceptionistTab({
     return true;
   });
   const [isTogglingAi, setIsTogglingAi] = useState(false);
+
+  const [interactiveButtonsEnabled, setInteractiveButtonsEnabled] = useState<boolean>(() => {
+    if (data?.clinic?.interactiveButtonsEnabled !== undefined) return data.clinic.interactiveButtonsEnabled;
+    if (clinic) return (clinic.working_hours as any)?.interactive_buttons_enabled !== false;
+    return true;
+  });
+  const [isTogglingButtons, setIsTogglingButtons] = useState(false);
 
   // Simple high-level tabs: Test Bot, Clinic Answers, Bot Settings
   const [activeTab, setActiveTab] = useState<"test" | "knowledge" | "settings">("test");
@@ -205,19 +215,22 @@ export function AiReceptionistTab({
   const [latestCitations, setLatestCitations] = useState<any[]>([]);
   const [latestGuardrailAlert, setLatestGuardrailAlert] = useState<string | null>(null);
 
-  const clinicName = data?.clinic.name || clinic?.clinic_name || "My Clinic";
+  const clinicName = data?.clinic.name || clinic?.name || clinic?.clinic_name || "My Clinic";
   const rawDoctorName = data?.clinic.doctor || clinic?.doctor_name || "";
   const isDocClinicName =
     !rawDoctorName ||
     rawDoctorName.toLowerCase() === clinicName.toLowerCase() ||
     /\b(clinic|hospital|hearing|speech|center|centre|healthcare)\b/i.test(rawDoctorName);
+  const doctorName = isDocClinicName ? (data?.clinic.specialization || "Doctor") : rawDoctorName;
   const doctorDisplay = isDocClinicName ? "" : ` (${rawDoctorName})`;
 
-  const initialBotButtons = [
-    { id: "btn_book_appointment", title: "📅 Book Slot" },
-    { id: "btn_timings_fees", title: "⏰ Timings & Fees" },
-    { id: "btn_clinic_address", title: "📍 Clinic Address" },
-  ];
+  const initialBotButtons = interactiveButtonsEnabled
+    ? [
+        { id: "btn_book_appointment", title: "📅 Book Slot" },
+        { id: "btn_timings_fees", title: "⏰ Timings & Fees" },
+        { id: "btn_clinic_address", title: "📍 Clinic Address" },
+      ]
+    : [];
 
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => [
     {
@@ -225,7 +238,11 @@ export function AiReceptionistTab({
       sender: "bot",
       text: `Namaste! Main ${clinicName}${doctorDisplay} ka official WhatsApp AI Assistant hoon. Aap appointment book kar sakte hain, doctor timings ya consultation fees pooch sakte hain. Main kaise madad kar sakta hoon?`,
       time: "Just now",
-      buttons: initialBotButtons,
+      buttons: interactiveButtonsEnabled ? [
+        { id: "btn_book_appointment", title: "📅 Book Slot" },
+        { id: "btn_timings_fees", title: "⏰ Timings & Fees" },
+        { id: "btn_clinic_address", title: "📍 Clinic Address" },
+      ] : undefined,
     },
   ]);
 
@@ -249,6 +266,9 @@ export function AiReceptionistTab({
       setData(res);
       writeCache("ai_assistant_info", res);
       setIsAiEnabled(res.clinic.isAiEnabled);
+      if (res.clinic.interactiveButtonsEnabled !== undefined) {
+        setInteractiveButtonsEnabled(res.clinic.interactiveButtonsEnabled !== false);
+      }
       if (res.clinic.aiPersona) setAiPersona(res.clinic.aiPersona);
       if (res.clinic.systemInstructions !== undefined) setSystemInstructions(res.clinic.systemInstructions);
       if (res.ragKnowledgeDocs) setRagDocs(res.ragKnowledgeDocs);
@@ -290,6 +310,34 @@ export function AiReceptionistTab({
       toast.error(err.message || "Failed to update status");
     } finally {
       setIsTogglingAi(false);
+    }
+  };
+
+  const handleToggleInteractiveButtons = async (nextVal: boolean) => {
+    setIsTogglingButtons(true);
+    try {
+      const res = await toggleButtonsFn({ data: { enabled: nextVal } });
+      setInteractiveButtonsEnabled(res.enabled);
+      if (data) {
+        const updated = {
+          ...data,
+          clinic: {
+            ...data.clinic,
+            interactiveButtonsEnabled: res.enabled,
+          },
+        };
+        setData(updated);
+        writeCache("ai_assistant_info", updated);
+      }
+      if (res.enabled) {
+        toast.success("Interactive Buttons ON: WhatsApp replies will include quick-reply buttons");
+      } else {
+        toast.info("Natural Chat Mode ON: WhatsApp replies will be pure conversational text like a human receptionist");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update buttons setting");
+    } finally {
+      setIsTogglingButtons(false);
     }
   };
 
@@ -361,7 +409,7 @@ export function AiReceptionistTab({
           sender: "bot",
           text: `Namaste! Main ${clinicName}${doctorDisplay} ka official WhatsApp AI Assistant hoon. Main aapki kaise madad kar sakta hoon?`,
           time: "Just now",
-          buttons: initialBotButtons,
+          buttons: interactiveButtonsEnabled ? initialBotButtons : undefined,
         },
       ]);
       toast.success("Test chat reset to start fresh!");
@@ -415,6 +463,7 @@ export function AiReceptionistTab({
           data: {
             aiPersona: aiPersona.trim() || "WhatsApp AI Assistant",
             systemInstructions: systemInstructions.trim(),
+            interactiveButtonsEnabled,
           },
         }),
         saveGuardrailsFn({ data: guardrailSettings }),
@@ -607,16 +656,36 @@ export function AiReceptionistTab({
                     </div>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleResetChat}
-                    className="text-white hover:bg-white/10 text-xs rounded-xl h-8 gap-1"
-                    title="Start a new test conversation"
-                  >
-                    <RotateCcw className="size-3.5" />
-                    New Chat
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleInteractiveButtons(!interactiveButtonsEnabled)}
+                      disabled={isTogglingButtons}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border flex items-center gap-1.5 ${
+                        interactiveButtonsEnabled
+                          ? "bg-white/20 text-white border-white/30 hover:bg-white/30"
+                          : "bg-white/10 text-emerald-100 border-white/20 hover:bg-white/20"
+                      }`}
+                      title="Toggle WhatsApp Reply Mode: Interactive Buttons vs Natural Human Chat"
+                    >
+                      {isTogglingButtons ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : (
+                        <span>{interactiveButtonsEnabled ? "🔘 Buttons: ON" : "💬 Human Chat Mode"}</span>
+                      )}
+                    </button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetChat}
+                      className="text-white hover:bg-white/10 text-xs rounded-xl h-8 gap-1"
+                      title="Start a new test conversation"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      New Chat
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Common Patient Question Chips */}
@@ -938,6 +1007,46 @@ export function AiReceptionistTab({
                     <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{p.desc}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Interactive Buttons vs Pure Human Conversation Toggle */}
+            <div className="space-y-3 pt-3 border-t">
+              <Label className="text-xs font-semibold">WhatsApp Reply Format & Style</Label>
+              <div className="flex items-start sm:items-center justify-between p-4 rounded-xl border bg-muted/10 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-foreground">
+                      Interactive Quick-Reply Buttons (Meta Cloud API)
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={
+                        interactiveButtonsEnabled
+                          ? "text-[10px] text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          : "text-[10px] text-muted-foreground bg-muted border-border"
+                      }
+                    >
+                      {interactiveButtonsEnabled ? "Buttons Enabled" : "Human Chat Mode"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {interactiveButtonsEnabled
+                      ? "Enabled: Reply messages include 1-click quick-reply buttons (e.g. [📅 Book Slot], [📅 Kal], [📍 Clinic Address]) for quick patient taps."
+                      : "Disabled (Natural Human Chat): Replies are sent as pure conversational text — talks warmly like a real clinic receptionist without buttons."}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-semibold text-foreground hidden sm:inline">
+                    {interactiveButtonsEnabled ? "Buttons ON" : "Human Chat"}
+                  </span>
+                  <Switch
+                    checked={interactiveButtonsEnabled}
+                    onCheckedChange={handleToggleInteractiveButtons}
+                    disabled={isTogglingButtons}
+                    className="data-[state=checked]:bg-emerald-600"
+                  />
+                </div>
               </div>
             </div>
 

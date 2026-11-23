@@ -137,6 +137,7 @@ export const getAiReceptionistInfo = createServerFn({ method: "GET" })
         waPhone: clinic.wa_phone ? String(clinic.wa_phone) : null,
         isOnline: clinic.wa_status === "ready",
         isAiEnabled: currentWh.ai_receptionist_enabled !== false,
+        interactiveButtonsEnabled: currentWh.interactive_buttons_enabled !== false,
         aiPersona: String(currentWh.ai_persona || "WhatsApp AI Assistant"),
         systemInstructions: String(currentWh.system_instructions || ""),
       },
@@ -255,6 +256,7 @@ export const saveAiReceptionistPersona = createServerFn({ method: "POST" })
     z.object({
       aiPersona: z.string().trim().max(300).default("WhatsApp AI Assistant"),
       systemInstructions: z.string().trim().max(5000).default(""),
+      interactiveButtonsEnabled: z.boolean().optional(),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -270,6 +272,9 @@ export const saveAiReceptionistPersona = createServerFn({ method: "POST" })
       ...currentWh,
       ai_persona: data.aiPersona,
       system_instructions: data.systemInstructions,
+      ...(data.interactiveButtonsEnabled !== undefined
+        ? { interactive_buttons_enabled: data.interactiveButtonsEnabled }
+        : {}),
     };
 
     const { error: clinicErr } = await supabaseAdmin
@@ -286,6 +291,7 @@ export const saveAiReceptionistPersona = createServerFn({ method: "POST" })
           value: JSON.stringify({
             aiPersona: data.aiPersona,
             systemInstructions: data.systemInstructions,
+            interactiveButtonsEnabled: data.interactiveButtonsEnabled,
           }),
           description: `AI Persona and instructions for clinic ${clinic.id}`,
           updated_at: new Date().toISOString(),
@@ -298,6 +304,46 @@ export const saveAiReceptionistPersona = createServerFn({ method: "POST" })
       success: true,
       aiPersona: data.aiPersona,
       systemInstructions: data.systemInstructions,
+      interactiveButtonsEnabled: data.interactiveButtonsEnabled,
+    };
+  });
+
+/**
+ * Toggle WhatsApp Interactive Buttons ON/OFF.
+ * ON: Reply messages include quick-reply buttons (Slot selection, booking, timings, address).
+ * OFF: Natural human chat — communicates purely as conversational text like a warm front-desk receptionist.
+ */
+export const toggleInteractiveButtonsStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    z.object({
+      enabled: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const clinic = await getMyManagedClinic(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const currentWh =
+      typeof clinic.working_hours === "object" && clinic.working_hours && !Array.isArray(clinic.working_hours)
+        ? (clinic.working_hours as any)
+        : {};
+
+    const updatedWh = {
+      ...currentWh,
+      interactive_buttons_enabled: data.enabled,
+    };
+
+    const { error: clinicErr } = await supabaseAdmin
+      .from("clinics")
+      .update({ working_hours: updatedWh } as any)
+      .eq("id", clinic.id);
+
+    if (clinicErr) throw new Error(clinicErr.message);
+
+    return {
+      success: true,
+      enabled: data.enabled,
     };
   });
 

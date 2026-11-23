@@ -426,9 +426,12 @@ export function cleanPatientName(candidate?: string | null, senderName?: string 
 
   const sanitize = (raw?: string | null): string | null => {
     if (!raw) return null;
-    let s = raw.trim().replace(/^[\d\s.\-:*#_!'"~`।॥🙏🚩✨]+/, "").replace(/[*_~`!'"#@।॥🙏🚩✨]/g, "").trim();
+    let s = raw.trim()
+      .replace(/^[\d\s.\-:*#_!'"~`।॥🙏🚩✨❤️•|/\\]+/, "")
+      .replace(/[*_~`!'"#@।॥🙏🚩✨❤️•|/\\()\[\]{}]/g, "")
+      .trim();
     s = s.replace(/^(?:mera naam|naam|name is|patient name|patient)\s*[:=]?\s*/i, "").trim();
-    if (s.length < 2 || s.length > 40) return null;
+    if (s.length < 2 || s.length > 35) return null;
     const lower = s.toLowerCase();
     for (const bad of invalidNameTokens) {
       if (lower === bad || lower.startsWith(bad + " ") || lower.endsWith(" " + bad)) {
@@ -437,11 +440,20 @@ export function cleanPatientName(candidate?: string | null, senderName?: string 
     }
     // Cannot be purely numbers, symbols, or common slogans/statuses
     if (/^\+?\d+$/.test(s)) return null;
-    if (/\b(shiv|shiva|ram|radhe|krishna|allah|god|bhagwan|har har|om|sada|sahayate|blessed|developer|admin|official|team|support|helpdesk|assistant)\b/i.test(lower)) {
+    if (
+      /\b(shiv|shiva|ram|radhe|krishna|allah|god|bhagwan|har har|om|sada|sahayate|blessed|developer|admin|official|team|support|helpdesk|assistant|attitude|king|queen|broken|alone|smile|life|khatu|shyam|bholenath|mahadev|bajrangbali|jai hind|india|status)\b/i.test(
+        lower,
+      )
+    ) {
       return null;
     }
     // Must contain actual alphabetic letters (English or Devanagari)
     if (!/[a-zA-Z\u0900-\u097F]/.test(s)) return null;
+
+    // Real human names are at most 3 words (e.g. First Middle Last). More than 3 words is a sentence or slogan.
+    const words = s.split(/\s+/).filter(Boolean);
+    if (words.length > 3) return null;
+
     return s;
   };
 
@@ -1003,19 +1015,22 @@ async function processWhatsAppMessageInternal(params: {
 
   const isFacilityOwner = isFacilityName(rawOwnerName);
 
-  const mappedDbDoctors: MergedDoctor[] = (dbDoctors || []).map((d: any) => ({
-    id: d.id,
-    name: d.name ? (d.name.toLowerCase().startsWith("dr") ? d.name : `Dr. ${d.name}`) : "Doctor",
-    cleanName: (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim(),
-    specialization: d.specialization || "Specialist",
-    qualification: d.qualification || "",
-    fee: d.consultation_fee != null ? Number(d.consultation_fee) : (clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500),
-    experience_years: d.experience_years || null,
-    isOwner: false,
-    workingHoursText: formatDoctorShifts(d.working_hours || clinic.working_hours),
-    maxPatientsPerSlot: Number((d.working_hours as any)?.max_patients_per_slot) || 1,
-    slotDurationMinutes: Number((d.working_hours as any)?.slot_duration_minutes) || 30,
-  }));
+  // Filter out any facility or clinic names accidentally registered in doctors table
+  const mappedDbDoctors: MergedDoctor[] = (dbDoctors || [])
+    .filter((d: any) => !isFacilityName(d.name))
+    .map((d: any) => ({
+      id: d.id,
+      name: d.name ? (d.name.toLowerCase().startsWith("dr") ? d.name : `Dr. ${d.name}`) : "Doctor",
+      cleanName: (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim(),
+      specialization: d.specialization || "Specialist",
+      qualification: d.qualification || "",
+      fee: d.consultation_fee != null ? Number(d.consultation_fee) : (clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500),
+      experience_years: d.experience_years || null,
+      isOwner: false,
+      workingHoursText: formatDoctorShifts(d.working_hours || clinic.working_hours),
+      maxPatientsPerSlot: Number((d.working_hours as any)?.max_patients_per_slot) || 1,
+      slotDurationMinutes: Number((d.working_hours as any)?.slot_duration_minutes) || 30,
+    }));
 
   let allDoctors: MergedDoctor[] = [];
   let primaryDoc: MergedDoctor;
@@ -1023,19 +1038,30 @@ async function processWhatsAppMessageInternal(params: {
   if (isFacilityOwner && mappedDbDoctors.length > 0) {
     allDoctors = mappedDbDoctors;
     primaryDoc = { ...mappedDbDoctors[0], isOwner: true };
+  } else if (isFacilityOwner && mappedDbDoctors.length === 0) {
+    primaryDoc = {
+      id: null,
+      name: "Consultant Doctor",
+      cleanName: "consultant doctor",
+      specialization: clinic.specialization || "General Physician",
+      qualification: clinic.qualification || "MBBS",
+      fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
+      experience_years: clinic.experience_years || null,
+      isOwner: true,
+      workingHoursText: formatDoctorShifts(clinic.working_hours),
+      maxPatientsPerSlot: Number((clinic.working_hours as any)?.max_patients_per_slot) || 1,
+      slotDurationMinutes: Number((clinic.working_hours as any)?.slot_duration_minutes) || 30,
+    };
+    allDoctors = [primaryDoc];
   } else {
-    const ownerDocName = rawOwnerName
-      ? isFacilityOwner
-        ? "Consultant Doctor"
-        : rawOwnerName.toLowerCase().startsWith("dr")
-          ? rawOwnerName
-          : `Dr. ${rawOwnerName}`
-      : (mappedDbDoctors[0]?.name || "Consultant Doctor");
+    const ownerDocName = rawOwnerName.toLowerCase().startsWith("dr")
+      ? rawOwnerName
+      : `Dr. ${rawOwnerName}`;
 
     primaryDoc = {
       id: null,
       name: ownerDocName,
-      cleanName: isFacilityOwner ? "consultant doctor" : cleanOwnerName,
+      cleanName: cleanOwnerName,
       specialization: clinic.specialization || "General Physician",
       qualification: clinic.qualification || "MBBS",
       fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
@@ -1047,10 +1073,13 @@ async function processWhatsAppMessageInternal(params: {
     };
 
     const otherDocs = mappedDbDoctors.filter((d) => d.cleanName !== primaryDoc.cleanName);
-    allDoctors = isFacilityOwner ? mappedDbDoctors : [primaryDoc, ...otherDocs];
-    if (allDoctors.length === 0) {
-      allDoctors = [primaryDoc];
-    }
+    allDoctors = [primaryDoc, ...otherDocs];
+  }
+
+  // Final check: Remove any facility names from doctor list
+  allDoctors = allDoctors.filter((d) => !isFacilityName(d.name));
+  if (allDoctors.length === 0) {
+    allDoctors = [primaryDoc];
   }
   const clinicScheduleText = formatClinicSchedule(clinic);
   const clinicServices = extractClinicServices(clinic);
@@ -2085,16 +2114,20 @@ async function postProcessHumanBookingResult(
     // Strip leading repetitive reception welcomes:
     // e.g. "Namaste !! 'शिव सदा सहायते' !! ji! 🙏 Ear to Brain Speech & Hearing Clinic reception par aapka swagat hai."
     reply = reply.replace(
-      /^(?:Namaste|Namaskar|Hello|Hi)[^!\n]*?[!.,]?\s*(?:🙏\s*)?(?:[^\n]*?reception par aapka swagat hai[.!:]?\s*)/i,
+      /^(?:Namaste|Namaskar|Hello|Hi)[^!\n]*?[!.,]?\s*(?:🙏\s*)?(?:[^\n]*?(?:reception par aapka swagat hai|swagat hai)[.!:]?\s*)/i,
       "",
     );
-    // Strip leading "Namaste [name] ji! 🙏" or "Namaste ji! 🙏"
+    // Replace leading "Namaste [name] ji! 🙏" with "Ji [name] ji! "
     reply = reply.replace(
-      /^(?:Namaste|Namaskar|Hello|Hi)\s*(?:[A-Za-z\u0900-\u097F]+)?\s*ji[!.,]?\s*(?:🙏\s*)?/i,
-      "",
+      /^(?:Namaste|Namaskar|Hello|Hi)\s+([A-Za-z\u0900-\u097F]+)\s*ji[!.,]?\s*(?:🙏\s*)?/i,
+      "Ji $1 ji! ",
     );
-    // Strip redundant leading "Namaste! 🙏"
+    // Replace leading "Namaste ji! 🙏" with "Ji! "
+    reply = reply.replace(/^(?:Namaste|Namaskar|Hello|Hi)\s*ji[!.,]?\s*(?:🙏\s*)?/i, "Ji! ");
+    // Strip redundant leading "Namaste! 🙏" or "Namaste"
     reply = reply.replace(/^(?:Namaste|Namaskar|Hello|Hi)[!.,]?\s*(?:🙏\s*)?/i, "");
+    // Clean any secondary mid-message namaste lines
+    reply = reply.replace(/\n\s*(?:Namaste|Namaskar)[!.,]?\s*(?:🙏\s*)?/gi, "\n");
 
     reply = reply.trim();
     if (!reply) {
@@ -2104,17 +2137,27 @@ async function postProcessHumanBookingResult(
     }
   }
 
-  // 3. Fallback interactive buttons if none were attached
-  let buttons = result.buttons;
-  if (!buttons || buttons.length === 0) {
-    if (result.action === "booked") {
-      buttons = COMMON_WHATSAPP_BUTTONS.POST_BOOKING;
-    } else if (result.action === "ask_details") {
-      buttons = COMMON_WHATSAPP_BUTTONS.DATE_SLOTS;
-    } else if (result.action === "inquiry") {
-      buttons = COMMON_WHATSAPP_BUTTONS.GREETING;
-    } else if (result.action === "cancelled") {
-      buttons = COMMON_WHATSAPP_BUTTONS.GREETING;
+  // 3. Interactive buttons check (Controlled by clinic toggle)
+  const clinicWh =
+    typeof clinic.working_hours === "object" && clinic.working_hours && !Array.isArray(clinic.working_hours)
+      ? (clinic.working_hours as any)
+      : {};
+  const areButtonsEnabled = clinicWh.interactive_buttons_enabled !== false;
+
+  let buttons: WhatsAppButton[] | undefined = undefined;
+
+  if (areButtonsEnabled) {
+    buttons = result.buttons;
+    if (!buttons || buttons.length === 0) {
+      if (result.action === "booked") {
+        buttons = COMMON_WHATSAPP_BUTTONS.POST_BOOKING;
+      } else if (result.action === "ask_details") {
+        buttons = COMMON_WHATSAPP_BUTTONS.DATE_SLOTS;
+      } else if (result.action === "inquiry") {
+        buttons = COMMON_WHATSAPP_BUTTONS.GREETING;
+      } else if (result.action === "cancelled") {
+        buttons = COMMON_WHATSAPP_BUTTONS.GREETING;
+      }
     }
   }
 

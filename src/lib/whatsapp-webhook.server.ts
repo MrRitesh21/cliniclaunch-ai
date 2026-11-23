@@ -173,6 +173,23 @@ async function handleMetaCloudWebhookPayload(body: any, sb: any): Promise<Respon
             continue;
           }
 
+          // Auto-link discovered phoneNumberId to clinic if not already locked
+          if (clinic?.id && phoneNumberId) {
+            try {
+              const metaConfig = await getMetaConfigForClinic(clinic.id);
+              if (metaConfig?.accessToken && (!metaConfig.phoneNumberId || metaConfig.phoneNumberId !== phoneNumberId)) {
+                await saveMetaConfigForClinic(clinic.id, {
+                  ...metaConfig,
+                  phoneNumberId,
+                  phoneNumber: displayPhone || metaConfig.phoneNumber || "",
+                  coexistenceMode: true,
+                });
+              }
+            } catch (linkErr) {
+              console.warn("[Meta Webhook] Auto-link phone_number_id notice:", linkErr);
+            }
+          }
+
           // Log incoming message
           await logBestEffort(
             sb.from("whatsapp_logs").insert({
@@ -183,6 +200,10 @@ async function handleMetaCloudWebhookPayload(body: any, sb: any): Promise<Respon
               automation_key: "incoming_patient_msg",
               message: text,
               status: "received",
+              metadata: {
+                phone_number_id: phoneNumberId || null,
+                display_phone: displayPhone || null,
+              },
               sent_at: new Date().toISOString(),
             }),
           );
