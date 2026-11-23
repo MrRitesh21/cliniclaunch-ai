@@ -535,15 +535,62 @@ export const saveMetaCredentialsFn = createServerFn({ method: "POST" })
       throw new Error("Access Token is required to connect WhatsApp. Please connect via OAuth or provide an Access Token.");
     }
 
+    const rawInput = data.phoneNumberId.trim();
+    let resolvedPhoneId = rawInput;
+    let resolvedDisplayPhone = data.phoneNumber?.trim() || existing?.phoneNumber;
+
+    // Check if user entered a regular phone number (e.g. 9876543210 or +919876543210) instead of a 15-digit Meta Phone Number ID
+    const digitsOnly = rawInput.replace(/\D/g, "");
+    const looksLikePhoneNumber =
+      rawInput.startsWith("+") ||
+      digitsOnly.length === 10 ||
+      (digitsOnly.length <= 13 && digitsOnly.startsWith("91"));
+
+    if (looksLikePhoneNumber && digitsOnly.length < 14) {
+      try {
+        const { discoverMetaPhoneNumbers, getMetaAppCredentials } = await import("./meta-whatsapp.server");
+        const appCreds = await getMetaAppCredentials();
+        const discovery = await discoverMetaPhoneNumbers(
+          resolvedToken,
+          appCreds.appId,
+          appCreds.appSecret,
+        );
+
+        const target10 = digitsOnly.slice(-10);
+        const matched = discovery.phones.find((p) => {
+          const pDigits = (p.display_phone_number || "").replace(/\D/g, "");
+          return pDigits.slice(-10) === target10 || p.id === rawInput;
+        });
+
+        if (matched) {
+          resolvedPhoneId = matched.id;
+          resolvedDisplayPhone = matched.display_phone_number || resolvedDisplayPhone;
+        } else {
+          const availableList = discovery.phones
+            .map((p) => `${p.display_phone_number || p.id} (Phone ID: ${p.id})`)
+            .join(", ");
+          throw new Error(
+            `Aapne mobile number (${rawInput}) enter kiya hai. Meta Cloud API ke liye is specific number ka 'Phone Number ID' chahiye hota hai. Meta account mein yeh numbers mile: ${
+              availableList || "Koi verified number nahi mila"
+            }. Kripya Meta Developer Console > WhatsApp > API Setup mein jakar 'Add phone number' karein aur uska 'Phone Number ID' yahan enter karein.`,
+          );
+        }
+      } catch (detectErr: any) {
+        if (detectErr.message.includes("Phone Number ID chahiye")) {
+          throw detectErr;
+        }
+      }
+    }
+
     const res = await saveMetaConfigForClinic(clinic.id, {
       wabaId: data.wabaId || existing?.wabaId || "",
-      phoneNumberId: data.phoneNumberId.trim(),
+      phoneNumberId: resolvedPhoneId,
       accessToken: resolvedToken,
-      phoneNumber: data.phoneNumber?.trim() || existing?.phoneNumber,
+      phoneNumber: resolvedDisplayPhone,
       coexistenceMode: true,
     });
     if (!res.ok) throw new Error(res.error || "Failed to save Meta WhatsApp credentials");
-    return { success: true, coexistenceMode: true };
+    return { success: true, coexistenceMode: true, phoneNumberId: resolvedPhoneId, phoneNumber: resolvedDisplayPhone };
   });
 
 /**
@@ -634,22 +681,43 @@ export const autoDetectMetaPhoneNumbersFn = createServerFn({ method: "POST" })
     );
 
     if (discovery.phones.length > 0) {
-      const firstPhone = discovery.phones[0];
+      // Prioritize matching clinic.wa_phone or clinic.phone, then real numbers over test numbers
+      const clinicDigits = (clinic.wa_phone || clinic.phone || "").replace(/\D/g, "").slice(-10);
+      let selectedPhone = clinicDigits
+        ? discovery.phones.find((p) => {
+            const pDigits = (p.display_phone_number || "").replace(/\D/g, "");
+            return pDigits.slice(-10) === clinicDigits;
+          })
+        : null;
+
+      // If no clinic phone match, prioritize non-test (+91 or real country code) over +1 555 test numbers
+      if (!selectedPhone) {
+        selectedPhone = discovery.phones.find(
+          (p) =>
+            (p.display_phone_number || "").includes("+91") ||
+            !(p.display_phone_number || "").startsWith("+1 555"),
+        );
+      }
+
+      if (!selectedPhone) {
+        selectedPhone = discovery.phones[0];
+      }
+
       await saveMetaConfigForClinic(clinic.id, {
         ...metaConfig,
-        phoneNumberId: firstPhone.id,
-        wabaId: firstPhone.wabaId || metaConfig.wabaId || "",
-        phoneNumber: firstPhone.display_phone_number || metaConfig.phoneNumber || "",
-        businessName: firstPhone.verified_name || metaConfig.businessName || "",
+        phoneNumberId: selectedPhone.id,
+        wabaId: selectedPhone.wabaId || metaConfig.wabaId || "",
+        phoneNumber: selectedPhone.display_phone_number || metaConfig.phoneNumber || "",
+        businessName: selectedPhone.verified_name || metaConfig.businessName || "",
         coexistenceMode: true,
       });
 
       return {
         ok: true,
         autoConnected: true,
-        connectedPhoneId: firstPhone.id,
-        phoneNumber: firstPhone.display_phone_number,
-        businessName: firstPhone.verified_name,
+        connectedPhoneId: selectedPhone.id,
+        phoneNumber: selectedPhone.display_phone_number,
+        businessName: selectedPhone.verified_name,
         phones: discovery.phones,
       };
     }

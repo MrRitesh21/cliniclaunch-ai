@@ -99,6 +99,8 @@ export function WhatsappConnectCard({
   const [directWabaId, setDirectWabaId] = useState("");
   const [directPhoneNumber, setDirectPhoneNumber] = useState("");
   const [savingDirectMeta, setSavingDirectMeta] = useState(false);
+  const [availablePhones, setAvailablePhones] = useState<any[]>([]);
+  const [showChangeNumber, setShowChangeNumber] = useState(false);
 
   // Meta OAuth App Config state (App ID & Secret)
   const [showAppConfig, setShowAppConfig] = useState(false);
@@ -241,9 +243,13 @@ export function WhatsappConnectCard({
     setAutoDetecting(true);
     try {
       const res = await autoDetectMetaFn();
+      if (res?.phones && res.phones.length > 0) {
+        setAvailablePhones(res.phones);
+      }
       if (res?.ok && res?.autoConnected) {
         toast.success(`WhatsApp Phone (${res.phoneNumber || res.connectedPhoneId}) Auto-Connected! 🎉`);
         setShowNeedPhoneIdPrompt(false);
+        setShowChangeNumber(false);
         refresh();
       } else {
         toast.info(res?.message || "Could not auto-detect phone number. Please enter Phone Number ID manually.");
@@ -252,6 +258,26 @@ export function WhatsappConnectCard({
       toast.error(e.message || "Auto-detect failed. Please enter your Phone Number ID.");
     } finally {
       setAutoDetecting(false);
+    }
+  }
+
+  async function handleSelectPhone(phoneId: string, phoneNum?: string) {
+    setSavingDirectMeta(true);
+    try {
+      await saveMetaFn({
+        data: {
+          phoneNumberId: phoneId,
+          phoneNumber: phoneNum,
+        },
+      });
+      toast.success(`Activated WhatsApp on ${phoneNum || phoneId}! 🚀`);
+      setShowNeedPhoneIdPrompt(false);
+      setShowChangeNumber(false);
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to activate phone number");
+    } finally {
+      setSavingDirectMeta(false);
     }
   }
 
@@ -401,16 +427,94 @@ export function WhatsappConnectCard({
                   Phone: {metaStatus?.phoneNumber || status?.clientInfo?.phone || "Connected"} | Phone ID: {metaStatus?.phoneNumberId}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDisconnectMeta}
-                disabled={busy}
-                className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs"
-              >
-                <Power className="h-3.5 w-3.5 mr-1.5" /> Disconnect Meta API
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowChangeNumber((v) => !v)}
+                  className="rounded-xl border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 text-xs gap-1.5"
+                >
+                  <Smartphone className="size-3.5 text-emerald-600" />
+                  <span>{showChangeNumber ? "Close" : "Switch / Change Number"}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisconnectMeta}
+                  disabled={busy}
+                  className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs"
+                >
+                  <Power className="h-3.5 w-3.5 mr-1.5" /> Disconnect Meta API
+                </Button>
+              </div>
             </div>
+
+            {/* Change Number Form / Discovered Numbers Drawer */}
+            {showChangeNumber && (
+              <div className="p-4 rounded-xl border border-emerald-500/30 bg-background/95 space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-foreground">
+                    Connect Specific WhatsApp Business Number
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAutoDetect}
+                    disabled={autoDetecting}
+                    className="h-7 text-xs px-2.5 gap-1 border-emerald-500/40 text-emerald-700"
+                  >
+                    {autoDetecting ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                    <span>Detect Meta Numbers</span>
+                  </Button>
+                </div>
+
+                {availablePhones.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground">Numbers found in your Meta Account:</p>
+                    {availablePhones.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border text-xs">
+                        <div>
+                          <span className="font-bold text-foreground">{p.display_phone_number || p.id}</span>
+                          {p.verified_name && <span className="text-muted-foreground ml-2 font-normal">({p.verified_name})</span>}
+                          <div className="text-[10px] text-muted-foreground font-mono">Phone Number ID: {p.id}</div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSelectPhone(p.id, p.display_phone_number)}
+                          disabled={savingDirectMeta}
+                          className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          Use This Number
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <p className="text-xs text-muted-foreground mb-1.5">
+                    Or enter the 15-digit <b>Phone Number ID</b> from Meta Developer Console:
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
+                    <Input
+                      placeholder="e.g. 109283746592834"
+                      value={directPhoneId}
+                      onChange={(e) => setDirectPhoneId(e.target.value)}
+                      className="text-xs font-mono rounded-lg h-9 bg-background"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveDirectMeta}
+                      disabled={savingDirectMeta || !directPhoneId.trim()}
+                      className="rounded-lg text-xs h-9 px-4 gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    >
+                      {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                      <span>Activate on This ID</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Coexistence highlights */}
             <div className="p-3 bg-background/80 rounded-xl border border-emerald-500/20 text-xs space-y-2">
@@ -631,12 +735,37 @@ export function WhatsappConnectCard({
                       className="rounded-lg text-xs h-7 px-3 gap-1.5 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 bg-background/50 font-medium"
                     >
                       {autoDetecting ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />}
-                      <span>{autoDetecting ? "Detecting..." : "Auto-Detect My Number"}</span>
+                      <span>{autoDetecting ? "Detecting..." : "Auto-Detect My Numbers"}</span>
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Your Meta access token is securely saved. Click <b>Auto-Detect My Number</b>, or paste your WhatsApp <b>Phone Number ID</b> from your Meta Developer Console.
+                    Your Meta access token is securely saved. If you have added your specific WhatsApp Business number in Meta Console, enter its 15-digit <b>Phone Number ID</b> below:
                   </p>
+
+                  {/* List of numbers discovered from Meta account */}
+                  {availablePhones.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-[11px] font-semibold text-foreground">Numbers found in your Meta Account:</p>
+                      {availablePhones.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg bg-background border text-xs">
+                          <div>
+                            <span className="font-bold text-foreground">{p.display_phone_number || p.id}</span>
+                            {p.verified_name && <span className="text-muted-foreground ml-2 font-normal">({p.verified_name})</span>}
+                            <div className="text-[10px] text-muted-foreground font-mono">Phone ID: {p.id}</div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSelectPhone(p.id, p.display_phone_number)}
+                            disabled={savingDirectMeta}
+                            className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                          >
+                            Activate This Number
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
                     <Input
                       placeholder="e.g. 109283746592834"
@@ -655,16 +784,33 @@ export function WhatsappConnectCard({
                       <span>Activate WhatsApp</span>
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
-                    <span>Where to find this?</span>
-                    <a
-                      href={`https://developers.facebook.com/apps/${metaStatus?.metaAppConfig?.appId || "1450666523321279"}/whatsapp-business/wa-dev-console/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-semibold inline-flex items-center gap-1"
-                    >
-                      Open WhatsApp &rarr; API Setup in Meta Console <ExternalLink className="size-3" />
-                    </a>
+
+                  {/* 3 Step Guide for Specific WhatsApp Business Number */}
+                  <div className="p-3 bg-background/90 rounded-xl border text-xs space-y-1.5 mt-2">
+                    <span className="font-semibold text-foreground flex items-center gap-1.5 text-[11px]">
+                      <Smartphone className="size-3 text-emerald-600" />
+                      Specific WhatsApp Business Number kaise connect karein?
+                    </span>
+                    <ol className="list-decimal pl-4 space-y-1 text-muted-foreground text-[11px] leading-relaxed">
+                      <li>
+                        Meta Developer Console me{" "}
+                        <a
+                          href={`https://developers.facebook.com/apps/${metaStatus?.metaAppConfig?.appId || "1450666523321279"}/whatsapp-business/wa-dev-console/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline font-semibold"
+                        >
+                          WhatsApp &rarr; API Setup <ExternalLink className="size-2.5 inline" />
+                        </a>{" "}
+                        kholein.
+                      </li>
+                      <li>
+                        Agar aapka real clinic number add nahi hai, to neeche <b>Step 5: Add a phone number</b> par click karke OTP verify karein.
+                      </li>
+                      <li>
+                        <b>Step 1: Select phone numbers</b> me apna number choose karein aur uska 15-digit <b>Phone number ID</b> yahan paste karke Activate karein.
+                      </li>
+                    </ol>
                   </div>
                 </div>
               )}
