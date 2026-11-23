@@ -323,16 +323,24 @@ export async function findClinicByMetaPhoneId(phoneNumberId: string): Promise<st
   }
 }
 
+export interface MetaButton {
+  id: string;
+  title: string;
+}
+
 /**
- * Send a WhatsApp text message via Meta Cloud API v21.0.
+ * Send a WhatsApp text or interactive button message via Meta Cloud API v21.0.
  */
 export async function metaWhatsAppSend(params: {
   phoneNumberId: string;
   accessToken: string;
   to: string;
   text: string;
+  buttons?: MetaButton[];
+  header?: string;
+  footer?: string;
 }): Promise<MetaSendResult> {
-  const { phoneNumberId, accessToken, to, text } = params;
+  const { phoneNumberId, accessToken, to, text, buttons, header, footer } = params;
   const cleanTo = formatMetaPhone(to);
 
   if (!phoneNumberId || !accessToken) {
@@ -341,19 +349,53 @@ export async function metaWhatsAppSend(params: {
 
   const endpoint = `${GRAPH_BASE_URL}/${phoneNumberId}/messages`;
 
-  const payload = {
+  // Filter and sanitize buttons: max 3, title max 20 chars
+  const validButtons = (buttons || [])
+    .filter((b) => b && b.title && b.id)
+    .slice(0, 3)
+    .map((b) => ({
+      type: "reply" as const,
+      reply: {
+        id: String(b.id).slice(0, 256),
+        title: String(b.title).trim().slice(0, 20),
+      },
+    }));
+
+  const useInteractive = validButtons.length > 0;
+
+  const payload: any = {
     messaging_product: "whatsapp",
     recipient_type: "individual",
     to: cleanTo,
-    type: "text",
-    text: {
-      preview_url: false,
-      body: text,
-    },
   };
 
+  if (useInteractive) {
+    payload.type = "interactive";
+    payload.interactive = {
+      type: "button",
+      body: {
+        text: text,
+      },
+      action: {
+        buttons: validButtons,
+      },
+    };
+    if (header) {
+      payload.interactive.header = { type: "text", text: header.slice(0, 60) };
+    }
+    if (footer) {
+      payload.interactive.footer = { text: footer.slice(0, 60) };
+    }
+  } else {
+    payload.type = "text";
+    payload.text = {
+      preview_url: false,
+      body: text,
+    };
+  }
+
   try {
-    const res = await fetch(endpoint, {
+    let res = await fetch(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -363,7 +405,36 @@ export async function metaWhatsAppSend(params: {
       signal: AbortSignal.timeout(10000),
     });
 
-    const data = await res.json().catch(() => ({}));
+    let data = await res.json().catch(() => ({}));
+
+    // If sending interactive buttons failed, fallback automatically to plain text
+    if (!res.ok && useInteractive) {
+      console.warn(
+        `[Meta WhatsApp] Interactive message failed (${data?.error?.message}), falling back to plain text`,
+      );
+      const fallbackPayload = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: cleanTo,
+        type: "text",
+        text: {
+          preview_url: false,
+          body: text,
+        },
+      };
+
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(fallbackPayload),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      data = await res.json().catch(() => ({}));
+    }
 
     if (!res.ok) {
       const errMsg =

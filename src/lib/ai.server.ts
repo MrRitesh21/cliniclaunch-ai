@@ -606,6 +606,11 @@ export async function callAI(opts: {
   // 3. Ultimate Clinical Safe Fallback: Never crash WhatsApp or leave patient stranded!
   console.error(`[AI Gateway CRITICAL] All ${candidateAccounts.length} accounts exhausted: ${errors.join("; ")}`);
 
+  const isNewConversation = !opts.user.includes("Patient:") && !opts.user.includes("Clinic Assistant:");
+  const fallbackReply = isNewConversation
+    ? "Namaste! Clinic reception par aapka swagat hai. Kya aapko doctor se appointment lena hai ya timings/fees ke baare mein jaanna hai?"
+    : "Ji, maine aapki query note kar li hai. Kripya apna preferred din aur samay batayein, hum turant doctor ka slot confirm kar denge!";
+
   if (opts.json) {
     return JSON.stringify({
       intent: "inquire",
@@ -616,12 +621,11 @@ export async function callAI(opts: {
       doctor_id: null,
       doctor_name: null,
       problem: null,
-      suggested_reply:
-        "Namaste ji! 🙏 Humare clinic reception par aapka swagat hai. Kripya apna preferred din aur samay batayein, hum turant doctor ka slot schedule kar denge!",
+      suggested_reply: fallbackReply,
     });
   }
 
-  return "Namaste ji! 🙏 Humare clinic reception par aapka swagat hai. Kripya apna preferred din aur samay batayein, hum turant doctor ka slot schedule kar denge!";
+  return fallbackReply;
 }
 
 export function safeJson<T>(raw: string, fallback: T): T {

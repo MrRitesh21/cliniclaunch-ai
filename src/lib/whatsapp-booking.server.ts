@@ -27,11 +27,44 @@ import {
   type SessionMemory,
 } from "./whatsapp-rag.server";
 
+export interface WhatsAppButton {
+  id: string;
+  title: string;
+}
+
+export const COMMON_WHATSAPP_BUTTONS = {
+  GREETING: [
+    { id: "btn_book_appointment", title: "📅 Book Slot" },
+    { id: "btn_timings_fees", title: "⏰ Timings & Fees" },
+    { id: "btn_clinic_address", title: "📍 Clinic Address" },
+  ],
+  DATE_SLOTS: [
+    { id: "btn_slot_today", title: "📅 Aaj (Today)" },
+    { id: "btn_slot_tomorrow", title: "📅 Kal (Tomorrow)" },
+    { id: "btn_timings_fees", title: "⏰ Clinic Timings" },
+  ],
+  TIME_SLOTS: [
+    { id: "btn_slot_morning", title: "🌅 Subah (Morning)" },
+    { id: "btn_slot_evening", title: "🌇 Shaam (Evening)" },
+    { id: "btn_clinic_address", title: "📍 Clinic Location" },
+  ],
+  POST_BOOKING: [
+    { id: "btn_clinic_address", title: "📍 Clinic Location" },
+    { id: "btn_reschedule", title: "🔄 Reschedule" },
+    { id: "btn_cancel", title: "❌ Cancel Slot" },
+  ],
+  INQUIRY: [
+    { id: "btn_book_appointment", title: "📅 Book Slot" },
+    { id: "btn_clinic_address", title: "📍 Clinic Address" },
+  ],
+};
+
 export interface WhatsAppBookingResult {
   reply: string;
   action: "booked" | "rescheduled" | "cancelled" | "ask_details" | "inquiry" | "already_booked" | "error" | "emergency";
   appointmentId?: string | null;
   tokenNumber?: number | null;
+  buttons?: WhatsAppButton[];
   ragCitations?: RagCitation[];
   memoryState?: {
     patientName?: string | null;
@@ -393,17 +426,22 @@ export function cleanPatientName(candidate?: string | null, senderName?: string 
 
   const sanitize = (raw?: string | null): string | null => {
     if (!raw) return null;
-    let s = raw.trim().replace(/^[\d\s.\-:*#_]+/, "").replace(/[*_~`]/g, "").trim();
+    let s = raw.trim().replace(/^[\d\s.\-:*#_!'"~`।॥🙏🚩✨]+/, "").replace(/[*_~`!'"#@।॥🙏🚩✨]/g, "").trim();
     s = s.replace(/^(?:mera naam|naam|name is|patient name|patient)\s*[:=]?\s*/i, "").trim();
-    if (s.length < 2 || s.length > 50) return null;
+    if (s.length < 2 || s.length > 40) return null;
     const lower = s.toLowerCase();
     for (const bad of invalidNameTokens) {
       if (lower === bad || lower.startsWith(bad + " ") || lower.endsWith(" " + bad)) {
         return null;
       }
     }
-    // Cannot be purely numbers
+    // Cannot be purely numbers, symbols, or common slogans/statuses
     if (/^\+?\d+$/.test(s)) return null;
+    if (/\b(shiv|shiva|ram|radhe|krishna|allah|god|bhagwan|har har|om|sada|sahayate|blessed|developer|admin|official|team|support|helpdesk|assistant)\b/i.test(lower)) {
+      return null;
+    }
+    // Must contain actual alphabetic letters (English or Devanagari)
+    if (!/[a-zA-Z\u0900-\u097F]/.test(s)) return null;
     return s;
   };
 
@@ -771,14 +809,14 @@ CRITICAL CONVERSATIONAL GUIDELINES FOR "suggested_reply":
    - Ask for the patient's name and health concern naturally.
    - When date, time, and patient name are understood, confirm the booking clearly with token number and clinic arrival instructions.
 
-4. TALK LIKE A REAL HUMAN CLINIC RECEPTIONIST (COEXISTENCE AWARE):
+4. TALK LIKE A REAL HUMAN CLINIC RECEPTIONIST (NATURAL & CARING):
    - You work directly alongside the clinic's human staff and doctor on their WhatsApp Business mobile app.
    - Talk naturally, politely, and warmly as the clinic's front-desk receptionist.
-   - NEVER sound like an automated robot, computer script, or IVR menu.
-   - NEVER output bullet-point questionnaire forms like "1. Name 2. Time". A real human receptionist never does that.
+   - ZERO REPETITIVE GREETINGS (CRITICAL): Real humans greet with "Namaste" or "Hello" ONLY ONCE at the start of a conversation. If previous messages exist in "Recent Conversation", NEVER start with "Namaste!", "Namaste ji!", or "reception par aapka swagat hai"! Start directly and naturally (e.g. "Bilkul ji!", "Ji Ritesh ji,", "Sure,", "Done!").
+   - NO QUESTIONNAIRE LISTS: NEVER output a robotic bullet-point questionnaire form like "• Naam • Doctor • Tareekh • Samay • Problem". A real receptionist asks naturally in one warm sentence.
+   - MULTI-PERSON BOOKINGS: If the patient mentions multiple persons (e.g. themselves and a sister/family member with symptoms), warmly acknowledge BOTH persons and their specific symptoms (e.g. "Ji bilkul, aapke ear pain aur aapki sister Rimans ke skin rashes ke liye...").
    - NEVER say "Main AI assistant hoon" or "Option 1, Option 2".
    - Show genuine care and empathy for health concerns.
-   - If details are needed, ask in one smooth conversational sentence.
 
 5. DOCTOR & SPECIALIST MATCHING:
    - Match symptoms or patient requests to the right specialist from the catalog:
@@ -837,7 +875,7 @@ Return raw valid JSON only without markdown formatting.`;
       user: `Recent Conversation:\n${opts.historyText}\n\nLatest Patient Message: "${opts.userMessage}"`,
       json: true,
       temperature: 0.1,
-      timeoutMs: 3200,
+      timeoutMs: 8000,
     });
 
     if (raw) {
@@ -869,13 +907,15 @@ Return raw valid JSON only without markdown formatting.`;
  * automatically book appointment, reschedule existing slot, change doctor,
  * cancel, or provide warm, accurate clinic information without hallucination.
  */
-export async function processWhatsAppMessage(params: {
+async function processWhatsAppMessageInternal(params: {
   clinic: any;
   patientPhone: string;
   senderName: string | null;
   incomingText: string;
 }): Promise<WhatsAppBookingResult> {
-  const { clinic, patientPhone, senderName, incomingText } = params;
+  const { clinic, patientPhone, incomingText } = params;
+  const rawSenderCandidate = cleanPatientName(null, params.senderName);
+  const senderName = rawSenderCandidate !== "Patient" ? rawSenderCandidate : null;
   const sb = supabaseAdmin;
   const rawCustomDomain = clinic?.custom_domain
     ? String(clinic.custom_domain).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "")
@@ -951,44 +991,67 @@ export async function processWhatsAppMessage(params: {
   const rawOwnerName = (clinic.doctor_name || "").trim();
   const cleanOwnerName = rawOwnerName.toLowerCase().replace(/^dr\.?\s*/, "").trim();
 
-  const primaryDoc: MergedDoctor = {
-    id: null,
-    name: rawOwnerName
-      ? rawOwnerName.toLowerCase().startsWith("dr")
-        ? rawOwnerName
-        : `Dr. ${rawOwnerName}`
-      : "Dr. In-Charge",
-    cleanName: cleanOwnerName,
-    specialization: clinic.specialization || "General Physician",
-    qualification: clinic.qualification || "MBBS",
-    fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
-    experience_years: clinic.experience_years || null,
-    isOwner: true,
-    workingHoursText: formatDoctorShifts(clinic.working_hours),
-    maxPatientsPerSlot: Number((clinic.working_hours as any)?.max_patients_per_slot) || 1,
-    slotDurationMinutes: Number((clinic.working_hours as any)?.slot_duration_minutes) || 30,
+  const isFacilityName = (name: string): boolean => {
+    if (!name) return false;
+    const lower = name.toLowerCase().replace(/^dr\.?\s*/, "").trim();
+    const cName = (clinic.clinic_name || clinic.name || "").toLowerCase().trim();
+    if (cName && (lower === cName || lower.includes(cName) || cName.includes(lower))) {
+      return true;
+    }
+    return /\b(clinic|hospital|hearing|speech|center|centre|healthcare|diagnostics|nursing home|care|pharmacy|labs?)\b/i.test(lower);
   };
 
-  const otherDocs: MergedDoctor[] = (dbDoctors || [])
-    .filter((d: any) => {
-      const dClean = (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim();
-      return dClean && dClean !== cleanOwnerName;
-    })
-    .map((d: any) => ({
-      id: d.id,
-      name: d.name ? (d.name.toLowerCase().startsWith("dr") ? d.name : `Dr. ${d.name}`) : "Doctor",
-      cleanName: (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim(),
-      specialization: d.specialization || "Specialist",
-      qualification: d.qualification || "",
-      fee: d.consultation_fee != null ? Number(d.consultation_fee) : 0,
-      experience_years: d.experience_years || null,
-      isOwner: false,
-      workingHoursText: formatDoctorShifts(d.working_hours),
-      maxPatientsPerSlot: Number((d.working_hours as any)?.max_patients_per_slot) || 1,
-      slotDurationMinutes: Number((d.working_hours as any)?.slot_duration_minutes) || 30,
-    }));
+  const isFacilityOwner = isFacilityName(rawOwnerName);
 
-  const allDoctors: MergedDoctor[] = [primaryDoc, ...otherDocs];
+  const mappedDbDoctors: MergedDoctor[] = (dbDoctors || []).map((d: any) => ({
+    id: d.id,
+    name: d.name ? (d.name.toLowerCase().startsWith("dr") ? d.name : `Dr. ${d.name}`) : "Doctor",
+    cleanName: (d.name || "").toLowerCase().replace(/^dr\.?\s*/, "").trim(),
+    specialization: d.specialization || "Specialist",
+    qualification: d.qualification || "",
+    fee: d.consultation_fee != null ? Number(d.consultation_fee) : (clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500),
+    experience_years: d.experience_years || null,
+    isOwner: false,
+    workingHoursText: formatDoctorShifts(d.working_hours || clinic.working_hours),
+    maxPatientsPerSlot: Number((d.working_hours as any)?.max_patients_per_slot) || 1,
+    slotDurationMinutes: Number((d.working_hours as any)?.slot_duration_minutes) || 30,
+  }));
+
+  let allDoctors: MergedDoctor[] = [];
+  let primaryDoc: MergedDoctor;
+
+  if (isFacilityOwner && mappedDbDoctors.length > 0) {
+    allDoctors = mappedDbDoctors;
+    primaryDoc = { ...mappedDbDoctors[0], isOwner: true };
+  } else {
+    const ownerDocName = rawOwnerName
+      ? isFacilityOwner
+        ? "Consultant Doctor"
+        : rawOwnerName.toLowerCase().startsWith("dr")
+          ? rawOwnerName
+          : `Dr. ${rawOwnerName}`
+      : (mappedDbDoctors[0]?.name || "Consultant Doctor");
+
+    primaryDoc = {
+      id: null,
+      name: ownerDocName,
+      cleanName: isFacilityOwner ? "consultant doctor" : cleanOwnerName,
+      specialization: clinic.specialization || "General Physician",
+      qualification: clinic.qualification || "MBBS",
+      fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
+      experience_years: clinic.experience_years || null,
+      isOwner: true,
+      workingHoursText: formatDoctorShifts(clinic.working_hours),
+      maxPatientsPerSlot: Number((clinic.working_hours as any)?.max_patients_per_slot) || 1,
+      slotDurationMinutes: Number((clinic.working_hours as any)?.slot_duration_minutes) || 30,
+    };
+
+    const otherDocs = mappedDbDoctors.filter((d) => d.cleanName !== primaryDoc.cleanName);
+    allDoctors = isFacilityOwner ? mappedDbDoctors : [primaryDoc, ...otherDocs];
+    if (allDoctors.length === 0) {
+      allDoctors = [primaryDoc];
+    }
+  }
   const clinicScheduleText = formatClinicSchedule(clinic);
   const clinicServices = extractClinicServices(clinic);
   const clinicFaqs = extractClinicFaqs(clinic);
@@ -1103,19 +1166,27 @@ Aapke dwara bataye gaye lakshan gambhir medical emergency ho sakte hain.
     !/(book|appointment|slot|kal|aaj|\d{1,2}\s*(am|pm|baje)|pain|dard|fever|daant|teeth|skin|eyes|cough|cold)/i.test(lowerText);
 
   if (isGreetingQuery) {
+    const isReturningConversation = historyEntries.length > 0;
     const greetingName = returningPatientName || senderName ? ` ${returningPatientName || senderName} ji` : "";
     let apptNotice = "";
     if (upcomingAppt && currentApptDate && currentApptTime) {
       apptNotice = `\n\n📌 Aapka agla appointment *${activeApptDoctor}* ke saath *${currentApptDate} ko ${currentApptTime} IST* confirm hai.`;
     }
 
-    const reply = `Namaste${greetingName}! 🙏 *${clinic.clinic_name}* reception par aapka swagat hai.
+    const reply = isReturningConversation
+      ? `Haanji${greetingName}! Kahiye, main aapki kya madad kar sakta hoon — kya aapko doctor se appointment lena hai ya timings/fees ke baare mein jaanna hai?${apptNotice}`
+      : `Namaste${greetingName}! 🙏 *${clinic.clinic_name}* reception par aapka swagat hai.
 
 Aapki kya madad kar sakta hoon — kya aapko doctor se appointment lena hai ya timings/fees ke baare mein jaanna hai?${apptNotice}`;
+
+    const buttons = upcomingAppt
+      ? COMMON_WHATSAPP_BUTTONS.POST_BOOKING
+      : COMMON_WHATSAPP_BUTTONS.GREETING;
 
     return {
       reply,
       action: "inquiry",
+      buttons,
       ragCitations: [],
       memoryState: {
         patientName: returningPatientName || senderName || null,
@@ -1154,6 +1225,7 @@ Aapki kya madad kar sakta hoon — kya aapko doctor se appointment lena hai ya t
       return {
         reply: `Haanji! Aapke number par ${allUpcomingAppts.length} active appointments confirmed hain: ✅\n\n${apptsListText}\n\n📍 *Clinic Address:* ${clinic.public_address || clinic.address || "Main Clinic"}\n\nKripya scheduled time se 10 minute pehle clinic pahuchein. Agar inme se kisi me badlav karna ho ya naya slot book karna ho toh batayein!`,
         action: "inquiry",
+        buttons: COMMON_WHATSAPP_BUTTONS.POST_BOOKING,
       };
     } else if (upcomingAppt && currentApptDate && currentApptTime) {
       if (mentionsOtherBooking) {
@@ -1166,6 +1238,7 @@ Aapki kya madad kar sakta hoon — kya aapko doctor se appointment lena hai ya t
 ${upcomingAppt.problem ? `🩺 *Takleef:* ${upcomingAppt.problem}\n` : ""}
 Agar aapka ear pain ya kisi aur takleef ke liye appointment create nahi ho paya tha, toh kripya din aur preferred samay (e.g. *Kal subah 10:30 baje*) batayein — main turant unke liye separate slot book kar deta hoon!`,
           action: "ask_details",
+          buttons: COMMON_WHATSAPP_BUTTONS.DATE_SLOTS,
         };
       }
 
@@ -1180,6 +1253,7 @@ ${upcomingAppt.problem ? `🩺 *Takleef:* ${upcomingAppt.problem}\n` : ""}📍 *
 
 Aap scheduled time se 10 minute pehle clinic pahunch jaiyega. Agar time badalna ya cancel karna ho toh bas yahan bata dijiyega.`,
         action: "inquiry",
+        buttons: COMMON_WHATSAPP_BUTTONS.POST_BOOKING,
       };
     } else {
       return {
@@ -1187,6 +1261,7 @@ Aap scheduled time se 10 minute pehle clinic pahunch jaiyega. Agar time badalna 
 
 Kya aap naya appointment book karna chahte hain? Bas bata dijiye aap kis din aur samay aana chahenge, hum slot reserve kar denge.`,
         action: "inquiry",
+        buttons: COMMON_WHATSAPP_BUTTONS.DATE_SLOTS,
       };
     }
   }
@@ -1214,6 +1289,7 @@ Kya aap doctor se milne aana chahte hain? Main aapka appointment schedule kar de
     return {
       reply,
       action: "inquiry",
+      buttons: COMMON_WHATSAPP_BUTTONS.INQUIRY,
     };
   }
 
@@ -1233,6 +1309,7 @@ Kya aap doctor se milne aana chahte hain? Main aapka appointment schedule kar de
 
 Kya aap iske liye doctor se consult karna chahte hain? Aap preferred day ya time bata dijiye, hum slot reserve kar denge.`,
         action: "inquiry",
+        buttons: COMMON_WHATSAPP_BUTTONS.INQUIRY,
       };
     }
 
@@ -1248,6 +1325,7 @@ ${servicesList}
 
 Aap kis treatment ya checkup ke liye aana chahte hain? Main aapko doctor ki timings aur appointment details bata deta hoon.`,
       action: "inquiry",
+      buttons: COMMON_WHATSAPP_BUTTONS.INQUIRY,
     };
   }
 
@@ -1265,6 +1343,7 @@ ${faq.answer}
 🏥 *${clinic.clinic_name}*
 👉 ${bookingLink}`,
           action: "inquiry",
+          buttons: COMMON_WHATSAPP_BUTTONS.GREETING,
         };
       }
     }
@@ -1301,6 +1380,7 @@ Aap kis doctor se milna chahenge? Main aapka slot abhi schedule kar deta hoon.`;
     return {
       reply,
       action: "inquiry",
+      buttons: COMMON_WHATSAPP_BUTTONS.INQUIRY,
     };
   }
 
@@ -1312,6 +1392,7 @@ Aap kis doctor se milna chahenge? Main aapka slot abhi schedule kar deta hoon.`;
 
 Hamare yahan ${doctorsNames} uplabdh hain. Aap kis din aur samay aana chahenge? Aur patient ka naam bata dijiye please.`,
       action: "ask_details",
+      buttons: COMMON_WHATSAPP_BUTTONS.DATE_SLOTS,
     };
   }
 
@@ -1327,11 +1408,16 @@ Aap isme kya badlav karna chahenge?
 • Cancel karne ke liye "Cancel" likhein`,
         action: "ask_details",
         appointmentId: upcomingAppt.id,
+        buttons: [
+          { id: "btn_slot_tomorrow", title: "📅 Reschedule Kal" },
+          { id: "btn_cancel", title: "❌ Cancel Slot" },
+        ],
       };
     } else {
       return {
         reply: `Aapke number par abhi koi active appointment nahi dikh raha hai. Naya appointment schedule karne ke liye apna preferred day aur time bata dijiye!`,
         action: "inquiry",
+        buttons: COMMON_WHATSAPP_BUTTONS.DATE_SLOTS,
       };
     }
   }
@@ -1348,11 +1434,13 @@ Aap isme kya badlav karna chahenge?
 Agar dobara doctor se milna ho ya appointment schedule karna ho, toh bas yahan ek message kar dijiyega. Take care! 🙏`,
         action: "cancelled",
         appointmentId: upcomingAppt.id,
+        buttons: COMMON_WHATSAPP_BUTTONS.GREETING,
       };
     } else {
       return {
         reply: `Aapke number par abhi koi active appointment scheduled nahi tha. Agar aapko naya slot book karna ho toh zaroor batayein!`,
         action: "inquiry",
+        buttons: COMMON_WHATSAPP_BUTTONS.GREETING,
       };
     }
   }
@@ -1889,6 +1977,7 @@ Reschedule ya cancel karne ke liye yahan message karein.`;
         action: "booked",
         appointmentId: appt.id,
         tokenNumber,
+        buttons: COMMON_WHATSAPP_BUTTONS.POST_BOOKING,
       };
     } catch (e: any) {
       console.error("[WhatsApp Booking Exception]:", e);
@@ -1901,11 +1990,16 @@ Reschedule ya cancel karne ke liye yahan message karein.`;
 
   // 11. Incomplete booking details: Conversational human follow-up
   if (intent.intent === "book" || /(book|appointment|dikha|slot|milna)/i.test(incomingText)) {
+    const askButtons = intent.dateStr
+      ? COMMON_WHATSAPP_BUTTONS.TIME_SLOTS
+      : COMMON_WHATSAPP_BUTTONS.DATE_SLOTS;
+
     // If AI generated a thoughtful, human suggestedReply, USE IT!
     if (intent.suggestedReply && intent.suggestedReply.trim().length > 15) {
       return {
         reply: intent.suggestedReply.trim(),
         action: "ask_details",
+        buttons: askButtons,
       };
     }
 
@@ -1926,6 +2020,7 @@ Reschedule ya cancel karne ke liye yahan message karein.`;
 
 ${promptMissing} Hum turant slot confirm kar denge!`,
       action: "ask_details",
+      buttons: askButtons,
     };
   }
 
@@ -1934,17 +2029,108 @@ ${promptMissing} Hum turant slot confirm kar denge!`,
     return {
       reply: intent.suggestedReply.trim(),
       action: "inquiry",
+      buttons: COMMON_WHATSAPP_BUTTONS.GREETING,
     };
   }
 
   const doctorsSummary = allDoctors.map((d) => `• ${d.name} (${d.specialization}): ₹${d.fee}`).join("\n");
   const addressStr = clinic.public_address || clinic.address ? `\n📍 ${clinic.public_address || clinic.address}` : "";
 
+  const isFollowUp = historyEntries.length > 0;
+  const fallbackGreeting = isFollowUp
+    ? `Ji, batayein main aapki kya madad kar sakta hoon?`
+    : `Namaste ji! 🙏 *${clinic.clinic_name}* reception par aapka swagat hai.`;
+
   return {
-    reply: `Namaste ji! 🙏 *${clinic.clinic_name}* reception par aapka swagat hai.
+    reply: `${fallbackGreeting}
 ${doctorsSummary}${addressStr}
 
 Kya aap doctor se appointment book karna chahte hain? Bas bata dijiye aap kab aana chahenge, hum slot book kar denge.`,
     action: "inquiry",
+    buttons: COMMON_WHATSAPP_BUTTONS.GREETING,
   };
+}
+
+async function postProcessHumanBookingResult(
+  result: WhatsAppBookingResult,
+  clinic: any,
+  patientPhone: string,
+): Promise<WhatsAppBookingResult> {
+  let reply = (result.reply || "").trim();
+
+  // 1. Remove clinic/facility name prefixed with "Dr." if it accidentally leaked
+  const clinicName = clinic.clinic_name || clinic.name || "";
+  if (clinicName) {
+    const escaped = clinicName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    reply = reply.replace(new RegExp(`Dr\\.?\\s*${escaped}`, "gi"), "Doctor");
+  }
+
+  // 2. Check if conversation has previous history
+  let hasHistory = false;
+  try {
+    const { count } = await supabaseAdmin
+      .from("whatsapp_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", clinic.organization_id)
+      .eq("patient_phone", patientPhone);
+    hasHistory = (count ?? 0) > 0;
+  } catch {
+    hasHistory = false;
+  }
+
+  const sessionMemory = getSessionMemory(clinic.id, patientPhone);
+  const isFollowUp = hasHistory || (sessionMemory?.turnCount || 0) > 1;
+
+  if (isFollowUp) {
+    // Strip leading repetitive reception welcomes:
+    // e.g. "Namaste !! 'शिव सदा सहायते' !! ji! 🙏 Ear to Brain Speech & Hearing Clinic reception par aapka swagat hai."
+    reply = reply.replace(
+      /^(?:Namaste|Namaskar|Hello|Hi)[^!\n]*?[!.,]?\s*(?:🙏\s*)?(?:[^\n]*?reception par aapka swagat hai[.!:]?\s*)/i,
+      "",
+    );
+    // Strip leading "Namaste [name] ji! 🙏" or "Namaste ji! 🙏"
+    reply = reply.replace(
+      /^(?:Namaste|Namaskar|Hello|Hi)\s*(?:[A-Za-z\u0900-\u097F]+)?\s*ji[!.,]?\s*(?:🙏\s*)?/i,
+      "",
+    );
+    // Strip redundant leading "Namaste! 🙏"
+    reply = reply.replace(/^(?:Namaste|Namaskar|Hello|Hi)[!.,]?\s*(?:🙏\s*)?/i, "");
+
+    reply = reply.trim();
+    if (!reply) {
+      reply = "Haanji! Kahiye, main aapki kya madad kar sakta hoon?";
+    } else {
+      reply = reply.charAt(0).toUpperCase() + reply.slice(1);
+    }
+  }
+
+  // 3. Fallback interactive buttons if none were attached
+  let buttons = result.buttons;
+  if (!buttons || buttons.length === 0) {
+    if (result.action === "booked") {
+      buttons = COMMON_WHATSAPP_BUTTONS.POST_BOOKING;
+    } else if (result.action === "ask_details") {
+      buttons = COMMON_WHATSAPP_BUTTONS.DATE_SLOTS;
+    } else if (result.action === "inquiry") {
+      buttons = COMMON_WHATSAPP_BUTTONS.GREETING;
+    } else if (result.action === "cancelled") {
+      buttons = COMMON_WHATSAPP_BUTTONS.GREETING;
+    }
+  }
+
+  return {
+    ...result,
+    reply,
+    buttons,
+  };
+}
+
+export async function processWhatsAppMessage(params: {
+  clinic: any;
+  patientPhone: string;
+  senderName: string | null;
+  incomingText: string;
+}): Promise<WhatsAppBookingResult> {
+  const result = await processWhatsAppMessageInternal(params);
+  return await postProcessHumanBookingResult(result, params.clinic, params.patientPhone);
 }

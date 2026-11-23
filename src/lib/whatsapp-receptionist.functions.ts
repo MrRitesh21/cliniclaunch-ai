@@ -237,6 +237,7 @@ export const testAiReceptionistSimulation = createServerFn({ method: "POST" })
       success: true,
       reply: result.reply,
       action: result.action,
+      buttons: result.buttons || [],
       appointmentId: result.appointmentId || null,
       tokenNumber: result.tokenNumber || null,
       ragCitations: result.ragCitations || [],

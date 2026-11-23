@@ -72,6 +72,7 @@ interface ChatMessage {
   sender: "patient" | "bot";
   text: string;
   time: string;
+  buttons?: Array<{ id: string; title: string }>;
   action?: string;
   tokenNumber?: number | null;
   appointmentId?: string | null;
@@ -205,14 +206,26 @@ export function AiReceptionistTab({
   const [latestGuardrailAlert, setLatestGuardrailAlert] = useState<string | null>(null);
 
   const clinicName = data?.clinic.name || clinic?.clinic_name || "My Clinic";
-  const doctorName = data?.clinic.doctor || clinic?.doctor_name || "Doctor";
+  const rawDoctorName = data?.clinic.doctor || clinic?.doctor_name || "";
+  const isDocClinicName =
+    !rawDoctorName ||
+    rawDoctorName.toLowerCase() === clinicName.toLowerCase() ||
+    /\b(clinic|hospital|hearing|speech|center|centre|healthcare)\b/i.test(rawDoctorName);
+  const doctorDisplay = isDocClinicName ? "" : ` (${rawDoctorName})`;
+
+  const initialBotButtons = [
+    { id: "btn_book_appointment", title: "📅 Book Slot" },
+    { id: "btn_timings_fees", title: "⏰ Timings & Fees" },
+    { id: "btn_clinic_address", title: "📍 Clinic Address" },
+  ];
 
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => [
     {
       id: "init",
       sender: "bot",
-      text: `Namaste! Main ${clinicName} (${doctorName}) ka official WhatsApp AI Assistant hoon. Aap appointment book kar sakte hain, doctor timings ya consultation fees pooch sakte hain. Main kaise madad kar sakta hoon?`,
+      text: `Namaste! Main ${clinicName}${doctorDisplay} ka official WhatsApp AI Assistant hoon. Aap appointment book kar sakte hain, doctor timings ya consultation fees pooch sakte hain. Main kaise madad kar sakta hoon?`,
       time: "Just now",
+      buttons: initialBotButtons,
     },
   ]);
 
@@ -311,6 +324,7 @@ export function AiReceptionistTab({
         sender: "bot",
         text: res.reply,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        buttons: res.buttons || [],
         action: res.action,
         tokenNumber: res.tokenNumber,
         appointmentId: res.appointmentId,
@@ -345,8 +359,9 @@ export function AiReceptionistTab({
         {
           id: `init-${Date.now()}`,
           sender: "bot",
-          text: `Namaste! Main ${clinicName} (${doctorName}) ka official WhatsApp AI Assistant hoon. Main aapki kaise madad kar sakta hoon?`,
+          text: `Namaste! Main ${clinicName}${doctorDisplay} ka official WhatsApp AI Assistant hoon. Main aapki kaise madad kar sakta hoon?`,
           time: "Just now",
+          buttons: initialBotButtons,
         },
       ]);
       toast.success("Test chat reset to start fresh!");
@@ -638,6 +653,20 @@ export function AiReceptionistTab({
                       >
                         {msg.text}
                       </div>
+                      {msg.sender === "bot" && msg.buttons && msg.buttons.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5 max-w-[85%]">
+                          {msg.buttons.map((b) => (
+                            <button
+                              key={b.id}
+                              onClick={() => handleSendSimulation(b.title)}
+                              disabled={isSimulating}
+                              className="text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 rounded-full px-2.5 py-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition shadow-xs disabled:opacity-50"
+                            >
+                              {b.title}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <span className="text-[10px] text-muted-foreground mt-1 px-1">{msg.time}</span>
                     </div>
                   ))}

@@ -107,11 +107,26 @@ async function handleMetaCloudWebhookPayload(body: any, sb: any): Promise<Respon
         for (const msg of val.messages) {
           if (msg.type !== "text" && msg.type !== "interactive") continue;
 
-          const text =
+          const buttonId = msg.interactive?.button_reply?.id || null;
+          let text =
             msg.text?.body ||
             msg.interactive?.button_reply?.title ||
             msg.interactive?.list_reply?.title ||
             "";
+
+          // If quick-reply button was clicked, map to canonical intent phrase
+          if (buttonId) {
+            if (buttonId === "btn_book_appointment") text = "Appointment book karna hai";
+            else if (buttonId === "btn_timings_fees") text = "Clinic timings aur fees kya hai";
+            else if (buttonId === "btn_clinic_address") text = "Clinic address aur location kahan hai";
+            else if (buttonId === "btn_slot_today") text = "Aaj ka slot book karna hai";
+            else if (buttonId === "btn_slot_tomorrow") text = "Kal ka slot book karna hai";
+            else if (buttonId === "btn_slot_morning") text = "Subah ka slot chahiye";
+            else if (buttonId === "btn_slot_evening") text = "Shaam ka slot chahiye";
+            else if (buttonId === "btn_reschedule") text = "Appointment time change karna hai";
+            else if (buttonId === "btn_cancel") text = "Appointment cancel karna hai";
+          }
+
           if (!text.trim()) continue;
 
           const rawFrom = msg.from;
@@ -206,6 +221,7 @@ async function handleMetaCloudWebhookPayload(body: any, sb: any): Promise<Respon
               accessToken: activeToken,
               to: formattedPhone,
               text: bookingResult.reply,
+              buttons: bookingResult.buttons,
             });
           } else {
             console.error(`[Meta Webhook] Missing credentials for clinic ${clinic.id}`);
@@ -699,6 +715,7 @@ export async function handleWhatsAppIncomingRequest(
           accessToken: metaConfig.accessToken,
           to: formattedPhone,
           text: bookingResult.reply,
+          buttons: bookingResult.buttons,
         });
       } else {
         // Out-of-band trigger (e.g. admin simulator or direct test) -> send via configured BAILEYS_URL
