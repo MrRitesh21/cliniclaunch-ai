@@ -51,6 +51,7 @@ import {
   FileText,
   Bot,
   ShieldCheck,
+  Smartphone,
 } from "lucide-react";
 import { AiReceptionistTab } from "@/components/whatsapp/AiReceptionistTab";
 import {
@@ -205,6 +206,14 @@ function WhatsAppPage() {
   const [modalPhoneId, setModalPhoneId] = useState("");
   const [savingPhoneId, setSavingPhoneId] = useState(false);
   const [autoDetectingModal, setAutoDetectingModal] = useState(false);
+  const [modalAvailablePhones, setModalAvailablePhones] = useState<any[]>([]);
+
+  // Automatically trigger auto-detect when modal opens if numbers aren't loaded yet
+  useEffect(() => {
+    if (phoneModalOpen && modalAvailablePhones.length === 0 && !autoDetectingModal) {
+      void handleAutoDetectInModal();
+    }
+  }, [phoneModalOpen]);
 
   // Check URL params on load
   useEffect(() => {
@@ -242,6 +251,9 @@ function WhatsAppPage() {
     setAutoDetectingModal(true);
     try {
       const res = await autoDetectMetaFn();
+      if (res?.phones && res.phones.length > 0) {
+        setModalAvailablePhones(res.phones);
+      }
       if (res?.ok && res?.autoConnected) {
         toast.success(`WhatsApp Phone (${res.phoneNumber || res.connectedPhoneId}) Auto-Connected! 🎉`);
         setPhoneModalOpen(false);
@@ -250,8 +262,10 @@ function WhatsAppPage() {
         if (typeof window !== "undefined") {
           window.history.replaceState({}, "", window.location.pathname);
         }
+      } else if (res?.phones && res.phones.length > 0) {
+        toast.info("WhatsApp numbers found in Meta! Select your clinic number below.");
       } else {
-        toast.info(res?.message || "Could not auto-detect phone number. Please enter Phone Number ID manually.");
+        toast.info(res?.message || "Could not auto-detect phone number. Please enter your 10-digit number.");
       }
     } catch (e: any) {
       toast.error(e.message || "Auto-detection failed");
@@ -260,9 +274,32 @@ function WhatsAppPage() {
     }
   }
 
+  async function handleSelectPhoneInModal(phoneId: string, displayPhone?: string) {
+    setSavingPhoneId(true);
+    try {
+      await saveMetaCredsFn({
+        data: {
+          phoneNumberId: phoneId,
+          phoneNumber: displayPhone,
+        },
+      });
+      toast.success(`WhatsApp Phone (${displayPhone || phoneId}) Activated! 🚀`);
+      setPhoneModalOpen(false);
+      setModalPhoneId("");
+      await loadMetaStatus();
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to activate phone number");
+    } finally {
+      setSavingPhoneId(false);
+    }
+  }
+
   async function handleSavePhoneIdFromModal() {
     if (!modalPhoneId.trim()) {
-      return toast.error("Please enter a valid Meta WhatsApp Phone Number ID");
+      return toast.error("Please enter a WhatsApp mobile number or Phone ID");
     }
     setSavingPhoneId(true);
     try {
@@ -649,11 +686,11 @@ function WhatsAppPage() {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-bold text-sm text-foreground">Meta Authorization Successful — 1 Final Step</p>
+                <p className="font-bold text-sm text-foreground">Meta Authorization Successful — Select Clinic Number</p>
                 <Badge className="bg-emerald-600 text-white text-[10px]">Access Token Ready</Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Your Meta permissions are approved and stored. Please enter your WhatsApp <b>Phone Number ID</b> to activate 24/7 AI auto-replies.
+                Your Meta permissions are approved. Select or enter your clinic's WhatsApp number to activate 24/7 AI auto-replies.
               </p>
             </div>
           </div>
@@ -662,7 +699,7 @@ function WhatsAppPage() {
             className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-1.5 h-9"
           >
             <Sparkles className="size-3.5" />
-            Enter Phone Number ID
+            Select Clinic Number 🚀
           </Button>
         </div>
       )}
@@ -939,7 +976,7 @@ function WhatsAppPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Meta Phone Number ID Confirmation Modal */}
+      {/* Meta Phone Number Confirmation Modal */}
       <Dialog open={phoneModalOpen} onOpenChange={setPhoneModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -953,7 +990,7 @@ function WhatsAppPage() {
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-900 dark:text-emerald-200 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5 text-emerald-600" /> Meta OAuth Authorized Successfully!
+                  <CheckCircle2 className="size-3.5 text-emerald-600" /> Meta Authorization Successful!
                 </p>
                 <Button
                   size="sm"
@@ -963,32 +1000,70 @@ function WhatsAppPage() {
                   className="rounded-lg text-xs h-7 px-3 gap-1.5 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 bg-background/50 font-medium"
                 >
                   {autoDetectingModal ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />}
-                  <span>{autoDetectingModal ? "Detecting..." : "Auto-Detect My Number"}</span>
+                  <span>{autoDetectingModal ? "Searching..." : "Re-Scan Numbers"}</span>
                 </Button>
               </div>
               <p className="text-muted-foreground text-[11px]">
-                Your Access Token is securely saved. Click <b>Auto-Detect My Number</b>, or paste your <b>Phone Number ID</b> to complete activation.
+                Your Meta token is saved. Select your verified WhatsApp Business number below or enter your 10-digit number.
               </p>
             </div>
 
+            {/* List of numbers discovered from Meta account */}
+            {modalAvailablePhones.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <Label className="text-xs font-semibold text-foreground">
+                  Numbers found in your Meta Account:
+                </Label>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {modalAvailablePhones.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl border bg-background shadow-xs text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="size-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="font-bold text-foreground">{p.display_phone_number || p.id}</span>
+                          {p.verified_name && (
+                            <span className="text-muted-foreground ml-1.5 font-normal">({p.verified_name})</span>
+                          )}
+                          <div className="text-[10px] text-muted-foreground font-mono">Meta ID: {p.id}</div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSelectPhoneInModal(p.id, p.display_phone_number)}
+                        disabled={savingPhoneId}
+                        className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg"
+                      >
+                        Activate 🚀
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Meta Phone Number ID *</Label>
+              <Label className="text-xs font-semibold">
+                {modalAvailablePhones.length > 0 ? "Or enter WhatsApp Mobile Number / Phone ID" : "WhatsApp Mobile Number (e.g. 9876543210) *"}
+              </Label>
               <Input
-                placeholder="e.g. 109283746592834"
+                placeholder="e.g. 9876543210 ya 1415725084960608"
                 value={modalPhoneId}
                 onChange={(e) => setModalPhoneId(e.target.value)}
                 className="font-mono text-xs rounded-xl h-10"
                 autoFocus
               />
               <p className="text-[11px] text-muted-foreground flex items-center justify-between pt-0.5">
-                <span>WhatsApp &rarr; API Setup &rarr; Phone number ID</span>
+                <span>Hum aapke Meta account se is number ko automatically link kar denge.</span>
                 <a
                   href={`https://developers.facebook.com/apps/${metaStatus?.metaAppConfig?.appId || "1450666523321279"}/whatsapp-business/wa-dev-console/`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline flex items-center gap-1 font-semibold"
+                  className="text-primary hover:underline flex items-center gap-1 font-semibold shrink-0 ml-2"
                 >
-                  Open Meta Console <ExternalLink className="size-3" />
+                  Meta Console <ExternalLink className="size-3" />
                 </a>
               </p>
             </div>
@@ -1010,7 +1085,7 @@ function WhatsAppPage() {
               className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-9"
             >
               {savingPhoneId ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
-              <span>Activate WhatsApp Assistant</span>
+              <span>Link & Activate WhatsApp</span>
             </Button>
           </DialogFooter>
         </DialogContent>

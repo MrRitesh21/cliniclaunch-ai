@@ -24,6 +24,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -145,19 +146,33 @@ export function WhatsappConnectCard({
       refresh();
       window.history.replaceState({}, "", window.location.pathname);
     } else if (params.get("meta_connect") === "need_phone_id") {
-      toast.info("Meta authorized! Please enter your Phone Number ID to complete setup.");
       setShowNeedPhoneIdPrompt(true);
-      setShowDirectMetaForm(true);
       if (params.get("waba_id") && !directWabaId) {
         setDirectWabaId(params.get("waba_id") || "");
       }
       refresh();
       window.history.replaceState({}, "", window.location.pathname);
+      // Auto-trigger discovery immediately so doctor sees their numbers right away
+      void handleAutoDetect();
     } else if (params.get("meta_connect") === "error") {
       toast.error(`Meta Connection Failed: ${params.get("error") || "Unknown error"}`);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [refresh, directWabaId]);
+
+  // If token is ready but phone is pending, auto-discover numbers on mount if not already fetched
+  useEffect(() => {
+    if (metaStatus?.hasPendingToken && !metaStatus?.isMetaConnected && availablePhones.length === 0 && !autoDetecting) {
+      void handleAutoDetect();
+    }
+  }, [metaStatus?.hasPendingToken, metaStatus?.isMetaConnected]);
+
+  // When opening Switch Number on an active connection, auto-scan numbers
+  useEffect(() => {
+    if (showChangeNumber && availablePhones.length === 0 && !autoDetecting) {
+      void handleAutoDetect();
+    }
+  }, [showChangeNumber]);
 
   // Poll while pending, has QR, or reconnecting during deploy
   useEffect(() => {
@@ -251,11 +266,13 @@ export function WhatsappConnectCard({
         setShowNeedPhoneIdPrompt(false);
         setShowChangeNumber(false);
         refresh();
+      } else if (res?.phones && res.phones.length > 0) {
+        toast.info("WhatsApp numbers found in Meta! Click 'Activate This Number' below.");
       } else {
-        toast.info(res?.message || "Could not auto-detect phone number. Please enter Phone Number ID manually.");
+        toast.info(res?.message || "No phone numbers found automatically. Enter your 10-digit mobile number below.");
       }
     } catch (e: any) {
-      toast.error(e.message || "Auto-detect failed. Please enter your Phone Number ID.");
+      toast.error(e.message || "Auto-detect failed. Please enter your mobile number.");
     } finally {
       setAutoDetecting(false);
     }
@@ -282,12 +299,12 @@ export function WhatsappConnectCard({
   }
 
   async function handleLaunchMetaOAuth() {
-    const activeAppId = metaStatus?.metaAppConfig?.appId || appIdInput.trim() || "2115406659069224";
+    const activeAppId = metaStatus?.metaAppConfig?.appId || appIdInput.trim() || "1450666523321279";
     const hasSecret = metaStatus?.metaAppConfig?.hasSecret;
 
     if (!hasSecret && !appSecretInput.trim()) {
-      setShowAppConfig(true);
-      toast.info("Please enter and save your Meta App Secret before launching Meta OAuth.");
+      setShowDirectMetaForm(true);
+      toast.info("Please enter and save your Meta App Secret in Developer Settings before launching Meta OAuth.");
       return;
     }
 
@@ -312,7 +329,7 @@ export function WhatsappConnectCard({
 
   async function handleSaveDirectMeta() {
     if (!directPhoneId.trim()) {
-      return toast.error("Phone Number ID is required");
+      return toast.error("Please enter a 10-digit WhatsApp phone number or Phone Number ID");
     }
     if (!directAccessToken.trim() && !metaStatus?.hasPendingToken) {
       return toast.error("Access Token is required (or click Connect with Meta first)");
@@ -330,6 +347,7 @@ export function WhatsappConnectCard({
       toast.success("Meta WhatsApp configured in Coexistence Mode! 🚀");
       setShowDirectMetaForm(false);
       setShowNeedPhoneIdPrompt(false);
+      setShowChangeNumber(false);
       refresh();
     } catch (e: any) {
       toast.error(e.message || "Failed to save Meta WhatsApp credentials");
@@ -452,39 +470,47 @@ export function WhatsappConnectCard({
             {/* Change Number Form / Discovered Numbers Drawer */}
             {showChangeNumber && (
               <div className="p-4 rounded-xl border border-emerald-500/30 bg-background/95 space-y-3 animate-in fade-in">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-foreground">
-                    Connect Specific WhatsApp Business Number
-                  </span>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <span className="text-xs font-bold text-foreground block">
+                      Switch WhatsApp Business Number
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Select another number from your Meta account or enter a 10-digit number.
+                    </span>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleAutoDetect}
                     disabled={autoDetecting}
-                    className="h-7 text-xs px-2.5 gap-1 border-emerald-500/40 text-emerald-700"
+                    className="h-7 text-xs px-2.5 gap-1 border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
                   >
                     {autoDetecting ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
-                    <span>Detect Meta Numbers</span>
+                    <span>{autoDetecting ? "Scanning..." : "Re-Scan Numbers"}</span>
                   </Button>
                 </div>
 
                 {availablePhones.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <p className="text-[11px] font-semibold text-muted-foreground">Numbers found in your Meta Account:</p>
+                    <p className="text-[11px] font-semibold text-foreground">Numbers found in your Meta Account:</p>
                     {availablePhones.map((p) => (
                       <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border text-xs">
-                        <div>
-                          <span className="font-bold text-foreground">{p.display_phone_number || p.id}</span>
-                          {p.verified_name && <span className="text-muted-foreground ml-2 font-normal">({p.verified_name})</span>}
-                          <div className="text-[10px] text-muted-foreground font-mono">Phone Number ID: {p.id}</div>
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="size-4 text-emerald-600 shrink-0" />
+                          <div>
+                            <span className="font-bold text-foreground">{p.display_phone_number || p.id}</span>
+                            {p.verified_name && <span className="text-muted-foreground ml-2 font-normal">({p.verified_name})</span>}
+                            <div className="text-[10px] text-muted-foreground font-mono">Meta ID: {p.id}</div>
+                          </div>
                         </div>
                         <Button
                           size="sm"
                           onClick={() => handleSelectPhone(p.id, p.display_phone_number)}
                           disabled={savingDirectMeta}
-                          className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                         >
-                          Use This Number
+                          Use This Number 🚀
                         </Button>
                       </div>
                     ))}
@@ -493,11 +519,11 @@ export function WhatsappConnectCard({
 
                 <div className="pt-2">
                   <p className="text-xs text-muted-foreground mb-1.5">
-                    Or enter the 15-digit <b>Phone Number ID</b> from Meta Developer Console:
+                    Or enter your 10-digit WhatsApp number (e.g. 9876543210):
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
                     <Input
-                      placeholder="e.g. 109283746592834"
+                      placeholder="e.g. 9876543210 ya 1415725084960608"
                       value={directPhoneId}
                       onChange={(e) => setDirectPhoneId(e.target.value)}
                       className="text-xs font-mono rounded-lg h-9 bg-background"
@@ -509,7 +535,7 @@ export function WhatsappConnectCard({
                       className="rounded-lg text-xs h-9 px-4 gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                     >
                       {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
-                      <span>Activate on This ID</span>
+                      <span>Switch Number</span>
                     </Button>
                   </div>
                 </div>
@@ -595,7 +621,7 @@ export function WhatsappConnectCard({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <ShieldCheck className="size-3.5" /> Meta Coexistence (Recommended)
+              <ShieldCheck className="size-3.5" /> Meta Cloud API (Official)
             </button>
             <button
               onClick={() => setPairingMode("qr")}
@@ -605,7 +631,7 @@ export function WhatsappConnectCard({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <QrCode className="size-3.5" /> Scan QR Code
+              <QrCode className="size-3.5" /> Scan QR Code (No Facebook Needed)
             </button>
             <button
               onClick={() => setPairingMode("code")}
@@ -617,6 +643,25 @@ export function WhatsappConnectCard({
             >
               <KeyRound className="size-3.5" /> Link with Phone Code
             </button>
+          </div>
+
+          {/* Contextual guide for chosen method */}
+          <div className="text-xs text-muted-foreground px-1">
+            {pairingMode === "meta" && (
+              <span>
+                💡 <b>Official Meta API</b>: Best for WhatsApp Business with interactive buttons, high message limits, and dual sync with your mobile phone app.
+              </span>
+            )}
+            {pairingMode === "qr" && (
+              <span>
+                💡 <b>No Facebook account needed!</b> Open WhatsApp on your phone &rarr; <b>Linked devices</b> &rarr; point camera at the QR code to connect in 10 seconds.
+              </span>
+            )}
+            {pairingMode === "code" && (
+              <span>
+                💡 Enter your mobile number to receive an 8-character verification code directly inside WhatsApp.
+              </span>
+            )}
           </div>
 
           {/* MODE: META COEXISTENCE (RECOMMENDED) */}
@@ -635,20 +680,10 @@ export function WhatsappConnectCard({
                   <p className="text-xs text-muted-foreground max-w-xl">
                     Connect your existing WhatsApp Business number directly. <b>Keep using WhatsApp Business on your phone as usual</b> — your personal chat history and calls remain untouched, while the 24/7 AI Receptionist handles inquiries and bookings!
                   </p>
-                  {metaStatus?.metaAppConfig && (
-                    <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
-                      <span>App ID: <code className="font-mono font-semibold text-foreground">{metaStatus.metaAppConfig.appId}</code></span>
-                      <span>•</span>
-                      <span className={metaStatus.metaAppConfig.hasSecret ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
-                        {metaStatus.metaAppConfig.hasSecret ? "✓ Secret Configured" : "⚠ Secret Missing (Required for 1-Click OAuth)"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowAppConfig((v) => !v)}
-                        className="text-primary hover:underline ml-1 font-semibold"
-                      >
-                        {showAppConfig ? "Close App Settings" : "Configure App ID & Secret"}
-                      </button>
+                  {metaStatus?.metaAppConfig && !metaStatus.metaAppConfig.hasSecret && (
+                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-700 dark:text-amber-300 flex items-center gap-1.5 mt-2">
+                      <AlertCircle className="size-3.5 shrink-0" />
+                      <span>Meta App Secret is missing. Please configure it in Developer Settings below before launching 1-Click OAuth.</span>
                     </div>
                   )}
                 </div>
@@ -664,57 +699,30 @@ export function WhatsappConnectCard({
                 </div>
               </div>
 
-              {/* Meta OAuth App Config Box (shown when secret missing or user clicked configure) */}
-              {showAppConfig && (
-                <div className="p-4 rounded-xl bg-card border border-primary/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-xs text-foreground">Meta App OAuth Credentials</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Found under <b>Meta Developer Console &rarr; App Settings &rarr; Basic</b>. Ensure the App Secret belongs to this exact App ID.
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">Saved to Secure Store</Badge>
+              {/* 3-Step Simple Flow Visual */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                <div className="p-3.5 rounded-xl bg-card border text-xs space-y-1">
+                  <div className="flex items-center gap-2 font-semibold text-foreground">
+                    <span className="size-5 rounded-full bg-primary/10 text-primary text-[11px] grid place-items-center font-bold">1</span>
+                    <span>1-Click Connect</span>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">Meta App ID *</Label>
-                      <Input
-                        placeholder="e.g. 2115406659069224 or 1450666523321279"
-                        value={appIdInput}
-                        onChange={(e) => setAppIdInput(e.target.value)}
-                        className="text-xs font-mono rounded-lg h-9"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">Meta App Secret *</Label>
-                      <Input
-                        type="password"
-                        placeholder="Paste App Secret here"
-                        value={appSecretInput}
-                        onChange={(e) => setAppSecretInput(e.target.value)}
-                        className="text-xs font-mono rounded-lg h-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                    <span className="text-[11px] text-muted-foreground">
-                      Valid OAuth Redirect URI: <code className="font-mono text-primary text-[10px]">https://clinicx.digiwil.com/api/auth/meta/callback</code>
-                    </span>
-                    <Button
-                      size="sm"
-                      onClick={handleSaveAppConfig}
-                      disabled={savingAppConfig || !appIdInput.trim() || !appSecretInput.trim()}
-                      className="rounded-lg text-xs h-8 px-4 gap-1.5"
-                    >
-                      {savingAppConfig ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
-                      <span>Save App Credentials</span>
-                    </Button>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground">Click "Connect with Meta" and log in with your Meta / Facebook account in the official popup.</p>
                 </div>
-              )}
+                <div className="p-3.5 rounded-xl bg-card border text-xs space-y-1">
+                  <div className="flex items-center gap-2 font-semibold text-foreground">
+                    <span className="size-5 rounded-full bg-primary/10 text-primary text-[11px] grid place-items-center font-bold">2</span>
+                    <span>Select Clinic Number</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">System auto-detects your WhatsApp number. Click "Activate" or enter your 10-digit mobile number.</p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-card border text-xs space-y-1">
+                  <div className="flex items-center gap-2 font-semibold text-foreground">
+                    <span className="size-5 rounded-full bg-emerald-500/10 text-emerald-600 text-[11px] grid place-items-center font-bold">3</span>
+                    <span>AI Receptionist Live</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Patients get 24/7 instant replies, doctor fees & timings, and automated appointment confirmations.</p>
+                </div>
+              </div>
 
               {/* Highlighted Prompt if Token is Authorized but Phone Number ID is needed */}
               {(metaStatus?.hasPendingToken || showNeedPhoneIdPrompt) && !metaStatus?.isMetaConnected && (
@@ -723,7 +731,7 @@ export function WhatsappConnectCard({
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
                       <p className="font-bold text-xs text-foreground">
-                        Meta OAuth Authorized! Confirm Phone Number ID
+                        Meta Account Authorized! Select Your WhatsApp Number
                       </p>
                       <Badge className="bg-emerald-600 text-white text-[10px]">Access Token Ready</Badge>
                     </div>
@@ -735,80 +743,93 @@ export function WhatsappConnectCard({
                       className="rounded-lg text-xs h-7 px-3 gap-1.5 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 bg-background/50 font-medium"
                     >
                       {autoDetecting ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />}
-                      <span>{autoDetecting ? "Detecting..." : "Auto-Detect My Numbers"}</span>
+                      <span>{autoDetecting ? "Searching Meta..." : "Re-Scan Numbers"}</span>
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your Meta access token is securely saved. If you have added your specific WhatsApp Business number in Meta Console, enter its 15-digit <b>Phone Number ID</b> below:
-                  </p>
 
                   {/* List of numbers discovered from Meta account */}
-                  {availablePhones.length > 0 && (
-                    <div className="space-y-1.5 pt-1">
-                      <p className="text-[11px] font-semibold text-foreground">Numbers found in your Meta Account:</p>
-                      {availablePhones.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg bg-background border text-xs">
-                          <div>
-                            <span className="font-bold text-foreground">{p.display_phone_number || p.id}</span>
-                            {p.verified_name && <span className="text-muted-foreground ml-2 font-normal">({p.verified_name})</span>}
-                            <div className="text-[10px] text-muted-foreground font-mono">Phone ID: {p.id}</div>
+                  {availablePhones.length > 0 ? (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        Aapke Meta account me yeh verified numbers mile — apna clinic number activate karein:
+                      </p>
+                      <div className="grid gap-2">
+                        {availablePhones.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-background border shadow-xs">
+                            <div className="flex items-center gap-2.5">
+                              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 grid place-items-center">
+                                <Smartphone className="size-4" />
+                              </div>
+                              <div>
+                                <span className="font-bold text-sm text-foreground">{p.display_phone_number || p.id}</span>
+                                {p.verified_name && (
+                                  <span className="text-xs text-muted-foreground ml-2 font-normal">({p.verified_name})</span>
+                                )}
+                                <div className="text-[10px] text-muted-foreground font-mono">Meta ID: {p.id}</div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSelectPhone(p.id, p.display_phone_number)}
+                              disabled={savingDirectMeta}
+                              className="h-8 text-xs px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-xs"
+                            >
+                              {savingDirectMeta ? <Loader2 className="size-3 animate-spin mr-1" /> : <CheckCircle2 className="size-3 mr-1" />}
+                              Activate This Number 🚀
+                            </Button>
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleSelectPhone(p.id, p.display_phone_number)}
-                            disabled={savingDirectMeta}
-                            className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                          >
-                            Activate This Number
-                          </Button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-xs text-muted-foreground">
+                        Apna 10-digit WhatsApp mobile number enter karein. Hum aapke Meta account se is number ko automatically link kar denge:
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
+                        <Input
+                          placeholder="e.g. 9876543210 ya +91 98765 43210"
+                          value={directPhoneId}
+                          onChange={(e) => setDirectPhoneId(e.target.value)}
+                          className="text-xs font-mono rounded-lg h-9 bg-background"
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleSaveDirectMeta}
+                          disabled={savingDirectMeta || !directPhoneId.trim()}
+                          className="rounded-lg text-xs h-9 px-4 gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        >
+                          {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                          <span>Link & Activate WhatsApp</span>
+                        </Button>
+                      </div>
                     </div>
                   )}
 
-                  <div className="flex flex-col sm:flex-row gap-2 max-w-lg">
-                    <Input
-                      placeholder="e.g. 109283746592834"
-                      value={directPhoneId}
-                      onChange={(e) => setDirectPhoneId(e.target.value)}
-                      className="text-xs font-mono rounded-lg h-9 bg-background"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleSaveDirectMeta}
-                      disabled={savingDirectMeta || !directPhoneId.trim()}
-                      className="rounded-lg text-xs h-9 px-4 gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                    >
-                      {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
-                      <span>Activate WhatsApp</span>
-                    </Button>
-                  </div>
-
-                  {/* 3 Step Guide for Specific WhatsApp Business Number */}
+                  {/* 2-Step Friendly Guide if Number is Not Yet Added to Meta */}
                   <div className="p-3 bg-background/90 rounded-xl border text-xs space-y-1.5 mt-2">
                     <span className="font-semibold text-foreground flex items-center gap-1.5 text-[11px]">
                       <Smartphone className="size-3 text-emerald-600" />
-                      Specific WhatsApp Business Number kaise connect karein?
+                      Agar aapka real clinic number Meta account me add nahi hai:
                     </span>
                     <ol className="list-decimal pl-4 space-y-1 text-muted-foreground text-[11px] leading-relaxed">
                       <li>
-                        Meta Developer Console me{" "}
                         <a
                           href={`https://developers.facebook.com/apps/${metaStatus?.metaAppConfig?.appId || "1450666523321279"}/whatsapp-business/wa-dev-console/`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline font-semibold"
                         >
-                          WhatsApp &rarr; API Setup <ExternalLink className="size-2.5 inline" />
+                          Meta Developer Console &rarr; WhatsApp &rarr; API Setup <ExternalLink className="size-2.5 inline" />
                         </a>{" "}
                         kholein.
                       </li>
                       <li>
-                        Agar aapka real clinic number add nahi hai, to neeche <b>Step 5: Add a phone number</b> par click karke OTP verify karein.
+                        Neeche <b>Step 5: Add a phone number</b> par click karke apna WhatsApp number add karein aur OTP verify karein.
                       </li>
                       <li>
-                        <b>Step 1: Select phone numbers</b> me apna number choose karein aur uska 15-digit <b>Phone number ID</b> yahan paste karke Activate karein.
+                        Wapas aakar yahan apna 10-digit number enter karein aur Activate karein.
                       </li>
                     </ol>
                   </div>
@@ -850,7 +871,7 @@ export function WhatsappConnectCard({
                 </div>
               </div>
 
-              {/* Direct Meta Configuration Accordion */}
+              {/* Collapsed Developer & Platform Admin Settings */}
               <div className="pt-2 border-t border-primary/10">
                 <button
                   type="button"
@@ -858,67 +879,118 @@ export function WhatsappConnectCard({
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
                 >
                   {showDirectMetaForm ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-                  <span>Or enter Meta App Credentials directly (Phone ID & Token)</span>
+                  <span>⚙️ Platform Admin & Developer Settings (App ID, Secret, Webhooks & Tokens)</span>
                 </button>
 
                 {showDirectMetaForm && (
                   <div className="mt-4 p-4 rounded-xl bg-card border space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Meta Phone Number ID *</Label>
-                        <Input
-                          placeholder="e.g. 109283746592834"
-                          value={directPhoneId}
-                          onChange={(e) => setDirectPhoneId(e.target.value)}
-                          className="text-xs font-mono rounded-xl h-9"
-                        />
+                    {/* App Credentials */}
+                    <div className="space-y-3 pb-3 border-b">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-xs text-foreground">Meta App OAuth Credentials</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Found under Meta Developer Console &rarr; App Settings &rarr; Basic.
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px]">Saved to Secure Store</Badge>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Phone Number (with country code)</Label>
-                        <Input
-                          placeholder="e.g. +91 98765 43210"
-                          value={directPhoneNumber}
-                          onChange={(e) => setDirectPhoneNumber(e.target.value)}
-                          className="text-xs font-mono rounded-xl h-9"
-                        />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold">Meta App ID</Label>
+                          <Input
+                            placeholder="e.g. 1450666523321279"
+                            value={appIdInput}
+                            onChange={(e) => setAppIdInput(e.target.value)}
+                            className="text-xs font-mono rounded-lg h-9"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold">Meta App Secret</Label>
+                          <Input
+                            type="password"
+                            placeholder="Paste App Secret here"
+                            value={appSecretInput}
+                            onChange={(e) => setAppSecretInput(e.target.value)}
+                            className="text-xs font-mono rounded-lg h-9"
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5 md:col-span-2">
-                        <Label className="text-xs font-semibold">Meta System User / Permanent Access Token *</Label>
-                        <Input
-                          type="password"
-                          placeholder="EAAG..."
-                          value={directAccessToken}
-                          onChange={(e) => setDirectAccessToken(e.target.value)}
-                          className="text-xs font-mono rounded-xl h-9"
-                        />
-                      </div>
-                      <div className="space-y-1.5 md:col-span-2">
-                        <Label className="text-xs font-semibold">WhatsApp Business Account ID (WABA ID)</Label>
-                        <Input
-                          placeholder="e.g. 129384756102938"
-                          value={directWabaId}
-                          onChange={(e) => setDirectWabaId(e.target.value)}
-                          className="text-xs font-mono rounded-xl h-9"
-                        />
+
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveAppConfig}
+                          disabled={savingAppConfig || !appIdInput.trim() || !appSecretInput.trim()}
+                          className="rounded-lg text-xs h-8 px-4 gap-1.5"
+                        >
+                          {savingAppConfig ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                          <span>Save App Credentials</span>
+                        </Button>
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-2">
-                      <Button
-                        size="sm"
-                        onClick={handleSaveDirectMeta}
-                        disabled={savingDirectMeta || !directPhoneId.trim() || !directAccessToken.trim()}
-                        className="rounded-xl text-xs gap-1.5 h-9"
-                      >
-                        {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
-                        <span>Save & Activate Coexistence Mode</span>
-                      </Button>
+                    {/* Direct Meta Configuration */}
+                    <div className="space-y-3">
+                      <p className="font-bold text-xs text-foreground">Manual Meta Cloud API Overrides</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold">Meta Phone Number ID</Label>
+                          <Input
+                            placeholder="e.g. 109283746592834"
+                            value={directPhoneId}
+                            onChange={(e) => setDirectPhoneId(e.target.value)}
+                            className="text-xs font-mono rounded-xl h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold">Phone Number (with country code)</Label>
+                          <Input
+                            placeholder="e.g. +91 98765 43210"
+                            value={directPhoneNumber}
+                            onChange={(e) => setDirectPhoneNumber(e.target.value)}
+                            className="text-xs font-mono rounded-xl h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5 md:col-span-2">
+                          <Label className="text-xs font-semibold">Meta Permanent Access Token</Label>
+                          <Input
+                            type="password"
+                            placeholder="EAAG..."
+                            value={directAccessToken}
+                            onChange={(e) => setDirectAccessToken(e.target.value)}
+                            className="text-xs font-mono rounded-xl h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5 md:col-span-2">
+                          <Label className="text-xs font-semibold">WhatsApp Business Account ID (WABA ID)</Label>
+                          <Input
+                            placeholder="e.g. 129384756102938"
+                            value={directWabaId}
+                            onChange={(e) => setDirectWabaId(e.target.value)}
+                            className="text-xs font-mono rounded-xl h-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveDirectMeta}
+                          disabled={savingDirectMeta || !directPhoneId.trim()}
+                          className="rounded-xl text-xs gap-1.5 h-9"
+                        >
+                          {savingDirectMeta ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                          <span>Save & Activate Coexistence Mode</span>
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Meta Webhooks Quick Reference */}
                     <div className="mt-4 p-3.5 rounded-xl bg-muted/40 border text-xs space-y-2">
                       <p className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                        <Globe className="size-3.5 text-primary" /> Meta Webhook Configuration (for Step 2 in Meta Console)
+                        <Globe className="size-3.5 text-primary" /> Meta Webhook Configuration
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                         <div className="p-2 rounded-lg bg-background border flex items-center justify-between">
