@@ -206,6 +206,7 @@ interface ParsedBookingIntent {
   doctorId?: string | null;
   doctorName?: string | null;
   suggestedReply?: string | null;
+  multiPatients?: QueuedMultiPatient[];
 }
 
 /** Get current date components in Asia/Kolkata (IST, UTC+5:30) */
@@ -441,8 +442,8 @@ export function cleanPatientName(candidate?: string | null, senderName?: string 
     // Cannot be purely numbers, symbols, or common slogans/statuses
     if (/^\+?\d+$/.test(s)) return null;
     if (
-      /\b(shiv|shiva|ram|radhe|krishna|allah|god|bhagwan|har har|om|sada|sahayate|blessed|developer|admin|official|team|support|helpdesk|assistant|attitude|king|queen|broken|alone|smile|life|khatu|shyam|bholenath|mahadev|bajrangbali|jai hind|india|status)\b/i.test(
-        lower,
+      /(?:^|\s|[^\w\u0900-\u097F])(shiv|shiva|ram|radhe|krishna|allah|god|bhagwan|har\s*har|om|sada|sahayate|blessed|developer|admin|official|team|support|helpdesk|assistant|attitude|king|queen|broken|alone|smile|life|khatu|shyam|bholenath|mahadev|bajrangbali|jai\s*hind|india|status|शिव|सदा|सहायते|राम|राधे|कृष्ण|कृष्णा|महादेव|भोलेनाथ|हनुमान|बजरंगबली|ॐ|जय\s*श्री\s*राम)(?:$|\s|[^\w\u0900-\u097F])/i.test(
+        s,
       )
     ) {
       return null;
@@ -464,6 +465,145 @@ export function cleanPatientName(candidate?: string | null, senderName?: string 
   if (fromSender) return fromSender;
 
   return "Patient";
+}
+
+/** Returns sanitized sender human name or null if slogan/status/empty */
+export function sanitizeSenderName(raw?: string | null): string | null {
+  const cleaned = cleanPatientName(raw, null);
+  return cleaned === "Patient" ? null : cleaned;
+}
+
+export interface QueuedMultiPatient {
+  name: string;
+  relation: string;
+  problem: string;
+  doctorId: string | null;
+  doctorName: string | null;
+  timeStr?: string | null;
+}
+
+export interface MultiPatientDetected {
+  isMulti: boolean;
+  patients: QueuedMultiPatient[];
+}
+
+/**
+ * Robust Multi-Patient / Family Booking Detector
+ * Detects requests for multiple people in a single message (e.g. self + sister/brother/child/wife),
+ * extracts individual names, relations, problems, and pre-matches the right doctors.
+ */
+export function detectMultiPatientBooking(
+  text: string,
+  senderName?: string | null,
+  doctors?: MergedDoctor[],
+): MultiPatientDetected {
+  const lower = text.toLowerCase();
+
+  const isMultiSignal =
+    /(?:dono|both|2|do|ek aur|also)\s*(?:ka\s*)?(?:a[p]+ointment|slot|book)/i.test(lower) ||
+    (/(?:muje|mera|mere|me|i)\b/i.test(lower) &&
+      /(?:sister|brother|bhai|behen|behan|didi|wife|husband|mummy|papa|friend|beta|beti|kid|child|rimans)\b/i.test(lower)) ||
+    /\b(?:dono|both)\s*(?:ka|ke|ko)?\b/i.test(lower);
+
+  if (!isMultiSignal) {
+    return { isMulti: false, patients: [] };
+  }
+
+  const cleanSender = sanitizeSenderName(senderName);
+
+  // 1. Extract Patient 1 (self)
+  let p1Name = cleanSender ? cleanSender.charAt(0).toUpperCase() + cleanSender.slice(1) : "Patient";
+  const selfPrefixMatch = text.match(/^\s*([A-Za-z\u0900-\u097F]{2,20})\s+(?:muje|ko|mera|mere|ka)\b/i);
+  if (selfPrefixMatch) {
+    const candidate = sanitizeSenderName(selfPrefixMatch[1]);
+    if (candidate) p1Name = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+  }
+
+  let p1Problem = "General Consultation";
+  if (/(ear\s*pain|kaan\s*dard|ear|hearing|kaan)/i.test(lower)) {
+    p1Problem = "Ear pain";
+  } else if (/(skin\s*rashes|skin\s*rash|rashes|rash|skin|twacha|chamdi|acne|pimples|allergy|khujli)/i.test(lower) && !/(sister|behen|brother|wife)/i.test(lower)) {
+    p1Problem = "Skin rashes";
+  } else if (/(fever|bukhar)/i.test(lower)) {
+    p1Problem = "Fever";
+  }
+
+  // 2. Extract Patient 2 (relative/sister/friend)
+  let p2Name = "Family Member";
+  let p2Relation = "Family";
+
+  if (/\b(?:sister|sis|behen|behan|didi)\b/i.test(lower)) p2Relation = "Sister";
+  else if (/\b(?:brother|bro|bhai|bhaiya)\b/i.test(lower)) p2Relation = "Brother";
+  else if (/\b(?:wife|patni|biwi|mrs)\b/i.test(lower)) p2Relation = "Wife";
+  else if (/\b(?:husband|pati)\b/i.test(lower)) p2Relation = "Husband";
+  else if (/\b(?:mother|mummy|maa|mom)\b/i.test(lower)) p2Relation = "Mother";
+  else if (/\b(?:father|papa|pitaji|dad)\b/i.test(lower)) p2Relation = "Father";
+  else if (/\b(?:child|kid|baby|beta|beti|son|daughter)\b/i.test(lower)) p2Relation = "Child";
+  else if (/\b(?:friend|dost)\b/i.test(lower)) p2Relation = "Friend";
+
+  const explicitNameMatch =
+    text.match(/(?:uska|unka|sister|bhai|wife|friend)\s*(?:ka\s*)?(?:name|naam)\s*(?:hai\s*)?([A-Za-z\u0900-\u097F]{2,20})/i) ||
+    text.match(/(?:name|naam)\s*(?:is|hai)?\s*([A-Za-z\u0900-\u097F]{2,20})/i);
+
+  if (explicitNameMatch) {
+    const candidate = sanitizeSenderName(explicitNameMatch[1]);
+    if (candidate && candidate.toLowerCase() !== p1Name.toLowerCase()) {
+      p2Name = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+    }
+  }
+
+  if (p2Name === "Family Member" && p2Relation !== "Family") {
+    p2Name = `${p2Relation}`;
+  }
+
+  let p2Problem = "Specialist Consultation";
+  if (/(skin\s*rashes|skin\s*rash|rashes|rash|skin|twacha|chamdi|acne|pimples|allergy|khujli)/i.test(lower)) {
+    p2Problem = "Skin rashes";
+  } else if (/(ear|kaan|hearing)/i.test(lower) && p1Problem !== "Ear pain") {
+    p2Problem = "Ear pain";
+  } else if (/(fever|bukhar)/i.test(lower) && p1Problem !== "Fever") {
+    p2Problem = "Fever";
+  }
+
+  // Match doctors for both patients
+  const docList = doctors || [];
+  const p1Doc =
+    docList.find((d) => {
+      const spec = (d.specialization || "").toLowerCase();
+      if (p1Problem.toLowerCase().includes("ear"))
+        return spec.includes("ent") || spec.includes("speech") || spec.includes("hearing") || spec.includes("audio");
+      if (p1Problem.toLowerCase().includes("skin")) return spec.includes("derma") || spec.includes("skin");
+      return false;
+    }) || docList[0] || null;
+
+  const p2Doc =
+    docList.find((d) => {
+      const spec = (d.specialization || "").toLowerCase();
+      if (p2Problem.toLowerCase().includes("skin")) return spec.includes("derma") || spec.includes("skin");
+      if (p2Problem.toLowerCase().includes("ear"))
+        return spec.includes("ent") || spec.includes("speech") || spec.includes("hearing") || spec.includes("audio");
+      return false;
+    }) || (docList.length > 1 ? docList[1] : docList[0]) || null;
+
+  return {
+    isMulti: true,
+    patients: [
+      {
+        name: p1Name,
+        relation: "Self",
+        problem: p1Problem,
+        doctorId: p1Doc?.id || null,
+        doctorName: p1Doc?.name || null,
+      },
+      {
+        name: p2Name,
+        relation: p2Relation,
+        problem: p2Problem,
+        doctorId: p2Doc?.id || null,
+        doctorName: p2Doc?.name || null,
+      },
+    ],
+  };
 }
 
 export interface AdditionalOrFamilyInfo {
@@ -547,12 +687,14 @@ export function findMatchingDoctor(text: string, doctors: MergedDoctor[]): { doc
   const specialtyKeywords: Record<string, string[]> = {
     cardiologist: ["heart", "dil", "cardio", "chest pain", "bp", "blood pressure", "heart attack", "chhati", "cardiac"],
     dentist: ["teeth", "dant", "daant", "tooth", "cavity", "root canal", "braces", "masooda"],
-    dermatologist: ["skin", "twacha", "chamdi", "acne", "rash", "pimples", "khujli", "allergy"],
+    dermatologist: ["skin", "twacha", "chamdi", "acne", "rash", "rashes", "pimples", "khujli", "allergy", "fungal", "skin rash", "skin rashes"],
     pediatrician: ["child", "baccha", "bacche", "bachhe", "bachhon", "bachcho", "bacha", "kid", "baby", "pediatric"],
     orthopedic: ["bone", "haddi", "joint", "fracture", "ortho", "ghutna", "kamar", "back pain"],
     ophthalmologist: ["eye", "aankh", "vision", "chashma", "retina", "dikhai"],
     neurologist: ["neuro", "dimag", "brain", "nerves", "migraine", "paralysis"],
-    ent: ["ent", "kaan", "gala", "naak", "ear", "nose", "throat", "sinus"],
+    ent: ["ent", "kaan", "gala", "naak", "ear", "nose", "throat", "sinus", "ear pain", "kaan dard", "hearing", "speech", "hearing loss", "bahra"],
+    "speech & hearing": ["ear", "hearing", "kaan", "sunna", "speech", "awaz", "audiology", "cochlear", "tinnitus", "hearing aid", "ear pain", "kaan dard", "bolne", "awaj"],
+    audiologist: ["ear", "hearing", "kaan", "sunna", "speech", "awaz", "audiology", "cochlear", "tinnitus", "hearing aid", "ear pain", "kaan dard"],
     gastroenterologist: ["stomach", "pet", "gas", "acidity", "digest", "liver", "kabz"],
     "general physician": ["fever", "bukhar", "cold", "khasi", "cough", "flu", "sardi", "chikitsa", "samanya", "kamzori"],
   };
@@ -666,14 +808,14 @@ function extractBookingDetailsRuleBased(
     let hr = parseInt(bajeMatch[1], 10);
     const min = bajeMatch[2] ? parseInt(bajeMatch[2], 10) : 0;
     const hasSubah = text.includes("subah") || text.includes("subha") || text.includes("morning");
-    const hasShaam = text.includes("shaam") || text.includes("dopahar") || text.includes("evening");
+    const hasShaam = text.includes("shaam") || text.includes("sham") || text.includes("dopahar") || text.includes("evening");
     if (!hasSubah && (hasShaam || (hr >= 1 && hr <= 8))) {
       hr += 12;
     }
     timeStr = `${String(hr).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
   } else if (/\b(morning|subah|subha)\b/i.test(text)) {
     timeStr = "10:30";
-  } else if (/\b(evening|shaam)\b/i.test(text)) {
+  } else if (/\b(evening|shaam|sham)\b/i.test(text)) {
     timeStr = "17:30";
   } else if (/\b(afternoon|dopahar)\b/i.test(text)) {
     timeStr = "14:00";
@@ -682,12 +824,16 @@ function extractBookingDetailsRuleBased(
   // 7. Name extraction (sanitized to completely avoid "ka naam")
   let rawName: string | null = null;
   const nameMatch = text.match(/(?:naam|name is|patient name|unka naam|marij ka naam)\s+([a-zA-Z\s]{3,25})/i);
+  const selfStartMatch = text.match(/^\s*([A-Za-z\u0900-\u097F]{2,20})\s+(?:muje|ko|mera|mere|ka)\b/i);
   if (nameMatch) {
     rawName = nameMatch[1].trim();
+  } else if (selfStartMatch) {
+    rawName = selfStartMatch[1].trim();
   } else if (familyInfo.isFamily && familyInfo.suggestedName) {
     rawName = familyInfo.suggestedName;
   }
-  const patientName = cleanPatientName(rawName, familyInfo.isFamily ? familyInfo.suggestedName : senderName);
+  const cleanSender = sanitizeSenderName(senderName);
+  const patientName = cleanPatientName(rawName, familyInfo.isFamily ? familyInfo.suggestedName : cleanSender);
 
   // 8. Problem extraction
   let problem = matchedDoc ? `${matchedDoc.doctor.specialization} Consultation` : "General Consultation";
@@ -877,6 +1023,9 @@ CRITICAL JSON SCHEMA:
   "doctor_id": "string or null",
   "doctor_name": "string or null",
   "problem": "string or null",
+  "multi_patients": [
+    { "name": "string", "relation": "string", "problem": "string" }
+  ],
   "suggested_reply": "string"
 }
 Return raw valid JSON only without markdown formatting.`;
@@ -894,6 +1043,17 @@ Return raw valid JSON only without markdown formatting.`;
       const parsed = safeJson<any>(raw, null);
       if (parsed) {
         const sanitizedName = cleanPatientName(parsed.patient_name, opts.senderName);
+        const multiPatients: QueuedMultiPatient[] | undefined =
+          Array.isArray(parsed.multi_patients) && parsed.multi_patients.length > 1
+            ? parsed.multi_patients.map((p: any) => ({
+                name: cleanPatientName(p.name, opts.senderName),
+                relation: p.relation || "Family",
+                problem: p.problem || "Consultation",
+                doctorId: p.doctor_id || null,
+                doctorName: p.doctor_name || null,
+              }))
+            : undefined;
+
         return {
           intent: parsed.intent || "book",
           readyToBook: Boolean(parsed.ready_to_book && parsed.date && parsed.time),
@@ -904,6 +1064,7 @@ Return raw valid JSON only without markdown formatting.`;
           doctorId: parsed.doctor_id || null,
           doctorName: parsed.doctor_name || null,
           suggestedReply: parsed.suggested_reply || null,
+          multiPatients,
         };
       }
     }
@@ -926,8 +1087,8 @@ async function processWhatsAppMessageInternal(params: {
   incomingText: string;
 }): Promise<WhatsAppBookingResult> {
   const { clinic, patientPhone, incomingText } = params;
-  const rawSenderCandidate = cleanPatientName(null, params.senderName);
-  const senderName = rawSenderCandidate !== "Patient" ? rawSenderCandidate : null;
+  const cleanSender = sanitizeSenderName(params.senderName);
+  const senderName = cleanSender;
   const sb = supabaseAdmin;
   const rawCustomDomain = clinic?.custom_domain
     ? String(clinic.custom_domain).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "")
@@ -946,15 +1107,17 @@ async function processWhatsAppMessageInternal(params: {
 
   // 1. Parallelize initial lookups: conversation logs, doctors, patient profile, and upcoming appointment
   const now = new Date();
+  const clean10 = patientPhone.replace(/[^\d]/g, "").slice(-10);
+
   const [logsRes, doctorsRes, patientRes, apptRes] = await Promise.all([
     Promise.resolve(
       sb
         .from("whatsapp_logs")
         .select("template_key, message, created_at")
-        .eq("organization_id", clinic.organization_id)
-        .eq("patient_phone", patientPhone)
+        .or(`organization_id.eq.${clinic.organization_id},patient_phone.ilike.%${clean10}%`)
+        .ilike("patient_phone", `%${clean10}%`)
         .order("created_at", { ascending: false })
-        .limit(6),
+        .limit(10),
     ).catch(() => ({ data: null, error: null })),
     Promise.resolve(
       sb
@@ -970,7 +1133,7 @@ async function processWhatsAppMessageInternal(params: {
         .from("patients")
         .select("name")
         .eq("clinic_id", clinic.id)
-        .eq("phone", patientPhone)
+        .ilike("phone", `%${clean10}%`)
         .limit(1)
         .maybeSingle(),
     ).catch(() => ({ data: null, error: null })),
@@ -979,7 +1142,7 @@ async function processWhatsAppMessageInternal(params: {
         .from("appointments")
         .select("id, scheduled_at, patient_name, status, doctor_id, problem")
         .eq("clinic_id", clinic.id)
-        .eq("patient_phone", patientPhone)
+        .ilike("patient_phone", `%${clean10}%`)
         .gte("scheduled_at", new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString())
         .neq("status", "cancelled")
         .order("scheduled_at", { ascending: true })
@@ -1032,27 +1195,41 @@ async function processWhatsAppMessageInternal(params: {
       slotDurationMinutes: Number((d.working_hours as any)?.slot_duration_minutes) || 30,
     }));
 
+  const defaultConsultant: MergedDoctor = {
+    id: null,
+    name: clinic.specialization ? `${clinic.specialization} Specialist` : "Consultant Doctor",
+    cleanName: (clinic.specialization || "consultant doctor").toLowerCase(),
+    specialization: clinic.specialization || "General Physician",
+    qualification: clinic.qualification || "MBBS / Specialist",
+    fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
+    experience_years: clinic.experience_years || null,
+    isOwner: true,
+    workingHoursText: formatDoctorShifts(clinic.working_hours),
+    maxPatientsPerSlot: Number((clinic.working_hours as any)?.max_patients_per_slot) || 1,
+    slotDurationMinutes: Number((clinic.working_hours as any)?.slot_duration_minutes) || 30,
+  };
+
   let allDoctors: MergedDoctor[] = [];
   let primaryDoc: MergedDoctor;
 
-  if (isFacilityOwner && mappedDbDoctors.length > 0) {
-    allDoctors = mappedDbDoctors;
-    primaryDoc = { ...mappedDbDoctors[0], isOwner: true };
-  } else if (isFacilityOwner && mappedDbDoctors.length === 0) {
-    primaryDoc = {
-      id: null,
-      name: "Consultant Doctor",
-      cleanName: "consultant doctor",
-      specialization: clinic.specialization || "General Physician",
-      qualification: clinic.qualification || "MBBS",
-      fee: clinic.consultation_fee != null ? Number(clinic.consultation_fee) : 500,
-      experience_years: clinic.experience_years || null,
-      isOwner: true,
-      workingHoursText: formatDoctorShifts(clinic.working_hours),
-      maxPatientsPerSlot: Number((clinic.working_hours as any)?.max_patients_per_slot) || 1,
-      slotDurationMinutes: Number((clinic.working_hours as any)?.slot_duration_minutes) || 30,
-    };
-    allDoctors = [primaryDoc];
+  if (isFacilityOwner) {
+    if (mappedDbDoctors.length > 0) {
+      const hasSpecialtyDoc = mappedDbDoctors.some(
+        (d) =>
+          clinic.specialization &&
+          d.specialization.toLowerCase().includes(clinic.specialization.toLowerCase()),
+      );
+      if (!hasSpecialtyDoc && clinic.specialization) {
+        allDoctors = [defaultConsultant, ...mappedDbDoctors];
+        primaryDoc = defaultConsultant;
+      } else {
+        allDoctors = mappedDbDoctors;
+        primaryDoc = { ...mappedDbDoctors[0], isOwner: true };
+      }
+    } else {
+      primaryDoc = defaultConsultant;
+      allDoctors = [primaryDoc];
+    }
   } else {
     const ownerDocName = rawOwnerName.toLowerCase().startsWith("dr")
       ? rawOwnerName
@@ -1076,10 +1253,11 @@ async function processWhatsAppMessageInternal(params: {
     allDoctors = [primaryDoc, ...otherDocs];
   }
 
-  // Final check: Remove any facility names from doctor list
-  allDoctors = allDoctors.filter((d) => !isFacilityName(d.name));
+  // Final check: Strictly eliminate any facility or clinic names from doctor options
+  allDoctors = allDoctors.filter((d) => !isFacilityName(d.name) && !isFacilityName(d.cleanName));
   if (allDoctors.length === 0) {
-    allDoctors = [primaryDoc];
+    allDoctors = [defaultConsultant];
+    primaryDoc = defaultConsultant;
   }
   const clinicScheduleText = formatClinicSchedule(clinic);
   const clinicServices = extractClinicServices(clinic);
@@ -1519,6 +1697,201 @@ Agar dobara doctor se milna ho ya appointment schedule karna ho, toh bas yahan e
       allDoctors,
       Boolean(upcomingAppt && !familyInfo.isAdditionalOrFamily),
     );
+  } else {
+    // Deterministic Regex Backfill Safety Net:
+    // If user explicitly typed time (e.g. "5 baje" / "sham ko 5 baje"), but AI returned null, backfill it!
+    const ruleIntent = extractBookingDetailsRuleBased(
+      incomingText,
+      senderName,
+      patientHistoryOnly,
+      allDoctors,
+      Boolean(upcomingAppt && !familyInfo.isAdditionalOrFamily),
+    );
+    if (!intent.timeStr && ruleIntent.timeStr) intent.timeStr = ruleIntent.timeStr;
+    if (!intent.dateStr && ruleIntent.dateStr) intent.dateStr = ruleIntent.dateStr;
+    if ((!intent.patientName || intent.patientName === "Patient") && ruleIntent.patientName && ruleIntent.patientName !== "Patient") {
+      intent.patientName = ruleIntent.patientName;
+    }
+    if (!intent.doctorId && ruleIntent.doctorId) intent.doctorId = ruleIntent.doctorId;
+    if (!intent.doctorName && ruleIntent.doctorName) intent.doctorName = ruleIntent.doctorName;
+    if ((!intent.problem || intent.problem === "General Consultation") && ruleIntent.problem && ruleIntent.problem !== "General Consultation") {
+      intent.problem = ruleIntent.problem;
+    }
+    if (ruleIntent.readyToBook && !intent.readyToBook && intent.dateStr && intent.timeStr) {
+      intent.readyToBook = true;
+    }
+  }
+
+  // Multi-Patient / Family Booking Engine
+  const multiPatientDetected = detectMultiPatientBooking(incomingText, senderName, allDoctors);
+  const activeMultiPatients: QueuedMultiPatient[] | undefined =
+    (multiPatientDetected.isMulti ? multiPatientDetected.patients : undefined) ||
+    intent.multiPatients ||
+    sessionMemory.multiPatients;
+
+  const multiTargetDate = intent.dateStr || sessionMemory.targetDateStr;
+  const multiTargetTime = intent.timeStr || sessionMemory.targetTimeStr;
+
+  if (activeMultiPatients && activeMultiPatients.length > 1) {
+    if (multiTargetDate && multiTargetTime) {
+      // Both date and time confirmed! Book BOTH appointments
+      try {
+        const baseScheduledAt = new Date(`${multiTargetDate}T${multiTargetTime}:00+05:30`);
+        const createdAppts: Array<{
+          name: string;
+          relation: string;
+          problem: string;
+          doctor: string;
+          timeDisplay: string;
+          dateDisplay: string;
+          tokNum: number;
+        }> = [];
+
+        for (let i = 0; i < activeMultiPatients.length; i++) {
+          const p = activeMultiPatients[i];
+          const slotOffsetMs = i * 15 * 60 * 1000;
+          const apptScheduledAt = new Date(baseScheduledAt.getTime() + slotOffsetMs);
+
+          let assignedDoc =
+            (p.doctorId ? allDoctors.find((d) => d.id === p.doctorId) : null) ||
+            (p.doctorName
+              ? allDoctors.find((d) => d.name.toLowerCase().includes(p.doctorName!.toLowerCase()))
+              : null);
+
+          if (!assignedDoc) {
+            assignedDoc = i === 0 ? (matchedDoc || primaryDoc) : (allDoctors.length > 1 ? allDoctors[1] : primaryDoc);
+          }
+
+          const patientNameClean = cleanPatientName(p.name, cleanSender);
+          const finalName = p.relation && p.relation !== "Self" ? `${patientNameClean} (${p.relation})` : patientNameClean;
+
+          const { data: apptRow } = await sb
+            .from("appointments")
+            .insert({
+              clinic_id: clinic.id,
+              organization_id: clinic.organization_id,
+              patient_name: finalName,
+              patient_phone: patientPhone,
+              patient_email: "",
+              problem: p.problem || "Consultation",
+              scheduled_at: apptScheduledAt.toISOString(),
+              status: "confirmed",
+              source: "whatsapp",
+              appointment_type: "offline",
+              doctor_id: assignedDoc?.id || null,
+            } as never)
+            .select("id, scheduled_at")
+            .single();
+
+          if (apptRow) {
+            const apptDateStr = apptScheduledAt.toISOString().slice(0, 10);
+            const { data: maxTok } = await sb
+              .from("queue_tokens")
+              .select("token_number")
+              .eq("organization_id", clinic.organization_id)
+              .eq("queue_date", apptDateStr)
+              .order("token_number", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            const tokNum = (maxTok?.token_number || 0) + 1;
+            await sb.from("queue_tokens").insert({
+              organization_id: clinic.organization_id,
+              appointment_id: apptRow.id,
+              patient_name: finalName,
+              patient_phone: patientPhone,
+              queue_date: apptDateStr,
+              token_number: tokNum,
+              status: "waiting",
+              note: `WhatsApp Multi: ${assignedDoc?.name} - ${p.problem}`,
+            }).catch(() => {});
+
+            createdAppts.push({
+              name: patientNameClean,
+              relation: p.relation,
+              problem: p.problem,
+              doctor: assignedDoc?.name || "Doctor",
+              tokNum,
+              timeDisplay: apptScheduledAt.toLocaleTimeString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+              dateDisplay: apptScheduledAt.toLocaleDateString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+              }),
+            });
+          }
+        }
+
+        clearSessionMemory(clinic.id, patientPhone);
+
+        const greetingName =
+          cleanSender ||
+          (activeMultiPatients[0]?.name && activeMultiPatients[0].name !== "Patient"
+            ? activeMultiPatients[0].name
+            : "");
+
+        const confirmationLines = createdAppts
+          .map(
+            (ca, idx) =>
+              `${idx + 1}. 👤 *${ca.name}${ca.relation && ca.relation !== "Self" ? ` (${ca.relation})` : ""}* — ${ca.problem}\n   👨‍⚕️ *Doctor:* ${ca.doctor}\n   ⏰ *Time:* ${ca.timeDisplay} (Token #${ca.tokNum})`,
+          )
+          .join("\n\n");
+
+        return {
+          reply: `✅ Bilkul ${greetingName ? `${greetingName} ji` : "ji"}, ${createdAppts[0]?.dateDisplay} ke dono appointments confirm kar diye gaye hain:
+
+${confirmationLines}
+
+🏥 *Clinic:* ${clinic.clinic_name}
+📍 *Address:* ${clinic.public_address || clinic.address || "Main Clinic"}
+
+Kripya scheduled time se 10-15 minute pehle clinic pahuchein. Koi aur badlav karna ho toh yahan message karein!`,
+          action: "booked",
+          appointmentId: createdAppts[0]?.name ? "multi" : null,
+          buttons: COMMON_WHATSAPP_BUTTONS.POST_BOOKING,
+        };
+      } catch (err) {
+        console.error("[Multi-Patient Booking Failed]:", err);
+      }
+    } else {
+      // Either date or time missing: remember patients in sessionMemory and warmly ask for missing piece
+      updateSessionMemory(clinic.id, patientPhone, {
+        multiPatients: activeMultiPatients,
+        targetTimeStr: multiTargetTime || null,
+        targetDateStr: multiTargetDate || null,
+        patientName: cleanSender || activeMultiPatients[0].name,
+      });
+
+      const greetingName =
+        cleanSender ||
+        (activeMultiPatients[0]?.name && activeMultiPatients[0].name !== "Patient"
+          ? activeMultiPatients[0].name
+          : "");
+
+      const timePhrase = multiTargetTime ? `shaam ${format12Hour(multiTargetTime)}` : "";
+      const missingPrompt = !multiTargetDate && multiTargetTime
+        ? "Kripya batayein aap log kis din (aaj ya kal) aana chahenge?"
+        : !multiTargetTime && multiTargetDate
+        ? "Kripya batayein aap log kis samay (subah ya shaam) aana chahenge?"
+        : "Kripya preferred din (aaj ya kal) aur samay batayein.";
+
+      const askButtons = multiTargetDate
+        ? COMMON_WHATSAPP_BUTTONS.TIME_SLOTS
+        : COMMON_WHATSAPP_BUTTONS.DATE_SLOTS;
+
+      return {
+        reply: `Haan bilkul ${greetingName ? `${greetingName} ji` : "ji"}! Dono appointments ${timePhrase ? `${timePhrase} par ` : ""}schedule ho jayenge.
+
+${missingPrompt} Hum turant dono slots confirm kar denge!`,
+        action: "ask_details",
+        buttons: askButtons,
+      };
+    }
   }
 
   // Multi-turn context continuity: backfill unstated slots from active session memory
@@ -1730,6 +2103,8 @@ Aap kis nayi date aur time par shift karna chahte hain?
 
   // 9. GREETING INTENT
   if (intent.intent === "greeting" && !intent.readyToBook) {
+    const isFollowUp = historyEntries.length > 0 || sessionMemory.turnCount > 0;
+
     if (intent.suggestedReply && intent.suggestedReply.trim().length > 15) {
       return {
         reply: intent.suggestedReply,
@@ -1738,11 +2113,26 @@ Aap kis nayi date aur time par shift karna chahte hain?
     }
 
     const upcomingMsg = upcomingAppt?.scheduled_at
-      ? `\nℹ️ Aapka ek appointment *${currentApptDate}* ko *${currentApptTime}* baje (*${activeApptDoctor}*) scheduled hai.\n`
+      ? `\nℹ️ Aapka appointment *${currentApptDate}* ko *${currentApptTime}* baje (*${activeApptDoctor}*) confirmed hai.\n`
       : "";
 
-    const welcomeGreeting = returningPatientName
-      ? `Namaste ${returningPatientName} ji! 🙏 Welcome back to *${clinic.clinic_name}*.`
+    if (isFollowUp) {
+      const followUpGreeting = cleanSender
+        ? `Ji ${cleanSender} ji! Batayein, main aapki kya madad kar sakta hoon?`
+        : `Ji! Batayein, main aapki kya madad kar sakta hoon?`;
+
+      const promptText = upcomingAppt?.scheduled_at
+        ? `${followUpGreeting}${upcomingMsg}Kya aapko timing badalni hai ya koi aur sawal hai?`
+        : `${followUpGreeting}\nKya aapko appointment schedule karna hai ya clinic timings ke baare mein jaanna hai?`;
+
+      return {
+        reply: promptText,
+        action: "inquiry",
+      };
+    }
+
+    const welcomeGreeting = cleanSender
+      ? `Namaste ${cleanSender} ji! 🙏 *${clinic.clinic_name}* reception par aapka swagat hai.`
       : `Namaste! 🙏 *${clinic.clinic_name}* reception par aapka swagat hai.`;
 
     return {
@@ -2097,24 +2487,29 @@ async function postProcessHumanBookingResult(
   // 2. Check if conversation has previous history
   let hasHistory = false;
   try {
+    const clean10 = patientPhone.replace(/[^\d]/g, "").slice(-10);
     const { count } = await supabaseAdmin
       .from("whatsapp_logs")
       .select("*", { count: "exact", head: true })
-      .eq("organization_id", clinic.organization_id)
-      .eq("patient_phone", patientPhone);
+      .ilike("patient_phone", `%${clean10}%`);
     hasHistory = (count ?? 0) > 0;
   } catch {
     hasHistory = false;
   }
 
   const sessionMemory = getSessionMemory(clinic.id, patientPhone);
-  const isFollowUp = hasHistory || (sessionMemory?.turnCount || 0) > 1;
+  const isFollowUp =
+    hasHistory ||
+    (sessionMemory?.turnCount || 0) > 0 ||
+    result.action === "booked" ||
+    result.action === "rescheduled" ||
+    result.action === "ask_details";
 
   if (isFollowUp) {
     // Strip leading repetitive reception welcomes:
     // e.g. "Namaste !! 'शिव सदा सहायते' !! ji! 🙏 Ear to Brain Speech & Hearing Clinic reception par aapka swagat hai."
     reply = reply.replace(
-      /^(?:Namaste|Namaskar|Hello|Hi)[^!\n]*?[!.,]?\s*(?:🙏\s*)?(?:[^\n]*?(?:reception par aapka swagat hai|swagat hai)[.!:]?\s*)/i,
+      /^(?:Namaste|Namaskar|Hello|Hi)[^!\n]*?[!.,]?\s*(?:🙏\s*)?(?:[^\n]*?(?:reception par aapka swagat hai|swagat hai|welcome to)[.!:]?\s*)/i,
       "",
     );
     // Replace leading "Namaste [name] ji! 🙏" with "Ji [name] ji! "
@@ -2128,6 +2523,9 @@ async function postProcessHumanBookingResult(
     reply = reply.replace(/^(?:Namaste|Namaskar|Hello|Hi)[!.,]?\s*(?:🙏\s*)?/i, "");
     // Clean any secondary mid-message namaste lines
     reply = reply.replace(/\n\s*(?:Namaste|Namaskar)[!.,]?\s*(?:🙏\s*)?/gi, "\n");
+    // Strip mid-text "Humare clinic reception par aapka swagat hai"
+    reply = reply.replace(/(?:Humare\s+)?clinic\s+reception\s+par\s+aapka\s+swagat\s+hai[.!:]?\s*/gi, "");
+    reply = reply.replace(/reception\s+par\s+aapka\s+swagat\s+hai[.!:]?\s*/gi, "");
 
     reply = reply.trim();
     if (!reply) {

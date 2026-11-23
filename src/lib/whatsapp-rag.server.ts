@@ -21,6 +21,15 @@ export interface GuardrailSettings {
   strictness: "strict" | "balanced";
 }
 
+export interface QueuedPatient {
+  name: string;
+  relation?: string | null;
+  problem?: string | null;
+  doctorId?: string | null;
+  doctorName?: string | null;
+  timeStr?: string | null;
+}
+
 export interface SessionMemory {
   patientPhone: string;
   patientName: string | null;
@@ -32,6 +41,7 @@ export interface SessionMemory {
   pendingIntent: string | null;
   turnCount: number;
   lastUpdated: number;
+  multiPatients?: QueuedPatient[];
 }
 
 export interface RagCitation {

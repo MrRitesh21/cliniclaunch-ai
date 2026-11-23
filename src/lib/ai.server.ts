@@ -609,7 +609,7 @@ export async function callAI(opts: {
   const isNewConversation = !opts.user.includes("Patient:") && !opts.user.includes("Clinic Assistant:");
   const fallbackReply = isNewConversation
     ? "Namaste! Clinic reception par aapka swagat hai. Kya aapko doctor se appointment lena hai ya timings/fees ke baare mein jaanna hai?"
-    : "Ji, maine aapki query note kar li hai. Kripya apna preferred din aur samay batayein, hum turant doctor ka slot confirm kar denge!";
+    : "Ji, maine note kar liya hai. Kripya batayein aap kab aana chahenge?";
 
   if (opts.json) {
     return JSON.stringify({
