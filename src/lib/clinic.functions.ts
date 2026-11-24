@@ -28,6 +28,7 @@ import {
   publicNameSchema,
   publicTimestampSchema,
 } from "./public-form-validation";
+import { isRealGooglePlaceId } from "./google-reviews-utils";
 import { resolveDoctorImageUrl } from "@/templates/shared/clinicDataHelpers";
 import { safeUpsertPatient } from "./patient-upsert";
 
@@ -428,7 +429,7 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
     let { data: clinic } = await sb
       .from("clinics")
       .select(
-        "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id, slug",
+        "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id, slug, seo_config",
       )
       .eq("slug", data.slug)
       .maybeSingle();
@@ -461,7 +462,7 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
         const { data: c } = await sb
           .from("clinics")
           .select(
-            "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id, slug",
+            "id, organization_id, doctor_name, specialization, clinic_name, public_address, google_place_id, slug, seo_config",
           )
           .eq("organization_id", matchedOrg.id)
           .maybeSingle();
@@ -487,6 +488,26 @@ export const getReviewPageContext = createServerFn({ method: "GET" })
         .eq("id", clinic.organization_id)
         .maybeSingle();
       orgData = org as OrgSummary | null;
+    }
+
+    // Resolve any custom profile URL from clinic seo_config if org lacks it
+    const clinicSeo = ((clinic as { seo_config?: unknown } | null)?.seo_config as Record<string, unknown>) || {};
+    const gbpLocation = (clinicSeo.gbp_location as Record<string, unknown>) || {};
+    const fallbackProfileUrl =
+      (gbpLocation.profile_url as string) ||
+      (clinicSeo.google_business_profile_url as string) ||
+      null;
+
+    if (orgData && !orgData.google_business_profile_url && fallbackProfileUrl) {
+      orgData.google_business_profile_url = fallbackProfileUrl;
+    }
+
+    // Sanitize any synthetic placeholder Place IDs (e.g. ChIJ_...) so downstream clients never 404
+    if (clinic && clinic.google_place_id && !isRealGooglePlaceId(clinic.google_place_id)) {
+      clinic.google_place_id = null;
+    }
+    if (orgData && orgData.google_place_id && !isRealGooglePlaceId(orgData.google_place_id)) {
+      orgData.google_place_id = null;
     }
 
     return { org: orgData, clinic };

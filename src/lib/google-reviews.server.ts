@@ -11,6 +11,7 @@
 
 import { serverEnv } from "./env.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { isRealGooglePlaceId, resolveGoogleReviewUrl } from "./google-reviews-utils";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 
@@ -317,7 +318,11 @@ export async function searchLiveGoogleProfiles(
         address,
         rating,
         reviewCount,
-        profileUrl: `https://search.google.com/local/writereview?placeid=${placeId}`,
+        profileUrl: resolveGoogleReviewUrl({
+          placeId,
+          businessName: cleanName,
+          address,
+        }),
         accountName: cleanName,
       });
 
@@ -368,17 +373,20 @@ export async function fetchGoogleBusinessProfiles(opts: {
   // Primary profile representing the clinic itself
   const clinicPrimaryProfile: GoogleBusinessProfileSummary = {
     placeId:
-      existingPlaceId ||
-      `ChIJ_${Math.abs(hashString(clinicName + "_" + clinicId))
-        .toString(16)
-        .padEnd(16, "0")}`,
+      existingPlaceId && isRealGooglePlaceId(existingPlaceId)
+        ? existingPlaceId
+        : `ChIJ_${Math.abs(hashString(clinicName + "_" + clinicId))
+            .toString(16)
+            .padEnd(16, "0")}`,
     name: clinicName,
     address: address || (cityMatch ? `${cityMatch}, India` : "Verified Clinic Location"),
     rating: 4.9,
     reviewCount: 128,
-    profileUrl: existingPlaceId
-      ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(existingPlaceId)}`
-      : `https://search.google.com/local/writereview?placeid=ChIJ_${Math.abs(hashString(clinicName)).toString(16)}`,
+    profileUrl: resolveGoogleReviewUrl({
+      placeId: existingPlaceId,
+      businessName: clinicName,
+      address,
+    }),
     accountName: clinicName,
   };
 
@@ -466,7 +474,11 @@ export async function fetchGoogleBusinessProfiles(opts: {
           address: address || (cityMatch ? `${cityMatch}, India` : "Google Business Location"),
           rating: 4.9,
           reviewCount: 38,
-          profileUrl: `https://search.google.com/local/writereview?placeid=ChIJ_${Math.abs(hashString(explicitQuery)).toString(16)}`,
+          profileUrl: resolveGoogleReviewUrl({
+            placeId: null,
+            businessName: explicitQuery,
+            address,
+          }),
           accountName: explicitQuery,
         },
       ],

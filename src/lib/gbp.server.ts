@@ -18,6 +18,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { serverEnv } from "./env.server";
 import { encryptToken } from "./token-crypto.server";
 import { callAI, safeJson } from "./ai.server";
+import { isRealGooglePlaceId, resolveGoogleReviewUrl } from "./google-reviews-utils";
 import {
   isGoogleOAuthConfigured,
   getGoogleOAuthConfig,
@@ -494,12 +495,10 @@ export async function processGoogleOAuthCallback(code: string, stateEncoded: str
     }
   }
 
-  // If still no placeId, generate a deterministic Place ID for the clinic so it connects immediately
-  if (!resolvedPlaceId) {
-    const cleanHash = Math.abs(
-      (clinic?.clinic_name || "clinic").split("").reduce((acc, c) => (acc << 5) - acc + c.charCodeAt(0), 0)
-    ).toString(16).padEnd(16, "0");
-    resolvedPlaceId = `ChIJ_${cleanHash}`;
+  // If still no placeId, do NOT generate a fake ChIJ_ hash that causes Google 404s!
+  // Leave resolvedPlaceId as genuine or null so downstream systems use resilient Maps search links.
+  if (resolvedPlaceId && !isRealGooglePlaceId(resolvedPlaceId)) {
+    resolvedPlaceId = null;
   }
 
   // Update clinics table with verified place_id
@@ -910,10 +909,11 @@ export function buildClinicReviewLinks(opts: {
   const baseUrl = opts.appUrl || serverEnv.APP_URL || "https://clinicx.digiwil.com";
   const slug = opts.slug || "clinic";
 
-  // Official direct Google review write URL
-  const googleDirectUrl = opts.placeId
-    ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(opts.placeId)}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(opts.clinicName || "Clinic")}`;
+  // Official direct Google review write URL - robust & verified
+  const googleDirectUrl = resolveGoogleReviewUrl({
+    placeId: opts.placeId,
+    businessName: opts.clinicName,
+  });
 
   // Short branded link through ClinicX
   const shortReviewUrl = `${baseUrl}/r/${slug}`;

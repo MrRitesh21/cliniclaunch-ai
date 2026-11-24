@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { useServerFn } from "@tanstack/react-start";
 import { getReviewPageContext, submitPublicReview } from "@/lib/clinic.functions";
 import { trackReviewClick } from "@/lib/gbp.functions";
+import { resolveGoogleReviewUrl } from "@/lib/google-reviews-utils";
 
 export const Route = createFileRoute("/r/$slug")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -166,15 +167,21 @@ function PublicReviewPage() {
   }, [clinic, org, geoContext]);
 
   // Direct Google Review Write URL:
-  // If google_place_id is present, uses official Google writereview URL.
-  // Otherwise falls back to google_business_profile_url.
+  // Uses verified Place ID if genuine, custom Google Business URL if present,
+  // or resilient Google Maps search URL (guaranteed 0% chance of 404).
   const googleReviewUrl = useMemo(() => {
-    const placeId = clinic?.google_place_id || org?.google_place_id;
-    if (placeId) {
-      return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
-    }
-    return org?.google_business_profile_url || null;
-  }, [clinic, org]);
+    const rawPlaceId = clinic?.google_place_id || org?.google_place_id;
+    const customUrl = org?.google_business_profile_url || (clinic as unknown as { google_business_profile_url?: string })?.google_business_profile_url;
+    const businessTitle = org?.google_business_name || clinic?.clinic_name || org?.name || "Clinic";
+    const address = clinic?.public_address || geoContext.city || "";
+
+    return resolveGoogleReviewUrl({
+      placeId: rawPlaceId,
+      profileUrl: customUrl,
+      businessName: businessTitle,
+      address,
+    });
+  }, [clinic, org, geoContext]);
 
   const generateReviewText = useCallback(
     (targetRating: number, targetTone: ReviewTone, idx: number) => {

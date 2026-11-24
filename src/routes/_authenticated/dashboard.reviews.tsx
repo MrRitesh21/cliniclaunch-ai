@@ -63,6 +63,11 @@ import {
   updateReviewLinkSlug,
 } from "@/lib/google-reviews.functions";
 import { sendTestWhatsapp } from "@/lib/baileys.functions";
+import {
+  isRealGooglePlaceId,
+  resolveGoogleReviewUrl,
+  parsePastedGoogleUrl,
+} from "@/lib/google-reviews-utils";
 import { useClinic } from "./dashboard";
 import { GmbOverviewTab } from "@/components/gmb/GmbOverviewTab";
 import { GmbSeoRewriteTab } from "@/components/gmb/GmbSeoRewriteTab";
@@ -171,6 +176,8 @@ export function ReviewsPage() {
   } | null>(null);
   const [searchGmbQuery, setSearchGmbQuery] = useState("");
   const [isSearchingGmb, setIsSearchingGmb] = useState(false);
+  const [directLinkInput, setDirectLinkInput] = useState("");
+  const [savingDirectLink, setSavingDirectLink] = useState(false);
 
   // Custom Review Link Slug
   const [customSlug, setCustomSlug] = useState("");
@@ -508,11 +515,14 @@ export function ReviewsPage() {
         data: {
           clinic_id: clinic.id,
           organization_id: orgId || null,
-          place_id: target.placeId,
+          place_id: isRealGooglePlaceId(target.placeId) ? target.placeId : null,
           business_name: target.name,
           profile_url:
             target.profileUrl ||
-            `https://search.google.com/local/writereview?placeid=${encodeURIComponent(target.placeId)}`,
+            resolveGoogleReviewUrl({
+              placeId: target.placeId,
+              businessName: target.name,
+            }),
           account_email: gmbAccountEmail || null,
           custom_slug: cleanBizSlug || undefined,
         },
@@ -576,6 +586,51 @@ export function ReviewsPage() {
       toast.error((e as Error).message);
     } finally {
       setSavingSlug(false);
+    }
+  }
+
+  async function handleSaveDirectLink() {
+    if (!directLinkInput.trim() || !clinic) return;
+    setSavingDirectLink(true);
+    try {
+      const parsed = parsePastedGoogleUrl(directLinkInput.trim());
+      const cleanBizSlug = (clinic.clinic_name || "clinic")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 45);
+
+      const res = await saveGmbConnectionFn({
+        data: {
+          clinic_id: clinic.id,
+          organization_id: orgId || null,
+          place_id: parsed.placeId && isRealGooglePlaceId(parsed.placeId) ? parsed.placeId : null,
+          business_name: clinic.clinic_name || "Clinic",
+          profile_url: parsed.profileUrl,
+          account_email: gmbAccountEmail || null,
+          custom_slug: cleanBizSlug || undefined,
+        },
+      });
+
+      const resolvedSlug = res?.slug || cleanBizSlug;
+      if (resolvedSlug) {
+        setCustomSlug(resolvedSlug);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("clinicx_active_clinic_slug", resolvedSlug);
+        }
+      }
+
+      setPlaceId(parsed.placeId || "");
+      setGmbBusinessName(clinic.clinic_name || "Google Business");
+      setGmbUrl(parsed.profileUrl);
+      setIsGmbConnected(true);
+      setShowGmbModal(false);
+      setGmbStep("connected");
+      toast.success("Google Maps review link connected successfully!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingDirectLink(false);
     }
   }
 
@@ -831,8 +886,10 @@ export function ReviewsPage() {
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                {isGmbConnected && placeId
-                  ? `Place ID: ${placeId}`
+                {isGmbConnected
+                  ? placeId && isRealGooglePlaceId(placeId)
+                    ? `Place ID: ${placeId}`
+                    : "Google Business Connected"
                   : "Link to sync Maps reviews & direct review link"}
               </p>
             </div>
@@ -1430,9 +1487,13 @@ export function ReviewsPage() {
                   <h3 className="font-bold text-sm text-foreground">
                     {gmbBusinessName || "Google My Business"}
                   </h3>
-                  {placeId && (
+                  {placeId && isRealGooglePlaceId(placeId) ? (
                     <p className="text-[11px] font-mono text-muted-foreground truncate">
                       Place ID: {placeId}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Google Maps Listing Linked
                     </p>
                   )}
                 </div>
@@ -1541,6 +1602,52 @@ export function ReviewsPage() {
                     or <strong>Manager</strong> of your Google Business Profile.
                   </p>
                 </div>
+
+                <div className="relative my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/80" />
+                  </div>
+                  <div className="relative flex justify-center text-[10px] uppercase">
+                    <span className="bg-background px-2 text-muted-foreground font-semibold">
+                      OR PASTE GOOGLE REVIEW LINK DIRECTLY
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-2 text-left">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <ExternalLink className="size-3.5 text-blue-600" /> Instant Review Link Match
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">Zero-Setup</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="e.g. https://g.page/r/.../review or https://maps.app.goo.gl/..."
+                      value={directLinkInput}
+                      onChange={(e) => setDirectLinkInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleSaveDirectLink();
+                        }
+                      }}
+                      className="h-9 text-xs bg-background flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleSaveDirectLink}
+                      disabled={savingDirectLink || !directLinkInput.trim()}
+                      className="h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white shrink-0 px-3 cursor-pointer"
+                    >
+                      {savingDirectLink ? <Loader2 className="size-3.5 animate-spin" /> : "Connect"}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Paste your link from Google Maps &ldquo;Ask for reviews&rdquo; or Google Maps &ldquo;Share&rdquo; to connect your review redirect instantly.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1624,6 +1731,38 @@ export function ReviewsPage() {
                           📍 {name}
                         </button>
                       ))}
+                  </div>
+                </div>
+
+                {/* Direct Link Paste Option */}
+                <div className="p-3 rounded-xl border bg-muted/20 space-y-2 text-left min-w-0">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <ExternalLink className="size-3.5 text-blue-600" /> Or Paste Direct Google Review Link
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="e.g. https://g.page/r/.../review or https://maps.app.goo.gl/..."
+                      value={directLinkInput}
+                      onChange={(e) => setDirectLinkInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleSaveDirectLink();
+                        }
+                      }}
+                      className="h-8 text-xs bg-background flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleSaveDirectLink}
+                      disabled={savingDirectLink || !directLinkInput.trim()}
+                      className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white shrink-0 px-3 cursor-pointer"
+                    >
+                      {savingDirectLink ? <Loader2 className="size-3.5 animate-spin" /> : "Link"}
+                    </Button>
                   </div>
                 </div>
 

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isRealGooglePlaceId, resolveGoogleReviewUrl } from "./google-reviews-utils";
 
 function getAuthUserId(context: unknown): string {
   const ctx = context as { userId?: string } | undefined;
@@ -155,8 +156,16 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
         ? data.business_name
         : cData?.clinic_name || "Clinic";
 
+    const cleanPlaceId = data.place_id && isRealGooglePlaceId(data.place_id) ? data.place_id : null;
+    const resolvedProfileUrl =
+      data.profile_url ||
+      resolveGoogleReviewUrl({
+        placeId: cleanPlaceId,
+        businessName: resolvedBizName,
+      });
+
     const clinicUpdates: Record<string, unknown> = {
-      google_place_id: data.place_id || null,
+      google_place_id: cleanPlaceId,
       google_reviews_synced_at: now,
     };
     if (data.business_name && !data.business_name.toLowerCase().startsWith("google business")) {
@@ -187,7 +196,8 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
       gbp_location: {
         id: `loc-${data.clinic_id}`,
         location_name: resolvedBizName,
-        place_id: data.place_id || null,
+        place_id: cleanPlaceId,
+        profile_url: resolvedProfileUrl,
         sync_status: "synced",
         last_synced_at: now,
       },
@@ -205,7 +215,7 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
         {
           clinic_id: data.clinic_id,
           location_name: resolvedBizName,
-          place_id: data.place_id || null,
+          place_id: cleanPlaceId || `loc-${data.clinic_id}`,
           is_primary: true,
           sync_status: "synced",
           last_synced_at: now,
@@ -220,8 +230,8 @@ export const saveGoogleGmbConnection = createServerFn({ method: "POST" })
     if (data.organization_id) {
       const orgUpdates: Record<string, unknown> = {
         google_business_name: resolvedBizName,
-        google_business_profile_url: data.profile_url || null,
-        google_place_id: data.place_id || null,
+        google_business_profile_url: resolvedProfileUrl,
+        google_place_id: cleanPlaceId,
         google_sync_status: "connected",
         google_business_profile_connected_at: now,
       };
