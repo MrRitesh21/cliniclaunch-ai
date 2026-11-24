@@ -105,6 +105,27 @@ export async function safeUpsertPatient(
       return { success: false, error: insErr.message };
     }
 
+    // Trigger patient registration notification to staff/doctor
+    void (async () => {
+      try {
+        const { sendPushNotification } = await import("./fcm.server");
+        await sendPushNotification({
+          clinicId,
+          role: "staff",
+          title: `👤 New Patient: ${cleanName}`,
+          body: `${cleanPhone}${data.age ? ` · Age ${data.age}` : ""} · Added to clinic records`,
+          notificationType: "patient_registered",
+          actionUrl: "/dashboard/patients",
+          tag: `patient-${newId}`,
+          data: {
+            patientId: newId,
+            patientName: cleanName,
+            patientPhone: cleanPhone,
+          },
+        });
+      } catch {}
+    })();
+
     return { success: true, id: newId };
   } catch (err: any) {
     console.warn("[safeUpsertPatient] Exception note:", err?.message);

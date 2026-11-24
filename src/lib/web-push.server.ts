@@ -279,6 +279,25 @@ export async function sendPushToUser(
 
   const { organizationId, planId } = await getUserPlanContext(userId);
 
+  // Dispatch to registered FCM devices (Android, iOS, Web FCM) via centralized FCM service
+  let fcmResult: { sent: number; failed: number; removed: number } = { sent: 0, failed: 0, removed: 0 };
+  try {
+    const { sendPushNotification } = await import("./fcm.server");
+    const res = await sendPushNotification({
+      recipientUserId: userId,
+      title: payload.title,
+      body: payload.body || "",
+      actionUrl: payload.url,
+      notificationType: opts.category ?? "general",
+      tag: payload.tag,
+      data: payload.data as Record<string, string | number | boolean | null | undefined>,
+      createInboxItem: false, // Already created above
+    });
+    fcmResult = { sent: res.sent, failed: res.failed, removed: res.removed };
+  } catch (fcmErr) {
+    console.warn("FCM push dispatch from sendPushToUser skipped:", fcmErr);
+  }
+
   const category = opts.category ?? "general";
   const eligible = (subs ?? []).filter((s) => {
     const cats = (s as { categories?: string[] | null }).categories;
@@ -294,7 +313,12 @@ export async function sendPushToUser(
   });
 
   if (!eligible.length)
-    return { sent: 0, failed: 0, removed: 0, notificationId: notification?.id ?? null };
+    return {
+      sent: fcmResult.sent,
+      failed: fcmResult.failed,
+      removed: fcmResult.removed,
+      notificationId: notification?.id ?? null,
+    };
 
   const enriched: PushPayload = {
     ...payload,
@@ -336,9 +360,9 @@ export async function sendPushToUser(
   ).catch(() => undefined);
 
   return {
-    sent: okEndpoints.length,
-    failed: results.filter((r) => !r.ok).length,
-    removed: expired.length,
+    sent: okEndpoints.length + fcmResult.sent,
+    failed: results.filter((r) => !r.ok).length + fcmResult.failed,
+    removed: expired.length + fcmResult.removed,
     notificationId: notification?.id ?? null,
   };
 }

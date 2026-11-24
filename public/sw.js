@@ -146,8 +146,15 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const title = payload.title || "ClinicX";
-  const url = safeUrl(payload.url);
+  const title =
+    payload.notification?.title || payload.data?.title || payload.title || "ClinicX";
+  const body =
+    payload.notification?.body || payload.data?.body || payload.body || "";
+  const icon =
+    payload.notification?.icon || payload.data?.icon || payload.icon || "/icon-512.png";
+  const url = safeUrl(
+    payload.data?.url || payload.fcmOptions?.link || payload.url || "/dashboard",
+  );
 
   event.waitUntil(
     Promise.all([

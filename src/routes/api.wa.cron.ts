@@ -225,6 +225,36 @@ export const Route = createFileRoute("/api/wa/cron")({
             });
             if (res.ok) summary[r.key].sent++;
             else summary[r.key].failed++;
+
+            // Trigger FCM push notification alongside WhatsApp alert
+            try {
+              const { sendPushNotification } = await import("@/lib/fcm.server");
+              if (r.key === "appointment_reminder") {
+                await sendPushNotification({
+                  clinicId: a.clinic_id,
+                  role: "doctor",
+                  title: "⏰ Appointment Reminder",
+                  body: `Appointment with ${a.patient_name || "Patient"} in 24 hours at ${time}`,
+                  notificationType: "reminder",
+                  actionUrl: "/dashboard/appointments",
+                  tag: `remind-${a.id}`,
+                  data: { appointmentId: a.id, patientName: a.patient_name },
+                });
+              } else if (r.key === "followup") {
+                await sendPushNotification({
+                  clinicId: a.clinic_id,
+                  role: "doctor",
+                  title: "🩺 Post-Visit Follow-up Due",
+                  body: `Follow-up due for ${a.patient_name || "Patient"} (visited 3 days ago)`,
+                  notificationType: "followup",
+                  actionUrl: "/dashboard/patients",
+                  tag: `followup-${a.id}`,
+                  data: { appointmentId: a.id, patientName: a.patient_name },
+                });
+              }
+            } catch (fcmErr) {
+              console.warn("cron: FCM push notification note:", fcmErr);
+            }
           }
         }
 

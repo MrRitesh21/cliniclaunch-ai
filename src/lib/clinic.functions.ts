@@ -1143,7 +1143,34 @@ export const createBooking = createServerFn({ method: "POST" })
           );
         }
 
-        // Web Push Alert directly to Doctor's Phone / Devices
+        // FCM & Web Push Alert directly to Doctor's Phone / Clinic Devices
+        tasks.push(
+          (async () => {
+            try {
+              const { sendPushNotification } = await import("./fcm.server");
+              await sendPushNotification({
+                clinicId: data.clinic_id,
+                role: "doctor",
+                title: isWalkin
+                  ? `🏥 Walk-in Check-in: ${data.patient_name}`
+                  : `📅 New Booking: ${data.patient_name}`,
+                body: `${data.appointment_type === "online" ? "Video Consultation" : "In-Clinic"} · ${date} at ${time}${data.problem ? ` · ${data.problem.slice(0, 50)}` : ""}`,
+                notificationType: "booking",
+                actionUrl: "/dashboard/appointments",
+                tag: `appt-${appt.id}`,
+                data: {
+                  appointmentId: appt.id,
+                  patientName: data.patient_name,
+                  scheduledAt: data.scheduled_at,
+                  source: data.source || "online",
+                },
+              });
+            } catch (fcmErr) {
+              console.warn("createBooking: FCM push dispatch note:", fcmErr);
+            }
+          })(),
+        );
+
         if (clinicRow?.organization_id) {
           tasks.push(
             sb
@@ -1412,8 +1439,107 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
           scheduledFor: new Date(base.getTime() + 7 * 24 * 3600 * 1000),
         });
       }
+
+      // FCM Push Notification for status updates (e.g. cancellation, confirmation)
+      if (data.status === "cancelled") {
+        void (async () => {
+          try {
+            const { sendPushNotification } = await import("./fcm.server");
+            await sendPushNotification({
+              clinicId: clinic.id,
+              role: "doctor",
+              title: "❌ Appointment Cancelled",
+              body: `${appt.patient_name || "Patient"} appointment on ${date} at ${time} was cancelled.`,
+              notificationType: "appointment_cancelled",
+              actionUrl: "/dashboard/appointments",
+              tag: `appt-cancel-${appt.id}`,
+            });
+          } catch {}
+        })();
+      } else if (data.status === "confirmed") {
+        void (async () => {
+          try {
+            const { sendPushNotification } = await import("./fcm.server");
+            await sendPushNotification({
+              clinicId: clinic.id,
+              role: "doctor",
+              title: "✅ Appointment Confirmed",
+              body: `${appt.patient_name || "Patient"} appointment on ${date} at ${time} is confirmed.`,
+              notificationType: "appointment_confirmed",
+              actionUrl: "/dashboard/appointments",
+              tag: `appt-confirm-${appt.id}`,
+            });
+          } catch {}
+        })();
+      }
     }
     return appt;
+  });
+
+export const rescheduleAppointment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        newScheduledAt: z.string().min(10),
+        reason: z.string().max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
+    const adminSb = await adminClient();
+
+    const { data: existingAppt, error: findErr } = await adminSb
+      .from("appointments")
+      .select("*, clinics!appointments_clinic_id_fkey(id, organization_id, doctor_name, slug)")
+      .eq("id", data.id)
+      .maybeSingle();
+
+    if (findErr || !existingAppt) {
+      throw new Error("Appointment not found");
+    }
+
+    const { data: updatedAppt, error: updateErr } = await adminSb
+      .from("appointments")
+      .update({ scheduled_at: data.newScheduledAt })
+      .eq("id", data.id)
+      .select()
+      .single();
+
+    if (updateErr) {
+      throw new Error(updateErr.message);
+    }
+
+    const clinic = (existingAppt as any).clinics;
+    const when = new Date(data.newScheduledAt);
+    const date = when.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata" });
+    const time = when.toLocaleTimeString("en-US", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // FCM Push Notification for rescheduling
+    if (clinic?.id) {
+      void (async () => {
+        try {
+          const { sendPushNotification } = await import("./fcm.server");
+          await sendPushNotification({
+            clinicId: clinic.id,
+            role: "doctor",
+            title: "📅 Appointment Rescheduled",
+            body: `${existingAppt.patient_name || "Patient"} rescheduled to ${date} at ${time}${data.reason ? ` · Reason: ${data.reason}` : ""}`,
+            notificationType: "appointment_rescheduled",
+            actionUrl: "/dashboard/appointments",
+            tag: `appt-reschedule-${data.id}`,
+          });
+        } catch {}
+      })();
+    }
+
+    return updatedAppt;
   });
 
 export const createAndInviteStaff = createServerFn({ method: "POST" })

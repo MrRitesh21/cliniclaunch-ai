@@ -1399,6 +1399,53 @@ export type Database = {
           },
         ]
       }
+      device_tokens: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          device_name: string | null
+          id: string
+          is_active: boolean
+          last_seen_at: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_tokens_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           browser: string | null
@@ -2907,12 +2954,17 @@ export type Database = {
         Row: {
           body: string | null
           category: string
+          clinic_id: string | null
           created_at: string
+          delivery_status: string | null
           event_token: string
           id: string
           meta: Json
+          notification_type: string | null
           organization_id: string | null
           read_at: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
           title: string
           url: string | null
           user_id: string
@@ -2920,12 +2972,17 @@ export type Database = {
         Insert: {
           body?: string | null
           category?: string
+          clinic_id?: string | null
           created_at?: string
+          delivery_status?: string | null
           event_token?: string
           id?: string
           meta?: Json
+          notification_type?: string | null
           organization_id?: string | null
           read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           title: string
           url?: string | null
           user_id: string
@@ -2933,14 +2990,55 @@ export type Database = {
         Update: {
           body?: string | null
           category?: string
+          clinic_id?: string | null
           created_at?: string
+          delivery_status?: string | null
           event_token?: string
           id?: string
           meta?: Json
+          notification_type?: string | null
           organization_id?: string | null
           read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           title?: string
           url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notification_preferences: {
+        Row: {
+          appointment_reminders: boolean
+          booking_alerts: boolean
+          marketing_alerts: boolean
+          push_enabled: boolean
+          quiet_end: string | null
+          quiet_start: string | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_reminders?: boolean
+          booking_alerts?: boolean
+          marketing_alerts?: boolean
+          push_enabled?: boolean
+          quiet_end?: string | null
+          quiet_start?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_reminders?: boolean
+          booking_alerts?: boolean
+          marketing_alerts?: boolean
+          push_enabled?: boolean
+          quiet_end?: string | null
+          quiet_start?: string | null
+          timezone?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

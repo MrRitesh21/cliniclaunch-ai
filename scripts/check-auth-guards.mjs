@@ -37,6 +37,7 @@ const PUBLIC_ALLOWLIST = new Set([
   // Public plans & push config
   "plans.functions.ts:getPublicPlans",
   "push.functions.ts:getPushConfig",
+  "fcm.functions.ts:getFcmConfig",
   // Public template gallery & site template
   "site-templates.functions.ts:listTemplateLibrary",
   "site-templates.functions.ts:getClinicSiteTemplate",

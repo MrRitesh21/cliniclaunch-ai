@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
@@ -171,6 +172,11 @@ const ContactRoute = ContactRouteImport.update({
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -811,6 +817,7 @@ export interface FileRoutesByFullPath {
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/docs': typeof DocsRoute
+  '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -936,6 +943,7 @@ export interface FileRoutesByTo {
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/docs': typeof DocsRoute
+  '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -1060,6 +1068,7 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/docs': typeof DocsRoute
+  '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -1187,6 +1196,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/contact'
     | '/docs'
+    | '/download'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1312,6 +1322,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/contact'
     | '/docs'
+    | '/download'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1435,6 +1446,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/contact'
     | '/docs'
+    | '/download'
     | '/faq'
     | '/features'
     | '/how-it-works'
@@ -1563,6 +1575,7 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   ContactRoute: typeof ContactRoute
   DocsRoute: typeof DocsRoute
+  DownloadRoute: typeof DownloadRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   HowItWorksRoute: typeof HowItWorksRoute
@@ -1669,6 +1682,13 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -2720,6 +2740,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   ContactRoute: ContactRoute,
   DocsRoute: DocsRoute,
+  DownloadRoute: DownloadRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   HowItWorksRoute: HowItWorksRoute,

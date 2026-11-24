@@ -61,6 +61,27 @@ export const submitLeadServer = createServerFn({ method: "POST" })
           },
         });
       }
+
+      // FCM push notification to clinic doctor & staff
+      try {
+        const { sendPushNotification } = await import("./fcm.server");
+        await sendPushNotification({
+          clinicId: data.clinic_id,
+          role: "doctor",
+          title: `💬 New Lead: ${data.name}`,
+          body: `${data.source.toUpperCase()} inquiry · ${data.phone}${data.message ? ` · ${data.message.slice(0, 50)}` : ""}`,
+          notificationType: "inquiry",
+          actionUrl: "/dashboard/leads",
+          tag: `lead-${Date.now()}`,
+          data: {
+            leadName: data.name,
+            leadPhone: data.phone,
+            source: data.source,
+          },
+        });
+      } catch (fcmErr) {
+        console.warn("submitLeadServer: FCM push alert note:", fcmErr);
+      }
     } catch { /* swallow */ }
     return { ok: true };
   });

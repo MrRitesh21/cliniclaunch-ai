@@ -1,4 +1,4 @@
-import { Bell, BellOff, Laptop, Loader2, Share, Smartphone, Trash2 } from "lucide-react";
+import { Bell, BellOff, CheckCircle2, Laptop, Loader2, Share, Smartphone, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,6 +8,8 @@ import { setClinicTrialEmailConsent } from "@/lib/trial-engagement.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePushNotifications, triggerBrowserNotification } from "@/lib/push-client";
+import { useFcmNotifications } from "@/lib/fcm-client";
+import { unregisterDeviceToken } from "@/lib/fcm.functions";
 
 /**
  * Per-device push notification control. Each browser/device is its own
@@ -15,6 +17,7 @@ import { usePushNotifications, triggerBrowserNotification } from "@/lib/push-cli
  */
 export function NotificationSettingsCard() {
   const push = usePushNotifications();
+  const fcm = useFcmNotifications();
   const { org, role } = useOrganization();
   const consentFn = useServerFn(setClinicTrialEmailConsent);
   const [emailDraft, setEmailDraft] = useState(false);
@@ -48,8 +51,6 @@ export function NotificationSettingsCard() {
       if (workspace.current !== token) return;
       if (result.email_enabled !== emailDraft)
         throw new Error("Consent response did not match the requested preference");
-      // This contract acknowledges the write; it does not expose a preference GET.
-      // Do not claim independently verified saved state until that API is added.
       setEmailConfirmed(result.email_enabled);
     } catch {
       if (workspace.current === token)
@@ -59,7 +60,25 @@ export function NotificationSettingsCard() {
     }
   }
 
+  const isSubscribed = fcm.subscribed || push.subscribed;
+  const isBusy = fcm.busy || push.busy;
+  const isSupported = fcm.supported || push.supported;
+
   const handleEnable = async () => {
+    // Enable FCM first
+    const fcmRes = await fcm.enableNotifications();
+    if (fcmRes.ok) {
+      // Also register with legacy push for dual-delivery robustness
+      await push.enable().catch(() => {});
+      return;
+    }
+
+    if (fcmRes.reason === "denied") {
+      toast.error("Notifications blocked. Allow them in your browser site settings.");
+      return;
+    }
+
+    // Fallback to push
     const res = await push.enable();
     if (res.ok) {
       toast.success("Notifications enabled on this device");
@@ -81,6 +100,32 @@ export function NotificationSettingsCard() {
           "Push notification setup failed on this device.",
       );
     }
+  };
+
+  const handleDisable = async () => {
+    await fcm.disableNotifications();
+    await push.disable().catch(() => {});
+  };
+
+  const handleTest = async () => {
+    // Try FCM first
+    const fcmTest = await fcm.sendTestNotification();
+    if (fcmTest && fcmTest.sent > 0) return;
+
+    // Fallback to legacy push test
+    try {
+      const res = await push.test();
+      if (res && res.sent > 0) {
+        toast.success(`Test sent to ${res.sent} device(s)`);
+        return;
+      }
+    } catch {}
+
+    // Local browser fallback test
+    triggerBrowserNotification("ClinicX Alert 🔔", {
+      body: "Test notification delivered! Real-time alerts are working on this device.",
+    });
+    toast.success("Test notification displayed on this device!");
   };
 
   return (
@@ -174,10 +219,10 @@ export function NotificationSettingsCard() {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          {push.subscribed ? (
+          {isSubscribed ? (
             <>
-              <Button variant="outline" onClick={() => void push.disable()} disabled={push.busy}>
-                {push.busy ? (
+              <Button variant="outline" onClick={handleDisable} disabled={isBusy}>
+                {isBusy ? (
                   <Loader2 className="size-4 mr-2 animate-spin" />
                 ) : (
                   <BellOff className="size-4 mr-2" />
@@ -186,30 +231,23 @@ export function NotificationSettingsCard() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={async () => {
-                  try {
-                    const res = await push.test();
-                    if (res && res.sent > 0) {
-                      toast.success(`Test sent to ${res.sent} device(s)`);
-                      return;
-                    }
-                  } catch {}
-                  // Local browser fallback test
-                  triggerBrowserNotification("ClinicX Alert 🔔", {
-                    body: "Test notification delivered! Real-time alerts are working on this device.",
-                  });
-                  toast.success("Test notification displayed on this device!");
-                }}
+                onClick={handleTest}
+                disabled={isBusy}
               >
+                {isBusy ? (
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="size-4 mr-2 text-amber-500" />
+                )}
                 Send test notification
               </Button>
             </>
           ) : (
             <Button
               onClick={handleEnable}
-              disabled={push.busy || !push.supported}
+              disabled={isBusy || !isSupported}
             >
-              {push.busy ? (
+              {isBusy ? (
                 <Loader2 className="size-4 mr-2 animate-spin" />
               ) : (
                 <Bell className="size-4 mr-2" />
@@ -217,30 +255,38 @@ export function NotificationSettingsCard() {
               Enable on this device
             </Button>
           )}
-          {push.permission === "denied" && (
+          {fcm.permission === "denied" && (
             <span className="text-xs text-destructive">Blocked in browser settings</span>
+          )}
+          {fcm.configured && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
+              <CheckCircle2 className="size-3" /> FCM HTTP v1 Ready
+            </span>
           )}
         </div>
 
-        {push.devices.length > 0 && (
+        {(fcm.devices.length > 0 || push.devices.length > 0) && (
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Your devices
+              Your registered devices
             </p>
             <ul className="divide-y rounded-lg border">
-              {push.devices.map((d) => (
+              {fcm.devices.map((d) => (
                 <li key={d.id} className="flex items-center gap-3 p-3">
-                  {d.platform === "desktop" ? (
-                    <Laptop className="size-4 text-muted-foreground shrink-0" />
+                  {d.platform === "desktop" || d.platform === "web" ? (
+                    <Laptop className="size-4 text-primary shrink-0" />
                   ) : (
-                    <Smartphone className="size-4 text-muted-foreground shrink-0" />
+                    <Smartphone className="size-4 text-primary shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {d.device_label || "Unknown device"}
+                    <p className="truncate text-sm font-medium flex items-center gap-2">
+                      {d.device_name || "Active Device"}
+                      <span className="rounded bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary uppercase">
+                        {d.platform}
+                      </span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Added {new Date(d.created_at).toLocaleDateString()}
+                      Last seen {new Date(d.last_seen_at || d.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <Button
@@ -248,7 +294,8 @@ export function NotificationSettingsCard() {
                     size="icon"
                     aria-label="Remove device"
                     onClick={async () => {
-                      await push.removeDevice(d.endpoint);
+                      await unregisterDeviceToken({ data: { token: d.token } });
+                      await fcm.refreshDevices();
                       toast.success("Device removed");
                     }}
                   >
@@ -256,6 +303,36 @@ export function NotificationSettingsCard() {
                   </Button>
                 </li>
               ))}
+              {push.devices
+                .filter((pd) => !fcm.devices.some((fd) => fd.token === pd.endpoint))
+                .map((d) => (
+                  <li key={d.id} className="flex items-center gap-3 p-3">
+                    {d.platform === "desktop" ? (
+                      <Laptop className="size-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <Smartphone className="size-4 text-muted-foreground shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {d.device_label || "Web Browser"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Added {new Date(d.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remove device"
+                      onClick={async () => {
+                        await push.removeDevice(d.endpoint);
+                        toast.success("Device removed");
+                      }}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </li>
+                ))}
             </ul>
           </div>
         )}

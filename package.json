@@ -20,8 +20,12 @@
     "doctor": "npx react-doctor@latest",
     "live": "node .agent/skills/live-edit/scripts/live.mjs start",
     "check:secret-config": "node --test scripts/test-clinicx-secret-config.cjs",
+    "test:fcm": "node --test scripts/test-clinicx-fcm.cjs",
     "test:oneclick-setup": "node --test scripts/test-clinicx-oneclick-clinic-setup.cjs",
-    "test:gbp": "node --test scripts/test-clinicx-gbp-integration.cjs"
+    "test:gbp": "node --test scripts/test-clinicx-gbp-integration.cjs",
+    "mobile:start": "cd mobile && npx expo start",
+    "mobile:ios": "cd mobile && npx expo run:ios",
+    "mobile:android": "cd mobile && npx expo run:android"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

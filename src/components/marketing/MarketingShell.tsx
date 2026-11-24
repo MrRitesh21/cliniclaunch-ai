@@ -252,6 +252,11 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/download" className="hover:text-foreground">
+                    Download Mobile App
+                  </Link>
+                </li>
+                <li>
                   <Link to="/contact" className="hover:text-foreground text-primary font-bold">
                     Live Demo
                   </Link>

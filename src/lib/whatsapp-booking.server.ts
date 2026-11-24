@@ -1635,6 +1635,22 @@ Aap isme kya badlav karna chahenge?
       await sb.from("appointments").update({ status: "cancelled" }).eq("id", upcomingAppt.id);
       await sb.from("queue_tokens").update({ status: "cancelled" }).eq("appointment_id", upcomingAppt.id);
 
+      // Trigger FCM cancellation push to doctor & staff
+      void (async () => {
+        try {
+          const { sendPushNotification } = await import("./fcm.server");
+          await sendPushNotification({
+            clinicId: clinic.id,
+            role: "doctor",
+            title: "❌ WhatsApp Cancellation",
+            body: `${upcomingAppt.patient_name || "Patient"} cancelled appointment for ${currentApptDate} at ${currentApptTime} via WhatsApp.`,
+            notificationType: "appointment_cancelled",
+            actionUrl: "/dashboard/appointments",
+            tag: `appt-cancel-${upcomingAppt.id}`,
+          });
+        } catch {}
+      })();
+
       return {
         reply: `Theek hai ji, aapka appointment (${currentApptDate} ko ${currentApptTime} baje) cancel kar diya gaya hai.
 
@@ -2373,6 +2389,27 @@ Agar dobara koi badlav karna ho toh yahan message karein.`,
           },
         }).catch((err) => console.error("WhatsApp doctor alert failed:", err));
       }
+
+      // FCM Push alert to Doctor & Staff for WhatsApp booking
+      void (async () => {
+        try {
+          const { sendPushNotification } = await import("./fcm.server");
+          await sendPushNotification({
+            clinicId: clinic.id,
+            role: "doctor",
+            title: `🤖 WhatsApp Booking: ${patientNameFinal}`,
+            body: `${dateDisplay} at ${timeDisplay}${tokenNumber ? ` · Token #${tokenNumber}` : ""} · ${assignedDoc.name}`,
+            notificationType: "booking",
+            actionUrl: "/dashboard/appointments",
+            tag: `appt-${appt.id}`,
+            data: {
+              appointmentId: appt.id,
+              patientName: patientNameFinal,
+              source: "whatsapp",
+            },
+          });
+        } catch {}
+      })();
 
       // Confirmation Reply
       const confirmationReply = `✅ *Appointment Confirmed!*
