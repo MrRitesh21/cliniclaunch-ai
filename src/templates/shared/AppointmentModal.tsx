@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { X, Calendar, Clock, CheckCircle2, User, Phone, Mail, FileText, Video, Building2, ShieldCheck, ArrowRight, Loader2, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 import type { SiteClinic } from "@/components/site/types";
@@ -15,6 +15,7 @@ interface AppointmentModalProps {
 export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#2563eb" }: AppointmentModalProps) {
   const [step, setStep] = useState<"form" | "success">("form");
   const [submitting, setSubmitting] = useState(false);
+  const submitInflightRef = useRef(false);
 
   const services = getServices(clinic);
 
@@ -61,6 +62,8 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
       return;
     }
 
+    if (submitInflightRef.current) return;
+    submitInflightRef.current = true;
     setSubmitting(true);
     try {
       const endpoint = "/api/public/submit-booking";
@@ -118,6 +121,7 @@ export function AppointmentModal({ clinic, isOpen, onClose, primaryColor = "#256
       setStep("success");
       toast.success("Appointment request received! Clinic will confirm shortly.");
     } finally {
+      submitInflightRef.current = false;
       setSubmitting(false);
     }
   };

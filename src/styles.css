@@ -229,6 +229,21 @@ html.dark,
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
   }
+
+  @keyframes bell-ring {
+    0%, 100% { transform: rotate(0deg); }
+    12% { transform: rotate(14deg); }
+    24% { transform: rotate(-12deg); }
+    36% { transform: rotate(10deg); }
+    48% { transform: rotate(-8deg); }
+    60% { transform: rotate(5deg); }
+    72% { transform: rotate(-3deg); }
+    84% { transform: rotate(0deg); }
+  }
+  .animate-bell-ring {
+    transform-origin: top center;
+    animation: bell-ring 0.9s ease-in-out;
+  }
 }
 
 /* Global Touch & Native Mobile App Feel */

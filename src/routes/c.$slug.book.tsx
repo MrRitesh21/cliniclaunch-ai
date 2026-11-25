@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as ClinicRoute } from "./c.$slug";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { getBookedSlots, createBooking } from "@/lib/clinic.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -309,6 +309,7 @@ function BookPage() {
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const submitInflightRef = useRef(false);
   const [confirmed, setConfirmed] = useState<{ id: string; type: "online" | "offline" } | null>(
     null,
   );
@@ -579,6 +580,9 @@ function BookPage() {
       toast.error(nameError || phoneError || emailError || "Please fix the errors above");
       return;
     }
+    // Inflight guard — prevents double-submit from rapid clicks or form re-renders
+    if (submitInflightRef.current) return;
+    submitInflightRef.current = true;
     setSubmitting(true);
     try {
       const cleanAge = form.age.trim() ? Math.min(130, Math.max(0, parseInt(form.age.trim(), 10))) : null;
@@ -627,6 +631,7 @@ function BookPage() {
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
+      submitInflightRef.current = false;
       setSubmitting(false);
     }
   }

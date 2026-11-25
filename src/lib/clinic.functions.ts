@@ -874,23 +874,35 @@ export const createBooking = createServerFn({ method: "POST" })
     const orgId = clinicRow.organization_id ?? null;
     const doctorRow = await requirePublicDoctor(sb, data.clinic_id, orgId, data.doctor_id);
 
-    // Reject duplicate active booking for the same patient on the same day
-    const bookingDay = new Date(data.scheduled_at);
-    const startOfDay = new Date(bookingDay);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(bookingDay);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Reject duplicate active booking for the same patient on the same IST day
+    const istDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+      new Date(data.scheduled_at),
+    );
+    const startOfDay = new Date(`${istDateStr}T00:00:00+05:30`);
+    const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
+    const cleanPhone = data.patient_phone.replace(/[\s\-\(\)]/g, "");
+    const digitsOnly = cleanPhone.replace(/\D/g, "");
+    const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+    const phoneVariants = Array.from(
+      new Set(
+        [data.patient_phone, cleanPhone, digitsOnly, last10, `+91${last10}`, `91${last10}`].filter(
+          Boolean,
+        ),
+      ),
+    );
 
-    const { data: duplicateAppt } = await sb
+    const { data: duplicateAppts } = await sb
       .from("appointments")
       .select("id, scheduled_at, status")
       .eq("clinic_id", data.clinic_id)
-      .eq("patient_phone", data.patient_phone)
+      .in("patient_phone", phoneVariants)
       .gte("scheduled_at", startOfDay.toISOString())
       .lte("scheduled_at", endOfDay.toISOString())
       .neq("status", "cancelled")
-      .maybeSingle();
+      .order("created_at", { ascending: true })
+      .limit(1);
 
+    const duplicateAppt = duplicateAppts?.[0];
     if (duplicateAppt) {
       const timeStr = duplicateAppt.scheduled_at
         ? new Date(duplicateAppt.scheduled_at).toLocaleTimeString("en-IN", {

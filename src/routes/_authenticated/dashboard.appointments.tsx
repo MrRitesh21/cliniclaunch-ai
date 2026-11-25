@@ -406,14 +406,14 @@ function AppointmentsPage() {
             const patientName = newAppt?.patient_name || "New Patient";
             const tokenMatch = (newAppt?.notes || "").match(/OPD-\d+/) || (newAppt?.problem || "").match(/OPD-\d+/);
             const tokenStr = tokenMatch ? ` (${tokenMatch[0]})` : "";
-            toast.success(`🔔 New Appointment: ${patientName}${tokenStr}`, {
-              description: newAppt?.problem ? newAppt.problem.slice(0, 60) : "Booked via Website",
+            toast.success(`New Appointment: ${patientName}${tokenStr}`, {
+              description: newAppt?.problem ? newAppt.problem.slice(0, 80) : "Booked via Website",
               duration: 8000,
+              style: { borderLeft: "4px solid hsl(var(--primary))" },
             });
-            try {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-              audio.play().catch(() => {});
-            } catch {}
+            import("@/lib/notification-sound")
+              .then(({ playNotificationChime }) => playNotificationChime("booking"))
+              .catch(() => {});
           }
           load();
         },

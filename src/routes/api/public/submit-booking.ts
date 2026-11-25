@@ -400,11 +400,54 @@ export const Route = createFileRoute("/api/public/submit-booking")({
             scheduledAt = new Date();
           }
 
-          // 7. Check for duplicate pending appointment on the same day for this phone
-          const startOfDay = new Date(scheduledAt);
-          startOfDay.setHours(0, 0, 0, 0);
-          const endOfDay = new Date(scheduledAt);
-          endOfDay.setHours(23, 59, 59, 999);
+          // 7. Check for duplicate pending appointment on the same day for this phone (IST day bounds)
+          const startOfDay = new Date(`${targetDateStr}T00:00:00+05:30`);
+          const endOfDay = new Date(`${targetDateStr}T23:59:59.999+05:30`);
+          const digitsOnly = cleanPhone.replace(/\D/g, "");
+          const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+          const phoneVariants = Array.from(
+            new Set([cleanPhone, digitsOnly, last10, `+91${last10}`, `91${last10}`].filter(Boolean)),
+          );
+
+          // --- DEDUP GUARD: same phone + same clinic + same day ---
+          if (sb) {
+            try {
+              const { data: existingRows } = await sb
+                .from("appointments")
+                .select("id, scheduled_at")
+                .eq("clinic_id", clinicId)
+                .in("patient_phone", phoneVariants)
+                .gte("scheduled_at", startOfDay.toISOString())
+                .lte("scheduled_at", endOfDay.toISOString())
+                .neq("status", "cancelled")
+                .order("created_at", { ascending: true })
+                .limit(1);
+
+              const existing = existingRows?.[0];
+              if (existing) {
+                const existingTime = existing.scheduled_at
+                  ? new Date(existing.scheduled_at).toLocaleTimeString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "earlier today";
+                return Response.json(
+                  {
+                    success: false,
+                    duplicate: true,
+                    error: `An appointment for this phone number is already booked today at ${existingTime}. Please contact the clinic to reschedule.`,
+                    appointment_id: existing.id,
+                  },
+                  { status: 409, headers: CORS_HEADERS },
+                );
+              }
+            } catch (dedupErr) {
+              console.warn("submit-booking: dedup check skipped:", dedupErr);
+            }
+          }
+          // --- END DEDUP GUARD ---
 
           const dpdpConsent = Boolean(
             payload.dpdp_consent === true ||
@@ -477,30 +520,30 @@ export const Route = createFileRoute("/api/public/submit-booking")({
               // Mutual Exclusion & Slot Collision Prevention
               const slotStart = new Date(scheduledAt.getTime() - 14 * 60 * 1000).toISOString();
               const slotEnd = new Date(scheduledAt.getTime() + 14 * 60 * 1000).toISOString();
-              const { data: slotTaken } = await sb
+              const { data: slotTakenRows } = await sb
                 .from("appointments")
                 .select("id")
                 .eq("clinic_id", clinicId)
                 .gte("scheduled_at", slotStart)
                 .lte("scheduled_at", slotEnd)
                 .neq("status", "cancelled")
-                .maybeSingle();
+                .limit(1);
 
-              if (slotTaken) {
+              if (slotTakenRows && slotTakenRows.length > 0) {
                 // Slot occupied: auto-allocate next available 15-min OPD window (up to 1 hour ahead)
                 let candidate = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
                 for (let i = 0; i < 4; i++) {
                   const cStart = new Date(candidate.getTime() - 14 * 60 * 1000).toISOString();
                   const cEnd = new Date(candidate.getTime() + 14 * 60 * 1000).toISOString();
-                  const { data: cTaken } = await sb
+                  const { data: cTakenRows } = await sb
                     .from("appointments")
                     .select("id")
                     .eq("clinic_id", clinicId)
                     .gte("scheduled_at", cStart)
                     .lte("scheduled_at", cEnd)
                     .neq("status", "cancelled")
-                    .maybeSingle();
-                  if (!cTaken) {
+                    .limit(1);
+                  if (!cTakenRows || cTakenRows.length === 0) {
                     scheduledAt = candidate;
                     break;
                   }

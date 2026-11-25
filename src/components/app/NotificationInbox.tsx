@@ -1,22 +1,37 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  Activity,
   ArrowDownUp,
   Bell,
+  BellRing,
+  CalendarCheck,
   CheckCheck,
   ChevronRight,
-  Inbox,
+  IndianRupee,
   Loader2,
   Mail,
   MailOpen,
   Search,
   Settings2,
+  Star,
+  Stethoscope,
   Trash2,
+  UserPlus,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  bindNotificationAudioUnlock,
+  isNotificationSoundMuted,
+  playNotificationChime,
+  setNotificationSoundMuted,
+  soundKindFromCategory,
+} from "@/lib/notification-sound";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -49,6 +64,71 @@ function timeAgo(iso: string) {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
+function getCategoryStyle(category?: string | null, title?: string | null) {
+  const c = `${category || ""} ${title || ""}`.toLowerCase();
+  if (c.includes("appoint") || c.includes("book")) {
+    return {
+      Icon: CalendarCheck,
+      dotClass: "bg-blue-500",
+      badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+      pillClass: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+      emoji: "📅",
+    };
+  }
+  if (c.includes("walkin") || c.includes("walk-in") || c.includes("queue") || c.includes("token")) {
+    return {
+      Icon: Activity,
+      dotClass: "bg-cyan-500",
+      badgeClass: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+      pillClass: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+      emoji: "🏥",
+    };
+  }
+  if (c.includes("review") || c.includes("feedback")) {
+    return {
+      Icon: Star,
+      dotClass: "bg-amber-500",
+      badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      pillClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      emoji: "⭐",
+    };
+  }
+  if (c.includes("lead")) {
+    return {
+      Icon: UserPlus,
+      dotClass: "bg-violet-500",
+      badgeClass: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+      pillClass: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+      emoji: "💼",
+    };
+  }
+  if (c.includes("pay") || c.includes("bill") || c.includes("invoice")) {
+    return {
+      Icon: IndianRupee,
+      dotClass: "bg-emerald-500",
+      badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      pillClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      emoji: "💰",
+    };
+  }
+  if (c.includes("consult") || c.includes("prescription") || c.includes("rx")) {
+    return {
+      Icon: Stethoscope,
+      dotClass: "bg-indigo-500",
+      badgeClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+      pillClass: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+      emoji: "🩺",
+    };
+  }
+  return {
+    Icon: BellRing,
+    dotClass: "bg-primary",
+    badgeClass: "bg-primary/10 text-primary border-primary/20",
+    pillClass: "bg-primary/10 text-primary",
+    emoji: "🔔",
+  };
+}
+
 // Module-level deduplication set so multiple mounted instances (desktop + mobile headers)
 // do not trigger duplicate audible alerts or stacked toasts for the same notification event.
 const recentToastIds = new Set<string>();
@@ -58,6 +138,8 @@ export function NotificationInbox() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<InboxItem[]>([]);
   const [unread, setUnread] = useState(0);
+  const [ringing, setRinging] = useState(false);
+  const [soundMuted, setSoundMuted] = useState(() => isNotificationSoundMuted());
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<"newest" | "unread">("newest");
@@ -119,6 +201,7 @@ export function NotificationInbox() {
   }, [refresh]);
 
   useEffect(() => {
+    bindNotificationAudioUnlock();
     refreshRef.current();
     const timer = window.setInterval(() => refreshRef.current(false), 3 * 60 * 1000);
 
@@ -137,19 +220,35 @@ export function NotificationInbox() {
         (payload) => {
           const newNotif = payload.new as any;
           if (newNotif?.title) {
+            setRinging(true);
+            window.setTimeout(() => setRinging(false), 1100);
+
             const notifKey = newNotif.id || `${newNotif.title}-${newNotif.created_at || Date.now()}`;
             if (!recentToastIds.has(notifKey)) {
               recentToastIds.add(notifKey);
               window.setTimeout(() => recentToastIds.delete(notifKey), 10000);
 
-              toast.info(`🔔 ${newNotif.title}`, {
+              const styleMeta = getCategoryStyle(newNotif.category, newNotif.title);
+              const targetPath = newNotif.url
+                ? String(newNotif.url).split("?")[0]
+                : "/dashboard/appointments";
+
+              toast(newNotif.title, {
                 description: newNotif.body || undefined,
-                duration: 7000,
+                duration: 8000,
+                icon: <span className="text-base leading-none">{styleMeta.emoji}</span>,
+                action: {
+                  label: "View",
+                  onClick: () => {
+                    if (newNotif.id) {
+                      markRead({ data: { id: newNotif.id, opened: true } }).catch(() => undefined);
+                    }
+                    navigate({ to: targetPath as any }).catch(() => undefined);
+                  },
+                },
+                style: { borderLeft: "4px solid hsl(var(--primary))" },
               });
-              try {
-                const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-                audio.play().catch(() => {});
-              } catch {}
+              playNotificationChime(soundKindFromCategory(newNotif.category));
             }
           }
           refreshRef.current(false);
@@ -161,7 +260,7 @@ export function NotificationInbox() {
       window.clearInterval(timer);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [markRead, navigate]);
 
   // A push deep-link carries ?n=<id>: count it as opened and clear the badge.
   useEffect(() => {
@@ -321,29 +420,71 @@ export function NotificationInbox() {
     });
   }, [items, query, category, sort]);
 
+  const toggleSound = () => {
+    const nextMuted = !soundMuted;
+    setSoundMuted(nextMuted);
+    setNotificationSoundMuted(nextMuted);
+    if (!nextMuted) {
+      playNotificationChime("booking", { ignoreMute: true });
+      toast.success("Notification chime enabled");
+    } else {
+      toast.info("Notification sound muted");
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-          <Bell className="size-4" />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Notifications"
+          className={`relative rounded-xl transition-all duration-200 hover:scale-105 ${
+            unread > 0 ? "bg-primary/10 text-primary hover:bg-primary/15" : ""
+          }`}
+        >
+          <Bell className={`size-4 transition-transform ${ringing ? "animate-bell-ring text-primary" : ""}`} />
           {unread > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">
-              {unread > 9 ? "9+" : unread}
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold grid place-items-center shadow-sm ring-2 ring-background">
+              {unread > 99 ? "99+" : unread > 9 ? "9+" : unread}
             </span>
           )}
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-sm p-0 flex flex-col">
-        <SheetHeader className="px-4 py-3 border-b">
-          <SheetTitle className="flex items-center justify-between text-base">
-            <span className="flex items-center gap-2">
-              <Inbox className="size-4" /> Notifications
+        <SheetHeader className="px-4 py-3.5 border-b bg-gradient-to-r from-primary/5 via-background to-muted/30">
+          <SheetTitle className="flex items-center justify-between text-base pr-6">
+            <span className="flex items-center gap-2.5 font-bold">
+              <span className="size-8 rounded-lg bg-primary/10 text-primary grid place-items-center">
+                <Bell className="size-4" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="leading-tight">Notifications</span>
+                {unread > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                    <span className="size-1.5 rounded-full bg-destructive animate-pulse" />
+                    {unread} unread
+                  </span>
+                )}
+              </span>
             </span>
-            {unread > 0 && (
-              <Button variant="ghost" size="sm" className="text-xs" onClick={handleMarkAll}>
-                <CheckCheck className="size-3.5 mr-1" /> Mark all read
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-foreground"
+                onClick={toggleSound}
+                aria-label={soundMuted ? "Unmute notification sound" : "Mute notification sound"}
+                title={soundMuted ? "Unmute sound & test chime" : "Mute notification sound"}
+              >
+                {soundMuted ? <VolumeX className="size-4 text-muted-foreground" /> : <Volume2 className="size-4 text-primary" />}
               </Button>
-            )}
+              {unread > 0 && (
+                <Button variant="ghost" size="sm" className="text-xs h-8 px-2" onClick={handleMarkAll}>
+                  <CheckCheck className="size-3.5 mr-1" /> Mark all
+                </Button>
+              )}
+            </div>
           </SheetTitle>
         </SheetHeader>
 
@@ -455,65 +596,89 @@ export function NotificationInbox() {
               No alerts match this search.
             </p>
           )}
-          {visible.map((item) => (
-            <div
-              key={item.id}
-              role="listitem"
-              className={`flex items-start gap-2 px-4 py-3 transition-colors outline-none focus-within:bg-muted/50 ${
-                selected.includes(item.id) ? "bg-muted" : item.read_at ? "" : "bg-primary/5"
-              }`}
-            >
-              <div className="flex items-center h-5 mt-1">
-                <Checkbox
-                  id={`check-${item.id}`}
-                  checked={selected.includes(item.id)}
-                  onCheckedChange={() => toggleSelect(item.id)}
-                  aria-label={`Select ${item.title}`}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => handleOpen(item)}
-                className="flex-1 min-w-0 text-left hover:opacity-80 focus:outline-none"
-                aria-expanded={detailItem?.id === item.id}
+          {visible.map((item) => {
+            const catStyle = getCategoryStyle(item.category, item.title);
+            const CatIcon = catStyle.Icon;
+            return (
+              <div
+                key={item.id}
+                role="listitem"
+                className={`group flex items-start gap-2.5 px-4 py-3.5 transition-colors outline-none focus-within:bg-muted/50 hover:bg-muted/30 ${
+                  selected.includes(item.id)
+                    ? "bg-muted"
+                    : item.read_at
+                      ? ""
+                      : "bg-primary/[0.04] border-l-2 border-l-primary"
+                }`}
               >
-                <div className="flex items-start gap-2">
-                  {!item.read_at && (
-                    <span
-                      className="mt-1.5 size-2 rounded-full bg-primary shrink-0"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <p
-                      className={`text-sm truncate ${!item.read_at ? "font-semibold" : "font-medium"}`}
-                    >
-                      {item.title}
-                    </p>
-                    {item.body && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
-                    )}
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
-                      {item.category} • {timeAgo(item.created_at)}
-                    </p>
-                  </div>
+                <div className="flex items-center h-8">
+                  <Checkbox
+                    id={`check-${item.id}`}
+                    checked={selected.includes(item.id)}
+                    onCheckedChange={() => toggleSelect(item.id)}
+                    aria-label={`Select ${item.title}`}
+                  />
                 </div>
-              </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 size-8"
-                aria-label={item.read_at ? "Mark as unread" : "Mark as read"}
-                title={item.read_at ? "Mark as unread" : "Mark as read"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  applyRead([item.id], !item.read_at);
-                }}
-              >
-                {item.read_at ? <Mail className="size-3.5" /> : <MailOpen className="size-3.5" />}
-              </Button>
-            </div>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => handleOpen(item)}
+                  className="flex-1 min-w-0 text-left hover:opacity-90 focus:outline-none"
+                  aria-expanded={detailItem?.id === item.id}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className={`relative size-8 rounded-lg border grid place-items-center shrink-0 mt-0.5 ${catStyle.badgeClass}`}
+                    >
+                      <CatIcon className="size-4" />
+                      {!item.read_at && (
+                        <span
+                          className={`absolute -top-1 -right-1 size-2.5 rounded-full ring-2 ring-background ${catStyle.dotClass}`}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-sm leading-snug truncate ${
+                          !item.read_at ? "font-semibold text-foreground" : "font-medium text-foreground/85"
+                        }`}
+                      >
+                        {item.title}
+                      </p>
+                      {item.body && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
+                          {item.body}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${catStyle.pillClass}`}
+                        >
+                          {item.category || "alert"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          • {timeAgo(item.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 size-8 opacity-75 group-hover:opacity-100"
+                  aria-label={item.read_at ? "Mark as unread" : "Mark as read"}
+                  title={item.read_at ? "Mark as unread" : "Mark as read"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    applyRead([item.id], !item.read_at);
+                  }}
+                >
+                  {item.read_at ? <Mail className="size-3.5" /> : <MailOpen className="size-3.5 text-primary" />}
+                </Button>
+              </div>
+            );
+          })}
           {loadingMore && (
             <div className="p-4 flex justify-center">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
