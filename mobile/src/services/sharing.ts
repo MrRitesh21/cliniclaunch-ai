@@ -5,12 +5,38 @@ import * as Sharing from 'expo-sharing';
 import { Linking, Platform } from 'react-native';
 import { Prescription, Invoice } from '../types';
 
+async function openWhatsAppMessage(phone: string, message: string): Promise<boolean> {
+  const cleanPhone = phone.replace(/\D/g, '');
+  if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+    return false;
+  }
+
+  const encodedMessage = encodeURIComponent(message);
+  const webUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+  const url = Platform.OS === 'web'
+    ? webUrl
+    : `whatsapp://send?phone=${cleanPhone}&text=${encodedMessage}`;
+
+  try {
+    if (Platform.OS !== 'web') {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+        return true;
+      }
+    }
+    await Linking.openURL(webUrl);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const ShareService = {
   /**
    * Share Prescription text/details directly to WhatsApp
    */
   async sharePrescriptionViaWhatsApp(phone: string, prescription: Prescription): Promise<boolean> {
-    const cleanPhone = phone.replace(/\D/g, '');
     const medicinesList = prescription.medicines
       .map((m, idx) => `${idx + 1}. *${m.name}* (${m.dosage}) - ${m.frequency} for ${m.duration} [${m.timing.replace('_', ' ')}]`)
       .join('\n');
@@ -25,38 +51,23 @@ export const ShareService = {
       `*Follow-up:* ${prescription.followUpDate || 'As needed'}\n\n` +
       `_Generated via ClinicX Health Platform_`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const url = Platform.OS === 'web'
-      ? `https://wa.me/${cleanPhone}?text=${encodedMessage}`
-      : `whatsapp://send?phone=${cleanPhone}&text=${encodedMessage}`;
-
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-        return true;
-      } else {
-        // Fallback to web link
-        await Linking.openURL(`https://wa.me/${cleanPhone}?text=${encodedMessage}`);
-        return true;
-      }
-    } catch {
-      return false;
-    }
+    return openWhatsAppMessage(phone, message);
   },
 
   /**
    * Share Invoice / Payment Link to Patient via WhatsApp
    */
   async shareInvoiceViaWhatsApp(phone: string, invoice: Invoice, upiId?: string): Promise<boolean> {
-    const cleanPhone = phone.replace(/\D/g, '');
     const itemsList = invoice.items
       .map(item => `- ${item.description}: ₹${item.amount} (x${item.quantity})`)
       .join('\n');
 
     let upiString = '';
-    if (upiId) {
-      upiString = `\n*Pay via UPI:* upi://pay?pa=${upiId}&pn=ClinicX&am=${invoice.totalAmount}&cu=INR\n`;
+    const trimmedUpi = upiId?.trim();
+    if (trimmedUpi) {
+      const encodedUpi = encodeURIComponent(trimmedUpi);
+      const encodedAmount = encodeURIComponent(String(invoice.totalAmount));
+      upiString = `\n*Pay via UPI:* upi://pay?pa=${encodedUpi}&pn=ClinicX&am=${encodedAmount}&cu=INR\n`;
     }
 
     const message = `*Invoice #${invoice.invoiceNumber}*\n` +
@@ -68,21 +79,7 @@ export const ShareService = {
       upiString +
       `\n_Thank you for choosing ClinicX!_`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const url = `whatsapp://send?phone=${cleanPhone}&text=${encodedMessage}`;
-
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-        return true;
-      } else {
-        await Linking.openURL(`https://wa.me/${cleanPhone}?text=${encodedMessage}`);
-        return true;
-      }
-    } catch {
-      return false;
-    }
+    return openWhatsAppMessage(phone, message);
   },
 
   /**

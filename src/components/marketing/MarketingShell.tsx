@@ -14,9 +14,11 @@ import {
   HeartPulse,
   Play,
 } from "lucide-react";
-import { useState, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
-import { CommandPalette } from "./CommandPalette";
+const CommandPalette = lazy(() =>
+  import("./CommandPalette").then((m) => ({ default: m.CommandPalette })),
+);
 
 const MARKETING_NAV = [
   { label: "Features", to: "/features" as const },
@@ -370,7 +372,11 @@ export function MarketingShell({ children }: { children: ReactNode }) {
         </div>
       </footer>
 
-      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
+      {cmdOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
+        </Suspense>
+      )}
     </div>
   );
 }

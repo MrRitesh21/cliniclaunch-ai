@@ -364,6 +364,8 @@ export function edgeCachePolicy(request: Request, url: URL): CachePolicy | null 
       "/faq",
       "/how-it-works",
       "/contact",
+      "/download",
+      "/install",
       "/privacy",
       "/terms",
       "/refund-policy",

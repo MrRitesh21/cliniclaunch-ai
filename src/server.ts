@@ -74,6 +74,7 @@ function applySecurityHeaders(res: Response, durationMs = 0, isEmbeddable = fals
   }
   headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   headers.set("X-XSS-Protection", "0");
+  headers.set("X-Permitted-Cross-Domain-Policies", "none");
   headers.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self)");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   if (durationMs > 0) {

@@ -53,6 +53,9 @@ const PUBLIC_ALLOWLIST = new Set([
   "referral.functions.ts:trackReferralClick",
   "referral.functions.ts:trackReferralSignup",
   "referral.functions.ts:linkReferralOnboarding",
+  // Public custom website clinic profile lookup & rate-limited review click tracker
+  "custom-websites.functions.ts:getPublicClinicData",
+  "gbp.functions.ts:trackReviewClick",
 ]);
 
 function scanFunctions() {
@@ -96,7 +99,9 @@ function scanFunctions() {
           // Check validator
           const hasValidator = /\.validator\s*\(/.test(initText);
 
-          const hasAdminAuth = middlewares.includes("requireAdminAuth");
+          const hasAdminAuth =
+            middlewares.includes("requireAdminAuth") ||
+            middlewares.includes("requireSuperAdminAuth");
           const hasSupabaseAuth = middlewares.includes("requireSupabaseAuth");
           const hasAuth = hasAdminAuth || hasSupabaseAuth;
           const isPublic = PUBLIC_ALLOWLIST.has(key);
@@ -110,11 +115,12 @@ function scanFunctions() {
             });
           }
 
-          // Admin-only functions must enforce requireAdminAuth
+          // Admin-only functions must enforce requireAdminAuth or requireSuperAdminAuth
           const isAdminFunction =
             (file === "admin.functions.ts" && fnName !== "checkMaintenanceStatus") ||
             (file === "audit-test.functions.ts") ||
-            (file === "site-templates.functions.ts" && fnName.startsWith("admin"));
+            (file === "site-templates.functions.ts" && fnName.startsWith("admin")) ||
+            (file === "custom-websites.functions.ts" && fnName.startsWith("admin"));
 
           if (isAdminFunction && !hasAdminAuth) {
             errors.push({
@@ -160,8 +166,8 @@ function main() {
   const { results, errors } = scanFunctions();
 
   const publicCount = results.filter((r) => r.isPublic).length;
-  const userAuthCount = results.filter((r) => r.middlewares.includes("requireSupabaseAuth") && !r.middlewares.includes("requireAdminAuth")).length;
-  const adminAuthCount = results.filter((r) => r.middlewares.includes("requireAdminAuth")).length;
+  const userAuthCount = results.filter((r) => r.middlewares.includes("requireSupabaseAuth") && !r.middlewares.includes("requireAdminAuth") && !r.middlewares.includes("requireSuperAdminAuth")).length;
+  const adminAuthCount = results.filter((r) => r.middlewares.includes("requireAdminAuth") || r.middlewares.includes("requireSuperAdminAuth")).length;
   const validatedCount = results.filter((r) => r.hasValidator).length;
 
   console.log(`Audited ${results.length} server functions across src/lib/*.functions.ts:`);

@@ -2,13 +2,14 @@
  * Patients Directory Screen
  * Searchable patient master list with clinical quick filters, allergy warnings, and pull-to-refresh.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, useDeferredValue } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   Pressable,
+  Platform,
   Linking,
   ScrollView,
   RefreshControl,
@@ -34,6 +35,7 @@ export const PatientsScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<PatientFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const deferredQuery = useDeferredValue(searchQuery);
 
   const onRefresh = () => {
     HapticService.light();
@@ -51,7 +53,7 @@ export const PatientsScreen: React.FC = () => {
   );
 
   const filteredPatients = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return patients.filter((p) => {
       if (filter === 'allergies' && (!p.allergies || p.allergies.length === 0)) return false;
       if (filter === 'frequent' && p.totalVisits < 3) return false;
@@ -63,18 +65,19 @@ export const PatientsScreen: React.FC = () => {
         (p.allergies && p.allergies.some((a) => a.toLowerCase().includes(q)))
       );
     });
-  }, [patients, searchQuery, filter]);
+  }, [patients, deferredQuery, filter]);
 
-  const getInitials = (name: string) =>
+  const getInitials = useCallback((name: string) =>
     name
       .split(' ')
       .filter(Boolean)
       .map((n) => n[0])
       .join('')
       .substring(0, 2)
-      .toUpperCase();
+      .toUpperCase(),
+  []);
 
-  const renderPatientItem = ({ item }: { item: Patient }) => (
+  const renderPatientItem = useCallback(({ item }: { item: Patient }) => (
     <Card
       onPress={() => navigation.navigate('PatientDetail', { patientId: item.id })}
       style={styles.card}
@@ -133,7 +136,9 @@ export const PatientsScreen: React.FC = () => {
         </Pressable>
       </View>
     </Card>
-  );
+  ), [navigation, colors, getInitials]);
+
+  const patientKeyExtractor = useCallback((item: Patient) => item.id, []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -220,8 +225,12 @@ export const PatientsScreen: React.FC = () => {
 
       <FlatList
         data={filteredPatients}
-        keyExtractor={(item) => item.id}
+        keyExtractor={patientKeyExtractor}
         renderItem={renderPatientItem}
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === 'android'}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: spacing.xxxl },

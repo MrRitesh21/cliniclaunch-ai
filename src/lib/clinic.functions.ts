@@ -90,6 +90,52 @@ export async function adminClient() {
   return supabaseAdmin;
 }
 
+/** Fails closed unless userId owns, belongs to, or administers the target clinic/organization. */
+async function assertClinicAccess(
+  adminSb: Awaited<ReturnType<typeof adminClient>>,
+  userId: string | undefined,
+  clinicId?: string | null,
+  organizationId?: string | null,
+) {
+  if (!userId) throw new Error("Unauthorized");
+  if (!clinicId && !organizationId) throw new Error("Forbidden: Missing clinic scope");
+
+  let resolvedOrgId = organizationId || null;
+  if (clinicId) {
+    const { data: clinic } = await adminSb
+      .from("clinics")
+      .select("owner_id, organization_id")
+      .eq("id", clinicId)
+      .maybeSingle();
+    if (!clinic) throw new Error("Clinic not found");
+    if (clinic.owner_id === userId) return;
+    if (!resolvedOrgId && clinic.organization_id) resolvedOrgId = clinic.organization_id;
+  }
+
+  if (resolvedOrgId) {
+    const { data: member } = await adminSb
+      .from("organization_members")
+      .select("user_id")
+      .eq("organization_id", resolvedOrgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (member) return;
+  }
+
+  const { data: roles } = await adminSb
+    .from("user_roles" as never)
+    .select("role")
+    .eq("user_id", userId);
+  if (
+    Array.isArray(roles) &&
+    roles.some((r: { role?: string }) => r.role === "super_admin" || r.role === "support")
+  ) {
+    return;
+  }
+
+  throw new Error("Forbidden: You do not have permission for this clinic");
+}
+
 /** Public writes use a service-role client: mirror public authority before any
  * patient reads/writes. Never infer publication from a caller-supplied clinic ID.
  */
@@ -1290,6 +1336,21 @@ export const updateAppointmentStatus = createServerFn({ method: "POST" })
 
     if (!appt) {
       const adminSb = await adminClient();
+      const { data: targetAppt } = await adminSb
+        .from("appointments")
+        .select("id, clinic_id, organization_id")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (!targetAppt) {
+        throw new Error("Appointment could not be found.");
+      }
+      await assertClinicAccess(
+        adminSb,
+        context.userId,
+        targetAppt.clinic_id,
+        targetAppt.organization_id,
+      );
+
       let adminRes = await adminSb
         .from("appointments")
         .update({ status: dbStatus })
@@ -1500,6 +1561,13 @@ export const rescheduleAppointment = createServerFn({ method: "POST" })
     if (findErr || !existingAppt) {
       throw new Error("Appointment not found");
     }
+
+    await assertClinicAccess(
+      adminSb,
+      context.userId,
+      existingAppt.clinic_id,
+      existingAppt.organization_id,
+    );
 
     const { data: updatedAppt, error: updateErr } = await adminSb
       .from("appointments")
@@ -1877,6 +1945,7 @@ export const ensureDoctorMembership = createServerFn({ method: "POST" })
  * Uses service role authority to bypass client-side RLS hurdles and prevent 401 permission errors.
  */
 export const getDashboardDoctors = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
@@ -1885,8 +1954,9 @@ export const getDashboardDoctors = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sb = await adminClient();
+    await assertClinicAccess(sb, context.userId, data.clinic_id, data.organization_id);
     let q = sb
       .from("doctors")
       .select("id, name, specialization, consultation_fee, is_active, clinic_id, organization_id")
@@ -1910,9 +1980,10 @@ export const getDashboardDoctors = createServerFn({ method: "POST" })
 
 /**
  * Comprehensive server-side doctor fetcher for /dashboard/doctors.
- * Uses service role authority to bypass client-side RLS hurdles and prevent 401 Unauthorized errors.
+ * Enforces clinic/organization membership before reading doctor rows.
  */
 export const getManageDoctors = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
@@ -1921,8 +1992,9 @@ export const getManageDoctors = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sb = await adminClient();
+    await assertClinicAccess(sb, context.userId, data.clinic_id, data.organization_id);
 
     // 1. Fetch all doctors for this organization
     let { data: doctors, error } = await sb
@@ -1985,6 +2057,7 @@ export const getManageDoctors = createServerFn({ method: "POST" })
  * Safe server-side doctor saver for /dashboard/doctors.
  */
 export const saveManageDoctor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
@@ -2019,8 +2092,9 @@ export const saveManageDoctor = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sb = await adminClient();
+    await assertClinicAccess(sb, context.userId, data.clinic_id, data.organization_id);
 
     if (data.organization_id) {
       const { ensureActiveSubscription } = await import("./subscription-healer.server");
@@ -2043,7 +2117,8 @@ export const saveManageDoctor = createServerFn({ method: "POST" })
         await sb
           .from("doctors")
           .update(data.payload as any)
-          .eq("id", data.editing_id);
+          .eq("id", data.editing_id)
+          .eq("clinic_id", data.clinic_id);
       }
 
       return { ok: true, is_owner: true };
@@ -2053,7 +2128,8 @@ export const saveManageDoctor = createServerFn({ method: "POST" })
       const { error: docErr } = await sb
         .from("doctors")
         .update(data.payload as any)
-        .eq("id", data.editing_id);
+        .eq("id", data.editing_id)
+        .eq("clinic_id", data.clinic_id);
 
       if (docErr) throw new Error(docErr.message);
       return { ok: true, is_owner: false, id: data.editing_id };
@@ -2077,6 +2153,7 @@ export const saveManageDoctor = createServerFn({ method: "POST" })
  * Safe server-side leave toggle for /dashboard/doctors.
  */
 export const toggleManageDoctorLeave = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
@@ -2087,8 +2164,9 @@ export const toggleManageDoctorLeave = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sb = await adminClient();
+    await assertClinicAccess(sb, context.userId, data.clinic_id);
 
     if (data.is_owner || data.doctor_id === "self_owner") {
       const { error: cErr } = await sb
@@ -2100,7 +2178,8 @@ export const toggleManageDoctorLeave = createServerFn({ method: "POST" })
         await sb
           .from("doctors")
           .update({ working_hours: data.schedule } as any)
-          .eq("id", data.doctor_id);
+          .eq("id", data.doctor_id)
+          .eq("clinic_id", data.clinic_id);
       }
       if (cErr) throw new Error(cErr.message);
       return { ok: true };
@@ -2109,7 +2188,8 @@ export const toggleManageDoctorLeave = createServerFn({ method: "POST" })
     const { error: dErr } = await sb
       .from("doctors")
       .update({ working_hours: data.schedule } as any)
-      .eq("id", data.doctor_id);
+      .eq("id", data.doctor_id)
+      .eq("clinic_id", data.clinic_id);
 
     if (dErr) throw new Error(dErr.message);
     return { ok: true };
@@ -2119,6 +2199,7 @@ export const toggleManageDoctorLeave = createServerFn({ method: "POST" })
  * Safe server-side doctor deletion for /dashboard/doctors.
  */
 export const deleteManageDoctor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
       .object({
@@ -2128,14 +2209,16 @@ export const deleteManageDoctor = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sb = await adminClient();
+    await assertClinicAccess(sb, context.userId, data.clinic_id);
 
     if (data.doctor_id && data.doctor_id !== "self_owner") {
       const { error: delErr } = await sb
         .from("doctors")
         .delete()
-        .eq("id", data.doctor_id);
+        .eq("id", data.doctor_id)
+        .eq("clinic_id", data.clinic_id);
 
       if (delErr) throw new Error(delErr.message);
     } else if (data.is_owner) {

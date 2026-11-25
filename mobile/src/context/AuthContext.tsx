@@ -4,7 +4,7 @@
  */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../services/supabase';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { BiometricService } from '../services/biometrics';
 import { HapticService } from '../services/haptics';
 import { DoctorProfile } from '../types';
@@ -57,9 +57,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isBioOn = await BiometricService.isEnabled();
       setBiometricEnabled(isBioOn);
 
-      // 2. Check cached doctor session
+      // 2. Check cached doctor session (verify live Supabase session when configured)
       const cached = await AsyncStorage.getItem(AUTH_USER_STORAGE_KEY);
       if (cached) {
+        if (isSupabaseConfigured) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!sessionData?.session?.user) {
+            await AsyncStorage.removeItem(AUTH_USER_STORAGE_KEY);
+            return;
+          }
+        }
+
         const parsedDoctor = JSON.parse(cached) as DoctorProfile;
         setDoctor(parsedDoctor);
 
@@ -78,20 +86,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (err) {
+      await AsyncStorage.removeItem(AUTH_USER_STORAGE_KEY).catch(() => {});
       console.warn('Auth check fallback', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, _password?: string): Promise<boolean> => {
+  const login = async (email: string, password?: string): Promise<boolean> => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedPassword = (password || '').trim();
+    if (!normalizedEmail || !trimmedPassword) {
+      HapticService.error();
+      return false;
+    }
+
     try {
       setIsLoading(true);
-      // In production, invoke supabase.auth.signInWithPassword({ email, password })
-      // For instant offline/hybrid dev, we authenticate seamlessly and persist session
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: trimmedPassword,
+        });
+        if (error || !data?.user) {
+          HapticService.error();
+          return false;
+        }
+        const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+        const doc: DoctorProfile = {
+          ...mockDoctor,
+          id: data.user.id,
+          email: data.user.email || normalizedEmail,
+          name:
+            typeof meta.full_name === 'string' && meta.full_name.trim()
+              ? meta.full_name
+              : typeof meta.name === 'string' && meta.name.trim()
+                ? meta.name
+                : mockDoctor.name,
+          clinicName:
+            typeof meta.clinic_name === 'string' && meta.clinic_name.trim()
+              ? meta.clinic_name
+              : mockDoctor.clinicName,
+        };
+        await AsyncStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(doc));
+        setDoctor(doc);
+        setIsAuthenticated(true);
+        HapticService.success();
+        return true;
+      }
+
+      // Offline preview demo mode (only allowed when Supabase env vars are unconfigured)
+      if (normalizedEmail !== mockDoctor.email.toLowerCase()) {
+        HapticService.error();
+        return false;
+      }
+
       const doc: DoctorProfile = {
         ...mockDoctor,
-        email: email || mockDoctor.email,
+        email: normalizedEmail,
       };
 
       await AsyncStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(doc));
@@ -108,15 +160,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithBiometrics = async (): Promise<boolean> => {
-    const success = await BiometricService.authenticate('Log in to ClinicX');
-    if (success) {
+    try {
       const cached = await AsyncStorage.getItem(AUTH_USER_STORAGE_KEY);
-      const doc = cached ? JSON.parse(cached) : mockDoctor;
+      if (!cached) {
+        HapticService.error();
+        return false;
+      }
+
+      if (isSupabaseConfigured) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData?.session?.user) {
+          await AsyncStorage.removeItem(AUTH_USER_STORAGE_KEY);
+          HapticService.error();
+          return false;
+        }
+      }
+
+      const success = await BiometricService.authenticate('Log in to ClinicX');
+      if (!success) {
+        HapticService.error();
+        return false;
+      }
+
+      const doc = JSON.parse(cached) as DoctorProfile;
       setDoctor(doc);
       setIsAuthenticated(true);
       HapticService.success();
       return true;
-    } else {
+    } catch {
+      await AsyncStorage.removeItem(AUTH_USER_STORAGE_KEY).catch(() => {});
       HapticService.error();
       return false;
     }
@@ -131,7 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     HapticService.medium();
     try {
-      await supabase.auth.signOut().catch(() => {});
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut().catch(() => {});
+      }
       await AsyncStorage.removeItem(AUTH_USER_STORAGE_KEY);
     } finally {
       setDoctor(null);

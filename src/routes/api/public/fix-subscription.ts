@@ -1,23 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { timingSafeEqual } from "node:crypto";
+import { serverEnv } from "@/lib/env.server";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
-  "Access-Control-Max-Age": "86400",
+const NO_STORE_HEADERS = {
+  "Cache-Control": "private, no-store",
 };
+
+function isAuthorizedAdminOrCron(request: Request): boolean {
+  const expected = (serverEnv.CRON_KEY || "").trim();
+  if (!expected) return false;
+  const auth = request.headers.get("authorization") || "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  const provided = (
+    request.headers.get("x-cron-key") ||
+    bearer ||
+    new URL(request.url).searchParams.get("key") ||
+    ""
+  ).trim();
+  if (!provided) return false;
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 export const Route = createFileRoute("/api/public/fix-subscription")({
   server: {
     handlers: {
-      OPTIONS: async () => {
-        return new Response(null, {
-          status: 204,
-          headers: CORS_HEADERS,
-        });
-      },
-
       GET: async ({ request }) => {
+        if (!isAuthorizedAdminOrCron(request)) {
+          return Response.json(
+            { success: false, error: "Unauthorized" },
+            { status: 401, headers: NO_STORE_HEADERS },
+          );
+        }
+
         const { ensureActiveSubscription, healAllSubscriptions } = await import(
           "@/lib/subscription-healer.server"
         );
@@ -34,7 +50,7 @@ export const Route = createFileRoute("/api/public/fix-subscription")({
                 subscription: result.subscription,
                 error: result.error,
               },
-              { status: result.ok ? 200 : 400, headers: CORS_HEADERS },
+              { status: result.ok ? 200 : 400, headers: NO_STORE_HEADERS },
             );
           }
 
@@ -45,20 +61,27 @@ export const Route = createFileRoute("/api/public/fix-subscription")({
               healed_count: result.healedCount,
               errors: result.errors,
             },
-            { status: result.ok ? 200 : 500, headers: CORS_HEADERS },
+            { status: result.ok ? 200 : 500, headers: NO_STORE_HEADERS },
           );
         } catch (err: any) {
           return Response.json(
             {
               success: false,
-              error: err?.message || String(err),
+              error: err?.message || "Subscription heal failed",
             },
-            { status: 500, headers: CORS_HEADERS },
+            { status: 500, headers: NO_STORE_HEADERS },
           );
         }
       },
 
       POST: async ({ request }) => {
+        if (!isAuthorizedAdminOrCron(request)) {
+          return Response.json(
+            { success: false, error: "Unauthorized" },
+            { status: 401, headers: NO_STORE_HEADERS },
+          );
+        }
+
         const { ensureActiveSubscription, healAllSubscriptions } = await import(
           "@/lib/subscription-healer.server"
         );
@@ -80,7 +103,7 @@ export const Route = createFileRoute("/api/public/fix-subscription")({
                 subscription: result.subscription,
                 error: result.error,
               },
-              { status: result.ok ? 200 : 400, headers: CORS_HEADERS },
+              { status: result.ok ? 200 : 400, headers: NO_STORE_HEADERS },
             );
           }
 
@@ -91,15 +114,15 @@ export const Route = createFileRoute("/api/public/fix-subscription")({
               healed_count: result.healedCount,
               errors: result.errors,
             },
-            { status: result.ok ? 200 : 500, headers: CORS_HEADERS },
+            { status: result.ok ? 200 : 500, headers: NO_STORE_HEADERS },
           );
         } catch (err: any) {
           return Response.json(
             {
               success: false,
-              error: err?.message || String(err),
+              error: err?.message || "Subscription heal failed",
             },
-            { status: 500, headers: CORS_HEADERS },
+            { status: 500, headers: NO_STORE_HEADERS },
           );
         }
       },

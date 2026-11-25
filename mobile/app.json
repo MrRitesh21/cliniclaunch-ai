@@ -18,7 +18,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "ClinicX uses your camera to scan medical records, lab reports, and paper prescriptions.",
         "NSPhotoLibraryUsageDescription": "ClinicX requires photo library access to attach existing patient documents to health records.",
-        "NSFaceIDUsageDescription": "Enable Face ID to quickly and securely unlock your ClinicX doctor dashboard."
+        "NSFaceIDUsageDescription": "Enable Face ID to quickly and securely unlock your ClinicX doctor dashboard.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -27,6 +28,8 @@
         "backgroundColor": "#0891B2"
       },
       "package": "app.clinicx.doctor",
+      "allowBackup": false,
+      "usesCleartextTraffic": false,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",

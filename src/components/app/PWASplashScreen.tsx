@@ -50,7 +50,7 @@ export function SplashScreen({ fading = false }: { fading?: boolean }) {
 // service workers, auth state, and cached resources hydrate.
 // Automatically dismisses after hydration or max 1.8 seconds timeout.
 export function PWASplashScreen() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
   const location = useLocation();
 
@@ -63,20 +63,25 @@ export function PWASplashScreen() {
       (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     if (!isStandalone) {
-      setVisible(false);
       return;
     }
+
+    setVisible(true);
+    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
 
     // Dismiss splash once auth and document are ready
     const handleReady = () => {
       setFading(true);
-      setTimeout(() => setVisible(false), 300);
+      fadeTimer = setTimeout(() => setVisible(false), 300);
     };
 
     // Auto-dismiss safety timer (1.4s max for instant feel)
     const timer = setTimeout(handleReady, 1400);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (fadeTimer) clearTimeout(fadeTimer);
+    };
   }, []);
 
   // Don't render if not visible or dismissed

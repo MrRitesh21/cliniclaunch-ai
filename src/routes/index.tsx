@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -44,9 +44,6 @@ import {
 } from "lucide-react";
 import { resolveHostToClinic } from "@/lib/domain.functions";
 import { getClinicBySlug } from "@/lib/clinic.functions";
-import { resolveVariants, getVariantComponent } from "@/components/site/registry";
-import { DEFAULT_SECTION_ORDER, type SectionKey, type SiteClinic } from "@/components/site/types";
-import { LeadCapture } from "@/components/clinic/lead-capture";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import {
   createFileRoute,
@@ -58,23 +55,61 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { SplashScreen } from "@/components/app/PWASplashScreen";
 import { hasCachedSession } from "@/lib/auth-cache";
-import { LeadCaptureDialog } from "@/components/landing/LeadCaptureDialog";
-import { LeadCaptureSection } from "@/components/landing/LeadCaptureSection";
-import { ClinicMotionCanvas } from "@/components/landing/ClinicMotionCanvas";
-import { InteractiveClinicEngine } from "@/components/landing/InteractiveClinicEngine";
-import { ClinicRoiCalculator } from "@/components/landing/ClinicRoiCalculator";
-import { HeroDashboardPreview } from "@/components/landing/HeroDashboardPreview";
-import {
-  WordRotator,
-  ProcessDrawSection,
-  BeforeAfterSlider,
-  UsVsThemSection,
-  BentoArchitectureSection,
-  HeroWordSplit,
-  LiveClinicSocialProof,
-  StackedDeckTestimonials,
-} from "@/components/landing/LandingMotion";
-import { HeroProductDemo } from "@/components/landing/HeroProductDemo";
+
+const ClinicDomainView = lazy(() =>
+  import("@/components/site/ClinicDomainView").then((m) => ({ default: m.ClinicDomainView })),
+);
+const LeadCaptureDialog = lazy(() =>
+  import("@/components/landing/LeadCaptureDialog").then((m) => ({ default: m.LeadCaptureDialog })),
+);
+const LeadCaptureSection = lazy(() =>
+  import("@/components/landing/LeadCaptureSection").then((m) => ({ default: m.LeadCaptureSection })),
+);
+const ClinicMotionCanvas = lazy(() =>
+  import("@/components/landing/ClinicMotionCanvas").then((m) => ({ default: m.ClinicMotionCanvas })),
+);
+const InteractiveClinicEngine = lazy(() =>
+  import("@/components/landing/InteractiveClinicEngine").then((m) => ({
+    default: m.InteractiveClinicEngine,
+  })),
+);
+const ClinicRoiCalculator = lazy(() =>
+  import("@/components/landing/ClinicRoiCalculator").then((m) => ({
+    default: m.ClinicRoiCalculator,
+  })),
+);
+const HeroDashboardPreview = lazy(() =>
+  import("@/components/landing/HeroDashboardPreview").then((m) => ({
+    default: m.HeroDashboardPreview,
+  })),
+);
+const ProcessDrawSection = lazy(() =>
+  import("@/components/landing/LandingMotion").then((m) => ({ default: m.ProcessDrawSection })),
+);
+const BeforeAfterSlider = lazy(() =>
+  import("@/components/landing/LandingMotion").then((m) => ({ default: m.BeforeAfterSlider })),
+);
+const UsVsThemSection = lazy(() =>
+  import("@/components/landing/LandingMotion").then((m) => ({ default: m.UsVsThemSection })),
+);
+const BentoArchitectureSection = lazy(() =>
+  import("@/components/landing/LandingMotion").then((m) => ({
+    default: m.BentoArchitectureSection,
+  })),
+);
+const LiveClinicSocialProof = lazy(() =>
+  import("@/components/landing/LandingMotion").then((m) => ({
+    default: m.LiveClinicSocialProof,
+  })),
+);
+const StackedDeckTestimonials = lazy(() =>
+  import("@/components/landing/LandingMotion").then((m) => ({
+    default: m.StackedDeckTestimonials,
+  })),
+);
+const HeroProductDemo = lazy(() =>
+  import("@/components/landing/HeroProductDemo").then((m) => ({ default: m.HeroProductDemo })),
+);
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -173,48 +208,7 @@ export const Route = createFileRoute("/")({
   ),
 });
 
-function ClinicDomainView({ clinic }: { clinic: any }) {
-  const c = clinic as unknown as SiteClinic;
-  const variants = resolveVariants(c.template, c.section_variants);
 
-  const order: SectionKey[] =
-    Array.isArray(c.section_order) && c.section_order.length
-      ? (c.section_order as SectionKey[])
-      : DEFAULT_SECTION_ORDER;
-  const hidden = new Set<SectionKey>(
-    Array.isArray(c.section_hidden) ? (c.section_hidden as SectionKey[]) : [],
-  );
-
-  const visible = order.filter((k) => k !== "navbar" && k !== "footer" && !hidden.has(k));
-
-  const Navbar = getVariantComponent("navbar", variants.navbar);
-  const Footer = getVariantComponent("footer", variants.footer);
-
-  const theme = c.theme_color || "#2563eb";
-  const themeStyle = {
-    ["--primary" as const]: theme,
-    ["--ring" as const]: theme,
-  } as React.CSSProperties;
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background" style={themeStyle}>
-      <Navbar clinic={c} pathname="/" />
-      <main className="flex-1">
-        {visible.map((key) => {
-          const Comp = getVariantComponent(key, variants[key]);
-          return <Comp key={key} clinic={c} />;
-        })}
-        <LeadCapture
-          clinicId={c.id}
-          slug={c.slug}
-          doctorName={c.doctor_name}
-          config={(c as any).lead_popup}
-        />
-      </main>
-      <Footer clinic={c} />
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ *
  * Realistic modules that exist in ClinicX
@@ -398,7 +392,13 @@ function Landing() {
     };
   }, [navigate, isStandalone]);
 
-  if (clinic) return <ClinicDomainView clinic={clinic} />;
+  if (clinic) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <ClinicDomainView clinic={clinic} />
+      </Suspense>
+    );
+  }
   if (checkingAuth) return <SplashScreen />;
 
   return (
@@ -461,7 +461,9 @@ function LandingContent() {
         <div className="absolute top-1/3 right-0 w-[28rem] h-[28rem] bg-cyan-400/10 dark:bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
         {/* Dynamic Code-Generated Ambient Canvas */}
-        <ClinicMotionCanvas />
+        <Suspense fallback={null}>
+          <ClinicMotionCanvas />
+        </Suspense>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center">
@@ -548,7 +550,16 @@ function LandingContent() {
 
             {/* Right Column: Hero Dashboard Preview with Animated Cursor Tour */}
             <div className="lg:col-span-6 relative min-w-0 w-full flex items-center justify-center">
-              <HeroDashboardPreview onOpenDemo={() => setDemoModalOpen(true)} />
+              <Suspense
+                fallback={
+                  <div
+                    className="w-full min-h-[380px] sm:min-h-[440px] rounded-2xl border border-border/50 bg-muted/20 animate-pulse"
+                    aria-hidden="true"
+                  />
+                }
+              >
+                <HeroDashboardPreview onOpenDemo={() => setDemoModalOpen(true)} />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -703,7 +714,9 @@ function LandingContent() {
               prescriptions below.
             </p>
           </div>
-          <InteractiveClinicEngine onOpenDemo={() => setDemoModalOpen(true)} />
+          <Suspense fallback={<div className="min-h-[380px]" aria-hidden="true" />}>
+            <InteractiveClinicEngine onOpenDemo={() => setDemoModalOpen(true)} />
+          </Suspense>
         </div>
       </section>
 
@@ -727,10 +740,14 @@ function LandingContent() {
       </section>
 
       {/* 10: Live Practice Activity Stream & Social Proof */}
-      <LiveClinicSocialProof />
+      <Suspense fallback={<div className="min-h-[260px]" aria-hidden="true" />}>
+        <LiveClinicSocialProof />
+      </Suspense>
 
       {/* Interactive Practice ROI & Revenue Calculator */}
-      <ClinicRoiCalculator />
+      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
+        <ClinicRoiCalculator />
+      </Suspense>
 
       {/* Deep-Dive Full Doctor Workspace */}
       <section className="border-b border-border/60 bg-background py-16 sm:py-24 px-4 sm:px-6">
@@ -747,24 +764,36 @@ function LandingContent() {
               3 clicks per patient.
             </p>
           </div>
-          <HeroProductDemo />
+          <Suspense fallback={<div className="min-h-[420px]" aria-hidden="true" />}>
+            <HeroProductDemo />
+          </Suspense>
         </div>
       </section>
 
       {/* 08: Process Draw Flow (Guide Animation 08) */}
-      <ProcessDrawSection />
+      <Suspense fallback={<div className="min-h-[300px]" aria-hidden="true" />}>
+        <ProcessDrawSection />
+      </Suspense>
 
       {/* 09: Interactive Before / After Comparison Slider (Guide Animation 09) */}
-      <BeforeAfterSlider />
+      <Suspense fallback={<div className="min-h-[320px]" aria-hidden="true" />}>
+        <BeforeAfterSlider />
+      </Suspense>
 
       {/* 11: 3D Stacked Doctor Testimonials Deck (stacked-testimonials.html / Pattern 04) */}
-      <StackedDeckTestimonials />
+      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
+        <StackedDeckTestimonials />
+      </Suspense>
 
       {/* 06: Bento Architecture & Feature Grid (Guide Animation 06) */}
-      <BentoArchitectureSection />
+      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
+        <BentoArchitectureSection />
+      </Suspense>
 
       {/* 11: High-Converting Us vs Them Comparison (Guide Animation 11) */}
-      <UsVsThemSection />
+      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
+        <UsVsThemSection />
+      </Suspense>
 
       {/* Plans & Pricing Preview Banner (Points to dedicated /pricing page) */}
       <section className="border-t border-border/60 bg-muted/20 py-16 sm:py-20">
@@ -801,7 +830,9 @@ function LandingContent() {
       </section>
 
       {/* Interactive Lead Capture Section */}
-      <LeadCaptureSection />
+      <Suspense fallback={<div className="min-h-[320px]" aria-hidden="true" />}>
+        <LeadCaptureSection />
+      </Suspense>
 
       {/* Security & Healthcare Compliance */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 space-y-10">
@@ -924,7 +955,11 @@ function LandingContent() {
       </div>
 
       {/* Interactive Live Demo Lead Capture Dialog */}
-      <LeadCaptureDialog open={demoModalOpen} onOpenChange={setDemoModalOpen} />
+      {demoModalOpen && (
+        <Suspense fallback={null}>
+          <LeadCaptureDialog open={demoModalOpen} onOpenChange={setDemoModalOpen} />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -35,42 +35,19 @@ async function ownedClinic(clinicId: string, userId: string) {
     if (member) return clinic;
   }
 
-  // 3. Platform admin check
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("id, role")
-    .eq("id", userId)
-    .maybeSingle();
-  if (profile?.role === "admin" || profile?.role === "superadmin") {
+  // 3. Platform admin check (authoritative user_roles table)
+  const { data: roles } = await supabaseAdmin
+    .from("user_roles" as never)
+    .select("role")
+    .eq("user_id", userId);
+  if (
+    Array.isArray(roles) &&
+    roles.some((r: { role?: string }) => r.role === "super_admin" || r.role === "support")
+  ) {
     return clinic;
   }
 
-  // 4. If clinic has no owner, claim for this active authenticated user
-  if (!clinic.owner_id) {
-    await supabaseAdmin
-      .from("clinics")
-      .update({ owner_id: userId } as never)
-      .eq("id", clinicId);
-    return clinic;
-  }
-
-  // 5. Connect this authenticated session to the organization as member
-  // (e.g. user logged in via Google OAuth or switched account to connect GMB)
-  if (clinic.organization_id && userId) {
-    try {
-      await supabaseAdmin.from("organization_members").insert({
-        organization_id: clinic.organization_id,
-        user_id: userId,
-        role: "owner" as never,
-        clinic_id: clinicId,
-      } as never);
-    } catch {
-      // ignore conflict if already present
-    }
-    return clinic;
-  }
-
-  return clinic;
+  throw new Error("Forbidden: You do not have permission to access this clinic");
 }
 
 export const saveGooglePlaceId = createServerFn({ method: "POST" })
@@ -427,6 +404,7 @@ export const requestAiReviewReply = createServerFn({ method: "POST" })
   });
 
 export const fetchGoogleProfiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((i: unknown) =>
     z
       .object({
@@ -437,15 +415,7 @@ export const fetchGoogleProfiles = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    try {
-      const ctx = context as { userId?: string } | undefined;
-      const userId = ctx?.userId;
-      if (userId) {
-        await ownedClinic(data.clinic_id, userId);
-      }
-    } catch (e) {
-      console.warn("[fetchGoogleProfiles] Clinic check notice:", (e as Error).message);
-    }
+    await ownedClinic(data.clinic_id, getAuthUserId(context));
     const { fetchGoogleBusinessProfiles } = await import("@/lib/google-reviews.server");
     return await fetchGoogleBusinessProfiles({
       clinicId: data.clinic_id,

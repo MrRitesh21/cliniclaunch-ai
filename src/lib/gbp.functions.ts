@@ -186,6 +186,9 @@ export const listReviewRequests = createServerFn({ method: "POST" })
 export const trackReviewClick = createServerFn({ method: "POST" })
   .validator((i: unknown) => z.object({ request_id: z.string().uuid() }).parse(i))
   .handler(async ({ data }) => {
+    const { enforcePolicy, callerIp } = await import("./scale.server");
+    await enforcePolicy("consult_ip", `${await callerIp()}:${data.request_id}`);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("review_requests")

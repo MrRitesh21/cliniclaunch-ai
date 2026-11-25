@@ -4,14 +4,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration can be populated via Constants or environment
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://project--c1fda9ab-1334-408d-a8d8-a789b9e92728.supabase.co';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-placeholder';
+// Configuration must come from public environment variables (no hardcoded project fallback)
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() || '';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() || '';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+// Non-routable placeholder prevents accidental calls to external hosts when unconfigured in local demo mode.
+const EFFECTIVE_SUPABASE_URL = isSupabaseConfigured ? SUPABASE_URL : 'https://unconfigured.localhost';
+const EFFECTIVE_SUPABASE_ANON_KEY = isSupabaseConfigured ? SUPABASE_ANON_KEY : 'unconfigured-anon-key';
+
+export const supabase = createClient(EFFECTIVE_SUPABASE_URL, EFFECTIVE_SUPABASE_ANON_KEY, {
   auth: {
     storage: AsyncStorage,
-    autoRefreshToken: true,
+    autoRefreshToken: isSupabaseConfigured,
     persistSession: true,
     detectSessionInUrl: false,
   },

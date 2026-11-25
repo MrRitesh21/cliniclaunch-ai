@@ -1,11 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { timingSafeEqual } from "node:crypto";
+import { serverEnv } from "@/lib/env.server";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key, X-Cron-Key, X-Requested-With, Accept",
   "Access-Control-Max-Age": "86400",
 };
+
+function hasValidProvisioningKey(request: Request): boolean {
+  const candidates = [serverEnv.CRON_KEY, serverEnv.WHATSAPP_BRIDGE_SECRET]
+    .map((v) => v?.trim())
+    .filter((v): v is string => Boolean(v));
+  if (candidates.length === 0) return false;
+  const auth = request.headers.get("authorization") || "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  const provided = (
+    request.headers.get("x-api-key") ||
+    request.headers.get("x-cron-key") ||
+    bearer ||
+    ""
+  ).trim();
+  if (!provided) return false;
+  const a = Buffer.from(provided, "utf8");
+  return candidates.some((secret) => {
+    const b = Buffer.from(secret, "utf8");
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+}
 
 export const Route = createFileRoute("/api/public/clinic-generate")({
   server: {
@@ -41,6 +64,13 @@ export const Route = createFileRoute("/api/public/clinic-generate")({
       },
 
       POST: async ({ request }) => {
+        if (!hasValidProvisioningKey(request)) {
+          return Response.json(
+            { ok: false, error: "Unauthorized: Valid API key required" },
+            { status: 401, headers: CORS_HEADERS },
+          );
+        }
+
         try {
           const body = await request.json().catch(() => ({}));
           const clinicName = (body.clinicName || body.businessName || body.name || "").trim();

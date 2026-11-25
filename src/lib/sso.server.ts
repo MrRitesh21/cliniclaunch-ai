@@ -29,6 +29,15 @@ export interface SsoPayload {
   timestamp: number;
 }
 
+function safeHexEqual(aHex: string, bHex: string): boolean {
+  if (!aHex || !bHex || aHex.length !== bHex.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(aHex, "utf8"), Buffer.from(bHex, "utf8"));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Validates an HMAC-SHA256 signed SSO token from WAFlow CRM
  */
@@ -49,7 +58,7 @@ export function verifySsoToken(data: string, sig: string): { valid: boolean; pay
         .digest("hex")
         .toLowerCase();
 
-      if (cleanSig === expectedSig) {
+      if (safeHexEqual(cleanSig, expectedSig)) {
         matchedSecret = secret;
         break;
       }
@@ -63,7 +72,7 @@ export function verifySsoToken(data: string, sig: string): { valid: boolean; pay
             .update(decoded)
             .digest("hex")
             .toLowerCase();
-          if (cleanSig === expectedSigDecoded) {
+          if (safeHexEqual(cleanSig, expectedSigDecoded)) {
             matchedSecret = secret;
             break;
           }

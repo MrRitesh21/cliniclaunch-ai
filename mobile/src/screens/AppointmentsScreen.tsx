@@ -2,7 +2,7 @@
  * Appointments Management Screen
  * Status filter counts, search, pull-to-refresh, WhatsApp/call actions, and consultation triggers.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, useDeferredValue } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   FlatList,
   Pressable,
   Linking,
+  Platform,
   ScrollView,
   RefreshControl,
 } from 'react-native';
@@ -35,6 +36,7 @@ export const AppointmentsScreen: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const deferredQuery = useDeferredValue(searchQuery);
 
   const onRefresh = () => {
     HapticService.light();
@@ -68,7 +70,7 @@ export const AppointmentsScreen: React.FC = () => {
   ];
 
   const filteredAppointments = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return appointments.filter((apt) => {
       const matchesFilter = activeFilter === 'all' ? true : apt.status === activeFilter;
       if (!matchesFilter) return false;
@@ -80,9 +82,11 @@ export const AppointmentsScreen: React.FC = () => {
         (apt.chiefComplaint && apt.chiefComplaint.toLowerCase().includes(q))
       );
     });
-  }, [appointments, activeFilter, searchQuery]);
+  }, [appointments, activeFilter, deferredQuery]);
 
-  const renderAppointmentItem = ({ item }: { item: Appointment }) => (
+  const keyExtractor = useCallback((item: Appointment) => item.id, []);
+
+  const renderAppointmentItem = useCallback(({ item }: { item: Appointment }) => (
     <Card
       onPress={() => {
         if (item.status === 'in_consultation' || item.status === 'waiting') {
@@ -235,7 +239,7 @@ export const AppointmentsScreen: React.FC = () => {
         </View>
       </View>
     </Card>
-  );
+  ), [navigation, colors, updateStatus]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -320,8 +324,12 @@ export const AppointmentsScreen: React.FC = () => {
       {/* Appointment List */}
       <FlatList
         data={filteredAppointments}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderAppointmentItem}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === 'android'}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: spacing.xxxl },

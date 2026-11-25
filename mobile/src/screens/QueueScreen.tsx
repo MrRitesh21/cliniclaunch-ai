@@ -2,13 +2,14 @@
  * Live Patient Queue & Token Calling Screen
  * Real-time queue coordination, token caller, skip/no-show handling, and pull-to-refresh.
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   Pressable,
+  Platform,
   Alert,
   RefreshControl,
 } from 'react-native';
@@ -67,7 +68,7 @@ export const QueueScreen: React.FC = () => {
     );
   };
 
-  const renderQueueItem = ({ item, index }: { item: QueueItem; index: number }) => (
+  const renderQueueItem = useCallback(({ item, index }: { item: QueueItem; index: number }) => (
     <Card
       onPress={() => navigation.navigate('PatientDetail', { patientId: item.patientId })}
       style={styles.queueCard}
@@ -127,7 +128,9 @@ export const QueueScreen: React.FC = () => {
         </View>
       </View>
     </Card>
-  );
+  ), [navigation, colors, updateStatus, handleSkipPatient]);
+
+  const queueKeyExtractor = useCallback((item: QueueItem) => item.id, []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -246,8 +249,12 @@ export const QueueScreen: React.FC = () => {
       {/* Waiting Queue List */}
       <FlatList
         data={waitingPatients}
-        keyExtractor={(item) => item.id}
+        keyExtractor={queueKeyExtractor}
         renderItem={renderQueueItem}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === 'android'}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: spacing.xxxl },
