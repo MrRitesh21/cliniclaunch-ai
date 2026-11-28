@@ -12,7 +12,6 @@ import {
   ExternalLink,
   Calendar,
   Search,
-  Sparkles,
   Users,
   CreditCard,
   Clock,
@@ -78,9 +77,11 @@ function NewSignupsPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-foreground font-display">New Signups (Last 7 Days)</h1>
-            <Badge variant="outline" className="text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] text-foreground font-display">
+              New Signups (7 Days)
+            </h1>
+            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25">
               Live Fleet Feed
             </Badge>
           </div>
@@ -90,17 +91,17 @@ function NewSignupsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button asChild size="sm" variant="outline" className="h-9 rounded-xl text-xs font-semibold gap-1.5">
+          <Button asChild size="sm" variant="outline" className="h-9 rounded-lg border-border bg-surface text-xs font-medium gap-1.5">
             <Link to="/admin/doctors">
               <Users className="size-3.5" />
-              <span>All Doctors Directory</span>
+              <span>All Doctors</span>
             </Link>
           </Button>
 
-          <Button asChild size="sm" className="h-9 rounded-xl text-xs font-semibold gap-1.5 bg-primary text-primary-foreground">
+          <Button asChild size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5 bg-foreground text-background hover:bg-foreground/90">
             <Link to="/admin/crm">
-              <Sparkles className="size-3.5 text-amber-300" />
-              <span>Open Doctor CRM</span>
+              <span>Doctor CRM</span>
+              <ArrowRight className="size-3.5" />
             </Link>
           </Button>
         </div>
@@ -108,39 +109,39 @@ function NewSignupsPage() {
 
       {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card className="p-4 space-y-1 border-border/80 bg-card">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+        <Card className="p-4 space-y-1 border-border bg-surface shadow-none rounded-xl">
+          <div className="flex items-center justify-between text-muted-foreground font-mono text-[10px] uppercase tracking-wider font-semibold">
             <span>7-Day Signups</span>
-            <UserPlus className="size-4 text-primary" />
+            <UserPlus className="size-3.5 text-primary" />
           </div>
-          <div className="text-2xl font-bold font-display text-foreground">{recentRows.length}</div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-foreground">{recentRows.length}</div>
           <p className="text-[11px] text-muted-foreground">New onboarded clinics</p>
         </Card>
 
-        <Card className="p-4 space-y-1 border-border/80 bg-card">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+        <Card className="p-4 space-y-1 border-border bg-surface shadow-none rounded-xl">
+          <div className="flex items-center justify-between text-muted-foreground font-mono text-[10px] uppercase tracking-wider font-semibold">
             <span>Signups Today</span>
-            <Clock className="size-4 text-emerald-500" />
+            <Clock className="size-3.5 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold font-display text-emerald-600 dark:text-emerald-400">{todayCount}</div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{todayCount}</div>
           <p className="text-[11px] text-muted-foreground">Registered today</p>
         </Card>
 
-        <Card className="p-4 space-y-1 border-border/80 bg-card">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+        <Card className="p-4 space-y-1 border-border bg-surface shadow-none rounded-xl">
+          <div className="flex items-center justify-between text-muted-foreground font-mono text-[10px] uppercase tracking-wider font-semibold">
             <span>Active Paid</span>
-            <CreditCard className="size-4 text-blue-500" />
+            <CreditCard className="size-3.5 text-primary" />
           </div>
-          <div className="text-2xl font-bold font-display text-blue-600 dark:text-blue-400">{activeCount}</div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-primary">{activeCount}</div>
           <p className="text-[11px] text-muted-foreground">Converted subscriptions</p>
         </Card>
 
-        <Card className="p-4 space-y-1 border-border/80 bg-card">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+        <Card className="p-4 space-y-1 border-border bg-surface shadow-none rounded-xl">
+          <div className="flex items-center justify-between text-muted-foreground font-mono text-[10px] uppercase tracking-wider font-semibold">
             <span>Trialing</span>
-            <Sparkles className="size-4 text-amber-500" />
+            <Calendar className="size-3.5 text-amber-600" />
           </div>
-          <div className="text-2xl font-bold font-display text-amber-600 dark:text-amber-400">{trialingCount}</div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-amber-600 dark:text-amber-400">{trialingCount}</div>
           <p className="text-[11px] text-muted-foreground">14-day free trial</p>
         </Card>
       </div>

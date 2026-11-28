@@ -23,17 +23,12 @@ import {
 import { getAdminWhatsappStatus } from "@/lib/baileys.functions";
 import { toast } from "sonner";
 import {
-  Sparkles,
   Bot,
-  Settings,
-  CheckCircle2,
-  AlertCircle,
-  MessageSquare,
-  Zap,
-  Save,
   Loader2,
   Phone,
+  Save,
   Sliders,
+  Zap,
 } from "lucide-react";
 
 export function PlatformAiAgentCard() {
@@ -94,7 +89,7 @@ export function PlatformAiAgentCard() {
         enabled: newVal,
       }));
       await updateSettingsFn({ data: { enabled: newVal } });
-      toast.success(newVal ? "Platform AI Agent is now ACTIVE! 🚀" : "Platform AI Agent PAUSED");
+      toast.success(newVal ? "Platform AI Agent activated" : "Platform AI Agent paused");
       refetchConfig();
     } catch (err: any) {
       toast.error(err.message || "Failed to update agent status");
@@ -144,27 +139,27 @@ export function PlatformAiAgentCard() {
 
   return (
     <>
-      <Card className="p-4 sm:p-5 rounded-2xl border-primary/20 bg-gradient-to-r from-primary/5 via-primary/[0.02] to-background shadow-xs space-y-3">
+      <Card className="p-5 rounded-xl border-border bg-surface shadow-none space-y-3.5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-xs border border-primary/20">
-              <Sparkles className="size-5" />
+            <div className="size-10 rounded-lg bg-muted border border-border text-foreground flex items-center justify-center shrink-0">
+              <Bot className="size-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                  Platform AI Outreach Agent ({config?.agent_name || "Ritesh"}'s Human Clone)
+                <h3 className="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                  Platform AI Outreach Agent ({config?.agent_name || "Ritesh"})
                 </h3>
                 <Badge
-                  variant={isAgentActive ? "default" : "outline"}
-                  className={`text-[10px] font-semibold ${
+                  variant="outline"
+                  className={`font-mono text-[10px] font-semibold uppercase tracking-wider ${
                     isAgentActive
-                      ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                      : "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                      : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
                   }`}
                 >
-                  <span className={`size-1.5 rounded-full mr-1 ${isAgentActive ? "bg-white animate-pulse" : "bg-amber-500"}`} />
-                  {isAgentActive ? "LIVE ON WHATSAPP" : config?.enabled ? "WAITING FOR WHATSAPP" : "PAUSED"}
+                  <span className={`size-1.5 rounded-full mr-1.5 ${isAgentActive ? "bg-emerald-500" : "bg-amber-500"}`} />
+                  {isAgentActive ? "Live on WhatsApp" : config?.enabled ? "Waiting for WhatsApp" : "Paused"}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">

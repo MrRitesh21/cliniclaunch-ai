@@ -277,49 +277,49 @@ function AdminAiClinicBuilderPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold font-display text-foreground">
-              Full Clinic Creation Using AI
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] font-display text-foreground">
+              Clinic Bulk Provisioner
             </h1>
-            <Badge variant="outline" className="text-[11px] font-semibold flex items-center gap-1.5 py-0.5 border-amber-500/30 text-amber-600 bg-amber-500/10">
-              <Sparkles className="size-3 text-amber-500" /> 100+ Clinics Spreadsheet Importer
+            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider font-semibold py-0.5 border-border text-muted-foreground bg-surface">
+              Spreadsheet Importer
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl">
-            Upload any clinic spreadsheet (Google Maps Scraper, Excel, CSV, Practo, Justdial) and instantly provision complete, live, published websites at <span className="font-mono text-primary font-medium">/c/[slug]</span> with doctor profiles, clinical services, Google ratings, and WhatsApp booking.
+            Upload any clinic spreadsheet (CSV, Excel, Google Maps, Practo, Justdial) and provision published websites at <span className="font-mono text-foreground font-medium">/c/[slug]</span> with doctor profiles, clinical services, and WhatsApp booking.
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/admin/ai"
-            className="h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 border border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 inline-flex items-center transition-colors"
+            className="h-9 px-3 rounded-lg text-xs font-medium gap-1.5 border border-border bg-surface text-foreground hover:bg-muted/60 inline-flex items-center transition-colors"
             title="Configure OpenRouter, OpenAI, Gemini or Groq API keys"
           >
-            <Bot className="size-3.5 text-primary" />
-            <span>AI Gateway Settings</span>
+            <Bot className="size-3.5 text-muted-foreground" />
+            <span>AI Gateway</span>
           </Link>
 
           <Button
             size="sm"
             variant="outline"
             onClick={handleLoadSampleDataset}
-            className="h-9 rounded-xl text-xs font-semibold gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            className="h-9 rounded-lg text-xs font-medium gap-1.5 border-border bg-surface text-foreground hover:bg-muted/60"
           >
-            <Sparkles className="size-3.5 text-emerald-600" />
-            <span>Load Lucknow Clinics Sample</span>
+            <Building2 className="size-3.5 text-emerald-600" />
+            <span>Load Sample Dataset</span>
           </Button>
 
           {generationResults.length > 0 && (
             <Button
               size="sm"
               onClick={handleDownloadCsv}
-              className="h-9 rounded-xl text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              className="h-9 rounded-lg text-xs font-semibold gap-1.5 bg-foreground text-background hover:bg-foreground/90"
             >
               <Download className="size-3.5" />
-              <span>Download Excel with Live URLs</span>
+              <span>Export Live URLs</span>
             </Button>
           )}
         </div>
