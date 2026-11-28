@@ -4,7 +4,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  Sparkles,
   ArrowRight,
   Stethoscope,
   Calendar,
@@ -42,14 +41,14 @@ export function CommandPalette({
   const actions: ActionItem[] = [
     {
       id: "demo",
-      title: "Open Live Demo Workspace (Dr. Sarah Jenkins)",
+      title: "Request Live Walkthrough (Dr. Sarah Jenkins Demo)",
       category: "Product",
-      icon: Sparkles,
+      icon: Stethoscope,
       action: () => {
         navigate({ to: "/contact" });
         onOpenChange(false);
       },
-      shortcut: "⚡ Demo",
+      shortcut: "Demo",
     },
     {
       id: "login",

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles, Phone } from "lucide-react";
+import { ArrowRight, Phone } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/how-it-works")({
@@ -39,16 +39,16 @@ function HowPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-16">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto space-y-4">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-widest bg-primary/10 text-primary uppercase">
-              Instant 5-Minute Setup
-            </span>
-            <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Five-Minute Setup
+            </p>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] leading-[1.04]">
               Launch your practice in{" "}
-              <em className="text-primary font-normal">three simple steps.</em>
+              <span className="font-editorial text-primary font-normal">three steps.</span>
             </h1>
-            <p className="text-base sm:text-xl text-muted-foreground leading-relaxed">
-              We've automated the tech stack so you can focus 100% on providing exceptional patient
-              care.
+            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+              Configure your clinic profile, publish your custom domain, and enable automated
+              WhatsApp scheduling without technical overhead.
             </p>
           </div>
 
@@ -211,19 +211,22 @@ function HowPage() {
           </div>
 
           {/* Action CTAs */}
-          <div className="text-center flex flex-col sm:flex-row justify-center gap-4 pt-4">
+          <div className="text-center flex flex-col sm:flex-row justify-center gap-3 pt-4">
             <Link to="/contact">
               <Button
                 size="lg"
                 variant="outline"
-                className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2"
+                className="h-12 px-8 font-medium border-border bg-surface text-foreground hover:bg-muted/60 rounded-lg"
               >
-                <Sparkles className="size-4 text-amber-500" /> ⚡ Open Live Demo
+                Request Live Walkthrough
               </Button>
             </Link>
             <Link to="/login">
-              <Button size="lg" className="h-12 px-8 font-bold gap-2">
-                Start 14-Day Free Trial <ArrowRight className="size-4" />
+              <Button
+                size="lg"
+                className="h-12 px-8 font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-lg gap-2"
+              >
+                Start 14-day trial <ArrowRight className="size-4" />
               </Button>
             </Link>
           </div>

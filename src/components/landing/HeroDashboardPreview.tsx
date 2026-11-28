@@ -15,7 +15,6 @@ import {
   BarChart3,
   UserPlus,
   Send,
-  Sparkles,
   CheckCircle2,
   Volume2,
   Play,
@@ -167,18 +166,15 @@ export function HeroDashboardPreview({ onOpenDemo }: HeroDashboardPreviewProps) 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Soft Ambient Glow under the card */}
-      <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/20 via-sky-400/15 to-emerald-500/10 rounded-3xl blur-2xl opacity-75 pointer-events-none -z-10" />
-
-      {/* Main Elevated 3D Perspective Card */}
+      {/* Main Clean Framed Workspace Card */}
       <div
-        className="relative rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-[0_25px_60px_-15px_rgba(29,78,216,0.18),0_0_0_1px_rgba(226,232,240,0.8)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6),0_0_0_1px_rgba(30,41,59,0.8)] overflow-hidden transition-all duration-500 ease-out transform lg:-rotate-y-1 lg:rotate-x-1 lg:hover:rotate-y-0 lg:hover:rotate-x-0"
+        className="relative rounded-2xl border border-border bg-surface shadow-[0_24px_60px_-20px_rgba(13,21,38,0.14)] dark:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.65)] overflow-hidden transition-all duration-300 ease-out"
       >
         {/* Top Floating Tour Pill / Controls */}
         <div className="absolute top-2.5 right-3 z-30 flex items-center gap-2">
           {toastMessage && (
-            <div className="animate-in fade-in slide-in-from-top-2 bg-slate-900 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-lg border border-slate-700 flex items-center gap-1.5">
-              <Sparkles className="size-3 text-amber-400" />
+            <div className="animate-in fade-in slide-in-from-top-2 bg-foreground text-background text-[10px] font-medium px-2.5 py-1 rounded-md shadow-md flex items-center gap-1.5">
+              <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
               <span>{toastMessage}</span>
             </div>
           )}
@@ -186,7 +182,7 @@ export function HeroDashboardPreview({ onOpenDemo }: HeroDashboardPreviewProps) 
           <button
             type="button"
             onClick={() => setIsPaused((prev) => !prev)}
-            className="flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-600 transition-all cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 bg-surface/95 backdrop-blur-sm px-2.5 py-1 rounded-md border border-border text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={isPaused ? "Resume automated tour" : "Pause tour"}
           >
             <span
@@ -195,7 +191,7 @@ export function HeroDashboardPreview({ onOpenDemo }: HeroDashboardPreviewProps) 
               }`}
             />
             <span className="hidden sm:inline">
-              {isPaused ? "Tour Paused" : "Live Cursor Tour"}
+              {isPaused ? "Paused" : "Live Tour"}
             </span>
             {isPaused ? (
               <Play className="size-2.5 fill-current" />
@@ -208,13 +204,13 @@ export function HeroDashboardPreview({ onOpenDemo }: HeroDashboardPreviewProps) 
         {/* Dashboard Shell: Left Dark Sidebar + Right Content Area */}
         <div className="flex flex-col md:flex-row min-h-[440px] sm:min-h-[480px]">
           {/* ======================================================== */}
-          {/* LEFT DARK SIDEBAR (Navy / Slate #0B132B) */}
+          {/* LEFT DARK SIDEBAR (#0d1526) */}
           {/* ======================================================== */}
-          <aside className="w-full md:w-44 bg-[#0B132B] dark:bg-[#070D1F] text-slate-300 p-3 sm:p-3.5 flex flex-col justify-between border-r border-slate-800/80 shrink-0">
+          <aside className="w-full md:w-44 bg-[#0d1526] text-slate-300 p-3 sm:p-3.5 flex flex-col justify-between border-r border-slate-800/80 shrink-0">
             <div>
               {/* Brand Logo */}
               <div className="flex items-center gap-2 px-2 py-1.5 mb-2.5">
-                <div className="size-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 grid place-items-center text-white font-bold text-xs shadow-xs">
+                <div className="size-6 rounded-md bg-primary grid place-items-center text-white font-bold text-xs">
                   <Stethoscope className="size-3.5 text-white" />
                 </div>
                 <span className="font-bold text-white text-sm tracking-tight font-display">

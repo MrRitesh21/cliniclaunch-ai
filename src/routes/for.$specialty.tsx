@@ -3,7 +3,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, ArrowRight, Stethoscope, Sparkles, CheckCircle2 } from "lucide-react";
+import { Check, ArrowRight, Stethoscope, CheckCircle2 } from "lucide-react";
 import { SPECIALTIES, findSpecialty, SITE_URL } from "@/lib/marketing-data";
 
 export const Route = createFileRoute("/for/$specialty")({
@@ -61,27 +61,27 @@ function SpecialtyPage() {
   return (
     <MarketingShell>
       <section className="max-w-4xl mx-auto px-4 pt-16 pb-10 text-center space-y-6">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs text-primary font-bold tracking-wide uppercase">
-          <Sparkles className="size-3.5 text-amber-500" /> Dedicated for {s.plural}
-        </div>
-        <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          Dedicated for {s.plural}
+        </p>
+        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] leading-[1.05]">
           {s.headline}
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">{s.pain}</p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <Link to="/login">
-            <Button size="lg" className="h-12 px-8 font-bold gap-2">
-              Start Free 14-Day Trial <ArrowRight className="size-4" />
+            <Button size="lg" className="h-12 px-8 font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-lg gap-2">
+              Start 14-day trial <ArrowRight className="size-4" />
             </Button>
           </Link>
           <Link to="/contact">
             <Button
               size="lg"
               variant="outline"
-              className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2"
+              className="h-12 px-8 font-medium border-border bg-surface text-foreground hover:bg-muted/60 rounded-lg"
             >
-              ⚡ Open Live Demo
+              Request Walkthrough
             </Button>
           </Link>
         </div>
@@ -113,29 +113,29 @@ function SpecialtyPage() {
       </section>
 
       <section className="max-w-4xl mx-auto px-4 pb-20 text-center">
-        <Card className="p-8 sm:p-12 bg-gradient-to-br from-primary via-indigo-600 to-primary text-primary-foreground border-primary/20 shadow-2xl rounded-3xl space-y-4">
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white">
-            Ready to modernise your practice?
+        <Card className="p-8 sm:p-12 bg-[#0d1526] text-[#f4f4f0] border-white/10 rounded-2xl space-y-4">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Modernize your {s.plural.toLowerCase()} desk today.
           </h2>
-          <p className="text-primary-foreground/90 text-sm max-w-lg mx-auto">
-            14-day free trial. No credit card required. Setup in under 5 minutes.
+          <p className="text-slate-300 text-sm max-w-lg mx-auto">
+            14-day full-access trial. No card required. Live in under 5 minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <Link to="/login">
               <Button
                 size="lg"
-                variant="secondary"
-                className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95"
+                className="h-12 px-8 font-semibold bg-white text-[#0d1526] hover:bg-slate-100 rounded-lg"
               >
-                Get Started Free &rarr;
+                Start 14-day trial &rarr;
               </Button>
             </Link>
             <Link to="/contact">
               <Button
                 size="lg"
-                className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900"
+                variant="outline"
+                className="h-12 px-8 font-medium bg-transparent text-white border-white/20 hover:bg-white/10 rounded-lg"
               >
-                ⚡ Open Live Demo
+                Request Walkthrough
               </Button>
             </Link>
           </div>

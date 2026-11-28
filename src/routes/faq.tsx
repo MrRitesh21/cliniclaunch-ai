@@ -82,35 +82,50 @@ function FaqPage() {
     <MarketingShell>
       <section className="py-16 md:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14 space-y-4">
-            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-tight leading-[1.05]">
-              Questions, <em className="text-primary">answered.</em>
+          <div className="mb-14 space-y-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Frequently Asked Questions
+            </p>
+            <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] leading-[1.05]">
+              Questions, <span className="font-editorial text-primary font-normal">answered.</span>
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground">
-              Quick answers about setup, security, and getting started.
+              Practical answers on clinic setup, custom domains, DPDP security, and pricing.
             </p>
           </div>
 
-          <Accordion type="single" collapsible className="w-full space-y-4">
+          <Accordion type="single" collapsible className="w-full divide-y divide-border border-y border-border">
             {faqs.map((item, idx) => (
               <AccordionItem
                 key={idx}
                 value={`item-${idx}`}
-                className="bg-card border px-6 py-1 rounded-2xl"
+                className="border-none px-1 py-1"
               >
                 <AccordionTrigger className="font-display text-base font-bold text-left hover:no-underline">
-                  {item.q}
+                  <span className="flex items-baseline gap-3">
+                    <span className="font-mono text-[11px] text-muted-foreground font-normal">
+                      0{idx + 1}
+                    </span>
+                    <span>{item.q}</span>
+                  </span>
                 </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pt-1 pb-4">
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pt-1 pb-4 pl-7">
                   {item.a}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
 
-          <div className="mt-12 text-center">
+          <div className="mt-12 flex flex-wrap items-center gap-3">
             <Link to="/login">
-              <Button size="lg">Get started free</Button>
+              <Button size="lg" className="rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold h-11 px-7">
+                Start 14-day trial
+              </Button>
+            </Link>
+            <Link to="/contact">
+              <Button size="lg" variant="outline" className="rounded-lg border-border bg-surface font-medium h-11 px-6">
+                Request walkthrough
+              </Button>
             </Link>
           </div>
         </div>

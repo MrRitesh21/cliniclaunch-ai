@@ -496,16 +496,15 @@ export function ProcessDrawSection({
       >
         {!compact && (
           <div className="mx-auto max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              <span>The 3-step ClinicX workflow</span>
-            </div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Three-Step Setup
+            </p>
             <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
-              How ClinicX modernizes your practice
+              From paper register to structured OPD
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              From your clinic profile to a connected patient experience, follow a clear three-step
-              path.
+              Configure your clinic profile, map your domain, and activate WhatsApp confirmations in
+              one sequence.
             </p>
           </div>
         )}

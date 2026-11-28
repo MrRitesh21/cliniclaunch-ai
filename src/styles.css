@@ -37,83 +37,83 @@
   --color-ring: var(--ring);
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
-  --radius: 12px; /* Set default to lg for 12px cards */
-  --background: #f8fafc; /* Crisp Slate 50 */
-  --foreground: #0f172a; /* Slate 900 */
+  --radius: 12px;
+  --background: #fafaf8; /* Warm Alabaster */
+  --foreground: #0d1526; /* Clinical Ink */
   --surface: #ffffff;
-  --surface-foreground: #0f172a;
+  --surface-foreground: #0d1526;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #0d1526;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #0d1526;
 
-  /* Premium Healthcare Medical Blue / Indigo */
-  --primary: #2563eb; /* Blue 600 */
+  /* Precision Medical Cobalt */
+  --primary: #1d4ed8; /* Blue 700 */
   --primary-foreground: #ffffff;
 
-  /* Refined Neutral Accents */
-  --secondary: #f1f5f9; /* Slate 100 */
-  --secondary-foreground: #1e293b; /* Slate 800 */
-  --accent: #f1f5f9;
+  /* Refined Warm Neutral Accents */
+  --secondary: #f3f2ee;
+  --secondary-foreground: #1e293b;
+  --accent: #f3f2ee;
   --accent-foreground: #1e293b;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b; /* Slate 500 */
+  --muted: #f3f2ee;
+  --muted-foreground: #5b6475;
 
-  /* High-Trust Medical Semantic Tokens */
-  --destructive: #e11d48; /* Rose 600 */
+  /* Clinical Semantic Tokens */
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --success: #059669; /* Emerald 600 */
+  --success: #047857;
   --success-foreground: #ffffff;
-  --warning: #d97706; /* Amber 600 */
+  --warning: #b45309;
   --warning-foreground: #ffffff;
-  --info: #0284c7; /* Sky 600 */
+  --info: #0369a1;
   --info-foreground: #ffffff;
 
-  --border: #e2e8f0; /* Slate 200 */
-  --input: #e2e8f0;
-  --ring: #2563eb; /* Blue 600 */
+  --border: #e6e4de;
+  --input: #e6e4de;
+  --ring: #1d4ed8;
 }
 
 html.dark,
 .dark {
-  --background: #0b0f19; /* Deep Slate */
-  --foreground: #f8fafc; /* Slate 50 */
-  --surface: #131b2c;
-  --surface-foreground: #f8fafc;
-  --card: #131b2c;
-  --card-foreground: #f8fafc;
-  --popover: #131b2c;
-  --popover-foreground: #f8fafc;
+  --background: #090d16; /* Obsidian Navy */
+  --foreground: #f4f4f0; /* Warm Bone */
+  --surface: #101624;
+  --surface-foreground: #f4f4f0;
+  --card: #101624;
+  --card-foreground: #f4f4f0;
+  --popover: #101624;
+  --popover-foreground: #f4f4f0;
 
-  /* Modern Indigo - lighter for dark mode */
-  --primary: #6366f1; /* Indigo 500 */
+  --primary: #3b82f6;
   --primary-foreground: #ffffff;
 
-  --secondary: #1e293b; /* Slate 800 */
-  --secondary-foreground: #f8fafc;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8; /* Slate 400 */
+  --secondary: #172033;
+  --secondary-foreground: #f4f4f0;
+  --accent: #172033;
+  --accent-foreground: #f4f4f0;
+  --muted: #172033;
+  --muted-foreground: #94a3b8;
 
-  /* Semantic */
-  --destructive: #f43f5e; /* Rose 500 */
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --success: #10b981; /* Emerald 500 */
+  --success: #10b981;
   --success-foreground: #ffffff;
-  --warning: #f59e0b; /* Amber 500 */
+  --warning: #f59e0b;
   --warning-foreground: #ffffff;
-  --info: #0ea5e9; /* Sky 500 */
+  --info: #0ea5e9;
   --info-foreground: #ffffff;
 
-  --border: #1e293b; /* Slate 800 */
+  --border: #1e293b;
   --input: #1e293b;
-  --ring: #6366f1; /* Indigo 500 */
+  --ring: #3b82f6;
 }
 
 @layer base {
@@ -228,6 +228,17 @@ html.dark,
   .no-scrollbar {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
+  }
+
+  .font-editorial {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 
   @keyframes bell-ring {

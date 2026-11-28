@@ -1,47 +1,27 @@
-import { lazy, Suspense, useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import {
   ArrowRight,
-  MessageSquare,
-  IndianRupee,
-  CheckCircle2,
+  ArrowUpRight,
+  Building2,
+  Calendar,
+  Check,
+  ChevronDown,
   Clock,
+  FileText,
+  Globe,
+  Headphones,
+  Lock,
+  MessageSquare,
+  Pill,
   QrCode,
-  Stethoscope,
-  Users,
   ShieldCheck,
   Star,
-  ChevronDown,
-  CreditCard,
-  Globe,
-  Calendar,
-  CalendarDays,
-  FileText,
-  Pill,
-  FlaskConical,
-  TrendingUp,
-  Megaphone,
-  BarChart3,
-  Bot,
+  Stethoscope,
+  Users,
   Wallet,
-  LineChart,
-  Building2,
-  Sparkles,
-  Smartphone,
-  Laptop,
-  Tv,
-  Printer,
-  Check,
-  X,
-  Zap,
-  Award,
-  Lock,
-  Headphones,
-  PhoneCall,
-  Activity,
-  HeartPulse,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { resolveHostToClinic } from "@/lib/domain.functions";
 import { getClinicBySlug } from "@/lib/clinic.functions";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
@@ -65,9 +45,6 @@ const LeadCaptureDialog = lazy(() =>
 const LeadCaptureSection = lazy(() =>
   import("@/components/landing/LeadCaptureSection").then((m) => ({ default: m.LeadCaptureSection })),
 );
-const ClinicMotionCanvas = lazy(() =>
-  import("@/components/landing/ClinicMotionCanvas").then((m) => ({ default: m.ClinicMotionCanvas })),
-);
 const InteractiveClinicEngine = lazy(() =>
   import("@/components/landing/InteractiveClinicEngine").then((m) => ({
     default: m.InteractiveClinicEngine,
@@ -82,33 +59,6 @@ const HeroDashboardPreview = lazy(() =>
   import("@/components/landing/HeroDashboardPreview").then((m) => ({
     default: m.HeroDashboardPreview,
   })),
-);
-const ProcessDrawSection = lazy(() =>
-  import("@/components/landing/LandingMotion").then((m) => ({ default: m.ProcessDrawSection })),
-);
-const BeforeAfterSlider = lazy(() =>
-  import("@/components/landing/LandingMotion").then((m) => ({ default: m.BeforeAfterSlider })),
-);
-const UsVsThemSection = lazy(() =>
-  import("@/components/landing/LandingMotion").then((m) => ({ default: m.UsVsThemSection })),
-);
-const BentoArchitectureSection = lazy(() =>
-  import("@/components/landing/LandingMotion").then((m) => ({
-    default: m.BentoArchitectureSection,
-  })),
-);
-const LiveClinicSocialProof = lazy(() =>
-  import("@/components/landing/LandingMotion").then((m) => ({
-    default: m.LiveClinicSocialProof,
-  })),
-);
-const StackedDeckTestimonials = lazy(() =>
-  import("@/components/landing/LandingMotion").then((m) => ({
-    default: m.StackedDeckTestimonials,
-  })),
-);
-const HeroProductDemo = lazy(() =>
-  import("@/components/landing/HeroProductDemo").then((m) => ({ default: m.HeroProductDemo })),
 );
 
 export const Route = createFileRoute("/")({
@@ -163,9 +113,9 @@ export const Route = createFileRoute("/")({
       };
     }
     const siteUrl = "https://clinics.digiwil.com";
-    const title = "ClinicX — Operating System for Independent Indian Clinics";
+    const title = "ClinicX — Practice Operating System for Independent Indian Clinics";
     const desc =
-      "Built for practicing Indian doctors. Clinic website on your domain, 24/7 WhatsApp appointments, live OPD queue on TV, digital Rx, and GST billing — from ₹999/month.";
+      "Clinic website on your own domain, automated WhatsApp appointments, live OPD token queue on TV, digital Rx, and GST billing — with 0% patient fee commission.";
     return {
       meta: [
         { title },
@@ -208,154 +158,153 @@ export const Route = createFileRoute("/")({
   ),
 });
 
-
-
-/* ------------------------------------------------------------------ *
- * Realistic modules that exist in ClinicX
- * ------------------------------------------------------------------ */
-const MODULES: { icon: any; name: string; desc: string; badge?: string }[] = [
+const ARCHITECTURE_PILLARS: {
+  index: string;
+  icon: any;
+  name: string;
+  desc: string;
+  metric: string;
+}[] = [
   {
+    index: "01",
     icon: Globe,
-    name: "Clinic website & SEO",
-    desc: "Your branded site on your own domain (e.g. drsharma.in) with booking and Google Maps ranking.",
-    badge: "0% Commission",
+    name: "Clinic website & custom domain",
+    desc: "Direct patient booking on your own domain (e.g. drsharma.in) indexed for local search without marketplace middlemen.",
+    metric: "0% commission",
   },
   {
+    index: "02",
     icon: MessageSquare,
-    name: "WhatsApp bot automation",
-    desc: "Auto-confirms bookings, sends reminder 2h before OPD, 3-day follow-up, and collects 5-star Google reviews.",
-    badge: "Slashes No-Shows",
+    name: "Automated WhatsApp desk",
+    desc: "Confirms slots immediately, triggers 2-hour pre-OPD reminders, and sends post-visit Google review requests.",
+    metric: "-85% front-desk calls",
   },
   {
+    index: "03",
     icon: Clock,
-    name: "Live OPD queue & TV screen",
-    desc: "Token numbers on waiting room TV & patient phone. Patients know wait times; zero reception chaos.",
-    badge: "Front-Desk Peace",
+    name: "Live OPD token & TV display",
+    desc: "Unified waiting-room TV screen and mobile token status synced directly from reception and doctor rooms.",
+    metric: "Real-time sync",
   },
   {
+    index: "04",
     icon: FileText,
-    name: "Digital prescriptions (Rx)",
-    desc: "Print or WhatsApp clean prescriptions with clinic letterhead, Hindi/English dosage, and lab tests in 30 sec.",
-    badge: "30-Sec Workflow",
+    name: "30-second digital prescriptions",
+    desc: "Official clinic letterhead, structured drug presets, Hindi/English dosage instructions, and instant WhatsApp PDF delivery.",
+    metric: "30s average Rx",
   },
   {
-    icon: Calendar,
-    name: "Per-doctor appointment slots",
-    desc: "Morning & evening schedules, slot intervals, walk-in token sync, and double-booking prevention.",
-  },
-  {
+    index: "05",
     icon: Wallet,
-    name: "Cash book & UPI billing",
-    desc: "Daily OPD collection tally, scan-and-pay UPI QR code, thermal GST invoices, and expense log.",
+    name: "Cash book & UPI GST billing",
+    desc: "Dynamic reception UPI QR codes, automated day-end cash tally, thermal invoices, and B2B/B2C GST summaries.",
+    metric: "Zero ledger drift",
   },
   {
+    index: "06",
     icon: Users,
-    name: "Patient records & EHR",
-    desc: "Search by phone number. Complete clinical history, past Rx, allergies, and uploaded blood test PDFs.",
-  },
-  {
-    icon: Stethoscope,
-    name: "Video teleconsultation",
-    desc: "Secure 1-click video calls right in browser. WhatsApp link sent automatically to remote patients.",
-  },
-  {
-    icon: Star,
-    name: "Google 5-star review collector",
-    desc: "Automatically asks satisfied patients for a Google Business review 2 hours after clinic visit.",
-    badge: "+120 Reviews/mo",
-  },
-  {
-    icon: QrCode,
-    name: "Reception counter QR code",
-    desc: "Printable standee QR for walk-in patients to check in and join OPD token queue on their phone.",
-  },
-  {
-    icon: Pill,
-    name: "In-clinic pharmacy & stock",
-    desc: "Dispense medicines directly from doctor room. Track batch numbers, expiry dates, and low-stock alerts.",
-  },
-  {
-    icon: Building2,
-    name: "Multi-doctor & multi-branch",
-    desc: "Manage multiple doctors, consultants, and branches under one organization with scoped permissions.",
+    name: "Searchable EHR & multi-doctor ops",
+    desc: "Instant visit lookup by phone number, lab PDF history, pharmacy stock tracking, and scoped multi-consultant rosters.",
+    metric: "Mumbai encrypted",
   },
 ];
 
-const SPECIALTIES = [
-  "General Physician",
-  "Dental Surgery",
-  "Pediatrics & Child Care",
-  "Dermatology & Cosmetology",
-  "Orthopedics & Joint Care",
-  "Gynecology & Obstetrics",
-  "ENT Specialist",
-  "Physiotherapy & Rehab",
-  "Ophthalmology / Eye",
-  "Homeopathy & Ayurveda",
+const SPECIALTY_LINKS: { label: string; slug?: "dermatologist" | "dentist" | "paediatrician" | "gynecologist" }[] = [
+  { label: "General Physician" },
+  { label: "Dermatology", slug: "dermatologist" },
+  { label: "Dental Surgery", slug: "dentist" },
+  { label: "Pediatrics", slug: "paediatrician" },
+  { label: "Gynecology", slug: "gynecologist" },
+  { label: "Orthopedics" },
+  { label: "ENT" },
+  { label: "Physiotherapy" },
+  { label: "Ophthalmology" },
+  { label: "Ayurveda & Homeopathy" },
 ];
 
-const BEFORE_AFTER = [
+const PRACTICE_SHIFT = [
   {
-    challenge: "Lost phone calls & receptionist overload",
+    id: "calls",
+    area: "Appointment Intake",
     before:
-      "Receptionist busy picking up phone calls for clinic timings, fees, and appointment slots while checking in patients.",
+      "Front desk repeatedly answers phone calls for timings, consultation fees, and open slots while checking patients in.",
     after:
-      "24/7 WhatsApp assistant automatically shows doctor's available slots, confirms bookings, and sends Google Maps location.",
+      "WhatsApp desk shares live doctor slots, prevents duplicate same-day bookings, and sends clinic Maps pin automatically.",
   },
   {
-    challenge: "Chaotic waiting rooms & patient frustration",
+    id: "queue",
+    area: "Waiting Room Flow",
     before:
-      "Patients constantly ask front desk 'Mera number kab aayega?', leading to arguments and crowded waiting lobbies.",
+      "Patients crowd the reception counter asking how many turns remain, creating friction and delays.",
     after:
-      "Live OPD Token Queue on reception TV & patient phone shows real-time token status and estimated wait time.",
+      "Waiting-room TV display and mobile token link show the active token and estimated wait time live.",
   },
   {
-    challenge: "Handwritten prescriptions & lost paper records",
+    id: "rx",
+    area: "Clinical Documentation",
     before:
-      "Handwritten notes with unreadable handwriting. Patients lose paper slips and doctors have zero past medical history.",
+      "Handwritten slips get misplaced; doctors start every follow-up visit without past vitals or medication history.",
     after:
-      "Digital Rx printed with your official letterhead or sent on WhatsApp in 30 seconds. Complete history searchable by mobile number.",
+      "Printed letterhead Rx and WhatsApp PDF sent in under 30 seconds, indexed permanently by patient mobile number.",
   },
   {
-    challenge: "Day-end cash mismatches & untracked payments",
+    id: "fees",
+    area: "Patient Ownership & Fees",
     before:
-      "Rough paper notebook calculations. Cash doesn't match reception drawer, leading to evening stress and revenue leakage.",
+      "Aggregator directories charge ₹150–₹400 per patient booking and promote competing clinics beside your name.",
     after:
-      "Automated daily cash book, dynamic UPI QR collection at reception, and 1-click GST invoices with auto P&L reporting.",
+      "Your own clinic URL captures bookings at 0% commission. Cash, UPI QR, and card settlements go straight to your bank.",
+  },
+];
+
+const DOCTOR_PERSPECTIVES = [
+  {
+    quote:
+      "We moved our morning OPD off paper registers in one afternoon. Patients scan the reception QR, see their token on the TV, and my staff no longer spends two hours answering timing calls.",
+    name: "Dr. Aanya Patel",
+    role: "MD Dermatology · Mumbai",
+    stat: "42 daily visits managed by 1 receptionist",
   },
   {
-    challenge: "Zero online presence & aggregator commissions",
-    before:
-      "Paying ₹200–₹400 commission per patient to big corporate aggregator apps with no control over patient data.",
-    after:
-      "Own branded clinic website (e.g. drsharma.in) ranking on Google with direct booking and 0% commission.",
+    quote:
+      "Switching from an aggregator saved us roughly ₹28,000 a month in booking fees. Patients now book directly on our own clinic domain and receive their Rx PDF on WhatsApp before reaching the pharmacy.",
+    name: "Dr. Rohan Deshmukh",
+    role: "MBBS, DCH Pediatrics · Pune",
+    stat: "0% commission on 1,100+ monthly consults",
+  },
+  {
+    quote:
+      "The 1-click prescription bundles and automatic cash-book tally cut my evening wrap-up to five minutes. Every vitals chart from previous visits opens the moment a patient gives their phone number.",
+    name: "Dr. Vivek Kulkarni",
+    role: "Consultant Physician · Bengaluru",
+    stat: "30-sec consultation closeout",
   },
 ];
 
 const FAQS = [
   {
-    q: "Do I need a laptop or computer, or can I use my mobile phone / tablet?",
-    a: "ClinicX works 100% on any device — Android phone, iPhone, iPad, tablet, laptop, or desktop computer. You can install it as a lightweight Progressive Web App (PWA) directly from your browser. Doctors can prescribe from their phone or tablet, and reception can run the queue from any basic screen.",
+    q: "Do I need a laptop or desktop computer, or can I run everything from a tablet or phone?",
+    a: "ClinicX runs on Android phones, iPhones, iPads, tablets, laptops, and desktop browsers, plus dedicated native mobile apps for doctors and staff. Doctors often prescribe from an iPad or phone while reception manages walk-ins from a desk screen.",
   },
   {
-    q: "How does the WhatsApp bot connect? Does it require an expensive Business API?",
-    a: "You can connect your existing clinic WhatsApp number in 60 seconds simply by scanning a QR code (just like WhatsApp Web). There are no complex Facebook approvals or expensive per-message charges for routine clinic reminders and booking confirmations.",
+    q: "How does WhatsApp booking connect without costly Business API setup?",
+    a: "You link your existing clinic WhatsApp number in under a minute by scanning a QR code, or connect Meta Cloud API if preferred. Confirmations, pre-visit reminders, and follow-up summaries dispatch automatically.",
   },
   {
-    q: "Can my receptionist and clinic staff learn this easily?",
-    a: "Yes! ClinicX is deliberately designed for Indian front-desk staff. Adding a walk-in patient takes 15 seconds: enter name, mobile number, and select doctor. We also provide a free 15-minute live video onboarding call for your staff in Hindi or English.",
+    q: "Can patients still walk in without booking online?",
+    a: "Yes. Reception can issue a walk-in token in 15 seconds, or patients can scan the printed counter QR standee on their phone. Walk-in and online tokens share one unified live queue.",
   },
   {
-    q: "Can patients still walk in without booking on WhatsApp?",
-    a: "Absolutely. When a patient walks into your clinic, your receptionist simply clicks 'Quick Walk-in' or the patient scans the QR standee at your front counter. They get a live token number immediately, which syncs seamlessly with online booked slots.",
+    q: "Where is patient medical data stored, and can I export it?",
+    a: "All clinical records, prescriptions, and billing ledgers are encrypted and hosted in AWS/Supabase Mumbai data centers in alignment with India's DPDP Act 2023. You can export your entire database to CSV/Excel or PDF anytime with zero lock-in.",
   },
   {
-    q: "Is patient medical data safe, and can I export it if I leave?",
-    a: "Your data is 100% yours. All clinical records are stored with 256-bit encryption in Indian data centers (Mumbai) in strict compliance with the DPDP Act 2023 and ABDM standards. You can export all your patient records, appointments, and billing data to Excel/PDF anytime in one click with zero lock-in.",
+    q: "Do you take any commission on consultation fees or UPI payments?",
+    a: "Never. ClinicX charges a flat software subscription starting at ₹999/month. Whether patients pay via cash, reception UPI QR, or Razorpay, 100% of your clinical revenue goes directly to your clinic account.",
   },
   {
-    q: "Are there any commissions or hidden fees on patient payments?",
-    a: "Zero commission. What patients pay you is 100% yours. Whether patients pay cash at your clinic counter, scan your clinic UPI QR code, or pay online via Razorpay, ClinicX never takes a cut from your consultation or treatment fees.",
+    q: "How quickly can my reception staff learn the system?",
+    a: "Front-desk staff typically learn walk-in check-in and queue calling in 10 minutes. Every trial includes a complimentary 15-minute live onboarding session in Hindi or English.",
   },
 ];
 
@@ -408,115 +357,79 @@ function Landing() {
   );
 }
 
-function LaurelWreathBadge({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="flex items-center justify-center gap-2 text-center group">
-      {/* Left Laurel Branch */}
-      <svg
-        className="w-5 h-9 text-slate-400 dark:text-slate-500 shrink-0"
-        viewBox="0 0 24 40"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path d="M12 2C10.5 4 8 7 8 11C8 13.5 9 16 10 18C8.5 19 6 21 6 24C6 26.5 7.5 28.5 9 30C7 31.5 5 34 5 37C5 38 5.5 39 6.5 39C7.5 39 8.5 37.5 9.5 35C11 36.5 13 37.5 15 38L14 36C12.5 35.5 11 34.5 10 33C12 32 13.5 30 13.5 27.5C13.5 25.5 12 23.5 10.5 22.5C12.5 21 14 18.5 14 15.5C14 12.5 12.5 9.5 11 8C13 6.5 14 4.5 14 2.5C14 2 13.5 2 13 2Z" />
-      </svg>
-
-      <div className="space-y-0.5">
-        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-          {title}
-        </p>
-        <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-          {subtitle}
-        </p>
-      </div>
-
-      {/* Right Laurel Branch */}
-      <svg
-        className="w-5 h-9 text-slate-400 dark:text-slate-500 shrink-0 scale-x-[-1]"
-        viewBox="0 0 24 40"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path d="M12 2C10.5 4 8 7 8 11C8 13.5 9 16 10 18C8.5 19 6 21 6 24C6 26.5 7.5 28.5 9 30C7 31.5 5 34 5 37C5 38 5.5 39 6.5 39C7.5 39 8.5 37.5 9.5 35C11 36.5 13 37.5 15 38L14 36C12.5 35.5 11 34.5 10 33C12 32 13.5 30 13.5 27.5C13.5 25.5 12 23.5 10.5 22.5C12.5 21 14 18.5 14 15.5C14 12.5 12.5 9.5 11 8C13 6.5 14 4.5 14 2.5C14 2 13.5 2 13 2Z" />
-      </svg>
-    </div>
-  );
-}
-
 function LandingContent() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const [activeShiftIndex, setActiveShiftIndex] = useState(0);
+  const heroRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const el = heroRef.current;
+    if (!el) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from(".hero-stagger", {
+        y: 16,
+        opacity: 0,
+        duration: 0.65,
+        stagger: 0.06,
+        ease: "power3.out",
+        clearProps: "transform,opacity",
+      });
+    }, el);
+
+    return () => ctx.revert();
+  }, []);
+
+  const currentShift = PRACTICE_SHIFT[activeShiftIndex] ?? PRACTICE_SHIFT[0];
 
   return (
     <div className="relative">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-slate-200/70 dark:border-slate-800 bg-gradient-to-b from-blue-50/40 via-background to-background dark:from-blue-950/20 dark:via-background dark:to-background">
-        {/* Ambient Soft Glow Blobs */}
-        <div className="absolute top-0 left-1/4 -translate-x-1/2 w-96 h-96 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
-        <div className="absolute top-1/3 right-0 w-[28rem] h-[28rem] bg-cyan-400/10 dark:bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      {/* ============================================================ */}
+      {/* 01. EDITORIAL ASYMMETRIC HERO                                */}
+      {/* ============================================================ */}
+      <section
+        ref={heroRef}
+        className="relative overflow-hidden border-b border-border bg-background"
+      >
+        {/* Subtle architectural hairline coordinate grid */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.18] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_75%_65%_at_65%_35%,black,transparent)]"
+        />
 
-        {/* Dynamic Code-Generated Ambient Canvas */}
-        <Suspense fallback={null}>
-          <ClinicMotionCanvas />
-        </Suspense>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center">
-            {/* Left Column: Value Proposition & High-Converting CTAs */}
-            <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-center lg:text-left min-w-0">
-              {/* Product Audience Tag */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5">
-                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/90 dark:border-blue-800/80 bg-blue-50/90 dark:bg-blue-950/60 px-4 py-1.5 text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 shadow-2xs">
-                  <div className="size-4 rounded-full bg-blue-600 text-white grid place-items-center font-bold text-[10px]">
-                    +
-                  </div>
-                  <span>All-in-One Clinic OS for Indian Doctors</span>
-                </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-10 xl:gap-14 items-center">
+            {/* Left Editorial Column */}
+            <div className="lg:col-span-6 space-y-6 text-left min-w-0">
+              <div className="hero-stagger flex items-center gap-3">
+                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Clinic Operating System · India
+                </span>
+                <span className="h-px flex-1 max-w-14 bg-border" aria-hidden="true" />
               </div>
 
-              {/* Main Headline with Highlighted Patients */}
-              <h1 className="font-display text-3xl sm:text-5xl lg:text-[3.25rem] xl:text-[3.6rem] font-black tracking-tight text-slate-900 dark:text-white leading-[1.12]">
-                Run Your Clinic on <br className="hidden sm:inline" />
-                Autopilot. Less Admin, <br className="hidden sm:inline" />
-                More{" "}
-                <span className="relative inline-block text-blue-600 dark:text-blue-400 font-black">
-                  Patients.
-                  <svg
-                    className="absolute -bottom-2 left-0 w-full overflow-visible"
-                    viewBox="0 0 160 12"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M3 8.5C45 2.5 115 2 157 8"
-                      stroke="#2563EB"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+              <h1 className="hero-stagger font-display text-4xl sm:text-5xl xl:text-[3.75rem] font-extrabold tracking-[-0.035em] text-foreground leading-[1.03]">
+                Own your patient pipeline. Run a calmer{" "}
+                <span className="font-editorial text-primary font-normal text-[1.08em]">
+                  OPD.
                 </span>
               </h1>
 
-              {/* Benefit-Driven Subheadline */}
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl mx-auto lg:mx-0 font-normal">
-                ClinicX equips your practice with an automated 24/7 WhatsApp booking assistant,
-                real-time OPD token queue on TV, digital Rx, and your own branded website — all in
-                one place.
+              <p className="hero-stagger text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl">
+                Branded clinic domain, automated WhatsApp booking, waiting-room TV token queue, and
+                30-second digital prescriptions — built for independent Indian practices with zero
+                aggregator commissions.
               </p>
 
-              {/* CTA Button Group with Clear Dominance */}
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
+              <div className="hero-stagger pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Link to="/signup" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="h-13 w-full sm:w-auto px-7 rounded-xl text-sm sm:text-base font-bold gap-2 shadow-lg shadow-blue-600/25 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-all hover:scale-[1.02]"
+                    className="h-12 w-full sm:w-auto px-7 rounded-lg text-sm font-semibold gap-2 bg-foreground text-background hover:bg-foreground/90 cursor-pointer transition-colors"
                   >
-                    <span>Start 14-Day Free Trial</span>
+                    <span>Start 14-day trial</span>
                     <ArrowRight className="size-4" />
                   </Button>
                 </Link>
@@ -524,36 +437,35 @@ function LandingContent() {
                   size="lg"
                   variant="outline"
                   onClick={() => setDemoModalOpen(true)}
-                  className="h-13 w-full sm:w-auto px-6 rounded-xl text-sm sm:text-base font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs gap-2"
+                  className="h-12 w-full sm:w-auto px-6 rounded-lg text-sm font-medium border-border bg-surface text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                 >
-                  <CalendarDays className="size-4 text-slate-600 dark:text-slate-300" />
-                  <span>Schedule Live Demo</span>
+                  Request live walkthrough
                 </Button>
               </div>
 
-              {/* Friction-reducing Micro-Copy with Checkmarks */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium pt-1">
+              {/* Quiet operational ledger */}
+              <div className="hero-stagger pt-4 border-t border-border/80 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
-                  <span>14-Day Free Trial</span>
+                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>14-day full access</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
-                  <span>No Credit Card Required</span>
+                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>No card required</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="size-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
-                  <span>Ready in 2 Minutes</span>
+                  <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>0% fee commission</span>
                 </span>
               </div>
             </div>
 
-            {/* Right Column: Hero Dashboard Preview with Animated Cursor Tour */}
-            <div className="lg:col-span-6 relative min-w-0 w-full flex items-center justify-center">
+            {/* Right Workspace Frame */}
+            <div className="hero-stagger lg:col-span-6 relative min-w-0 w-full">
               <Suspense
                 fallback={
                   <div
-                    className="w-full min-h-[380px] sm:min-h-[440px] rounded-2xl border border-border/50 bg-muted/20 animate-pulse"
+                    className="w-full min-h-[400px] sm:min-h-[460px] rounded-2xl border border-border bg-surface animate-pulse"
                     aria-hidden="true"
                   />
                 }
@@ -565,335 +477,391 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* Under-Hero Feature Capsule Strip */}
-      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8">
-        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-4 sm:p-6 shadow-xl shadow-blue-500/5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-          {/* 1. Branded Clinic Website */}
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 grid place-items-center shrink-0 border border-blue-100 dark:border-blue-900">
-              <Laptop className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                Branded Clinic Website
-              </p>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Your own professional website
-              </p>
-            </div>
+      {/* ============================================================ */}
+      {/* 02. ARCHITECTURAL METRIC LEDGER & SPECIALTY INDEX            */}
+      {/* ============================================================ */}
+      <section className="border-b border-border bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border">
+            {[
+              { idx: "01", value: "500+", label: "Practicing Indian clinics" },
+              { idx: "02", value: "420,000+", label: "Consultations managed" },
+              { idx: "03", value: "85%", label: "Drop in reception call load" },
+              { idx: "04", value: "₹0", label: "Commission on patient fees" },
+            ].map((item) => (
+              <div key={item.idx} className="py-7 sm:py-9 lg:px-8 first:lg:pl-0 last:lg:pr-0 space-y-1.5">
+                <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground block">
+                  {item.idx}
+                </span>
+                <p className="font-mono text-2xl sm:text-4xl font-bold tabular-nums tracking-tight text-foreground">
+                  {item.value}
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{item.label}</p>
+              </div>
+            ))}
           </div>
 
-          {/* 2. WhatsApp Automation */}
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 grid place-items-center shrink-0 border border-emerald-100 dark:border-emerald-900">
-              <MessageSquare className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                WhatsApp Automation
-              </p>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Bookings, reminders & lead alerts
-              </p>
-            </div>
-          </div>
-
-          {/* 3. OPD Token Queue */}
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 grid place-items-center shrink-0 border border-blue-100 dark:border-blue-900">
-              <CalendarDays className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                OPD Token Queue
-              </p>
-              <p className="text-[11px] text-slate-500 leading-snug">Real-time, TV ready display</p>
-            </div>
-          </div>
-
-          {/* 4. Digital Prescriptions */}
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 grid place-items-center shrink-0 border border-indigo-100 dark:border-indigo-900">
-              <FileText className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                Digital Prescriptions
-              </p>
-              <p className="text-[11px] text-slate-500 leading-snug">Create and share instantly</p>
-            </div>
-          </div>
-
-          {/* 5. Patient Records */}
-          <div className="flex items-center gap-3 col-span-2 md:col-span-1">
-            <div className="size-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 grid place-items-center shrink-0 border border-cyan-100 dark:border-cyan-900">
-              <BarChart3 className="size-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                Patient Records
-              </p>
-              <p className="text-[11px] text-slate-500 leading-snug">Secure & paperless history</p>
+          <div className="border-t border-border py-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-foreground font-semibold">
+              Specialties
+            </span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {SPECIALTY_LINKS.map((s) =>
+                s.slug ? (
+                  <Link
+                    key={s.label}
+                    to="/for/$specialty"
+                    params={{ specialty: s.slug }}
+                    className="hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                  >
+                    {s.label}
+                  </Link>
+                ) : (
+                  <span key={s.label}>{s.label}</span>
+                ),
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Laurel Wreath Trust Badges Row */}
-      <section className="py-10 sm:py-12 border-b border-slate-200/70 dark:border-slate-800 bg-background/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 items-center justify-center">
-          <LaurelWreathBadge
-            title="256-bit SSL"
-            subtitle="Data Encrypted & Secure"
-          />
-          <LaurelWreathBadge
-            title="ABDM Aligned"
-            subtitle="Digital Health Ready"
-          />
-          <LaurelWreathBadge
-            title="100% Commission Free"
-            subtitle="Direct UPI & cash settlements"
-          />
-          <LaurelWreathBadge
-            title="Made for Indian Clinics"
-            subtitle="Clinic • Polyclinic • Specialty"
-          />
-        </div>
-      </section>
-
-      {/* High-Impact Proof & Credibility Bar */}
-      <section className="border-b border-border/60 bg-muted/20 py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-          <div className="space-y-1">
-            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              500+
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Practicing Indian Clinics
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-primary tracking-tight">
-              420,000+
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Patient Consultations Handled
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">
-              85%
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Drop in Reception Phone Chaos
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="font-mono text-2xl sm:text-4xl font-extrabold text-amber-500 tracking-tight">
-              0%
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Commission on Patient Fees
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Clinic Engine Simulator */}
-      <section className="border-b border-border/60 bg-background py-16 sm:py-24 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto space-y-10">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-              <Sparkles className="size-3.5" /> Interactive Multi-Channel Demo
+      {/* ============================================================ */}
+      {/* 03. LIVE CLINICAL ENGINE SANDBOX                             */}
+      {/* ============================================================ */}
+      <section className="border-b border-border bg-background py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-7 space-y-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                01 — Unified Clinic Engine
+              </p>
+              <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-[-0.03em] text-foreground leading-[1.08]">
+                Inspect the live patient{" "}
+                <span className="font-editorial text-primary font-normal">workflow.</span>
+              </h2>
             </div>
-            <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-              Experience the Full Power of ClinicX in Real Time
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Test drive our automated WhatsApp assistant, live TV token chime, and 30-second digital
-              prescriptions below.
-            </p>
+            <div className="lg:col-span-5">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Switch between the WhatsApp booking desk, waiting-room TV token screen, and
+                30-second digital prescription pad below.
+              </p>
+            </div>
           </div>
-          <Suspense fallback={<div className="min-h-[380px]" aria-hidden="true" />}>
+
+          <Suspense fallback={<div className="min-h-[420px] rounded-2xl border border-border bg-surface" aria-hidden="true" />}>
             <InteractiveClinicEngine onOpenDemo={() => setDemoModalOpen(true)} />
           </Suspense>
         </div>
       </section>
 
-      {/* Specialties Grid */}
-      <section className="border-b border-border/60 bg-muted/15 py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto text-center space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Tailored Templates & Clinical Workflows For Every Specialty
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto">
-            {SPECIALTIES.map((s) => (
-              <span
-                key={s}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-border/80 bg-surface text-foreground shadow-2xs"
+      {/* ============================================================ */}
+      {/* 04. TONAL FLIP — DEEP CLINICAL INK ARCHITECTURE              */}
+      {/* ============================================================ */}
+      <section className="bg-[#0d1526] text-[#f4f4f0] py-20 lg:py-28 px-4 sm:px-6 lg:px-8 border-b border-white/10">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-7 space-y-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                02 — Clinical Infrastructure
+              </p>
+              <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-[-0.03em] text-white leading-[1.08]">
+                Built to replace five disconnected tools.
+              </h2>
+            </div>
+            <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-4">
+              <p className="text-sm text-slate-300 leading-relaxed lg:text-right max-w-md">
+                Every module reads from one patient record — eliminating duplicate data entry
+                between reception, doctor desk, and billing.
+              </p>
+              <Link
+                to="/features"
+                className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-white hover:text-blue-300 transition-colors"
               >
-                <CheckCircle2 className="size-3 text-emerald-500" /> {s}
-              </span>
+                Explore all 12 modules <ArrowUpRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-white/10">
+            {ARCHITECTURE_PILLARS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.index}
+                  className="p-7 sm:p-8 border-r border-b border-white/10 hover:bg-white/[0.03] transition-colors flex flex-col justify-between gap-8"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[11px] text-slate-400">{item.index}</span>
+                      <Icon className="size-4 text-slate-300" />
+                    </div>
+                    <h3 className="font-display text-lg font-bold text-white tracking-tight">
+                      {item.name}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </div>
+                  <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                    <span className="font-mono text-[11px] text-emerald-400">{item.metric}</span>
+                    <ArrowRight className="size-3.5 text-slate-500" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 05. PRACTICE SHIFT — PAPER & AGGREGATORS VS CLINICX          */}
+      {/* ============================================================ */}
+      <section className="border-b border-border bg-surface py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-7 space-y-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                03 — Operational Shift
+              </p>
+              <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-[-0.03em] text-foreground leading-[1.08]">
+                What changes on day one at reception.
+              </h2>
+            </div>
+            <div className="lg:col-span-5">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Select an area of clinic operations to compare manual registers and aggregator apps
+                against a unified ClinicX desk.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Selector Rail */}
+            <div className="lg:col-span-4 flex flex-col divide-y divide-border border border-border rounded-xl overflow-hidden bg-background">
+              {PRACTICE_SHIFT.map((item, idx) => {
+                const active = idx === activeShiftIndex;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveShiftIndex(idx)}
+                    className={`p-5 text-left transition-colors cursor-pointer flex items-center justify-between gap-3 ${
+                      active
+                        ? "bg-foreground text-background"
+                        : "hover:bg-muted/50 text-foreground"
+                    }`}
+                  >
+                    <div>
+                      <span
+                        className={`font-mono text-[10px] uppercase tracking-widest block mb-1 ${
+                          active ? "text-background/70" : "text-muted-foreground"
+                        }`}
+                      >
+                        0{idx + 1}
+                      </span>
+                      <span className="font-display text-sm sm:text-base font-bold">
+                        {item.area}
+                      </span>
+                    </div>
+                    <ArrowRight
+                      className={`size-4 shrink-0 ${
+                        active ? "text-background" : "text-muted-foreground"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Side-by-side Ledger */}
+            <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 border border-border rounded-xl overflow-hidden divide-y md:divide-y-0 md:divide-x divide-border">
+              <div className="p-7 sm:p-9 bg-background flex flex-col justify-between gap-8">
+                <div className="space-y-4">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Manual Desk / Aggregators
+                  </span>
+                  <h3 className="font-display text-xl font-bold text-foreground">
+                    {currentShift.area} — Today
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {currentShift.before}
+                  </p>
+                </div>
+                <p className="font-mono text-[11px] text-rose-600 dark:text-rose-400">
+                  High staff overhead &amp; lost follow-ups
+                </p>
+              </div>
+
+              <div className="p-7 sm:p-9 bg-surface flex flex-col justify-between gap-8">
+                <div className="space-y-4">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    With ClinicX
+                  </span>
+                  <h3 className="font-display text-xl font-bold text-foreground">
+                    {currentShift.area} — Automated
+                  </h3>
+                  <p className="text-sm text-foreground/90 leading-relaxed">
+                    {currentShift.after}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-400">
+                    Live in under 5 minutes
+                  </span>
+                  <Link
+                    to="/how-it-works"
+                    className="text-xs font-semibold text-foreground hover:text-primary inline-flex items-center gap-1"
+                  >
+                    See 3-step setup <ArrowUpRight className="size-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 06. INTERACTIVE PRACTICE ROI CALCULATOR                      */}
+      {/* ============================================================ */}
+      <Suspense fallback={<div className="min-h-[380px]" aria-hidden="true" />}>
+        <ClinicRoiCalculator />
+      </Suspense>
+
+      {/* ============================================================ */}
+      {/* 07. DOCTOR PERSPECTIVES (EDITORIAL MONOGRAPH GRID)           */}
+      {/* ============================================================ */}
+      <section className="border-b border-border bg-surface py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div className="lg:col-span-7 space-y-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                05 — Clinical Field Notes
+              </p>
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-[-0.03em] text-foreground leading-[1.08]">
+                Trusted across busy Indian OPDs.
+              </h2>
+            </div>
+            <div className="lg:col-span-5 lg:text-right">
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+              >
+                Compare transparent plans from ₹999/mo <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {DOCTOR_PERSPECTIVES.map((item) => (
+              <figure
+                key={item.name}
+                className="p-7 rounded-2xl border border-border bg-background flex flex-col justify-between gap-8"
+              >
+                <blockquote className="text-sm sm:text-[15px] text-foreground leading-relaxed">
+                  &ldquo;{item.quote}&rdquo;
+                </blockquote>
+                <figcaption className="pt-5 border-t border-border space-y-1.5">
+                  <div className="font-display font-bold text-sm text-foreground">{item.name}</div>
+                  <div className="text-xs text-muted-foreground">{item.role}</div>
+                  <div className="font-mono text-[11px] text-emerald-700 dark:text-emerald-400 pt-1">
+                    {item.stat}
+                  </div>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 10: Live Practice Activity Stream & Social Proof */}
-      <Suspense fallback={<div className="min-h-[260px]" aria-hidden="true" />}>
-        <LiveClinicSocialProof />
-      </Suspense>
-
-      {/* Interactive Practice ROI & Revenue Calculator */}
-      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
-        <ClinicRoiCalculator />
-      </Suspense>
-
-      {/* Deep-Dive Full Doctor Workspace */}
-      <section className="border-b border-border/60 bg-background py-16 sm:py-24 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto space-y-10">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-              <Sparkles className="size-3.5" /> Full Clinic Workspace
-            </div>
-            <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-              Designed for Speed: A Doctor's Interface That Never Slows You Down
+      {/* ============================================================ */}
+      {/* 08. DATA SOVEREIGNTY & COMPLIANCE LEDGER                     */}
+      {/* ============================================================ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+          <div className="lg:col-span-7 space-y-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              06 — Clinical Governance
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-[-0.03em] text-foreground">
+              Built for doctor-patient confidentiality &amp; DPDP Act 2023.
             </h2>
+          </div>
+          <div className="lg:col-span-5">
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              From morning appointments to day-end cash tallies, manage your entire clinic in under
-              3 clicks per patient.
+              Your patient ledger stays isolated by clinic tenant, hosted inside India, and
+              exportable in one click.
             </p>
           </div>
-          <Suspense fallback={<div className="min-h-[420px]" aria-hidden="true" />}>
-            <HeroProductDemo />
-          </Suspense>
         </div>
-      </section>
 
-      {/* 08: Process Draw Flow (Guide Animation 08) */}
-      <Suspense fallback={<div className="min-h-[300px]" aria-hidden="true" />}>
-        <ProcessDrawSection />
-      </Suspense>
-
-      {/* 09: Interactive Before / After Comparison Slider (Guide Animation 09) */}
-      <Suspense fallback={<div className="min-h-[320px]" aria-hidden="true" />}>
-        <BeforeAfterSlider />
-      </Suspense>
-
-      {/* 11: 3D Stacked Doctor Testimonials Deck (stacked-testimonials.html / Pattern 04) */}
-      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
-        <StackedDeckTestimonials />
-      </Suspense>
-
-      {/* 06: Bento Architecture & Feature Grid (Guide Animation 06) */}
-      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
-        <BentoArchitectureSection />
-      </Suspense>
-
-      {/* 11: High-Converting Us vs Them Comparison (Guide Animation 11) */}
-      <Suspense fallback={<div className="min-h-[360px]" aria-hidden="true" />}>
-        <UsVsThemSection />
-      </Suspense>
-
-      {/* Plans & Pricing Preview Banner (Points to dedicated /pricing page) */}
-      <section className="border-t border-border/60 bg-muted/20 py-16 sm:py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-            <Sparkles className="size-3.5 text-amber-500" /> Transparent & Fair Doctor Pricing
+        <div className="grid grid-cols-1 sm:grid-cols-3 border border-border rounded-xl overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-border bg-surface">
+          <div className="p-6 sm:p-7 space-y-2.5">
+            <Lock className="size-4 text-primary" />
+            <h3 className="font-display font-bold text-sm text-foreground">
+              100% Indian Data Residency
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Electronic health records, prescriptions, and patient logs reside on encrypted Mumbai
+              servers (AWS/Supabase ap-south-1).
+            </p>
           </div>
-          <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-            Simple, Transparent Plans with Zero Hidden Commissions
-          </h2>
-          <p className="text-xs sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Every plan includes a 14-day full-access free trial, free domain mapping, zero
-            commission on patient fees, and free staff onboarding.
-          </p>
-          <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/pricing">
-              <Button
-                size="lg"
-                className="rounded-xl font-bold text-xs sm:text-sm px-7 h-12 gap-2 shadow-md"
-              >
-                Explore Plans & Pricing <ArrowRight className="size-4" />
-              </Button>
-            </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => setDemoModalOpen(true)}
-              className="rounded-xl font-semibold text-xs sm:text-sm px-6 h-12 bg-surface cursor-pointer"
-            >
-              Schedule a 10-Min Live Demo
-            </Button>
+          <div className="p-6 sm:p-7 space-y-2.5">
+            <ShieldCheck className="size-4 text-emerald-600" />
+            <h3 className="font-display font-bold text-sm text-foreground">
+              Zero Vendor Lock-In
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Export your complete patient list, visit history, and accounts ledger to CSV/Excel or
+              PDF whenever you choose.
+            </p>
+          </div>
+          <div className="p-6 sm:p-7 space-y-2.5">
+            <Headphones className="size-4 text-foreground" />
+            <h3 className="font-display font-bold text-sm text-foreground">
+              Direct Clinician Support
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Hindi and English staff onboarding plus same-day engineering WhatsApp support for
+              active clinics.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Interactive Lead Capture Section */}
+      {/* ============================================================ */}
+      {/* 09. GUIDED SANDBOX LEAD CAPTURE                              */}
+      {/* ============================================================ */}
       <Suspense fallback={<div className="min-h-[320px]" aria-hidden="true" />}>
         <LeadCaptureSection />
       </Suspense>
 
-      {/* Security & Healthcare Compliance */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 space-y-10">
-        <div className="text-center max-w-2xl mx-auto space-y-3">
-          <ShieldCheck className="size-8 text-emerald-600 mx-auto" />
-          <h2 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-foreground">
-            Medical Grade Security & DPDP Act 2023 Compliant
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            We understand the sanctity of doctor-patient confidentiality. Your clinical data is
-            guarded by multi-layer encryption.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
-            <Lock className="size-5 text-primary" />
-            <h4 className="font-bold text-sm text-foreground">100% Indian Data Residency</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              All electronic health records, prescriptions, and patient details are hosted on Indian
-              servers (AWS/Supabase Mumbai region).
+      {/* ============================================================ */}
+      {/* 10. PRACTICE FAQ INDEX                                       */}
+      {/* ============================================================ */}
+      <section className="border-t border-border bg-background py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div className="space-y-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              07 — Questions
             </p>
-          </div>
-          <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
-            <Award className="size-5 text-emerald-600" />
-            <h4 className="font-bold text-sm text-foreground">Zero Vendor Lock-in</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              You own your clinical data. Export your entire patient list, appointment history, and
-              accounts to Excel/PDF anytime in 1 click.
-            </p>
-          </div>
-          <div className="p-5 rounded-2xl border border-border/80 bg-surface space-y-2">
-            <Headphones className="size-5 text-blue-600" />
-            <h4 className="font-bold text-sm text-foreground">Dedicated Doctor Support</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Direct WhatsApp support helpline and phone assistance. If your clinic faces any issue,
-              our engineering team resolves it same-day.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Frequently Asked Questions */}
-      <section className="border-t border-border/60 bg-muted/15 py-20 px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <div className="text-center space-y-2">
-            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Frequently Asked Questions
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+              Practical answers before you switch.
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Real questions practicing Indian doctors ask before getting started.
-            </p>
           </div>
           <div className="divide-y divide-border border-y border-border">
-            {FAQS.map((f) => (
-              <details key={f.q} className="group py-4 sm:py-5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xs sm:text-sm font-semibold text-foreground">
-                  {f.q}
-                  <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+            {FAQS.map((f, idx) => (
+              <details key={f.q} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-foreground">
+                  <span className="flex items-baseline gap-3">
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      0{idx + 1}
+                    </span>
+                    <span>{f.q}</span>
+                  </span>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
                 </summary>
-                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-3 pl-7 text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   {f.a}
                 </p>
               </details>
@@ -902,54 +870,60 @@ function LandingContent() {
         </div>
       </section>
 
-      {/* Final Action CTA */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 sm:py-28 text-center space-y-6">
-        <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center mx-auto shadow-sm">
-          <Stethoscope className="size-6" />
-        </div>
-        <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-foreground">
-          Ready to Modernize Your Clinic?
-        </h2>
-        <p className="text-xs sm:text-base text-muted-foreground max-w-xl mx-auto">
-          Take your first online booking and set up your OPD queue today. Setup takes under 5
-          minutes with zero upfront fees.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <Link to="/signup" className="w-full sm:w-auto">
+      {/* ============================================================ */}
+      {/* 11. FINAL QUIET DARK CONVERSION BAND                         */}
+      {/* ============================================================ */}
+      <section className="bg-[#0d1526] text-[#f4f4f0] border-t border-white/10 py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="space-y-3 max-w-xl">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">
+              Start in under five minutes
+            </p>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-[-0.03em] text-white leading-tight">
+              Run your morning OPD without front-desk bottlenecks.
+            </h2>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Full 14-day clinic trial with free domain setup, staff training, and zero patient fee
+              commissions.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+            <Link to="/signup">
+              <Button
+                size="lg"
+                className="h-12 w-full sm:w-auto px-8 rounded-lg text-sm font-semibold gap-2 bg-white text-[#0d1526] hover:bg-slate-100 cursor-pointer"
+              >
+                Start 14-day trial <ArrowRight className="size-4" />
+              </Button>
+            </Link>
             <Button
               size="lg"
-              className="h-12 w-full sm:w-auto px-8 rounded-xl text-sm font-bold gap-2 shadow-lg shadow-primary/20"
+              variant="outline"
+              onClick={() => setDemoModalOpen(true)}
+              className="h-12 w-full sm:w-auto px-7 rounded-lg text-sm font-medium border-white/20 bg-transparent text-white hover:bg-white/10 cursor-pointer"
             >
-              Start 14-Day Free Trial <ArrowRight className="size-4" />
+              Book onboarding call
             </Button>
-          </Link>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => setDemoModalOpen(true)}
-            className="h-12 w-full sm:w-auto px-7 rounded-xl text-sm font-semibold bg-surface cursor-pointer"
-          >
-            Schedule Staff Onboarding Call
-          </Button>
+          </div>
         </div>
       </section>
 
-      {/* Floating Mobile Bottom Action Bar (Thumb-friendly on phones) */}
-      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-md border-t border-border p-2.5 flex items-center justify-between gap-2 shadow-lg">
+      {/* Floating Mobile Bottom Action Bar */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border p-2.5 flex items-center justify-between gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={() => setDemoModalOpen(true)}
-          className="flex-1 h-10 text-xs font-semibold gap-1 bg-surface"
+          className="flex-1 h-10 text-xs font-semibold rounded-lg bg-surface"
         >
-          <Sparkles className="size-3.5 text-amber-500" /> Book Demo
+          Walkthrough
         </Button>
         <Link to="/signup" className="flex-1">
           <Button
             size="sm"
-            className="w-full h-10 text-xs font-bold gap-1 bg-primary text-primary-foreground shadow-sm"
+            className="w-full h-10 text-xs font-semibold gap-1 bg-foreground text-background rounded-lg"
           >
-            Free Trial <ArrowRight className="size-3.5" />
+            Start Trial <ArrowRight className="size-3.5" />
           </Button>
         </Link>
       </div>

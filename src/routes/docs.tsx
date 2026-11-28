@@ -7,7 +7,6 @@ import {
   Stethoscope,
   Users,
   Calendar,
-  Sparkles,
   QrCode,
   Globe,
   Printer,
@@ -59,15 +58,15 @@ const DOC_SECTIONS = [
       },
       {
         title: "1-Click Clinical Presets",
-        text: "Click any preset button (🌡️ Fever/Cold, 🗣️ Sore Throat, ❤️ BP Refill, 🔥 GERD/Acidity, 🌿 Skin Allergy, 🤢 Gastro/Diarrhea). The Chief Complaint, Diagnosis, Clinical History, and complete Prescription plan are populated instantly.",
+        text: "Click any preset button (Fever/Cold, Sore Throat, BP Refill, GERD/Acidity, Skin Allergy, Gastro). The Chief Complaint, Diagnosis, Clinical History, and complete Prescription plan are populated instantly.",
       },
       {
         title: "1-Tap Medicine Inserters",
         text: "Click fast medication chips (+ Paracetamol 650mg, + Amox-Clav 625mg, + Pantoprazole 40mg, etc.) to instantly append dosage lines to the prescription pad without deleting existing text.",
       },
       {
-        title: "⚡ Complete & Next Patient",
-        text: "Click the primary '⚡ Complete & Next Patient' button. The system saves the consultation to EMR, marks the appointment/token done, and immediately loads the next waiting patient into the pad with zero page transitions.",
+        title: "Complete & Next Patient",
+        text: "Click the primary 'Complete & Next Patient' button. The system saves the consultation to EMR, marks the appointment/token done, and immediately loads the next waiting patient into the pad with zero page transitions.",
       },
       {
         title: "Print Rx Slip & WhatsApp Summary",
@@ -199,15 +198,15 @@ function DocumentationPage() {
     <MarketingShell>
       <div className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <Badge variant="outline" className="mb-3 bg-primary/10 text-primary border-primary/20 font-bold">
-            📖 ClinicX Official Documentation
-          </Badge>
-          <h1 className="text-3xl sm:text-5xl font-display font-bold tracking-tight text-foreground">
-            System Guide &amp; How to Use
+        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            ClinicX Official Documentation
+          </p>
+          <h1 className="text-3xl sm:text-5xl font-display font-extrabold tracking-[-0.035em] text-foreground">
+            System Guide &amp; Workflows
           </h1>
-          <p className="text-base text-muted-foreground mt-3">
-            Step-by-step guides for all verified, fully working ClinicX modules — designed for doctors and clinic staff.
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Step-by-step guides for ClinicX clinical modules — written for doctors and reception staff.
           </p>
 
           {/* Quick Search */}
@@ -315,12 +314,12 @@ function DocumentationPage() {
               </div>
 
               {/* Pro Tips Box */}
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs">
-                  <Sparkles className="size-3.5" /> Pro Doctor Tip:
+              <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-1">
+                <div className="font-mono text-[11px] uppercase tracking-wider text-foreground font-semibold">
+                  Clinical Workflow Tip
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Using 1-Click Clinical Presets and the "⚡ Complete &amp; Next Patient" button allows solo doctors to complete OPD queues at 3x speed without ever needing to touch navigation tabs.
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Using 1-Click Clinical Presets and the &ldquo;Complete &amp; Next Patient&rdquo; action allows solo doctors to move through OPD queues rapidly without switching navigation tabs.
                 </p>
               </div>
             </Card>

@@ -1,18 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
-  Stethoscope,
   Menu,
   X,
   Sun,
   Moon,
   Monitor,
-  Sparkles,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  HeartPulse,
-  Play,
+  ArrowUpRight,
 } from "lucide-react";
 import { lazy, Suspense, useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "@/components/ui/theme-provider";
@@ -84,46 +79,45 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
-      {/* Top announcement bar */}
-      <div className="border-b border-border/60 bg-surface text-[11px] py-2 px-4 relative z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 font-sans text-muted-foreground">
-          <span className="hidden sm:inline-flex items-center gap-1.5 font-medium text-foreground">
-            <span className="size-1.5 rounded-full bg-success" /> New
-          </span>
-          <span className="truncate">
-            14-day free trial — clinic website and WhatsApp automation live in 5 minutes.
-          </span>
+    <div className="relative min-h-screen bg-background text-foreground antialiased selection:bg-primary/15 selection:text-primary transition-colors duration-200 flex flex-col">
+      {/* Top quiet operational ledger bar */}
+      <div className="border-b border-border/70 bg-surface text-[11px] py-2 px-4 relative z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between sm:justify-center gap-4 font-sans text-muted-foreground">
+          <div className="flex items-center gap-2.5 truncate">
+            <span className="font-mono text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded border border-border bg-muted/60 text-foreground shrink-0">
+              14-Day Trial
+            </span>
+            <span className="truncate">
+              Clinic website, WhatsApp scheduling, and live OPD queue — 0% patient commission.
+            </span>
+          </div>
           <Link
             to="/contact"
-            className="hidden sm:inline-flex items-center gap-1 font-medium text-primary hover:underline shrink-0"
+            className="inline-flex items-center gap-1 font-semibold text-foreground hover:text-primary transition-colors shrink-0"
           >
-            See the demo <ArrowRight className="size-3" />
+            Request walkthrough <ArrowUpRight className="size-3" />
           </Link>
         </div>
       </div>
 
       {/* Main Header */}
-      <header className="border-b border-border/40 bg-background/90 backdrop-blur-xl sticky top-0 left-0 right-0 z-40 w-full transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div
-              style={{ backgroundColor: "#ffffff" }}
-              className="size-9 rounded-xl p-1.5 grid place-items-center shadow-sm border border-border/10 overflow-hidden group-hover:scale-105 transition-transform"
-            >
+      <header className="border-b border-border/70 bg-background/95 backdrop-blur-md sticky top-0 left-0 right-0 z-40 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+            <div className="size-8 rounded-lg bg-white p-1 grid place-items-center border border-border shadow-2xs overflow-hidden">
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
-            <span className="font-display text-2xl font-bold tracking-tight text-foreground">
+            <span className="font-display text-xl font-extrabold tracking-[-0.03em] text-foreground">
               ClinicX
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-muted-foreground">
+          <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-muted-foreground">
             {MARKETING_NAV.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
-                className="transition-colors hover:text-foreground"
+                className="transition-colors hover:text-foreground py-1"
                 activeProps={{ className: "text-foreground font-semibold" }}
               >
                 {n.label}
@@ -131,36 +125,36 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5 shrink-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
               className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg"
               title={`Theme: ${themeLabel()}`}
+              aria-label={`Theme: ${themeLabel()}`}
             >
               {themeIcon()}
             </Button>
 
             <Link to="/login">
-              <Button variant="ghost" className="font-semibold text-sm text-slate-700 dark:text-slate-200 hover:text-foreground">
-                Sign In
+              <Button variant="ghost" className="font-medium text-[13px] text-muted-foreground hover:text-foreground h-9 px-3">
+                Sign in
               </Button>
             </Link>
 
             <Link to="/contact">
               <Button
                 variant="outline"
-                className="font-semibold border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl gap-1.5 h-9 px-3.5 text-xs shadow-2xs"
+                className="font-medium border-border bg-surface text-foreground hover:bg-muted/60 rounded-lg h-9 px-3.5 text-[13px]"
               >
-                <Play className="size-3 text-blue-600 fill-blue-600" />
-                <span>Live Demo</span>
+                Walkthrough
               </Button>
             </Link>
 
-            <Link to="/login">
-              <Button className="font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-1.5 h-9 px-4 shadow-md shadow-blue-600/25 text-xs transition-all hover:scale-[1.02]">
-                <span>Get Started Free</span>
+            <Link to="/login" search={{ tab: "signup" }}>
+              <Button className="font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-lg gap-1.5 h-9 px-4 text-[13px] transition-colors">
+                <span>Start trial</span>
                 <ArrowRight className="size-3.5" />
               </Button>
             </Link>
@@ -171,12 +165,13 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg mr-1"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg"
               title={`Theme: ${themeLabel()}`}
+              aria-label={`Theme: ${themeLabel()}`}
             >
               {themeIcon()}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setOpen(!open)}>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label="Toggle navigation menu">
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </Button>
           </div>
@@ -185,28 +180,28 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 
       {/* Mobile Drawer */}
       {open && (
-        <div className="md:hidden border-b border-border bg-background p-4 space-y-3 animate-in slide-in-from-top-2 z-50">
-          <nav className="flex flex-col space-y-2">
+        <div className="md:hidden border-b border-border bg-surface p-4 space-y-3 z-50">
+          <nav className="flex flex-col space-y-1">
             {MARKETING_NAV.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
                 onClick={() => setOpen(false)}
-                className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-muted text-foreground"
+                className="px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-muted text-foreground"
               >
                 {n.label}
               </Link>
             ))}
           </nav>
-          <div className="pt-2 border-t flex flex-col gap-2">
+          <div className="pt-3 border-t border-border flex flex-col gap-2">
             <Link to="/login" onClick={() => setOpen(false)}>
-              <Button variant="outline" className="w-full font-bold">
-                Doctor / Clinic Sign in
+              <Button variant="outline" className="w-full font-semibold h-10 rounded-lg">
+                Clinic Sign in
               </Button>
             </Link>
             <Link to="/contact" onClick={() => setOpen(false)}>
-              <Button className="w-full font-bold bg-primary text-primary-foreground">
-                ⚡ Try Live Demo
+              <Button className="w-full font-semibold bg-foreground text-background hover:bg-foreground/90 h-10 rounded-lg">
+                Request Live Walkthrough
               </Button>
             </Link>
           </div>
@@ -217,65 +212,70 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-border/60 bg-muted/20 pt-16 pb-12">
+      <footer className="border-t border-border bg-surface pt-16 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12">
             <div className="col-span-2 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-muted p-1 grid place-items-center border border-border/10">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-white p-1 grid place-items-center border border-border">
                   <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
                 </div>
-                <span className="font-display text-xl font-bold">ClinicX</span>
+                <span className="font-display text-xl font-extrabold tracking-[-0.03em]">
+                  ClinicX
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                The modern operating system for independent doctors. Custom website, WhatsApp
-                automation, EHR visit journals, and Razorpay GST billing.
+              <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                Practice infrastructure for independent Indian clinics. Branded domain, automated
+                WhatsApp scheduling, live OPD token display, and digital prescriptions.
+              </p>
+              <p className="font-mono text-[11px] text-muted-foreground">
+                DPDP Act 2023 · Mumbai Data Residency
               </p>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                Product
+              <h4 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Platform
               </h4>
-              <ul className="space-y-2 text-xs font-medium text-muted-foreground">
+              <ul className="space-y-2.5 text-xs font-medium text-muted-foreground">
                 <li>
-                  <Link to="/features" className="hover:text-foreground">
-                    Features
+                  <Link to="/features" className="hover:text-foreground transition-colors">
+                    Modules &amp; Features
                   </Link>
                 </li>
                 <li>
-                  <Link to="/how-it-works" className="hover:text-foreground">
+                  <Link to="/how-it-works" className="hover:text-foreground transition-colors">
                     How it Works
                   </Link>
                 </li>
                 <li>
-                  <Link to="/pricing" className="hover:text-foreground">
+                  <Link to="/pricing" className="hover:text-foreground transition-colors">
                     Pricing
                   </Link>
                 </li>
                 <li>
-                  <Link to="/download" className="hover:text-foreground">
-                    Download Mobile App
+                  <Link to="/download" className="hover:text-foreground transition-colors">
+                    Mobile &amp; Desktop App
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="hover:text-foreground text-primary font-bold">
-                    Live Demo
+                  <Link to="/contact" className="hover:text-foreground text-foreground font-semibold transition-colors">
+                    Live Walkthrough
                   </Link>
                 </li>
               </ul>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                Comparisons
+              <h4 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Compare
               </h4>
-              <ul className="space-y-2 text-xs font-medium text-muted-foreground">
+              <ul className="space-y-2.5 text-xs font-medium text-muted-foreground">
                 <li>
                   <Link
                     to="/compare/$competitor"
                     params={{ competitor: "practo" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     ClinicX vs Practo
                   </Link>
@@ -284,7 +284,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   <Link
                     to="/compare/$competitor"
                     params={{ competitor: "clinicea" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     ClinicX vs Clinicea
                   </Link>
@@ -293,7 +293,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   <Link
                     to="/compare/$competitor"
                     params={{ competitor: "eka-care" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     ClinicX vs Eka Care
                   </Link>
@@ -302,7 +302,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   <Link
                     to="/compare/$competitor"
                     params={{ competitor: "paper" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     ClinicX vs Paper Diary
                   </Link>
@@ -311,15 +311,15 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+              <h4 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Specialties
               </h4>
-              <ul className="space-y-2 text-xs font-medium text-muted-foreground">
+              <ul className="space-y-2.5 text-xs font-medium text-muted-foreground">
                 <li>
                   <Link
                     to="/for/$specialty"
                     params={{ specialty: "dermatologist" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     Dermatologists
                   </Link>
@@ -328,7 +328,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   <Link
                     to="/for/$specialty"
                     params={{ specialty: "dentist" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     Dentists
                   </Link>
@@ -337,7 +337,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   <Link
                     to="/for/$specialty"
                     params={{ specialty: "paediatrician" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     Paediatricians
                   </Link>
@@ -346,7 +346,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                   <Link
                     to="/for/$specialty"
                     params={{ specialty: "gynecologist" }}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground transition-colors"
                   >
                     Gynecologists
                   </Link>
@@ -355,17 +355,23 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <p>
-              © {new Date().getFullYear()} ClinicX. Built with care for independent practitioners
-              across India.
+              © {new Date().getFullYear()} ClinicX. Practice operating system for independent
+              clinicians across India.
             </p>
             <div className="flex items-center gap-6 font-medium">
-              <Link to="/login" className="hover:text-foreground">
-                Sign In
+              <Link to="/privacy" className="hover:text-foreground transition-colors">
+                Privacy
               </Link>
-              <Link to="/contact" className="hover:text-foreground text-primary font-bold">
-                ⚡ Try Demo Account
+              <Link to="/terms" className="hover:text-foreground transition-colors">
+                Terms
+              </Link>
+              <Link to="/login" className="hover:text-foreground transition-colors">
+                Sign in
+              </Link>
+              <Link to="/contact" className="hover:text-foreground text-foreground font-semibold transition-colors">
+                Book Walkthrough
               </Link>
             </div>
           </div>

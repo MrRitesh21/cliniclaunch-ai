@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Stethoscope,
   Star,
-  Sparkles,
   ShieldCheck,
   CheckCircle2,
 } from "lucide-react";
@@ -91,33 +90,33 @@ function ComparePage() {
     <MarketingShell>
       {/* Hero Section */}
       <section className="max-w-4xl mx-auto px-4 pt-16 pb-8 text-center space-y-6">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs text-primary font-bold tracking-wide uppercase">
-          <Sparkles className="size-3.5 text-amber-500" /> {comp.name} Alternative
-        </div>
-        <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
-          Looking for a better <em className="text-primary font-normal">{comp.name} alternative</em>
-          ?
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          {comp.name} Alternative
+        </p>
+        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] leading-[1.05]">
+          Looking for a better{" "}
+          <span className="font-editorial text-primary font-normal">{comp.name} alternative</span>?
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           {comp.tagline}
         </p>
-        <p className="text-base text-foreground max-w-2xl mx-auto font-bold bg-muted/40 p-3 rounded-xl border">
+        <p className="text-sm text-foreground max-w-2xl mx-auto font-semibold bg-surface p-3.5 rounded-xl border border-border">
           {comp.price_note}
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <Link to="/login">
-            <Button size="lg" className="h-12 px-8 font-bold gap-2">
-              Start Free 14-Day Trial <ArrowRight className="size-4" />
+            <Button size="lg" className="h-12 px-8 font-semibold bg-foreground text-background hover:bg-foreground/90 rounded-lg gap-2">
+              Start 14-day trial <ArrowRight className="size-4" />
             </Button>
           </Link>
           <Link to="/contact">
             <Button
               size="lg"
               variant="outline"
-              className="h-12 px-8 font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2"
+              className="h-12 px-8 font-medium border-border bg-surface text-foreground hover:bg-muted/60 rounded-lg"
             >
-              ⚡ Open Live Demo
+              Request Walkthrough
             </Button>
           </Link>
         </div>
@@ -176,31 +175,31 @@ function ComparePage() {
         </div>
       </section>
 
-      {/* High-Conversion Bottom CTA */}
+      {/* Bottom CTA */}
       <section className="max-w-4xl mx-auto px-4 pb-16 text-center">
-        <Card className="p-8 sm:p-12 bg-gradient-to-br from-primary via-indigo-600 to-primary text-primary-foreground border-primary/20 shadow-2xl rounded-3xl space-y-4">
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white">
-            Ready in 5 minutes. No credit card required.
+        <Card className="p-8 sm:p-12 bg-[#0d1526] text-[#f4f4f0] border-white/10 rounded-2xl space-y-4">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Live in 5 minutes. No card required.
           </h2>
-          <p className="text-primary-foreground/90 text-sm max-w-lg mx-auto">
+          <p className="text-slate-300 text-sm max-w-lg mx-auto">
             Join hundreds of independent doctors across India running their practice on ClinicX.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <Link to="/login">
               <Button
                 size="lg"
-                variant="secondary"
-                className="h-12 px-8 font-bold bg-white text-primary hover:bg-white/95"
+                className="h-12 px-8 font-semibold bg-white text-[#0d1526] hover:bg-slate-100 rounded-lg"
               >
-                Start Free Trial &rarr;
+                Start 14-day trial &rarr;
               </Button>
             </Link>
             <Link to="/contact">
               <Button
                 size="lg"
-                className="h-12 px-8 font-bold bg-slate-950 text-white border border-white/20 hover:bg-slate-900"
+                variant="outline"
+                className="h-12 px-8 font-medium bg-transparent text-white border-white/20 hover:bg-white/10 rounded-lg"
               >
-                ⚡ Open Live Demo
+                Request Walkthrough
               </Button>
             </Link>
           </div>

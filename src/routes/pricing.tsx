@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/accordion";
 import {
   CheckCircle2,
-  Sparkles,
   ShieldCheck,
   ArrowRight,
   Zap,
@@ -284,22 +283,21 @@ function PricingPage() {
     <MarketingShell>
       <div className="relative">
         {/* Header Hero */}
-        <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-background via-background to-muted/20 pt-14 pb-8 sm:py-24">
+        <section className="relative overflow-hidden border-b border-border bg-background pt-14 pb-10 sm:py-24">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.25] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_70%_50%_at_50%_0%,black,transparent)]"
+            className="pointer-events-none absolute inset-0 opacity-[0.3] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_70%_50%_at_50%_0%,black,transparent)]"
           />
 
-          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              🇮🇳 Simple & Fair Indian Pricing
-            </div>
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Transparent Indian Clinic Pricing
+            </p>
 
-            <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground max-w-3xl mx-auto leading-tight">
-              Predictable Pricing.{" "}
-              <span className="bg-gradient-to-r from-primary via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Zero Hidden Commissions.
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] text-foreground max-w-3xl mx-auto leading-[1.05]">
+              Predictable pricing.{" "}
+              <span className="font-editorial text-primary font-normal">
+                Zero commissions.
               </span>
             </h1>
 
@@ -388,9 +386,9 @@ function PricingPage() {
                   <div>
                     {featured && (
                       <div
-                        className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${featured ? "border-background/20 bg-background/10 text-background" : "border-primary/20 bg-primary/10 text-primary"}`}
+                        className={`mb-3 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${featured ? "border-background/20 bg-background/10 text-background" : "border-primary/20 bg-primary/10 text-primary"}`}
                       >
-                        <Sparkles className="size-3 text-amber-500" /> Recommended for OPDs
+                        Recommended for OPDs
                       </div>
                     )}
                     <h3
@@ -660,13 +658,13 @@ function PricingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link to="/contact">
-              <Button size="lg" variant="outline" className="h-11 px-7 rounded-xl text-xs font-semibold bg-surface">
-                <Sparkles className="size-3.5 text-amber-500 mr-1.5" /> Book 10-Min Live Demo
+              <Button size="lg" variant="outline" className="h-11 px-7 rounded-lg text-xs font-semibold bg-surface border-border">
+                Book 10-Min Walkthrough
               </Button>
             </Link>
             <Link to="/signup">
-              <Button size="lg" className="h-11 px-8 rounded-xl text-xs font-bold gap-2 shadow-md">
-                Start 14-Day Free Trial <ArrowRight className="size-4" />
+              <Button size="lg" className="h-11 px-8 rounded-lg text-xs font-semibold gap-2 bg-foreground text-background hover:bg-foreground/90">
+                Start 14-day trial <ArrowRight className="size-4" />
               </Button>
             </Link>
           </div>

@@ -16,7 +16,6 @@ import {
   Activity,
   FileText,
   ArrowRight,
-  Sparkles,
   CheckCircle2,
   Video,
 } from "lucide-react";
@@ -142,22 +141,23 @@ function FeaturesPage() {
       <section className="py-16 md:py-24 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative space-y-16">
           {/* Hero Header */}
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-widest bg-primary/10 text-primary uppercase">
-              Modular Practice Platform
-            </span>
-            <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
-              Power every area of your{" "}
-              <em className="text-primary font-normal">clinical practice.</em>
+          <div className="max-w-3xl space-y-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Modular Clinical Platform
+            </p>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] leading-[1.04]">
+              Every workflow in your{" "}
+              <span className="font-editorial text-primary font-normal">practice,</span>{" "}
+              connected.
             </h1>
-            <p className="text-base sm:text-xl text-muted-foreground leading-relaxed">
-              From patient acquisition to clinical notes and billing — everything is seamlessly
-              integrated into one unified dashboard.
+            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
+              From your public booking site to SOAP notes, OPD tokens, and GST billing — every
+              module writes to one patient ledger.
             </p>
           </div>
 
           {/* Category Filter Tabs */}
-          <div className="flex items-center justify-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap border-b border-border pb-6">
             {[
               { id: "all", label: "All 12 Modules" },
               { id: "core", label: "Core Practice" },
@@ -168,10 +168,10 @@ function FeaturesPage() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id as Category)}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   activeCategory === cat.id
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-105"
-                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-foreground text-background"
+                    : "bg-surface border border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {cat.label}
@@ -180,66 +180,72 @@ function FeaturesPage() {
           </div>
 
           {/* Feature Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {filtered.map((f) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((f, idx) => (
               <Card
                 key={f.id}
-                className="p-6 sm:p-8 border-border/80 hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group shadow-sm hover:shadow-md"
+                className="p-6 sm:p-7 border-border bg-surface hover:border-foreground/30 transition-colors flex flex-col justify-between group shadow-none rounded-xl"
               >
                 <div>
-                  <div className="size-12 rounded-2xl bg-primary/10 text-primary grid place-items-center mb-6 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    <f.icon className="size-6" />
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="size-10 rounded-lg border border-border bg-muted/50 text-foreground grid place-items-center group-hover:bg-foreground group-hover:text-background transition-colors">
+                      <f.icon className="size-5" />
+                    </div>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
                   </div>
-                  <h3 className="font-display text-xl font-bold text-foreground mb-2">{f.title}</h3>
+                  <h3 className="font-display text-lg font-bold text-foreground mb-2 tracking-tight">
+                    {f.title}
+                  </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     {f.body}
                   </p>
                 </div>
-                <div className="pt-6 mt-6 border-t border-border/50 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-primary flex items-center gap-1">
-                    <CheckCircle2 className="size-3.5" /> Included in plan
+                <div className="pt-5 mt-6 border-t border-border flex items-center justify-between text-xs">
+                  <span className="font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5" /> Included in plans
                   </span>
                   <Link
                     to="/contact"
-                    className="text-muted-foreground hover:text-foreground font-medium flex items-center gap-0.5"
+                    className="text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1"
                   >
-                    Live demo &rarr;
+                    Walkthrough &rarr;
                   </Link>
                 </div>
               </Card>
             ))}
           </div>
 
-          {/* Bottom High-Conversion Banner */}
-          <div className="bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="space-y-3 max-w-xl text-center md:text-left">
-              <span className="bg-white/20 text-white font-bold px-3 py-1 rounded-full text-xs uppercase tracking-wider">
-                Ready to transform your practice?
-              </span>
-              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-                Try all 12 modules live in under 60 seconds.
+          {/* Bottom Conversion Band */}
+          <div className="bg-[#0d1526] text-[#f4f4f0] rounded-2xl p-8 sm:p-12 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            <div className="space-y-2.5 max-w-xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                Ready in five minutes
+              </p>
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                Test all 12 modules live with sample OPD records.
               </h2>
-              <p className="text-primary-foreground/90 text-sm">
-                No credit card required. Instant access to full demo workspace with pre-populated
-                patient data.
+              <p className="text-slate-300 text-sm">
+                No card required. Request a guided walkthrough or start your 14-day clinic trial.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
               <Link to="/contact" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  variant="secondary"
-                  className="w-full font-bold bg-white text-primary hover:bg-white/95 h-12 px-6 gap-2"
+                  variant="outline"
+                  className="w-full font-medium border-white/20 bg-transparent text-white hover:bg-white/10 h-11 px-6 rounded-lg"
                 >
-                  <Sparkles className="size-4 text-amber-500" /> ⚡ Open Live Demo
+                  Request Walkthrough
                 </Button>
               </Link>
               <Link to="/login" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="w-full font-bold bg-slate-950 text-white hover:bg-slate-900 border border-white/20 h-12 px-6"
+                  className="w-full font-semibold bg-white text-[#0d1526] hover:bg-slate-100 h-11 px-6 rounded-lg gap-2"
                 >
-                  Start 14-Day Free Trial &rarr;
+                  Start 14-day trial <ArrowRight className="size-4" />
                 </Button>
               </Link>
             </div>

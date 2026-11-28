@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Sparkles,
   CheckCircle2,
   ArrowRight,
   Loader2,
@@ -158,15 +157,15 @@ export function LeadCaptureDialog({
         ) : (
           <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
             <DialogHeader className="text-left space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary w-fit">
-                <Sparkles className="size-3.5 text-amber-500" />
-                <span>10-Minute Live Demo • Zero Obligation</span>
-              </div>
-              <DialogTitle className="text-xl sm:text-2xl font-bold font-display text-foreground">
-                See ClinicX Live in Action
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                10-Minute Guided Walkthrough
+              </p>
+              <DialogTitle className="text-xl sm:text-2xl font-extrabold font-display tracking-tight text-foreground">
+                Preview ClinicX for your practice
               </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-                Tell us about your practice to preview your personalized 24/7 WhatsApp AI receptionist and OPD system in 60 seconds.
+                Share your practice details to launch a personalized WhatsApp booking and OPD token
+                sandbox in 60 seconds.
               </DialogDescription>
             </DialogHeader>
 

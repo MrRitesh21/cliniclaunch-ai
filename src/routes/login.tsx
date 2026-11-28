@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Stethoscope, Star, ShieldCheck, Sparkles, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { ShieldCheck, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { checkMaintenanceStatus } from "@/lib/admin.functions";
 import { guardAuthAttempt } from "@/lib/limits.functions";
@@ -413,57 +413,55 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      {/* Left brand panel */}
-      <div className="hidden lg:flex relative flex-col justify-between p-12 bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
-        <div className="absolute -top-24 -right-24 size-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 size-96 rounded-full bg-blue-300/10 blur-3xl" />
+      {/* Left brand panel — Deep Clinical Ink */}
+      <div className="hidden lg:flex relative flex-col justify-between p-12 bg-[#0d1526] text-[#f4f4f0] overflow-hidden border-r border-white/10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_65%_55%_at_50%_45%,#000_65%,transparent_100%)] pointer-events-none" />
 
         <div className="relative">
-          <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="size-10 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+          <Link to="/" className="inline-flex items-center gap-2.5 group">
+            <div className="size-9 rounded-lg bg-white p-1.5 grid place-items-center border border-white/10 overflow-hidden">
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
-            <span className="font-display text-2xl font-bold">{platformName}</span>
+            <span className="font-display text-xl font-extrabold tracking-[-0.03em] text-white">
+              {platformName}
+            </span>
           </Link>
         </div>
 
         <div className="relative space-y-8">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/10 backdrop-blur border border-primary-foreground/20 px-3 py-1 text-xs font-medium">
-              <Sparkles className="size-3.5" /> Trusted by 240+ clinics
-            </div>
-            <h1 className="font-display text-4xl xl:text-5xl leading-[1.05] tracking-tight">
-              The operating system for <em className="font-normal">independent doctors.</em>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-slate-400">
+              Trusted by 500+ Indian clinics
+            </p>
+            <h1 className="font-display text-4xl xl:text-5xl font-extrabold leading-[1.04] tracking-[-0.035em] text-white">
+              Practice infrastructure for{" "}
+              <span className="font-editorial text-blue-400 font-normal">independent</span> doctors.
             </h1>
-            <p className="text-primary-foreground/80 text-base leading-relaxed max-w-md">
-              Website, appointments, EHR, WhatsApp reminders, invoicing — set up in under 5 minutes.
+            <p className="text-slate-300 text-base leading-relaxed max-w-md">
+              Branded domain, automated WhatsApp scheduling, live OPD token queue, and 30-second
+              digital Rx — set up in under five minutes.
             </p>
           </div>
 
-          <figure className="bg-primary-foreground/10 backdrop-blur border border-primary-foreground/20 rounded-2xl p-6 max-w-md">
-            <div className="flex gap-0.5 mb-3">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Star key={i} className="size-4 fill-amber-300 text-amber-300" />
-              ))}
-            </div>
-            <blockquote className="font-display text-lg leading-snug">
-              "I went from a paper diary to a fully booked online calendar in an afternoon."
+          <figure className="bg-white/[0.04] border border-white/10 rounded-xl p-6 max-w-md space-y-4">
+            <blockquote className="font-display text-base leading-relaxed text-white/95">
+              &ldquo;I went from a paper register to a structured online OPD calendar in a single
+              afternoon.&rdquo;
             </blockquote>
-            <figcaption className="mt-4 text-sm text-primary-foreground/70">
-              Dr. Aanya Patel · Dermatologist, Mumbai
+            <figcaption className="pt-3 border-t border-white/10 text-xs text-slate-400 font-mono">
+              Dr. Aanya Patel · MD Dermatology, Mumbai
             </figcaption>
           </figure>
         </div>
 
-        <div className="relative flex items-center gap-5 text-xs text-primary-foreground/70">
+        <div className="relative flex items-center gap-5 text-xs text-slate-400 font-mono">
           <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="size-4" /> HIPAA-ready
+            <ShieldCheck className="size-4 text-emerald-400" /> DPDP Act 2023
           </span>
           <span>·</span>
-          <span>End-to-end encrypted</span>
+          <span>256-bit encrypted</span>
           <span>·</span>
-          <span>No credit card</span>
+          <span>0% commission</span>
         </div>
       </div>
 

@@ -6,7 +6,6 @@ import {
   Globe,
   CheckCircle2,
   Clock,
-  Sparkles,
   ArrowRight,
   Send,
   Volume2,
@@ -156,38 +155,31 @@ export function InteractiveClinicEngine({ onOpenDemo }: InteractiveClinicEngineP
 
   return (
     <div
-      className="w-full rounded-2xl sm:rounded-3xl border border-border/80 bg-card/85 backdrop-blur-xl shadow-xl shadow-primary/5 overflow-hidden transition-all text-left"
+      className="w-full rounded-2xl border border-border bg-surface shadow-[0_18px_48px_-24px_rgba(13,21,38,0.12)] overflow-hidden transition-all text-left"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
       {/* Top Header & Tab Switcher */}
-      <div className="border-b border-border/70 bg-muted/30 px-3.5 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-rose-500/80 inline-block" />
-            <span className="size-2.5 rounded-full bg-amber-500/80 inline-block" />
-            <span className="size-2.5 rounded-full bg-emerald-500/80 inline-block" />
-          </div>
-          <span className="text-xs font-semibold text-muted-foreground ml-1.5 hidden sm:inline-block">
-            ClinicX All-in-One Engine
-          </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
-            <Sparkles className="size-2.5 text-primary" /> Live Interactive Preview
+      <div className="border-b border-border bg-muted/40 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="size-2 rounded-full bg-emerald-500 inline-block" />
+          <span className="font-mono text-[11px] uppercase tracking-wider font-semibold text-foreground">
+            Interactive Workspace Sandbox
           </span>
         </div>
 
         {/* Tab Pills */}
-        <div className="flex items-center gap-1 bg-surface/80 p-1 rounded-xl border border-border/70 text-xs font-medium">
+        <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border text-xs font-medium">
           <button
             type="button"
             onClick={() => {
               setActiveTab("whatsapp");
               setIsPaused(true);
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
               activeTab === "whatsapp"
-                ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                ? "bg-foreground text-background font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
             <MessageSquare className="size-3.5 shrink-0" />
@@ -200,10 +192,10 @@ export function InteractiveClinicEngine({ onOpenDemo }: InteractiveClinicEngineP
               setActiveTab("tv");
               setIsPaused(true);
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
               activeTab === "tv"
-                ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                ? "bg-foreground text-background font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
             <Tv className="size-3.5 shrink-0" />
@@ -216,10 +208,10 @@ export function InteractiveClinicEngine({ onOpenDemo }: InteractiveClinicEngineP
               setActiveTab("rx");
               setIsPaused(true);
             }}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
               activeTab === "rx"
-                ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                ? "bg-foreground text-background font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
             <FileText className="size-3.5 shrink-0" />
@@ -232,10 +224,10 @@ export function InteractiveClinicEngine({ onOpenDemo }: InteractiveClinicEngineP
               setActiveTab("website");
               setIsPaused(true);
             }}
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
               activeTab === "website"
-                ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                ? "bg-foreground text-background font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
             <Globe className="size-3.5 shrink-0" />

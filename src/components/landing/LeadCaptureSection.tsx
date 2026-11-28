@@ -11,14 +11,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Sparkles,
   CheckCircle2,
   ArrowRight,
   Loader2,
   ExternalLink,
   MessageSquare,
-  ShieldCheck,
-  Zap,
   Phone,
   Building2,
   Stethoscope,
@@ -78,12 +75,9 @@ export function LeadCaptureSection() {
   };
 
   return (
-    <section id="demo-section" className="py-20 px-4 sm:px-6 relative overflow-hidden bg-gradient-to-b from-muted/20 via-background to-muted/30">
-      <div className="max-w-5xl mx-auto">
-        <div className="relative rounded-3xl border border-primary/20 bg-card/80 backdrop-blur-md p-6 sm:p-10 shadow-xl overflow-hidden">
-          {/* Background Ambient Glow */}
-          <div className="absolute -top-24 -right-24 size-80 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 size-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+    <section id="demo-section" className="py-20 lg:py-24 px-4 sm:px-6 lg:px-8 border-t border-border bg-surface">
+      <div className="max-w-7xl mx-auto">
+        <div className="relative rounded-2xl border border-border bg-background p-6 sm:p-10 lg:p-12 overflow-hidden">
 
           {submittedData ? (
             <div className="py-8 text-center space-y-6 max-w-lg mx-auto">
@@ -133,30 +127,30 @@ export function LeadCaptureSection() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              <div className="lg:col-span-5 space-y-4 text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                  <Sparkles className="size-3.5 text-amber-500" />
-                  <span>Instant Interactive Demo</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-foreground">
-                  See How ClinicX Works for Your Clinic
+              <div className="lg:col-span-5 space-y-5 text-left">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Guided Practice Sandbox
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-[-0.03em] text-foreground leading-tight">
+                  Generate a live preview tailored to your specialty.
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Enter your details to generate an instant, interactive WhatsApp booking and OPD queue demo customized to your medical specialty.
+                  Enter your clinic details to spin up an interactive WhatsApp booking link and OPD
+                  token queue configured for your practice.
                 </p>
 
                 <div className="space-y-2.5 pt-2 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                    <span>24/7 AI Receptionist configured in 5 minutes</span>
+                    <span>WhatsApp scheduling configured in 5 minutes</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                    <span>Zero hardware or complicated software needed</span>
+                    <span>Runs on existing reception tablets, phones, and Smart TVs</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                    <span>14-day free trial with zero commission on fees</span>
+                    <span>14-day full trial with zero patient fee commission</span>
                   </div>
                 </div>
               </div>

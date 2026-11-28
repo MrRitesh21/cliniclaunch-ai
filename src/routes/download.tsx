@@ -24,7 +24,6 @@ import {
   Share2,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Stethoscope,
   Users,
   WifiOff,
@@ -115,7 +114,7 @@ function DownloadAppPage() {
   return (
     <MarketingShell>
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border/50 bg-gradient-to-b from-cyan-50/70 via-background to-background dark:from-cyan-950/20 dark:via-background dark:to-background">
+      <section className="relative overflow-hidden border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
             {/* Left Column: Pitch + Platform Selector */}
@@ -618,12 +617,11 @@ function DownloadAppPage() {
       {/* Native Features Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-8">
         <div className="space-y-2 max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
-            <Sparkles className="size-3.5" />
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Built for Fast Consultations
-          </span>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            Everything doctors & reception staff need on mobile
+          </p>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+            Everything doctors &amp; reception staff need on mobile
           </h2>
         </div>
 
