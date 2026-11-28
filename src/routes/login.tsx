@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ShieldCheck, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -287,11 +286,11 @@ function LoginPage() {
         /invalid login credentials/i.test(error.message)
       ) {
         message =
-          "Incorrect email/mobile number or password. If you haven't registered on this local instance yet, switch to the Sign up tab.";
+          "Incorrect email/mobile number or password. If you are new to ClinicX, create an account below.";
       } else if (code === "over_request_rate_limit" || /too many requests/i.test(error.message)) {
         message = "Too many sign-in attempts. Please wait a minute and try again.";
       } else if (code === "user_not_found") {
-        message = "No account found with this email. Create one on the Sign up tab.";
+        message = "No account found with this email. Create an account below.";
       }
       return toast.error(message);
     }
@@ -466,81 +465,86 @@ function LoginPage() {
       </div>
 
       {/* Right form panel */}
-      <div className="flex flex-col justify-center px-6 py-12 lg:px-16 xl:px-24">
-        <div className="w-full max-w-md mx-auto">
-          <Link to="/" className="inline-flex lg:hidden items-center gap-2 mb-8">
-            <div className="size-9 rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 grid place-items-center border border-border/10 overflow-hidden shadow-sm">
+      <div className="min-h-screen flex flex-col justify-between px-6 py-8 sm:py-10 lg:px-16 xl:px-24 bg-background">
+        {/* Top Navigation Row */}
+        <div className="w-full max-w-[380px] mx-auto flex items-center justify-between">
+          <Link to="/" className="inline-flex lg:hidden items-center gap-2">
+            <div className="size-8 rounded-lg bg-white p-1 grid place-items-center border border-border overflow-hidden">
               <img src="/logo-icon.png" alt="ClinicX" className="size-full object-contain" />
             </div>
-            <span className="font-display text-2xl font-bold">{platformName}</span>
+            <span className="font-display text-lg font-extrabold tracking-[-0.03em]">
+              {platformName}
+            </span>
           </Link>
 
           <Link
             to="/"
-            className="hidden lg:inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-6"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="size-3.5" /> Back to home
           </Link>
+        </div>
 
+        {/* Main Auth Stack */}
+        <div className="w-full max-w-[380px] mx-auto my-auto py-10">
           {view === "login" && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="mb-8">
-                <h2 className="font-display text-3xl tracking-tight">Welcome to {platformName}</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">
-                  Sign in or create a free account to launch your practice.
+            <div className="w-full space-y-6">
+              <div className="space-y-1.5">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+                  {activeTab === "signup"
+                    ? `Create your ${platformName} account`
+                    : `Sign in to ${platformName}`}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {activeTab === "signup"
+                    ? "Start your 14-day clinic trial in under five minutes."
+                    : "Access your clinic desk, OPD queue, and patient records."}
                 </p>
               </div>
 
-              <TabsList className="grid grid-cols-2 w-full mb-6 h-11 p-1">
-                <TabsTrigger value="signin" className="text-sm">
-                  Sign in
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="text-sm">
-                  Sign up
-                </TabsTrigger>
-              </TabsList>
+              {/* Clean Google Login Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={signInWithGoogle}
+                disabled={loading}
+                className="w-full h-11 font-semibold text-sm flex items-center justify-center gap-2.5 rounded-lg border border-border bg-surface text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+              >
+                <svg className="size-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </Button>
 
-              <TabsContent value="signin" className="space-y-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={signInWithGoogle}
-                  disabled={loading}
-                  className="w-full h-11 font-medium text-sm flex items-center justify-center gap-2.5 rounded-xl border border-border hover:bg-muted/40 transition-all shadow-xs"
-                >
-                  <svg className="size-4 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Sign in with Google</span>
-                </Button>
+              <div className="relative flex items-center py-0.5">
+                <div className="flex-1 border-t border-border" />
+                <span className="px-3 font-mono text-[10px] uppercase text-muted-foreground tracking-[0.16em]">
+                  or
+                </span>
+                <div className="flex-1 border-t border-border" />
+              </div>
 
-                <div className="relative text-center my-3">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border" />
-                  </div>
-                  <span className="relative bg-background px-3 text-[11px] uppercase font-medium text-muted-foreground tracking-wider">
-                    Or with email / phone
-                  </span>
-                </div>
-
+              {activeTab === "signin" ? (
                 <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="identifier">Email or Mobile Number</Label>
+                    <Label htmlFor="identifier" className="text-xs font-semibold text-foreground">
+                      Email or Mobile Number
+                    </Label>
                     <Input
                       id="identifier"
                       type="text"
@@ -557,18 +561,20 @@ function LoginPage() {
                         }
                       }}
                       placeholder="you@clinic.com or 9876543210"
-                      className="h-11"
+                      className="h-11 rounded-lg bg-surface border-border"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password" className="text-xs font-semibold text-foreground">
+                        Password
+                      </Label>
                       <button
                         type="button"
                         onClick={() => setView("forgot")}
-                        className="text-xs text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground bg-transparent border-none p-0 cursor-pointer transition-colors"
                       >
-                        Forgot?
+                        Forgot password?
                       </button>
                     </div>
                     <div className="relative">
@@ -581,77 +587,46 @@ function LoginPage() {
                           void router.preloadRoute({ to: "/dashboard" }).catch(() => {});
                         }}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="h-11 pr-10"
+                        placeholder="Enter your password"
+                        className="h-11 pr-10 rounded-lg bg-surface border-border"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPw(!showPw)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                         aria-label="Toggle password"
                       >
                         {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
-                    {loading ? "Signing in…" : "Sign in"}
+                  <Button
+                    type="submit"
+                    className="w-full h-11 rounded-lg font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors cursor-pointer"
+                    disabled={loading}
+                  >
+                    {loading ? "Signing in…" : "Sign in with Email"}
                   </Button>
                 </form>
-              </TabsContent>
-
-              <TabsContent value="signup" className="space-y-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={signInWithGoogle}
-                  disabled={loading}
-                  className="w-full h-11 font-medium text-sm flex items-center justify-center gap-2.5 rounded-xl border border-border hover:bg-muted/40 transition-all shadow-xs"
-                >
-                  <svg className="size-4 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Sign up with Google</span>
-                </Button>
-
-                <div className="relative text-center my-3">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border" />
-                  </div>
-                  <span className="relative bg-background px-3 text-[11px] uppercase font-medium text-muted-foreground tracking-wider">
-                    Or with email
-                  </span>
-                </div>
-
+              ) : (
                 <form onSubmit={signUp} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="fname">Full name</Label>
+                    <Label htmlFor="fname" className="text-xs font-semibold text-foreground">
+                      Full name
+                    </Label>
                     <Input
                       id="fname"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Dr. Jane Smith"
-                      className="h-11"
+                      placeholder="Dr. Aanya Patel"
+                      className="h-11 rounded-lg bg-surface border-border"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="email2">Email</Label>
+                    <Label htmlFor="email2" className="text-xs font-semibold text-foreground">
+                      Email
+                    </Label>
                     <Input
                       id="email2"
                       type="email"
@@ -659,11 +634,13 @@ function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@clinic.com"
-                      className="h-11"
+                      className="h-11 rounded-lg bg-surface border-border"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="pw2">Password</Label>
+                    <Label htmlFor="pw2" className="text-xs font-semibold text-foreground">
+                      Password
+                    </Label>
                     <div className="relative">
                       <Input
                         id="pw2"
@@ -673,38 +650,72 @@ function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="At least 6 characters"
-                        className="h-11 pr-10"
+                        className="h-11 pr-10 rounded-lg bg-surface border-border"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPw(!showPw)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                         aria-label="Toggle password"
                       >
                         {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
-                    {loading ? "Creating…" : "Create account"}
+                  <Button
+                    type="submit"
+                    className="w-full h-11 rounded-lg font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors cursor-pointer"
+                    disabled={loading}
+                  >
+                    {loading ? "Creating account…" : "Continue with Email"}
                   </Button>
                 </form>
-              </TabsContent>
-            </Tabs>
+              )}
+
+              <p className="text-center text-xs text-muted-foreground">
+                {activeTab === "signin" ? (
+                  <>
+                    New clinic on {platformName}?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("signup")}
+                      className="font-semibold text-foreground hover:underline bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      Create an account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("signin")}
+                      className="font-semibold text-foreground hover:underline bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </p>
+            </div>
           )}
 
           {view === "forgot" && (
             <div className="w-full space-y-6 animate-in fade-in duration-200">
-              <div className="mb-8">
-                <h2 className="font-display text-3xl tracking-tight">Forgot Password</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">
-                  Enter your email and we'll send you a password reset link.
+              <div className="space-y-1.5">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+                  Reset your password
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Enter your clinic email and we&apos;ll send a reset link.
                 </p>
               </div>
 
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="forgot-email">Email</Label>
+                  <Label htmlFor="forgot-email" className="text-xs font-semibold text-foreground">
+                    Email
+                  </Label>
                   <Input
                     id="forgot-email"
                     type="email"
@@ -712,19 +723,23 @@ function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@clinic.com"
-                    className="h-11"
+                    className="h-11 rounded-lg bg-surface border-border"
                   />
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 rounded-lg font-semibold bg-foreground text-background hover:bg-foreground/90 cursor-pointer"
+                  disabled={loading}
+                >
                   {loading ? "Sending reset link…" : "Send reset link"}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  className="w-full h-11"
+                  className="w-full h-10 text-xs font-medium cursor-pointer"
                   onClick={() => setView("login")}
                 >
-                  Back to Sign In
+                  Back to sign in
                 </Button>
               </form>
             </div>
@@ -732,16 +747,20 @@ function LoginPage() {
 
           {view === "reset" && (
             <div className="w-full space-y-6 animate-in fade-in duration-200">
-              <div className="mb-8">
-                <h2 className="font-display text-3xl tracking-tight">Reset Password</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">
-                  Create a strong, new password for your account.
+              <div className="space-y-1.5">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+                  Choose a new password
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Create a strong password for your clinic account.
                 </p>
               </div>
 
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="new-pw">New Password</Label>
+                  <Label htmlFor="new-pw" className="text-xs font-semibold text-foreground">
+                    New Password
+                  </Label>
                   <div className="relative">
                     <Input
                       id="new-pw"
@@ -751,12 +770,12 @@ function LoginPage() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="h-11 pr-10"
+                      className="h-11 pr-10 rounded-lg bg-surface border-border"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPw(!showPw)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                       aria-label="Toggle password"
                     >
                       {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -764,7 +783,9 @@ function LoginPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="confirm-pw">Confirm Password</Label>
+                  <Label htmlFor="confirm-pw" className="text-xs font-semibold text-foreground">
+                    Confirm Password
+                  </Label>
                   <Input
                     id="confirm-pw"
                     type={showPw ? "text" : "password"}
@@ -773,19 +794,32 @@ function LoginPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
-                    className="h-11"
+                    className="h-11 rounded-lg bg-surface border-border"
                   />
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 rounded-lg font-semibold bg-foreground text-background hover:bg-foreground/90 cursor-pointer"
+                  disabled={loading}
+                >
                   {loading ? "Updating password…" : "Update password"}
                 </Button>
               </form>
             </div>
           )}
+        </div>
 
-          <p className="mt-8 text-center text-[11px] text-muted-foreground/80">
-            By continuing you agree to our terms and privacy policy.
-          </p>
+        {/* Bottom Legal Footer */}
+        <div className="w-full max-w-[380px] mx-auto pt-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <span>By continuing you agree to our legal terms.</span>
+          <div className="flex items-center gap-4 font-medium">
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
     </div>
