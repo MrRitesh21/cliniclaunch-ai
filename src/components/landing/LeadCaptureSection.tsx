@@ -16,6 +16,7 @@ import {
   Loader2,
   ExternalLink,
   MessageSquare,
+  ShieldCheck,
   Phone,
   Building2,
   Stethoscope,
